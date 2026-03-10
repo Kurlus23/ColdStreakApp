@@ -52,7 +52,7 @@ export default function Home() {
   // Stopwatch
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
-  const [temperature, setTemperature] = useState<string>("50");
+  const [temperature, setTemperature] = useState<number>(50);
 
   // Countdown
   const [countdown, setCountdown] = useState(0);
@@ -70,15 +70,12 @@ export default function Home() {
   const { data: plunges = [], isLoading } = usePlunges();
   const createPlunge = useCreatePlunge();
 
-  const getTempVal = () => { const v = parseInt(temperature, 10); return isNaN(v) ? 50 : v; };
-
   const doLogPlunge = useCallback((durationSec: number) => {
-    const tempVal = getTempVal();
-    const score = plungeScore(durationSec, tempVal);
+    const score = plungeScore(durationSec, temperature);
     createPlunge.mutate(
       {
         duration: durationSec,
-        temperature: tempVal,
+        temperature: temperature,
         score: String(score),
         hrAvg: hr > 0 ? hr : null,
         spo2Avg: spo2 > 0 ? spo2 : null,
@@ -86,7 +83,7 @@ export default function Home() {
       {
         onSuccess: () => {
           confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
-          toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${tempVal}°F` });
+          toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${temperature}°F` });
         },
       }
     );
@@ -158,7 +155,7 @@ export default function Home() {
       characteristic.addEventListener("characteristicvaluechanged", (event: Event) => {
         const value = (event.target as BluetoothRemoteGATTCharacteristic).value!;
         const tempC = value.getUint8(1);
-        setTemperature(String(Math.round((tempC * 9) / 5 + 32)));
+        setTemperature(Math.round((tempC * 9) / 5 + 32));
         toast({ title: "Temperature updated", description: `Thermometer reading updated` });
       });
       toast({ title: "Thermometer connected!", description: device.name || "Device paired" });
@@ -315,16 +312,16 @@ export default function Home() {
                 <Thermometer className="w-3.5 h-3.5" /> Water Temp
               </label>
               <div className="flex items-center gap-2">
-                <div className="relative w-28">
-                  <input
-                    data-testid="input-temperature"
-                    type="number"
-                    value={temperature}
-                    onChange={(e) => setTemperature(e.target.value)}
-                    className="w-full bg-slate-900/80 border-2 border-slate-700/80 rounded-2xl py-2.5 pl-4 pr-9 text-white font-semibold text-xl focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all text-center"
-                  />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-cyan-500 font-bold pointer-events-none">°F</span>
-                </div>
+                <select
+                  data-testid="select-temperature"
+                  value={temperature}
+                  onChange={(e) => setTemperature(Number(e.target.value))}
+                  className="bg-slate-900/80 border-2 border-slate-700/80 rounded-2xl py-2.5 px-4 text-white font-semibold text-xl focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all appearance-none text-center"
+                >
+                  {Array.from({ length: 61 }, (_, i) => 40 + i).map((t) => (
+                    <option key={t} value={t}>{t}°F</option>
+                  ))}
+                </select>
                 <button
                   data-testid="button-bluetooth"
                   onClick={connectThermometer}
@@ -358,7 +355,7 @@ export default function Home() {
               </div>
               {seconds > 0 && (
                 <div className="text-cyan-400 text-sm mt-2 font-medium">
-                  Score preview: {plungeScore(seconds, getTempVal())}
+                  Score preview: {plungeScore(seconds, temperature)}
                 </div>
               )}
             </div>
