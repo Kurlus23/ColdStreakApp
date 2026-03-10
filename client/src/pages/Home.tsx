@@ -299,7 +299,6 @@ export default function Home() {
       doLogPlunge(targetDuration);
       alarmRef.current = new Audio(alarmUrl);
       alarmRef.current.play().catch(() => {});
-      toast({ title: "Time's up! ❄️", description: "Plunge complete — automatically logged!" });
     }
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -346,7 +345,18 @@ export default function Home() {
 
   const handleStop = () => {
     if (countdownMode) {
-      if (countdownRunning) { setCountdownRunning(false); return; }
+      if (countdownRunning) {
+        setCountdownRunning(false);
+        const totalDuration = minutesInput * 60 + secondsInput;
+        const elapsed = totalDuration - countdown;
+        if (elapsed > 0) {
+          doLogPlunge(elapsed);
+          setCountdown(0);
+        } else {
+          resetCountdown();
+        }
+        return;
+      }
       if (countdown > 0) { resetCountdown(); return; }
     } else {
       if (isRunning && seconds > 0) { setIsRunning(false); doLogPlunge(seconds); setSeconds(0); }
