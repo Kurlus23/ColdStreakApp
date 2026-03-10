@@ -285,9 +285,11 @@ export default function Home() {
   return (
     <div className="relative min-h-screen max-h-screen overflow-hidden bg-blue-950">
       {/* Iceberg photo background */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${icebergBg})` }}
+      <img
+        src={icebergBg}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ objectPosition: "center center" }}
       />
       {/* Dark overlay so UI is readable over the bright photo */}
       <div className="absolute inset-0 bg-gradient-to-b from-blue-950/60 via-blue-900/20 to-blue-950/80" />
