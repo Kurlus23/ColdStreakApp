@@ -53,6 +53,7 @@ export default function Home() {
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [temperature, setTemperature] = useState<number>(50);
+  const [useCelsius, setUseCelsius] = useState(false);
 
   // Countdown
   const [countdown, setCountdown] = useState(0);
@@ -314,14 +315,30 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <select
                   data-testid="select-temperature"
-                  value={temperature}
-                  onChange={(e) => setTemperature(Number(e.target.value))}
+                  value={useCelsius ? Math.round((temperature - 32) * 5 / 9) : temperature}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setTemperature(useCelsius ? Math.round(v * 9 / 5 + 32) : v);
+                  }}
                   className="bg-slate-900/80 border-2 border-slate-700/80 rounded-2xl py-2.5 px-4 text-white font-semibold text-xl focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all appearance-none text-center"
                 >
-                  {Array.from({ length: 61 }, (_, i) => 40 + i).map((t) => (
-                    <option key={t} value={t}>{t}°F</option>
-                  ))}
+                  {useCelsius
+                    ? Array.from({ length: 35 }, (_, i) => 4 + i).map((c) => (
+                        <option key={c} value={c}>{c}°C</option>
+                      ))
+                    : Array.from({ length: 61 }, (_, i) => 40 + i).map((f) => (
+                        <option key={f} value={f}>{f}°F</option>
+                      ))
+                  }
                 </select>
+                <button
+                  data-testid="button-unit-toggle"
+                  onClick={() => setUseCelsius((u) => !u)}
+                  title="Switch temperature unit"
+                  className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:border-cyan-500/40 text-sm font-semibold transition-all active:scale-95"
+                >
+                  {useCelsius ? "°F" : "°C"}
+                </button>
                 <button
                   data-testid="button-bluetooth"
                   onClick={connectThermometer}
