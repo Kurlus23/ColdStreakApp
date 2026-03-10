@@ -676,10 +676,12 @@ export default function Home() {
                   value={bodyWeightLbs}
                   onChange={(e) => {
                     const val = Number(e.target.value);
-                    if (val >= 50 && val <= 500) {
-                      setBodyWeightLbs(val);
-                      localStorage.setItem("coldstreak-body-weight", String(val));
-                    }
+                    if (!isNaN(val) && val > 0) setBodyWeightLbs(val);
+                  }}
+                  onBlur={(e) => {
+                    const clamped = Math.min(500, Math.max(50, Number(e.target.value) || 154));
+                    setBodyWeightLbs(clamped);
+                    localStorage.setItem("coldstreak-body-weight", String(clamped));
                   }}
                   className="w-24 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 text-center font-bold"
                 />
