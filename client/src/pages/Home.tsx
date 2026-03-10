@@ -5,7 +5,7 @@ import {
   Activity, AlarmClock, Flame, Target, Zap,
   Bluetooth, Watch, Heart, Settings, Bell, Upload, Volume2,
   Camera, MapPin, Lock, ShieldAlert, Trophy, Medal, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -14,7 +14,7 @@ import { usePlunges, useCreatePlunge, useUpdatePlunge } from "@/hooks/use-plunge
 import { useLeaderboard, useSubmitLeaderboard } from "@/hooks/use-leaderboard";
 import { useProStatus } from "@/hooks/use-pro-status";
 import { PlungeCard } from "@/components/PlungeCard";
-import { CommunityLocations } from "@/components/CommunityLocations";
+import { Explore } from "@/pages/Explore";
 import { PASSPORT_LOCATIONS, usePassportBadges } from "@/lib/passport";
 
 import { type Plunge } from "@shared/schema";
@@ -47,7 +47,7 @@ const ALARM_PRESETS = [
   { id: "bell",          label: "Bell",           url: "https://actions.google.com/sounds/v1/alarms/medium_bell_ringing_near.ogg" },
 ];
 
-type Screen = "timer" | "history" | "settings";
+type Screen = "timer" | "history" | "explore" | "settings";
 
 
 function plungeScore(durationSeconds: number, tempF: number): number {
@@ -194,8 +194,6 @@ export default function Home() {
 
   // Leaderboard
   const [leaderboardLocationId, setLeaderboardLocationId] = useState<string | null>(null);
-  const [passportOpen, setPassportOpen] = useState(false);
-
   // Username (for leaderboard)
   const [username, setUsername] = useState<string>(
     () => localStorage.getItem("coldstreak-username") ?? ""
@@ -559,67 +557,6 @@ export default function Home() {
               >✕</button>
             </div>
 
-            {/* Plunge Passport — Pro feature, collapsible */}
-            <div className="mb-5">
-              <button
-                data-testid="button-toggle-passport"
-                onClick={() => isPro ? setPassportOpen((o) => !o) : setShowUpgradeModal(true)}
-                className={`w-full flex items-center gap-2 border rounded-2xl px-4 py-3.5 transition-all active:scale-[0.99] ${passportOpen && isPro ? "bg-blue-800/80 border-blue-600/60" : "bg-blue-900/60 hover:bg-blue-800/70 border-blue-700/40"}`}
-              >
-                <span className="text-lg">🗺️</span>
-                <span className="text-white font-bold flex-1 text-left">Plunge Passport</span>
-                {isPro ? (
-                  <span className="text-xs text-cyan-400 font-semibold mr-1">{badges.size}/{PASSPORT_LOCATIONS.length}</span>
-                ) : (
-                  <span className="flex items-center gap-1 text-xs text-yellow-400 font-semibold mr-1"><Crown className="w-3 h-3" /> Pro</span>
-                )}
-                <div className={`flex items-center justify-center w-6 h-6 rounded-full transition-colors ${passportOpen && isPro ? "bg-blue-600/60" : "bg-blue-800/60"}`}>
-                  {isPro ? (
-                    <ChevronDown className={`w-3.5 h-3.5 text-blue-300 transition-transform duration-300 ${passportOpen ? "rotate-180" : ""}`} />
-                  ) : (
-                    <Lock className="w-3.5 h-3.5 text-blue-400" />
-                  )}
-                </div>
-              </button>
-
-              {passportOpen && isPro && (
-                <div className="mt-2 grid grid-cols-3 gap-2">
-                  {PASSPORT_LOCATIONS.map((loc) => {
-                    const earned = hasBadge(loc.id);
-                    return (
-                      <button
-                        key={loc.id}
-                        data-testid={`badge-${loc.id}`}
-                        onClick={() => setLeaderboardLocationId(loc.id)}
-                        className={`relative rounded-xl p-2.5 border text-center transition-all active:scale-95 ${
-                          earned
-                            ? "bg-cyan-500/20 border-cyan-500/50 hover:bg-cyan-500/30"
-                            : "bg-blue-900/40 border-blue-700/40 opacity-60 hover:opacity-80"
-                        }`}
-                      >
-                        <div className="text-2xl mb-1">{loc.flag}</div>
-                        <div className={`text-[10px] font-semibold leading-tight ${earned ? "text-cyan-200" : "text-blue-400"}`}>
-                          {loc.name}
-                        </div>
-                        {loc.seasonal && (
-                          <div className="text-[9px] text-amber-400 mt-0.5">Seasonal</div>
-                        )}
-                        {!earned && (
-                          <Lock className="w-3 h-3 text-blue-600 mx-auto mt-1" />
-                        )}
-                        <div className="flex items-center justify-center gap-0.5 mt-1">
-                          <Trophy className="w-2.5 h-2.5 text-yellow-500/60" />
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Community Locations */}
-            <CommunityLocations username={username} />
-
             {/* Today summary */}
             {todayPlunges.length > 0 && (
               <div className="flex justify-between items-center bg-blue-900/60 rounded-2xl px-4 py-3 mb-4 border border-blue-700/40">
@@ -669,6 +606,13 @@ export default function Home() {
               );
             })()}
           </div>
+        </div>
+      )}
+
+      {/* ─── EXPLORE SCREEN ─── */}
+      {screen === "explore" && (
+        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto">
+          <Explore username={username} />
         </div>
       )}
 
@@ -1263,7 +1207,7 @@ export default function Home() {
 
       {/* ─── BOTTOM NAV ─── */}
       <div className="absolute bottom-0 left-0 right-0 h-20 bg-blue-950/90 backdrop-blur-md border-t border-blue-800/60">
-        <div className="flex items-center h-full max-w-xl mx-auto px-8">
+        <div className="flex items-center h-full max-w-xl mx-auto px-4">
           {/* History */}
           <button
             data-testid="nav-history"
@@ -1274,6 +1218,16 @@ export default function Home() {
             <span className="text-[11px] font-semibold">History</span>
           </button>
 
+          {/* Explore */}
+          <button
+            data-testid="nav-explore"
+            onClick={() => navTo("explore")}
+            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${screen === "explore" ? "text-white" : "text-blue-500 hover:text-blue-300"}`}
+          >
+            <Compass className="w-5 h-5" />
+            <span className="text-[11px] font-semibold">Explore</span>
+          </button>
+
           {/* Cold Score — center */}
           <div className="flex-1 flex flex-col items-center gap-1">
             <button
@@ -1282,12 +1236,12 @@ export default function Home() {
                 title: "What is Cold Score?",
                 description: "Cold Score reflects the relative impact of your plunge based on duration × temperature factor. Colder water earns up to 2.3× multiplier. Higher scores mean more cold exposure and greater activation of cold shock proteins and brown fat.",
               })}
-              className="flex items-center gap-1.5 bg-blue-800/60 hover:bg-blue-700/70 border border-blue-600/60 rounded-2xl px-3 py-1.5 transition-all active:scale-95"
+              className="flex items-center gap-1.5 bg-blue-800/60 hover:bg-blue-700/70 border border-blue-600/60 rounded-2xl px-2 py-1.5 transition-all active:scale-95"
             >
-              <Snowflake className="w-4 h-4 text-cyan-300" />
+              <Snowflake className="w-3.5 h-3.5 text-cyan-300" />
               <div>
-                <div className="text-[9px] text-blue-400 uppercase tracking-wider leading-none">Cold Score</div>
-                <div className="text-white font-bold text-base leading-tight">
+                <div className="text-[9px] text-blue-400 uppercase tracking-wider leading-none">Score</div>
+                <div className="text-white font-bold text-sm leading-tight">
                   {displayScore > 0 ? displayScore.toFixed(0) : "—"}
                 </div>
               </div>

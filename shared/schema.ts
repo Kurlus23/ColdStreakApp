@@ -55,8 +55,12 @@ export const userLocations = pgTable("user_locations", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   country: text("country").notNull(),
+  state: text("state"),
+  city: text("city"),
   description: text("description"),
   submittedBy: text("submitted_by"),
+  latitude: numeric("latitude", { precision: 9, scale: 6 }),
+  longitude: numeric("longitude", { precision: 9, scale: 6 }),
   nominationCount: integer("nomination_count").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
