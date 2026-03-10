@@ -264,6 +264,34 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdownRunning, countdown]);
 
+  // Screen Wake Lock — keep display on while timer is running
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  useEffect(() => {
+    const isActive = countdownMode ? countdownRunning : isRunning;
+    const acquire = async () => {
+      if (!("wakeLock" in navigator)) return;
+      try {
+        wakeLockRef.current = await (navigator as any).wakeLock.request("screen");
+      } catch {}
+    };
+    const release = () => {
+      wakeLockRef.current?.release().catch(() => {});
+      wakeLockRef.current = null;
+    };
+    if (isActive) {
+      acquire();
+    } else {
+      release();
+    }
+    // Re-acquire if tab becomes visible again while timer is still running
+    const onVisibility = () => { if (document.visibilityState === "visible" && isActive) acquire(); };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      release();
+    };
+  }, [isRunning, countdownRunning, countdownMode]);
+
   const handleStart = () => {
     if (countdownMode) {
       const total = minutesInput * 60 + secondsInput;
