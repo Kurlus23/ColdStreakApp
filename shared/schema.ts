@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, numeric, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -24,6 +24,16 @@ export const leaderboardEntries = pgTable("leaderboard_entries", {
   temperature: integer("temperature").notNull(), // in fahrenheit
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const proUsers = pgTable("pro_users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  stripeSessionId: text("stripe_session_id").notNull(),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type ProUser = typeof proUsers.$inferSelect;
 
 export const insertPlungeSchema = createInsertSchema(plunges).omit({
   id: true,

@@ -1,8 +1,8 @@
 import { db } from "./db";
 import {
-  plunges, leaderboardEntries,
+  plunges, leaderboardEntries, proUsers,
   type InsertPlunge, type UpdatePlunge, type Plunge,
-  type InsertLeaderboardEntry, type LeaderboardEntry,
+  type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
 } from "@shared/schema";
 import { desc, eq } from "drizzle-orm";
 
@@ -13,6 +13,8 @@ export interface IStorage {
   deletePlunge(id: number): Promise<void>;
   getLeaderboard(locationId: string, limit?: number): Promise<LeaderboardEntry[]>;
   addLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry>;
+  getProUser(email: string): Promise<ProUser | null>;
+  createProUser(email: string, stripeSessionId: string): Promise<ProUser>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -49,6 +51,20 @@ export class DatabaseStorage implements IStorage {
       score: String(entry.score),
     }).returning();
     return newEntry;
+  }
+
+  async getProUser(email: string): Promise<ProUser | null> {
+    const [user] = await db.select().from(proUsers).where(eq(proUsers.email, email.toLowerCase()));
+    return user ?? null;
+  }
+
+  async createProUser(email: string, stripeSessionId: string): Promise<ProUser> {
+    const [user] = await db
+      .insert(proUsers)
+      .values({ email: email.toLowerCase(), stripeSessionId })
+      .onConflictDoUpdate({ target: proUsers.email, set: { stripeSessionId, active: true } })
+      .returning();
+    return user;
   }
 }
 

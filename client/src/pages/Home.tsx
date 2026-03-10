@@ -4,13 +4,15 @@ import {
   Play, Pause, RotateCcw, Thermometer, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,
   Bluetooth, Watch, Heart, Settings, Bell, Upload, Volume2,
-  Camera, MapPin, Lock, ShieldAlert, Trophy, Medal, User, ChevronDown
+  Camera, MapPin, Lock, ShieldAlert, Trophy, Medal, User, ChevronDown,
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
 import { useToast } from "@/hooks/use-toast";
 import { usePlunges, useCreatePlunge, useUpdatePlunge } from "@/hooks/use-plunges";
 import { useLeaderboard, useSubmitLeaderboard } from "@/hooks/use-leaderboard";
+import { useProStatus } from "@/hooks/use-pro-status";
 import { PlungeCard } from "@/components/PlungeCard";
 import { PASSPORT_LOCATIONS, usePassportBadges } from "@/lib/passport";
 
@@ -108,6 +110,21 @@ export default function Home() {
     localStorage.setItem("coldstreak-temperature", String(temperature));
   }, [temperature]);
 
+  // Handle Stripe payment return — verify session_id in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+    if (!sessionId) return;
+    verifySession(sessionId).then((success) => {
+      if (success) {
+        toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "All Pro features are now unlocked." });
+      } else {
+        toast({ title: "Payment not confirmed", description: "If you completed payment, try Restore Purchase.", variant: "destructive" });
+      }
+      window.history.replaceState({}, "", window.location.pathname);
+    });
+  }, []);
+
   // Alarm sound
   const [alarmUrl, setAlarmUrl] = useState<string>(
     () => localStorage.getItem("alarmUrl") ?? ALARM_PRESETS[0].url
@@ -167,6 +184,12 @@ export default function Home() {
   const [promptSaving, setPromptSaving] = useState(false);
   const [promptSubmitLeaderboard, setPromptSubmitLeaderboard] = useState(true);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Pro status
+  const { isPro, proEmail, loading: proLoading, startCheckout, verifySession, restorePurchase } = useProStatus();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [restoreEmailInput, setRestoreEmailInput] = useState("");
+  const [restoreLoading, setRestoreLoading] = useState(false);
 
   // Leaderboard
   const [leaderboardLocationId, setLeaderboardLocationId] = useState<string | null>(null);
@@ -519,24 +542,30 @@ export default function Home() {
               >✕</button>
             </div>
 
-            {/* Plunge Passport — collapsible */}
+            {/* Plunge Passport — Pro feature, collapsible */}
             <div className="mb-5">
               <button
                 data-testid="button-toggle-passport"
-                onClick={() => setPassportOpen((o) => !o)}
-                className={`w-full flex items-center gap-2 border rounded-2xl px-4 py-3.5 transition-all active:scale-[0.99] ${passportOpen ? "bg-blue-800/80 border-blue-600/60" : "bg-blue-900/60 hover:bg-blue-800/70 border-blue-700/40"}`}
+                onClick={() => isPro ? setPassportOpen((o) => !o) : setShowUpgradeModal(true)}
+                className={`w-full flex items-center gap-2 border rounded-2xl px-4 py-3.5 transition-all active:scale-[0.99] ${passportOpen && isPro ? "bg-blue-800/80 border-blue-600/60" : "bg-blue-900/60 hover:bg-blue-800/70 border-blue-700/40"}`}
               >
                 <span className="text-lg">🗺️</span>
                 <span className="text-white font-bold flex-1 text-left">Plunge Passport</span>
-                <span className="text-xs text-cyan-400 font-semibold mr-1">{badges.size}/{PASSPORT_LOCATIONS.length}</span>
-                <div className={`flex items-center justify-center w-6 h-6 rounded-full transition-colors ${passportOpen ? "bg-blue-600/60" : "bg-blue-800/60"}`}>
-                  <ChevronDown
-                    className={`w-3.5 h-3.5 text-blue-300 transition-transform duration-300 ${passportOpen ? "rotate-180" : ""}`}
-                  />
+                {isPro ? (
+                  <span className="text-xs text-cyan-400 font-semibold mr-1">{badges.size}/{PASSPORT_LOCATIONS.length}</span>
+                ) : (
+                  <span className="flex items-center gap-1 text-xs text-yellow-400 font-semibold mr-1"><Crown className="w-3 h-3" /> Pro</span>
+                )}
+                <div className={`flex items-center justify-center w-6 h-6 rounded-full transition-colors ${passportOpen && isPro ? "bg-blue-600/60" : "bg-blue-800/60"}`}>
+                  {isPro ? (
+                    <ChevronDown className={`w-3.5 h-3.5 text-blue-300 transition-transform duration-300 ${passportOpen ? "rotate-180" : ""}`} />
+                  ) : (
+                    <Lock className="w-3.5 h-3.5 text-blue-400" />
+                  )}
                 </div>
               </button>
 
-              {passportOpen && (
+              {passportOpen && isPro && (
                 <div className="mt-2 grid grid-cols-3 gap-2">
                   {PASSPORT_LOCATIONS.map((loc) => {
                     const earned = hasBadge(loc.id);
@@ -592,13 +621,33 @@ export default function Home() {
                 <Snowflake className="w-12 h-12 text-blue-700 mx-auto mb-3" />
                 <p className="text-blue-400">No plunges yet. Brave the cold!</p>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {[...plunges]
-                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                  .map((plunge) => <PlungeCard key={plunge.id} plunge={plunge} />)}
-              </div>
-            )}
+            ) : (() => {
+              const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+              const sorted = [...plunges].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+              const visible = isPro ? sorted : sorted.filter((p) => new Date(p.createdAt) >= sevenDaysAgo);
+              const locked = isPro ? [] : sorted.filter((p) => new Date(p.createdAt) < sevenDaysAgo);
+              return (
+                <div className="space-y-3">
+                  {visible.map((plunge) => <PlungeCard key={plunge.id} plunge={plunge} />)}
+                  {locked.length > 0 && (
+                    <button
+                      data-testid="banner-upgrade-history"
+                      onClick={() => setShowUpgradeModal(true)}
+                      className="w-full bg-gradient-to-r from-cyan-900/60 to-blue-900/60 border border-cyan-700/50 rounded-2xl p-4 text-center space-y-1 active:scale-[0.99] transition-all"
+                    >
+                      <div className="flex items-center justify-center gap-2 text-cyan-300 font-bold">
+                        <Crown className="w-4 h-4 text-yellow-400" />
+                        {locked.length} older plunge{locked.length !== 1 ? "s" : ""} hidden
+                      </div>
+                      <div className="text-blue-400 text-xs">Upgrade to Pro for unlimited history →</div>
+                    </button>
+                  )}
+                  {visible.length === 0 && locked.length === 0 && (
+                    <div className="text-center text-blue-500 py-8 text-sm">No plunges yet. Start your first session!</div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -617,6 +666,55 @@ export default function Home() {
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
               >✕</button>
             </div>
+
+            {/* ColdStreak Pro */}
+            {isPro ? (
+              <div className="bg-gradient-to-r from-cyan-900/60 to-blue-900/60 rounded-2xl p-4 border border-cyan-600/50 space-y-1">
+                <div className="flex items-center gap-2 text-white font-bold">
+                  <Crown className="w-4 h-4 text-yellow-400" /> ColdStreak Pro
+                  <CheckCircle2 className="w-4 h-4 text-green-400 ml-auto" />
+                </div>
+                <div className="text-cyan-300 text-xs">Active · {proEmail}</div>
+                <div className="text-blue-400 text-xs pt-1">Unlimited history · Plunge Passport · Advanced stats</div>
+              </div>
+            ) : (
+              <div className="bg-gradient-to-r from-cyan-900/60 to-blue-900/60 rounded-2xl p-4 border border-cyan-700/50 space-y-3">
+                <div className="flex items-center gap-2 text-white font-bold">
+                  <Crown className="w-4 h-4 text-yellow-400" /> ColdStreak Pro
+                  <span className="ml-auto text-yellow-400 text-sm font-bold">$7.99</span>
+                </div>
+                <ul className="space-y-1 text-blue-300 text-xs">
+                  {["Unlimited plunge history", "Plunge Passport + leaderboards", "Advanced stats & personal bests", "CSV / Apple Health export", "No ads"].map((f) => (
+                    <li key={f} className="flex items-center gap-1.5"><Sparkles className="w-3 h-3 text-cyan-400 shrink-0" />{f}</li>
+                  ))}
+                </ul>
+                <button
+                  data-testid="button-upgrade-settings"
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white font-bold text-sm transition-all active:scale-[0.98]"
+                >
+                  Upgrade to Pro — One-Time $7.99
+                </button>
+                <button
+                  data-testid="button-restore-purchase"
+                  onClick={async () => {
+                    const email = prompt("Enter the email you used to purchase ColdStreak Pro:");
+                    if (!email) return;
+                    setRestoreLoading(true);
+                    const ok = await restorePurchase(email);
+                    setRestoreLoading(false);
+                    if (ok) {
+                      toast({ title: "✅ Pro restored!", description: "Welcome back to ColdStreak Pro." });
+                    } else {
+                      toast({ title: "Not found", description: "No Pro purchase found for that email.", variant: "destructive" });
+                    }
+                  }}
+                  className="w-full py-2 rounded-xl border border-blue-600/50 text-blue-400 text-xs font-semibold transition-all active:scale-[0.98] hover:border-blue-400 flex items-center justify-center gap-1.5"
+                >
+                  <RestoreIcon className="w-3 h-3" /> Restore Purchase
+                </button>
+              </div>
+            )}
 
             {/* Username */}
             <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
@@ -1187,6 +1285,92 @@ export default function Home() {
           </button>
         </div>
       </div>
+
+      {/* ─── UPGRADE MODAL ─── */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-gradient-to-b from-blue-950 to-slate-950 rounded-t-3xl border border-blue-700/50 shadow-2xl p-6 pb-10 space-y-5 animate-in slide-in-from-bottom duration-300">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Crown className="w-6 h-6 text-yellow-400" />
+                <span className="text-white font-bold text-xl">ColdStreak Pro</span>
+              </div>
+              <button
+                data-testid="button-close-upgrade"
+                onClick={() => setShowUpgradeModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white transition-all text-lg font-bold"
+              >✕</button>
+            </div>
+
+            <div className="text-center">
+              <div className="text-3xl font-black text-white">$7.99</div>
+              <div className="text-blue-400 text-sm">One-time payment · No subscription</div>
+            </div>
+
+            <ul className="space-y-2.5">
+              {[
+                { icon: "📅", text: "Unlimited plunge history" },
+                { icon: "🗺️", text: "Plunge Passport — earn badges at iconic locations" },
+                { icon: "🏆", text: "Per-location leaderboards" },
+                { icon: "📈", text: "Advanced stats & personal bests" },
+                { icon: "📤", text: "CSV & Apple Health export" },
+                { icon: "🚫", text: "No ads, ever" },
+              ].map(({ icon, text }) => (
+                <li key={text} className="flex items-center gap-3 text-white text-sm">
+                  <span className="text-lg w-7 shrink-0 text-center">{icon}</span>
+                  {text}
+                </li>
+              ))}
+            </ul>
+
+            <button
+              data-testid="button-checkout"
+              onClick={() => { setShowUpgradeModal(false); startCheckout(); }}
+              disabled={proLoading}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-black text-lg shadow-lg shadow-cyan-500/30 transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+              {proLoading ? "Loading…" : "Upgrade Now — $7.99"}
+            </button>
+
+            <div className="space-y-2">
+              <div className="relative flex items-center">
+                <div className="flex-1 border-t border-blue-800" />
+                <span className="px-3 text-blue-500 text-xs">already purchased?</span>
+                <div className="flex-1 border-t border-blue-800" />
+              </div>
+              <div className="flex gap-2">
+                <input
+                  data-testid="input-restore-email"
+                  type="email"
+                  placeholder="Email used at checkout"
+                  value={restoreEmailInput}
+                  onChange={(e) => setRestoreEmailInput(e.target.value)}
+                  className="flex-1 bg-blue-900/60 border border-blue-700 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                />
+                <button
+                  data-testid="button-restore-modal"
+                  disabled={restoreLoading || !restoreEmailInput.trim()}
+                  onClick={async () => {
+                    setRestoreLoading(true);
+                    const ok = await restorePurchase(restoreEmailInput.trim());
+                    setRestoreLoading(false);
+                    if (ok) {
+                      setShowUpgradeModal(false);
+                      toast({ title: "✅ Pro restored!", description: "Welcome back to ColdStreak Pro." });
+                    } else {
+                      toast({ title: "Not found", description: "No Pro purchase found for that email.", variant: "destructive" });
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl border border-blue-600 text-blue-300 text-sm font-semibold disabled:opacity-40 hover:border-cyan-400 hover:text-cyan-300 transition-all"
+                >
+                  {restoreLoading ? "…" : "Restore"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
