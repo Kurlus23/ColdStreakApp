@@ -21,8 +21,9 @@ export async function registerRoutes(
 
   app.post(api.plunges.create.path, async (req, res) => {
     try {
-      const input = api.plunges.create.input.parse(req.body);
-      const plungeData = { ...input, score: String(input.score) };
+      const { createdAt: customDateStr, ...input } = api.plunges.create.input.parse(req.body);
+      const plungeData: any = { ...input, score: String(input.score) };
+      if (customDateStr) plungeData.createdAt = new Date(customDateStr);
       const newPlunge = await storage.createPlunge(plungeData);
       res.status(201).json(newPlunge);
     } catch (err) {

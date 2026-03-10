@@ -5,7 +5,7 @@ import {
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2,
   Camera, MapPin, Lock, ShieldAlert, Trophy, Medal, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -192,6 +192,14 @@ export default function Home() {
   const { isPro, proEmail, loading: proLoading, startCheckout, verifySession, restorePurchase } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [scoreView, setScoreView] = useState<"today" | "week" | "kcal" | "info">("today");
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const todayDateStr = new Date().toISOString().slice(0, 10);
+  const nowTimeStr = new Date().toTimeString().slice(0, 5);
+  const [manualDate, setManualDate] = useState(todayDateStr);
+  const [manualTime, setManualTime] = useState(nowTimeStr);
+  const [manualMins, setManualMins] = useState(3);
+  const [manualSecs, setManualSecs] = useState(0);
+  const [manualTempF, setManualTempF] = useState(50);
   const [bodyWeightLbs, setBodyWeightLbs] = useState<number>(
     () => Number(localStorage.getItem("coldstreak-body-weight") ?? 154)
   );
@@ -538,12 +546,126 @@ export default function Home() {
               <h2 className="text-white font-bold text-lg flex items-center gap-2">
                 <History className="w-5 h-5 text-cyan-400" /> Plunge History
               </h2>
-              <button
-                data-testid="button-close-history"
-                onClick={() => navTo("timer")}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
-              >✕</button>
+              <div className="flex items-center gap-2">
+                <button
+                  data-testid="button-manual-plunge"
+                  onClick={() => {
+                    setManualDate(new Date().toISOString().slice(0, 10));
+                    setManualTime(new Date().toTimeString().slice(0, 5));
+                    setManualMins(3);
+                    setManualSecs(0);
+                    setManualTempF(50);
+                    setShowManualEntry(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-600/50 border border-cyan-500/50 text-cyan-200 text-xs font-semibold hover:bg-cyan-500/60 transition-all active:scale-95"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Log Manually
+                </button>
+                <button
+                  data-testid="button-close-history"
+                  onClick={() => navTo("timer")}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
+                >✕</button>
+              </div>
             </div>
+
+            {/* Manual entry modal */}
+            {showManualEntry && (
+              <div className="mb-4 bg-blue-900/80 border border-cyan-600/50 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-white font-semibold flex items-center gap-2 text-sm">
+                    <Calendar className="w-4 h-4 text-cyan-400" /> Log a Past Plunge
+                  </div>
+                  <button onClick={() => setShowManualEntry(false)} className="text-blue-400 hover:text-white text-lg leading-none">✕</button>
+                </div>
+
+                {/* Date + Time */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="text-blue-400 text-[10px] uppercase tracking-wide mb-1">Date</div>
+                    <input
+                      data-testid="input-manual-date"
+                      type="date"
+                      value={manualDate}
+                      max={new Date().toISOString().slice(0, 10)}
+                      onChange={(e) => setManualDate(e.target.value)}
+                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
+                  <div>
+                    <div className="text-blue-400 text-[10px] uppercase tracking-wide mb-1">Time</div>
+                    <input
+                      data-testid="input-manual-time"
+                      type="time"
+                      value={manualTime}
+                      onChange={(e) => setManualTime(e.target.value)}
+                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Duration */}
+                <div>
+                  <div className="text-blue-400 text-[10px] uppercase tracking-wide mb-1">Duration</div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      data-testid="select-manual-minutes"
+                      value={manualMins}
+                      onChange={(e) => setManualMins(Number(e.target.value))}
+                      className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-400"
+                    >
+                      {Array.from({ length: 61 }, (_, i) => i).map((m) => (
+                        <option key={m} value={m}>{m} min</option>
+                      ))}
+                    </select>
+                    <span className="text-blue-400 text-sm">:</span>
+                    <select
+                      data-testid="select-manual-seconds"
+                      value={manualSecs}
+                      onChange={(e) => setManualSecs(Number(e.target.value))}
+                      className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-400"
+                    >
+                      {Array.from({ length: 60 }, (_, i) => i).map((s) => (
+                        <option key={s} value={s}>{String(s).padStart(2, "0")} sec</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Temperature */}
+                <div>
+                  <div className="text-blue-400 text-[10px] uppercase tracking-wide mb-1">Water Temp</div>
+                  <select
+                    data-testid="select-manual-temp"
+                    value={manualTempF}
+                    onChange={(e) => setManualTempF(Number(e.target.value))}
+                    className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-400"
+                  >
+                    {Array.from({ length: 36 }, (_, i) => 25 + i).map((f) => (
+                      <option key={f} value={f}>{f}°F</option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  data-testid="button-submit-manual-plunge"
+                  disabled={createPlunge.isPending || (manualMins === 0 && manualSecs === 0)}
+                  onClick={() => {
+                    const durationSec = manualMins * 60 + manualSecs;
+                    if (durationSec === 0) return;
+                    const isoDate = new Date(`${manualDate}T${manualTime}:00`).toISOString();
+                    const score = plungeScore(durationSec, manualTempF);
+                    createPlunge.mutate(
+                      { duration: durationSec, temperature: manualTempF, score: String(score), hrAvg: null, spo2Avg: null, createdAt: isoDate },
+                      { onSuccess: () => { setShowManualEntry(false); toast({ title: "Plunge logged! ❄️", description: `${manualMins}m ${manualSecs}s at ${manualTempF}°F — added to history.` }); } }
+                    );
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white font-bold text-sm transition-all active:scale-[0.98]"
+                >
+                  {createPlunge.isPending ? "Saving…" : "Save Plunge"}
+                </button>
+              </div>
+            )}
 
             {/* Today summary */}
             {todayPlunges.length > 0 && (

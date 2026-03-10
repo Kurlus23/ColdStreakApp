@@ -30,6 +30,7 @@ export const api = {
         score: z.string().or(z.number()),
         hrAvg: z.number().int().nullable().optional(),
         spo2Avg: z.number().int().nullable().optional(),
+        createdAt: z.string().optional(), // ISO string for manual backdated entry
       }),
       responses: {
         201: z.custom<typeof plunges.$inferSelect>(),
