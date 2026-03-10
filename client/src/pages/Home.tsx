@@ -409,14 +409,13 @@ export default function Home() {
             </div>
           </div>
 
-          {/* HR / O2 / score row */}
+          {/* Weekly goal / score row */}
           <div
             className="text-center text-white/90 text-sm font-semibold tracking-wide"
-            data-testid="display-biometrics"
+            data-testid="display-weekly"
             style={{ textShadow: "0 1px 6px rgba(0,0,0,0.8)" }}
           >
-            HR: {hr > 0 ? `${hr} bpm` : "— bpm"}&nbsp;&nbsp;
-            O2: {spo2 > 0 ? `${spo2}%` : "—%"}&nbsp;&nbsp;
+            Weekly: {weeklyMinutes.toFixed(1)} / {WEEKLY_GOAL_MINUTES} min&nbsp;&nbsp;·&nbsp;&nbsp;
             {seconds > 0 || countdown > 0
               ? `Score: ${plungeScore(displaySeconds, temperature)}`
               : `Streak: ${streak} days`
