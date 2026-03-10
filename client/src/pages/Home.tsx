@@ -5,7 +5,7 @@ import {
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2,
   Camera, MapPin, Lock, ShieldAlert, Trophy, Medal, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -183,6 +183,7 @@ export default function Home() {
   // Pro status
   const { isPro, proEmail, loading: proLoading, startCheckout, verifySession, restorePurchase } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [scoreView, setScoreView] = useState<"today" | "week" | "info">("today");
   const [restoreEmailInput, setRestoreEmailInput] = useState("");
   const [restoreLoading, setRestoreLoading] = useState(false);
 
@@ -291,6 +292,7 @@ export default function Home() {
   const todayScore = todayPlunges.reduce((sum, p) => sum + Number(p.score), 0);
   const last7Days = plunges.filter((p) => (Date.now() - new Date(p.createdAt).getTime()) / (1000 * 60 * 60 * 24) <= 7);
   const weeklyMinutes = last7Days.reduce((sum, p) => sum + p.duration, 0) / 60;
+  const weeklyScore = last7Days.reduce((sum, p) => sum + Number(p.score), 0);
   const weeklyPct = Math.min(100, (weeklyMinutes / weeklyGoalMinutes) * 100);
   const streak = getStreak(plunges);
 
@@ -425,22 +427,43 @@ export default function Home() {
               )}
             </div>
 
-            {/* Cold Score */}
-            <div
-              className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center justify-center gap-1"
+            {/* Cold Score — tappable, cycles today → week → info */}
+            <button
               data-testid="card-cold-score"
+              onClick={() => setScoreView(v => v === "today" ? "week" : v === "week" ? "info" : "today")}
+              className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 hover:border-cyan-500/50 w-full"
             >
-              <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
-                Cold<br />Score
-              </div>
-              <Snowflake className="w-7 h-7 text-cyan-400" />
-              <div className="text-cyan-300 font-bold text-2xl leading-none">
-                {displayScore > 0 ? displayScore.toFixed(1) : "—"}
-              </div>
-              <div className="text-blue-400 text-[10px]">
-                {isActive ? "live" : "today"}
-              </div>
-            </div>
+              {scoreView === "info" ? (
+                <>
+                  <Info className="w-5 h-5 text-cyan-400 shrink-0" />
+                  <p className="text-blue-200 text-[9px] leading-tight text-center">
+                    Duration × temp factor.<br />
+                    Colder water (40°F) earns<br />
+                    up to <span className="text-cyan-300 font-bold">2.3×</span> multiplier.
+                  </p>
+                  <div className="text-blue-500 text-[9px]">tap to cycle</div>
+                </>
+              ) : (
+                <>
+                  <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
+                    Cold<br />Score
+                  </div>
+                  <Snowflake className="w-7 h-7 text-cyan-400" />
+                  <div className="text-cyan-300 font-bold text-2xl leading-none">
+                    {scoreView === "today"
+                      ? (displayScore > 0 ? displayScore.toFixed(1) : "—")
+                      : (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
+                    }
+                  </div>
+                  <div className="text-blue-400 text-[10px]">
+                    {scoreView === "today"
+                      ? (isActive ? "live" : "today")
+                      : "this week"
+                    }
+                  </div>
+                </>
+              )}
+            </button>
           </div>
 
           {/* Weekly goal / score row */}
