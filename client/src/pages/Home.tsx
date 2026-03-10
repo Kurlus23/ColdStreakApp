@@ -3,15 +3,38 @@ import icebergBg from "@assets/image_1773152998246.png";
 import {
   Play, Pause, RotateCcw, Thermometer, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,
-  Bluetooth, Watch, Heart, Settings, Bell, Upload, Volume2
+  Bluetooth, Watch, Heart, Settings, Bell, Upload, Volume2,
+  Camera, MapPin, Lock, ShieldAlert
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
 import { useToast } from "@/hooks/use-toast";
-import { usePlunges, useCreatePlunge } from "@/hooks/use-plunges";
+import { usePlunges, useCreatePlunge, useUpdatePlunge } from "@/hooks/use-plunges";
 import { PlungeCard } from "@/components/PlungeCard";
+import { PASSPORT_LOCATIONS, usePassportBadges } from "@/lib/passport";
 
 import { type Plunge } from "@shared/schema";
+
+async function resizeImageToBase64(file: File, maxPx = 800, quality = 0.75): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 const ALARM_PRESETS = [
   { id: "alarm_clock",   label: "Alarm Clock",    url: "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" },
@@ -129,9 +152,19 @@ export default function Home() {
   const [watchStatus, setWatchStatus] = useState<string>("Not connected");
   const [thermometerConnected, setThermometerConnected] = useState(false);
 
+  // Photo / location prompt
+  const [photoPromptId, setPhotoPromptId] = useState<number | null>(null);
+  const [promptPhotoData, setPromptPhotoData] = useState<string | null>(null);
+  const [promptLocationId, setPromptLocationId] = useState<string>("");
+  const [promptCustomLocation, setPromptCustomLocation] = useState<string>("");
+  const [promptSaving, setPromptSaving] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+
   const { toast } = useToast();
   const { data: plunges = [], isLoading } = usePlunges();
   const createPlunge = useCreatePlunge();
+  const updatePlunge = useUpdatePlunge();
+  const { badges, awardBadge, hasBadge } = usePassportBadges();
 
   const navTo = (s: Screen) => {
     setScreen(s);
@@ -143,9 +176,13 @@ export default function Home() {
     createPlunge.mutate(
       { duration: durationSec, temperature, score: String(score), hrAvg: hr > 0 ? hr : null, spo2Avg: spo2 > 0 ? spo2 : null },
       {
-        onSuccess: () => {
+        onSuccess: (newPlunge) => {
           confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
           toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${temperature}°F` });
+          setPhotoPromptId(newPlunge.id);
+          setPromptPhotoData(null);
+          setPromptLocationId("");
+          setPromptCustomLocation("");
         },
       }
     );
@@ -458,6 +495,42 @@ export default function Home() {
               >✕</button>
             </div>
 
+            {/* Plunge Passport */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">🗺️</span>
+                <h3 className="text-white font-bold">Plunge Passport</h3>
+                <span className="text-xs text-blue-400 ml-auto">{badges.size} / {PASSPORT_LOCATIONS.length} earned</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {PASSPORT_LOCATIONS.map((loc) => {
+                  const earned = hasBadge(loc.id);
+                  return (
+                    <div
+                      key={loc.id}
+                      data-testid={`badge-${loc.id}`}
+                      className={`relative rounded-xl p-2.5 border text-center transition-all ${
+                        earned
+                          ? "bg-cyan-500/20 border-cyan-500/50"
+                          : "bg-blue-900/40 border-blue-700/40 opacity-60"
+                      }`}
+                    >
+                      <div className="text-2xl mb-1">{loc.flag}</div>
+                      <div className={`text-[10px] font-semibold leading-tight ${earned ? "text-cyan-200" : "text-blue-400"}`}>
+                        {loc.name}
+                      </div>
+                      {loc.seasonal && (
+                        <div className="text-[9px] text-amber-400 mt-0.5">Seasonal</div>
+                      )}
+                      {!earned && (
+                        <Lock className="w-3 h-3 text-blue-600 mx-auto mt-1" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Today summary */}
             {todayPlunges.length > 0 && (
               <div className="flex justify-between items-center bg-blue-900/60 rounded-2xl px-4 py-3 mb-4 border border-blue-700/40">
@@ -655,6 +728,208 @@ export default function Home() {
                 <Watch className="w-4 h-4" /> {watchConnected ? "Smartwatch Connected" : "Connect Smartwatch (BT)"}
               </button>
             </div>
+
+            {/* Safety & Disclaimer */}
+            <div
+              data-testid="card-disclaimer"
+              className="bg-red-950/40 rounded-2xl p-4 border border-red-800/50 space-y-3"
+            >
+              <div className="text-white font-semibold flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-red-400" /> Safety &amp; Disclaimer
+              </div>
+              <p className="text-red-200 text-xs leading-relaxed">
+                <span className="font-bold text-red-300">ASSUMPTION OF RISK:</span> Cold water immersion carries serious health risks including cold water shock, cardiac arrest, hypothermia, loss of consciousness, and drowning. By using ColdStreak, you acknowledge that you voluntarily assume all risks associated with cold plunge activities.
+              </p>
+              <p className="text-red-200 text-xs leading-relaxed">
+                ColdStreak is a tracking tool only. It does not provide medical advice. Consult a physician before beginning cold exposure therapy, especially if you have heart conditions, high blood pressure, Raynaud's disease, or are pregnant.
+              </p>
+              <p className="text-red-200 text-xs leading-relaxed">
+                <span className="font-bold text-red-300">Featured Locations:</span> USA locations listed in the Plunge Passport are spring-fed or managed facilities selected for relative safety and year-round access. Sliding Rock (NC) is listed as seasonal — lifeguards are only present May–Labor Day. Conditions at all locations can change without notice due to weather, drought, flooding, or closures. Always check current local conditions before visiting. Never plunge alone.
+              </p>
+              <p className="text-red-200/70 text-[10px] leading-relaxed">
+                ColdStreak and its developers accept no liability for injury, illness, or death resulting from cold plunge activities. Use this app at your own risk.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── PHOTO / LOCATION PROMPT ─── */}
+      {photoPromptId !== null && (
+        <div className="fixed inset-0 z-40 flex items-end justify-center">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setPhotoPromptId(null)}
+          />
+          <div
+            data-testid="sheet-photo-prompt"
+            className="relative z-10 w-full max-w-lg bg-blue-950 border border-blue-700/60 rounded-t-3xl p-5 pb-8 space-y-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-white font-bold text-base flex items-center gap-2">
+                <Camera className="w-4 h-4 text-cyan-400" /> Add Photo &amp; Location
+              </h3>
+              <button
+                data-testid="button-skip-photo"
+                onClick={() => setPhotoPromptId(null)}
+                className="text-blue-400 hover:text-white text-sm font-semibold transition-colors"
+              >Skip</button>
+            </div>
+
+            {/* Photo picker */}
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              data-testid="input-photo-upload"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  const data = await resizeImageToBase64(file);
+                  setPromptPhotoData(data);
+                } catch {
+                  toast({ title: "Could not load photo", variant: "destructive" });
+                }
+              }}
+            />
+            <button
+              data-testid="button-pick-photo"
+              onClick={() => photoInputRef.current?.click()}
+              className={`w-full rounded-2xl border-2 border-dashed transition-all overflow-hidden ${
+                promptPhotoData
+                  ? "border-cyan-500/60 p-0"
+                  : "border-blue-600/50 hover:border-cyan-500/50 py-8 flex flex-col items-center gap-2"
+              }`}
+            >
+              {promptPhotoData ? (
+                <img
+                  src={promptPhotoData}
+                  alt="Preview"
+                  className="w-full h-40 object-cover"
+                />
+              ) : (
+                <>
+                  <Camera className="w-8 h-8 text-blue-500" />
+                  <span className="text-blue-400 text-sm font-semibold">Tap to add a photo</span>
+                  <span className="text-blue-600 text-xs">From camera roll or take a photo</span>
+                </>
+              )}
+            </button>
+            {promptPhotoData && (
+              <button
+                onClick={() => setPromptPhotoData(null)}
+                className="text-xs text-blue-500 hover:text-red-400 transition-colors -mt-2"
+              >Remove photo</button>
+            )}
+
+            {/* Location picker */}
+            <div className="space-y-2">
+              <label className="text-blue-300 text-xs font-semibold uppercase tracking-wide flex items-center gap-1">
+                <MapPin className="w-3 h-3" /> Tag a Location (optional)
+              </label>
+              <select
+                data-testid="select-location"
+                value={promptLocationId}
+                onChange={(e) => {
+                  setPromptLocationId(e.target.value);
+                  setPromptCustomLocation("");
+                }}
+                className="w-full bg-blue-900/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm appearance-none focus:outline-none focus:border-cyan-400"
+              >
+                <option value="">— No location —</option>
+                <optgroup label="International">
+                  {PASSPORT_LOCATIONS.filter((l) => l.country !== "USA").map((l) => (
+                    <option key={l.id} value={l.id}>{l.flag} {l.name}, {l.country}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="USA">
+                  {PASSPORT_LOCATIONS.filter((l) => l.country === "USA").map((l) => (
+                    <option key={l.id} value={l.id}>{l.flag} {l.name}</option>
+                  ))}
+                </optgroup>
+                <option value="custom">📍 Somewhere else…</option>
+              </select>
+
+              {promptLocationId === "custom" && (
+                <input
+                  data-testid="input-custom-location"
+                  type="text"
+                  placeholder="Type location name…"
+                  value={promptCustomLocation}
+                  onChange={(e) => setPromptCustomLocation(e.target.value)}
+                  className="w-full bg-blue-900/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                />
+              )}
+
+              {promptLocationId && promptLocationId !== "custom" && (
+                <div className="bg-blue-900/50 rounded-xl px-3 py-2 border border-blue-700/40">
+                  {(() => {
+                    const loc = PASSPORT_LOCATIONS.find((l) => l.id === promptLocationId)!;
+                    return (
+                      <div className="text-xs text-blue-300 leading-relaxed">
+                        <span className="font-semibold text-cyan-300">{loc.flag} {loc.name}</span>
+                        {" — "}{loc.safetyNote}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+
+            {/* Save */}
+            <button
+              data-testid="button-save-photo"
+              disabled={promptSaving || (!promptPhotoData && !promptLocationId)}
+              onClick={async () => {
+                if (!photoPromptId) return;
+                const finalLocationId = promptLocationId !== "custom" ? promptLocationId : undefined;
+                const finalLocationName = promptLocationId === "custom"
+                  ? promptCustomLocation.trim()
+                  : promptLocationId
+                    ? PASSPORT_LOCATIONS.find((l) => l.id === promptLocationId)?.name
+                    : undefined;
+
+                if (!promptPhotoData && !finalLocationName) {
+                  setPhotoPromptId(null);
+                  return;
+                }
+
+                setPromptSaving(true);
+                updatePlunge.mutate(
+                  {
+                    id: photoPromptId,
+                    patch: {
+                      photoData: promptPhotoData ?? undefined,
+                      locationName: finalLocationName ?? undefined,
+                      locationId: finalLocationId ?? undefined,
+                    },
+                  },
+                  {
+                    onSuccess: () => {
+                      if (finalLocationId && !hasBadge(finalLocationId)) {
+                        awardBadge(finalLocationId);
+                        const loc = PASSPORT_LOCATIONS.find((l) => l.id === finalLocationId)!;
+                        confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 }, colors: ["#fbbf24", "#f59e0b", "#ffffff", "#0ea5e9"] });
+                        toast({ title: `🏅 Passport Badge Unlocked!`, description: `${loc.flag} ${loc.name} — added to your Plunge Passport!` });
+                      } else {
+                        toast({ title: "Plunge updated!" });
+                      }
+                      setPhotoPromptId(null);
+                      setPromptSaving(false);
+                    },
+                    onError: () => {
+                      toast({ title: "Failed to save", variant: "destructive" });
+                      setPromptSaving(false);
+                    },
+                  }
+                );
+              }}
+              className="w-full py-3 rounded-2xl font-bold text-sm transition-all active:scale-95 disabled:opacity-40 bg-cyan-500 hover:bg-cyan-400 text-white shadow-lg shadow-cyan-500/30"
+            >
+              {promptSaving ? "Saving…" : "Save"}
+            </button>
           </div>
         </div>
       )}

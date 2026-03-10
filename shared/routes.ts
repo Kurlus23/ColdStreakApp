@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { insertPlungeSchema, plunges } from "./schema";
+import { insertPlungeSchema, updatePlungeSchema, plunges } from "./schema";
 
 export const errorSchemas = {
   validation: z.object({
@@ -34,6 +34,16 @@ export const api = {
       responses: {
         201: z.custom<typeof plunges.$inferSelect>(),
         400: errorSchemas.validation,
+      },
+    },
+    update: {
+      method: "PATCH" as const,
+      path: "/api/plunges/:id" as const,
+      input: updatePlungeSchema,
+      responses: {
+        200: z.custom<typeof plunges.$inferSelect>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
       },
     },
     delete: {
