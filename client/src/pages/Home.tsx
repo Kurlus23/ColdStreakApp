@@ -275,7 +275,7 @@ export default function Home() {
           <button
             key={item.id}
             data-testid={`nav-${item.id}`}
-            onClick={() => setScreen(item.id)}
+            onClick={() => { setScreen(item.id); localStorage.setItem("defaultScreen", item.id); }}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
               screen === item.id
                 ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20"
