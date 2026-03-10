@@ -51,6 +51,61 @@ export function Explore({ username }: { username: string }) {
   const [form, setForm] = useState({
     name: "", country: "USA", state: "", city: "", description: "",
   });
+  const [formGeoPos, setFormGeoPos] = useState<GeoPos | null>(null);
+  const [formGeoLoading, setFormGeoLoading] = useState(false);
+
+  const COUNTRY_MAP: Record<string, string> = {
+    "united states": "USA", "us": "USA", "usa": "USA",
+    "iceland": "Iceland", "norway": "Norway", "switzerland": "Switzerland",
+    "australia": "Australia", "russia": "Russia", "canada": "Canada",
+    "united kingdom": "UK", "germany": "Germany", "japan": "Japan",
+  };
+
+  const requestFormGeo = useCallback(() => {
+    if (!navigator.geolocation) {
+      toast({ title: "GPS not available", description: "Your device doesn't support location.", variant: "destructive" });
+      return;
+    }
+    setFormGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        // Resolve GPS immediately — don't block on reverse geocode
+        setFormGeoPos({ lat, lng });
+        setFormGeoLoading(false);
+        toast({ title: "GPS attached", description: `${lat.toFixed(5)}, ${lng.toFixed(5)}` });
+
+        // Reverse geocode in background (best-effort, 5 s timeout)
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 5000);
+        fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`,
+          { headers: { "Accept-Language": "en" }, signal: controller.signal }
+        )
+          .then((r) => r.json())
+          .then((data) => {
+            clearTimeout(timer);
+            const addr = data.address ?? {};
+            const city = addr.city ?? addr.town ?? addr.village ?? addr.hamlet ?? "";
+            const state = addr.state ?? addr.county ?? "";
+            const countryRaw = (addr.country ?? "").toLowerCase();
+            const country = COUNTRY_MAP[countryRaw] ?? addr.country ?? "";
+            setForm((f) => ({
+              ...f,
+              city: city || f.city,
+              state: state || f.state,
+              country: country || f.country,
+            }));
+          })
+          .catch(() => clearTimeout(timer));
+      },
+      (err) => {
+        setFormGeoLoading(false);
+        toast({ title: "Location denied", description: err.message, variant: "destructive" });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, [toast]);
 
   // ── GPS ──
   const requestGeo = useCallback(() => {
@@ -92,6 +147,7 @@ export function Explore({ username }: { username: string }) {
       queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
       setShowForm(false);
       setForm({ name: "", country: "USA", state: "", city: "", description: "" });
+      setFormGeoPos(null);
       toast({ title: "Location submitted!", description: "Thanks — your spot is now visible to the community." });
     },
     onError: () => toast({ title: "Submit failed", variant: "destructive" }),
@@ -153,7 +209,11 @@ export function Explore({ username }: { username: string }) {
     if (!form.name.trim()) {
       toast({ title: "Name required", variant: "destructive" }); return;
     }
-    submitMutation.mutate({ ...form, submittedBy: username });
+    submitMutation.mutate({
+      ...form,
+      submittedBy: username,
+      ...(formGeoPos ? { latitude: formGeoPos.lat, longitude: formGeoPos.lng } : {}),
+    });
   };
 
   const passportDetail = locationIdDetail
@@ -352,7 +412,38 @@ export function Explore({ username }: { username: string }) {
             {/* Submission form */}
             {showForm && (
               <div className="bg-blue-950/80 border border-blue-700/40 rounded-xl p-3 space-y-2">
-                <p className="text-white font-semibold text-xs mb-1">New Spot</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-white font-semibold text-xs">New Spot</p>
+                  <button
+                    data-testid="button-form-use-location"
+                    type="button"
+                    onClick={requestFormGeo}
+                    disabled={formGeoLoading}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all active:scale-95 ${
+                      formGeoPos
+                        ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300"
+                        : "bg-blue-800/60 border-blue-700/40 text-blue-300 hover:text-white"
+                    }`}
+                  >
+                    <Navigation className={`w-3 h-3 ${formGeoLoading ? "animate-pulse" : ""}`} />
+                    {formGeoLoading ? "Locating…" : formGeoPos ? "GPS attached" : "Use my location"}
+                  </button>
+                </div>
+                {formGeoPos && (
+                  <div className="flex items-center gap-1.5 bg-cyan-500/10 border border-cyan-500/30 rounded-lg px-2.5 py-1.5">
+                    <MapPin className="w-3 h-3 text-cyan-400 flex-shrink-0" />
+                    <span className="text-cyan-300 text-[11px] font-mono">
+                      {formGeoPos.lat.toFixed(5)}, {formGeoPos.lng.toFixed(5)}
+                    </span>
+                    <button
+                      onClick={() => setFormGeoPos(null)}
+                      className="ml-auto"
+                      data-testid="button-clear-form-geo"
+                    >
+                      <X className="w-3 h-3 text-cyan-500 hover:text-cyan-300" />
+                    </button>
+                  </div>
+                )}
                 <input
                   data-testid="input-location-name"
                   type="text"
@@ -408,7 +499,7 @@ export function Explore({ username }: { username: string }) {
                     {submitMutation.isPending ? "Saving…" : "Submit"}
                   </button>
                   <button
-                    onClick={() => setShowForm(false)}
+                    onClick={() => { setShowForm(false); setFormGeoPos(null); }}
                     className="px-3 py-2 rounded-xl bg-blue-800/60 text-blue-400 text-xs hover:text-white transition-all"
                   >
                     Cancel
