@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import icebergBg from "@assets/image_1773152998246.png";
 import {
-  Play, Pause, RotateCcw, Thermometer, Snowflake, History,
+  Play, Pause, RotateCcw, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,
-  Bluetooth, Watch, Heart, Settings, Bell, Upload, Volume2,
+  Settings, Bell, Upload, Volume2,
   Camera, MapPin, Lock, ShieldAlert, Trophy, Medal, User, ChevronDown,
   Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass
 } from "lucide-react";
@@ -171,12 +171,6 @@ export default function Home() {
     setTimeout(() => { audio.pause(); audio.currentTime = 0; }, 3000);
   };
 
-  // Biometrics
-  const [hr, setHR] = useState<number>(0);
-  const [spo2, setSpo2] = useState<number>(0);
-  const [watchStatus, setWatchStatus] = useState<string>("Not connected");
-  const [thermometerConnected, setThermometerConnected] = useState(false);
-
   // Photo / location prompt
   const [photoPromptId, setPhotoPromptId] = useState<number | null>(null);
   const [promptPhotoData, setPromptPhotoData] = useState<string | null>(null);
@@ -218,7 +212,7 @@ export default function Home() {
   const doLogPlunge = useCallback((durationSec: number) => {
     const score = plungeScore(durationSec, temperature);
     createPlunge.mutate(
-      { duration: durationSec, temperature, score: String(score), hrAvg: hr > 0 ? hr : null, spo2Avg: spo2 > 0 ? spo2 : null },
+      { duration: durationSec, temperature, score: String(score), hrAvg: null, spo2Avg: null },
       {
         onSuccess: (newPlunge) => {
           confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
@@ -233,7 +227,7 @@ export default function Home() {
       }
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [temperature, hr, spo2, createPlunge, toast]);
+  }, [temperature, createPlunge, toast]);
 
   // Stopwatch
   useEffect(() => {
@@ -290,78 +284,6 @@ export default function Home() {
     if (alarmRef.current) { alarmRef.current.pause(); alarmRef.current.currentTime = 0; }
   };
 
-  const bluetoothCheck = (): boolean => {
-    if (window.self !== window.top) {
-      toast({ title: "Open in a new tab", description: "Bluetooth is blocked inside the preview pane. Tap the ↗ icon to open the app in its own tab, then try again.", variant: "destructive" });
-      return false;
-    }
-    if (!("bluetooth" in navigator)) {
-      toast({ title: "iPhone / iPad not supported", description: "Apple does not allow Web Bluetooth on iOS or iPadOS — in any browser. Bluetooth device pairing requires an Android phone or a desktop computer running Chrome or Edge.", variant: "destructive" });
-      return false;
-    }
-    return true;
-  };
-
-  const connectThermometer = async () => {
-    if (!bluetoothCheck()) return;
-    try {
-      const device = await (navigator as any).bluetooth.requestDevice({ filters: [{ services: ["health_thermometer"] }] });
-      const server = await device.gatt.connect();
-      const service = await server.getPrimaryService("health_thermometer");
-      const characteristic = await service.getCharacteristic("temperature_measurement");
-      await characteristic.startNotifications();
-      characteristic.addEventListener("characteristicvaluechanged", (event: Event) => {
-        const value = (event.target as BluetoothRemoteGATTCharacteristic).value!;
-        setTemperature(Math.round((value.getUint8(1) * 9) / 5 + 32));
-        toast({ title: "Thermometer updated" });
-      });
-      setThermometerConnected(true);
-      toast({ title: "Thermometer connected!", description: device.name || "Device paired" });
-    } catch (err: any) {
-      if (err?.name !== "NotFoundError") toast({ title: "Bluetooth error", description: "Could not connect.", variant: "destructive" });
-    }
-  };
-
-  const connectSmartwatch = async () => {
-    if (!bluetoothCheck()) return;
-    try {
-      setWatchStatus("Connecting…");
-      // Show all nearby BLE devices — many watches only advertise heart_rate
-      // when in workout mode, so we let the user pick any device and then
-      // try to read the standard heart rate service from it.
-      const device = await (navigator as any).bluetooth.requestDevice({
-        acceptAllDevices: true,
-        optionalServices: ["heart_rate", "battery_service"],
-      });
-      const server = await device.gatt.connect();
-      let hrFound = false;
-      try {
-        const hrService = await server.getPrimaryService("heart_rate");
-        const hrChar = await hrService.getCharacteristic("heart_rate_measurement");
-        await hrChar.startNotifications();
-        hrChar.addEventListener("characteristicvaluechanged", (event: Event) => {
-          const value = (event.target as BluetoothRemoteGATTCharacteristic).value!;
-          const flags = value.getUint8(0);
-          setHR(flags & 0x01 ? value.getUint16(1, true) : value.getUint8(1));
-        });
-        hrFound = true;
-      } catch {}
-      setWatchStatus(`Connected: ${device.name || "Watch"}`);
-      if (hrFound) {
-        toast({ title: "Smartwatch connected!", description: `Live HR from ${device.name || "your watch"}` });
-      } else {
-        toast({
-          title: `${device.name || "Device"} connected`,
-          description: "Connected but no heart rate data found. Your watch may need to be in workout mode, or it may use a proprietary app.",
-          variant: "destructive",
-        });
-      }
-    } catch (err: any) {
-      setWatchStatus("Not connected");
-      if (err?.name !== "NotFoundError") toast({ title: "Watch error", description: "Could not connect.", variant: "destructive" });
-    }
-  };
-
   // Stats
   const todayString = new Date().toLocaleDateString();
   const todayPlunges = plunges.filter((p) => new Date(p.createdAt).toLocaleDateString() === todayString);
@@ -371,7 +293,6 @@ export default function Home() {
   const weeklyMinutes = last7Days.reduce((sum, p) => sum + p.duration, 0) / 60;
   const weeklyPct = Math.min(100, (weeklyMinutes / weeklyGoalMinutes) * 100);
   const streak = getStreak(plunges);
-  const watchConnected = watchStatus !== "Not connected" && watchStatus !== "Connecting…";
 
   const displaySeconds = countdownMode ? countdown : seconds;
   const isActive = countdownMode ? countdownRunning : isRunning;
@@ -504,26 +425,21 @@ export default function Home() {
               )}
             </div>
 
-            {/* Smartwatch */}
+            {/* Cold Score */}
             <div
-              className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center gap-2"
-              data-testid="card-smartwatch"
+              className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center justify-center gap-1"
+              data-testid="card-cold-score"
             >
               <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
-                Connect<br />Smartwatch
+                Cold<br />Score
               </div>
-              <Watch className={`w-9 h-9 ${watchConnected ? "text-green-400" : "text-blue-200"}`} />
-              <button
-                data-testid="button-smartwatch"
-                onClick={connectSmartwatch}
-                className={`w-full py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${
-                  watchConnected
-                    ? "bg-green-500/30 text-green-300 border border-green-500/40"
-                    : "bg-blue-600 hover:bg-blue-500 text-white"
-                }`}
-              >
-                {watchConnected ? "Connected" : "Connect"}
-              </button>
+              <Snowflake className="w-7 h-7 text-cyan-400" />
+              <div className="text-cyan-300 font-bold text-2xl leading-none">
+                {displayScore > 0 ? displayScore.toFixed(1) : "—"}
+              </div>
+              <div className="text-blue-400 text-[10px]">
+                {isActive ? "live" : "today"}
+              </div>
             </div>
           </div>
 
@@ -823,33 +739,6 @@ export default function Home() {
               >
                 <Upload className="w-4 h-4" />
                 {alarmIsCustom ? `Custom: ${alarmLabel}` : "Upload from Device"}
-              </button>
-            </div>
-
-            {/* Devices */}
-            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
-              <div className="text-white font-semibold flex items-center gap-2"><Bluetooth className="w-4 h-4 text-cyan-400" /> Devices</div>
-
-              <div className="bg-amber-900/40 border border-amber-600/50 rounded-xl px-3 py-2.5 text-amber-200 text-xs leading-relaxed space-y-1">
-                <div><span className="font-bold text-amber-300">iPhone / iPad:</span> Apple blocks Web Bluetooth in all iOS browsers — this feature cannot work on iPhone or iPad regardless of which browser you use.</div>
-                <div><span className="font-bold text-amber-300">Supported:</span> Chrome or Edge on <span className="font-semibold">Android</span> or a <span className="font-semibold">desktop/laptop</span> computer only.</div>
-              </div>
-
-              <button data-testid="button-bluetooth" onClick={connectThermometer}
-                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border font-semibold transition-all active:scale-95 ${
-                  thermometerConnected
-                    ? "bg-green-500/20 border-green-500/50 text-green-300"
-                    : "bg-blue-800/80 border-blue-600 text-blue-200 hover:text-white hover:border-cyan-400"
-                }`}>
-                <Thermometer className="w-4 h-4" /> {thermometerConnected ? "Thermometer Connected" : "Connect Thermometer"}
-              </button>
-              <button data-testid="button-smartwatch-settings" onClick={connectSmartwatch}
-                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border font-semibold transition-all active:scale-95 ${
-                  watchConnected
-                    ? "bg-green-500/20 border-green-500/50 text-green-300"
-                    : "bg-blue-800/80 border-blue-600 text-blue-200 hover:text-white hover:border-cyan-400"
-                }`}>
-                <Watch className="w-4 h-4" /> {watchConnected ? "Smartwatch Connected" : "Connect Smartwatch (BT)"}
               </button>
             </div>
 
