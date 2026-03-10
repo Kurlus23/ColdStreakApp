@@ -5,7 +5,7 @@ import {
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
   type UserLocation, type InsertUserLocation,
 } from "@shared/schema";
-import { desc, eq, sql, or, isNull } from "drizzle-orm";
+import { desc, eq, sql, or, isNull, and } from "drizzle-orm";
 
 export interface IStorage {
   getPlunges(clientId?: string): Promise<Plunge[]>;
@@ -56,11 +56,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry> {
-    const [newEntry] = await db.insert(leaderboardEntries).values({
-      ...entry,
-      score: String(entry.score),
-    }).returning();
-    return newEntry;
+    const [result] = await db
+      .insert(leaderboardEntries)
+      .values({ ...entry, score: String(entry.score) })
+      .onConflictDoUpdate({
+        target: [leaderboardEntries.locationId, leaderboardEntries.username],
+        set: {
+          score: sql`GREATEST(excluded.score::numeric, leaderboard_entries.score::numeric)`,
+          duration: sql`CASE WHEN excluded.score::numeric > leaderboard_entries.score::numeric THEN excluded.duration ELSE leaderboard_entries.duration END`,
+          temperature: sql`CASE WHEN excluded.score::numeric > leaderboard_entries.score::numeric THEN excluded.temperature ELSE leaderboard_entries.temperature END`,
+          createdAt: sql`CASE WHEN excluded.score::numeric > leaderboard_entries.score::numeric THEN now() ELSE leaderboard_entries.created_at END`,
+        },
+      })
+      .returning();
+    return result;
   }
 
   async deleteLeaderboardEntry(id: number): Promise<void> {

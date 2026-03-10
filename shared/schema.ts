@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, numeric, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, numeric, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -24,7 +24,7 @@ export const leaderboardEntries = pgTable("leaderboard_entries", {
   duration: integer("duration").notNull(), // in seconds
   temperature: integer("temperature").notNull(), // in fahrenheit
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [uniqueIndex("leaderboard_location_user_idx").on(t.locationId, t.username)]);
 
 export const proUsers = pgTable("pro_users", {
   id: serial("id").primaryKey(),
