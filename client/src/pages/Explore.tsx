@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   MapPin, Compass, Search, X, ChevronDown, Lock,
-  Trophy, Flame, Navigation, Star, Plus, Send, Filter
+  Trophy, Flame, Navigation, Star, Plus, Send
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useProStatus } from "@/hooks/use-pro-status";
@@ -11,7 +11,15 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { UserLocation } from "@shared/schema";
 
 const NOMINATIONS_KEY = "coldstreak-nominations";
-const NEARBY_MILES = 50;
+const RADIUS_KEY = "coldstreak-explore-radius";
+const RADIUS_OPTIONS = [
+  { label: "Any distance", value: 0 },
+  { label: "10 miles", value: 10 },
+  { label: "25 miles", value: 25 },
+  { label: "50 miles", value: 50 },
+  { label: "100 miles", value: 100 },
+];
+const COMMUNITY_DISPLAY_LIMIT = 5;
 
 function getNominated(): Set<number> {
   try {
@@ -35,7 +43,10 @@ export function Explore({ username, onClose, onUpgrade }: { username: string; on
   // ── Shared filter state ──
   const [geoPos, setGeoPos] = useState<GeoPos | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
-  const [nearbyOnly, setNearbyOnly] = useState(false);
+  const [radiusMiles, setRadiusMiles] = useState<number>(() => {
+    const saved = localStorage.getItem(RADIUS_KEY);
+    return saved ? Number(saved) : 0;
+  });
   const [countryFilter, setCountryFilter] = useState("All");
   const [searchText, setSearchText] = useState("");
 
@@ -108,7 +119,7 @@ export function Explore({ username, onClose, onUpgrade }: { username: string; on
   }, [toast]);
 
   // ── GPS ──
-  const requestGeo = useCallback(() => {
+  const requestGeo = useCallback((miles: number) => {
     if (!navigator.geolocation) {
       toast({ title: "GPS not available", description: "Your device doesn't support location.", variant: "destructive" });
       return;
@@ -117,9 +128,8 @@ export function Explore({ username, onClose, onUpgrade }: { username: string; on
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setGeoPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setNearbyOnly(true);
         setGeoLoading(false);
-        toast({ title: "Location found", description: `Showing spots within ${NEARBY_MILES} miles.` });
+        toast({ title: "Location found", description: `Sorting by distance within ${miles} miles.` });
       },
       (err) => {
         setGeoLoading(false);
@@ -128,10 +138,11 @@ export function Explore({ username, onClose, onUpgrade }: { username: string; on
     );
   }, [toast]);
 
-  const toggleNearby = useCallback(() => {
-    if (!geoPos && !nearbyOnly) { requestGeo(); return; }
-    setNearbyOnly((v) => !v);
-  }, [geoPos, nearbyOnly, requestGeo]);
+  const handleRadiusChange = useCallback((miles: number) => {
+    setRadiusMiles(miles);
+    localStorage.setItem(RADIUS_KEY, String(miles));
+    if (miles > 0 && !geoPos) requestGeo(miles);
+  }, [geoPos, requestGeo]);
 
   // ── Community locations query ──
   const { data: communityLocs = [] } = useQuery<UserLocation[]>({
@@ -173,37 +184,62 @@ export function Explore({ username, onClose, onUpgrade }: { username: string; on
   }
 
   function withinRange(lat: number, lng: number): boolean {
-    if (!nearbyOnly || !geoPos) return true;
-    return distanceMiles(geoPos.lat, geoPos.lng, lat, lng) <= NEARBY_MILES;
+    if (!radiusMiles || !geoPos) return true;
+    return distanceMiles(geoPos.lat, geoPos.lng, lat, lng) <= radiusMiles;
+  }
+
+  function getDist(lat: number, lng: number): number | null {
+    if (!geoPos) return null;
+    return distanceMiles(geoPos.lat, geoPos.lng, lat, lng);
   }
 
   function distLabel(lat: number, lng: number): string | null {
-    if (!geoPos) return null;
-    const d = distanceMiles(geoPos.lat, geoPos.lng, lat, lng);
+    const d = getDist(lat, lng);
+    if (d === null) return null;
     return d < 1 ? "< 1 mi" : `${d.toFixed(0)} mi`;
   }
 
-  // ── Filtered Passport locations ──
-  const passportFiltered = PASSPORT_LOCATIONS.filter((loc) => {
-    if (countryFilter !== "All" && loc.country !== countryFilter) return false;
-    if (!matchesText([loc.name, loc.country, loc.state, loc.description])) return false;
-    if (!withinRange(loc.lat, loc.lng)) return false;
-    return true;
-  });
+  // ── Filtered & sorted Passport locations ──
+  const passportFiltered = PASSPORT_LOCATIONS
+    .filter((loc) => {
+      if (countryFilter !== "All" && loc.country !== countryFilter) return false;
+      if (!matchesText([loc.name, loc.country, loc.state, loc.description])) return false;
+      if (!withinRange(loc.lat, loc.lng)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (!geoPos) return 0;
+      return distanceMiles(geoPos.lat, geoPos.lng, a.lat, a.lng) - distanceMiles(geoPos.lat, geoPos.lng, b.lat, b.lng);
+    });
 
-  // ── Filtered Community locations ──
-  const communityFiltered = communityLocs.filter((loc) => {
-    if (countryFilter !== "All" && loc.country !== countryFilter) return false;
-    if (!matchesText([loc.name, loc.country, loc.state, loc.city, loc.description])) return false;
-    const lat = loc.latitude ? Number(loc.latitude) : null;
-    const lng = loc.longitude ? Number(loc.longitude) : null;
-    if (lat !== null && lng !== null) {
-      if (!withinRange(lat, lng)) return false;
-    } else if (nearbyOnly) {
-      return false;
-    }
-    return true;
-  }).sort((a, b) => b.nominationCount - a.nominationCount);
+  // ── Filtered, sorted & limited Community locations ──
+  const communityFiltered = communityLocs
+    .filter((loc) => {
+      if (countryFilter !== "All" && loc.country !== countryFilter) return false;
+      if (!matchesText([loc.name, loc.country, loc.state, loc.city, loc.description])) return false;
+      const lat = loc.latitude ? Number(loc.latitude) : null;
+      const lng = loc.longitude ? Number(loc.longitude) : null;
+      if (lat !== null && lng !== null) {
+        if (!withinRange(lat, lng)) return false;
+      } else if (radiusMiles > 0) {
+        return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (!geoPos) return b.nominationCount - a.nominationCount;
+      const aLat = a.latitude ? Number(a.latitude) : null;
+      const aLng = a.longitude ? Number(a.longitude) : null;
+      const bLat = b.latitude ? Number(b.latitude) : null;
+      const bLng = b.longitude ? Number(b.longitude) : null;
+      if (aLat !== null && aLng !== null && bLat !== null && bLng !== null) {
+        return distanceMiles(geoPos.lat, geoPos.lng, aLat, aLng) - distanceMiles(geoPos.lat, geoPos.lng, bLat, bLng);
+      }
+      if (aLat !== null) return -1;
+      if (bLat !== null) return 1;
+      return b.nominationCount - a.nominationCount;
+    })
+    .slice(0, COMMUNITY_DISPLAY_LIMIT);
 
   const handleSubmit = () => {
     if (!form.name.trim()) {
@@ -233,32 +269,25 @@ export function Explore({ username, onClose, onUpgrade }: { username: string; on
 
       {/* ── Filter bar ── */}
       <div className="bg-blue-900/50 border border-blue-700/40 rounded-2xl p-3 space-y-2">
-        <div className="flex items-center gap-2">
-          {/* Near Me toggle */}
-          <button
-            data-testid="button-toggle-nearby"
-            onClick={toggleNearby}
-            disabled={geoLoading}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${
-              nearbyOnly
-                ? "bg-cyan-500/30 border-cyan-500/60 text-cyan-300"
-                : "bg-blue-800/60 border-blue-700/40 text-blue-300 hover:text-white"
-            }`}
-          >
-            <Navigation className={`w-3.5 h-3.5 ${geoLoading ? "animate-pulse" : ""}`} />
-            {geoLoading ? "Locating…" : nearbyOnly ? `Within ${NEARBY_MILES} mi` : "Near Me"}
-          </button>
-          {nearbyOnly && (
-            <button
-              data-testid="button-clear-nearby"
-              onClick={() => { setNearbyOnly(false); setGeoPos(null); }}
-              className="p-1.5 rounded-lg bg-blue-800/60 hover:bg-blue-700/60 transition-all"
-            >
-              <X className="w-3.5 h-3.5 text-blue-400" />
-            </button>
-          )}
-        </div>
         <div className="flex gap-2">
+          {/* Distance radius */}
+          <div className="relative flex-none">
+            <Navigation className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-blue-400 pointer-events-none" />
+            <select
+              data-testid="select-explore-radius"
+              value={radiusMiles}
+              onChange={(e) => handleRadiusChange(Number(e.target.value))}
+              className={`bg-blue-800/60 border text-xs rounded-xl pl-7 pr-2.5 py-1.5 focus:outline-none appearance-none transition-colors ${
+                radiusMiles > 0
+                  ? "border-cyan-500/60 text-cyan-300"
+                  : "border-blue-700/40 text-white"
+              }`}
+            >
+              {RADIUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
           {/* Country filter */}
           <select
             data-testid="select-explore-country"
@@ -268,23 +297,23 @@ export function Explore({ username, onClose, onUpgrade }: { username: string; on
           >
             {ALL_COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          {/* Text search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-blue-400 pointer-events-none" />
-            <input
-              data-testid="input-explore-search"
-              type="text"
-              placeholder="State, city, zip, or keyword…"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              className="w-full bg-blue-800/60 border border-blue-700/40 text-white text-xs rounded-xl pl-8 pr-3 py-1.5 focus:outline-none placeholder-blue-500"
-            />
-            {searchText && (
-              <button onClick={() => setSearchText("")} className="absolute right-2 top-1/2 -translate-y-1/2">
-                <X className="w-3 h-3 text-blue-400" />
-              </button>
-            )}
-          </div>
+        </div>
+        {/* Text search */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-blue-400 pointer-events-none" />
+          <input
+            data-testid="input-explore-search"
+            type="text"
+            placeholder="State, city, zip, or keyword…"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            className="w-full bg-blue-800/60 border border-blue-700/40 text-white text-xs rounded-xl pl-8 pr-3 py-1.5 focus:outline-none placeholder-blue-500"
+          />
+          {searchText && (
+            <button onClick={() => setSearchText("")} className="absolute right-2 top-1/2 -translate-y-1/2">
+              <X className="w-3 h-3 text-blue-400" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -305,7 +334,9 @@ export function Explore({ username, onClose, onUpgrade }: { username: string; on
             </div>
           </div>
           {isPro ? (
-            <span className="text-xs text-blue-400 font-semibold">{communityFiltered.length} spots</span>
+            <span className="text-xs text-blue-400 font-semibold">
+              Top {communityFiltered.length}
+            </span>
           ) : (
             <span className="flex items-center gap-1 text-xs text-yellow-400 font-semibold mr-1">
               <Lock className="w-3 h-3" /> Pro
