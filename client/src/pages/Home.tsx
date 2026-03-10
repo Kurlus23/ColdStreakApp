@@ -314,11 +314,11 @@ export default function Home() {
       {/* Dark overlay so UI is readable over the bright photo */}
       <div className="absolute inset-0 bg-gradient-to-b from-blue-950/60 via-blue-900/20 to-blue-950/80" />
 
-      {/* Header */}
-      <header className="relative z-10 flex items-center justify-center px-5 pt-8 pb-2">
+      {/* Header — floats in the center of the above-waterline iceberg tip */}
+      <header className="absolute z-10 inset-x-0 flex items-center justify-center pointer-events-none" style={{ top: "22%" }}>
         <h1
           className="text-3xl font-extrabold italic text-white tracking-wide"
-          style={{ textShadow: "0 2px 12px rgba(0,0,0,0.6)" }}
+          style={{ textShadow: "0 2px 16px rgba(0,0,0,0.7), 0 0 40px rgba(14,165,233,0.3)" }}
           data-testid="header-title"
         >
           ColdStreak
