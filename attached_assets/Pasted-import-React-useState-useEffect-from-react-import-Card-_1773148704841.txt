@@ -1,0 +1,398 @@
+import React, { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+/*
+OpenPlunge MVP+
+Added:
+- Stopwatch timer
+- Countdown timer with alarm
+- Multiple screens (Timer / Countdown / History)
+- Default screen memory
+- Plunge streak tracking
+- Weekly exposure target tracking
+- Improved brown fat activation scoring
+*/
+
+export default function ColdPlungeApp() {
+
+  const todayString = new Date().toLocaleDateString();
+
+  const [screen, setScreen] = useState(
+    localStorage.getItem("defaultScreen") || "timer"
+  );
+
+  const setDefaultScreen = (name) => {
+    setScreen(name);
+    localStorage.setItem("defaultScreen", name);
+  };
+
+  const [seconds, setSeconds] = useState(0);
+  const [running, setRunning] = useState(false);
+
+  const [countdown, setCountdown] = useState(0);
+  const [countdownRunning, setCountdownRunning] = useState(false);
+
+  const [minutesInput, setMinutesInput] = useState(3);
+  const [secondsInput, setSecondsInput] = useState(0);
+
+  const [temp, setTemp] = useState(50);
+
+  const [log, setLog] = useState(
+    JSON.parse(localStorage.getItem("plungeLog") || "[]")
+  );
+
+  /* Stopwatch timer */
+
+  useEffect(() => {
+    let interval;
+
+    if (running) {
+      interval = setInterval(() => {
+        setSeconds((s) => s + 1);
+      }, 1000);
+    }
+
+    return () => clearInterval(interval);
+
+  }, [running]);
+
+  /* Countdown timer */
+
+  useEffect(() => {
+
+    let interval;
+
+    if (countdownRunning && countdown > 0) {
+
+      interval = setInterval(() => {
+        setCountdown((c) => c - 1);
+      }, 1000);
+
+    }
+
+    if (countdownRunning && countdown === 0) {
+
+      setCountdownRunning(false);
+
+      const audio = new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
+      audio.play();
+
+      alert("Plunge finished!");
+
+    }
+
+    return () => clearInterval(interval);
+
+  }, [countdownRunning, countdown]);
+
+  /* Improved Cold Exposure Score
+
+  Factors:
+  - minutes
+  - water temperature
+  - nonlinear cold stress factor
+
+  This roughly approximates increased cold shock
+  protein response below ~50F
+
+  */
+
+  const plungeScore = (time, temperature) => {
+
+    const minutes = time / 60;
+
+    let coldFactor = 1;
+
+    if (temperature <= 55) coldFactor = 1.2;
+    if (temperature <= 50) coldFactor = 1.5;
+    if (temperature <= 45) coldFactor = 1.9;
+    if (temperature <= 40) coldFactor = 2.3;
+
+    const score = minutes * coldFactor;
+
+    return Number(score.toFixed(2));
+
+  };
+
+  const logSession = () => {
+
+    const entry = {
+      date: todayString,
+      duration: seconds,
+      temperature: temp,
+      score: plungeScore(seconds, temp)
+    };
+
+    const updated = [entry, ...log];
+
+    setLog(updated);
+
+    localStorage.setItem("plungeLog", JSON.stringify(updated));
+
+    setSeconds(0);
+    setRunning(false);
+
+  };
+
+  const formatTime = (s) => {
+
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+
+  };
+
+  const startCountdown = () => {
+
+    const total = minutesInput * 60 + secondsInput;
+
+    setCountdown(total);
+
+    setCountdownRunning(true);
+
+  };
+
+  /* Today's totals */
+
+  const todayLog = log.filter((l) => l.date === todayString);
+
+  const todayTotal = todayLog.reduce((sum, l) => sum + l.duration, 0);
+
+  const todayScore = todayLog.reduce((sum, l) => sum + Number(l.score), 0);
+
+  /* Weekly exposure */
+
+  const last7Days = log.slice(0, 50).filter((entry) => {
+
+    const d = new Date(entry.date);
+    const now = new Date();
+
+    const diff = (now - d) / (1000 * 60 * 60 * 24);
+
+    return diff <= 7;
+
+  });
+
+  const weeklyMinutes = last7Days.reduce((sum, l) => sum + l.duration, 0) / 60;
+
+  const weeklyGoal = 11; // minutes
+
+  /* Streak calculation */
+
+  const getStreak = () => {
+
+    let streak = 0;
+
+    const dates = [...new Set(log.map((l) => l.date))];
+
+    const sorted = dates
+      .map((d) => new Date(d))
+      .sort((a, b) => b - a);
+
+    let current = new Date();
+
+    for (let d of sorted) {
+
+      const diff = Math.floor((current - d) / (1000 * 60 * 60 * 24));
+
+      if (diff <= 1) {
+        streak++;
+        current = d;
+      } else {
+        break;
+      }
+
+    }
+
+    return streak;
+
+  };
+
+  const streak = getStreak();
+
+  return (
+
+    <div className="p-6 grid gap-6 max-w-xl mx-auto">
+
+      {/* Navigation */}
+
+      <Card>
+
+        <CardContent className="p-4 flex justify-around">
+
+          <Button onClick={() => setDefaultScreen("timer")}>Timer</Button>
+
+          <Button onClick={() => setDefaultScreen("countdown")}>Countdown</Button>
+
+          <Button onClick={() => setDefaultScreen("history")}>History</Button>
+
+        </CardContent>
+
+      </Card>
+
+      {/* Stats */}
+
+      <Card>
+
+        <CardContent className="p-4 text-center text-sm">
+
+          <div>🔥 Streak: {streak} days</div>
+
+          <div>Today: {(todayTotal / 60).toFixed(1)} min</div>
+
+          <div>Cold Score Today: {todayScore.toFixed(2)}</div>
+
+          <div>
+            Weekly Exposure: {weeklyMinutes.toFixed(1)} / {weeklyGoal} min
+          </div>
+
+        </CardContent>
+
+      </Card>
+
+      {/* Stopwatch Screen */}
+
+      {screen === "timer" && (
+
+        <Card>
+
+          <CardContent className="p-6 text-center">
+
+            <h2 className="text-xl font-bold mb-4">Cold Plunge Timer</h2>
+
+            <div className="text-5xl font-mono mb-4">
+              {formatTime(seconds)}
+            </div>
+
+            <div className="flex gap-3 justify-center mb-4">
+
+              <Button onClick={() => setRunning(true)}>Start</Button>
+
+              <Button onClick={() => setRunning(false)}>Pause</Button>
+
+              <Button
+                onClick={() => {
+                  setSeconds(0);
+                  setRunning(false);
+                }}
+              >
+                Reset
+              </Button>
+
+            </div>
+
+            <div className="mb-4">
+
+              <label className="text-sm">Water Temp (°F)</label>
+
+              <input
+                type="number"
+                value={temp}
+                onChange={(e) => setTemp(Number(e.target.value))}
+                className="border rounded p-2 w-24 ml-2"
+              />
+
+            </div>
+
+            <Button onClick={logSession}>Log Plunge</Button>
+
+          </CardContent>
+
+        </Card>
+
+      )}
+
+      {/* Countdown Screen */}
+
+      {screen === "countdown" && (
+
+        <Card>
+
+          <CardContent className="p-6 text-center">
+
+            <h2 className="text-xl font-bold mb-4">Countdown Timer</h2>
+
+            <div className="text-5xl font-mono mb-4">
+              {formatTime(countdown)}
+            </div>
+
+            <div className="flex justify-center gap-2 mb-4">
+
+              <input
+                type="number"
+                value={minutesInput}
+                onChange={(e) => setMinutesInput(Number(e.target.value))}
+                className="border p-2 w-20"
+              />
+
+              <span>min</span>
+
+              <input
+                type="number"
+                value={secondsInput}
+                onChange={(e) => setSecondsInput(Number(e.target.value))}
+                className="border p-2 w-20"
+              />
+
+              <span>sec</span>
+
+            </div>
+
+            <div className="flex justify-center gap-3">
+
+              <Button onClick={startCountdown}>Start</Button>
+
+              <Button
+                onClick={() => {
+                  setCountdownRunning(false);
+                  setCountdown(0);
+                }}
+              >
+                Reset
+              </Button>
+
+            </div>
+
+          </CardContent>
+
+        </Card>
+
+      )}
+
+      {/* History Screen */}
+
+      {screen === "history" && (
+
+        <Card>
+
+          <CardContent className="p-6">
+
+            <h2 className="text-xl font-bold mb-4">Plunge History</h2>
+
+            {log.length === 0 && <div>No plunges logged yet.</div>}
+
+            {log.map((l, i) => (
+
+              <div key={i} className="border-b py-2 text-sm">
+
+                {l.date} — {(l.duration / 60).toFixed(1)} min @ {l.temperature}°F
+
+                <div>Score: {l.score}</div>
+
+              </div>
+
+            ))}
+
+          </CardContent>
+
+        </Card>
+
+      )}
+
+    </div>
+
+  );
+
+}
