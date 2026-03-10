@@ -206,7 +206,7 @@ export default function Home() {
           <Droplets className="w-7 h-7 text-white" />
         </div>
         <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300">
-          OpenPlunge
+          ArcticPlunge
         </h1>
       </header>
 
