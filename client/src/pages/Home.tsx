@@ -124,6 +124,7 @@ export default function Home() {
   const [hr, setHR] = useState<number>(0);
   const [spo2, setSpo2] = useState<number>(0);
   const [watchStatus, setWatchStatus] = useState<string>("Not connected");
+  const [thermometerConnected, setThermometerConnected] = useState(false);
 
   const { toast } = useToast();
   const { data: plunges = [], isLoading } = usePlunges();
@@ -216,6 +217,7 @@ export default function Home() {
         setTemperature(Math.round((value.getUint8(1) * 9) / 5 + 32));
         toast({ title: "Thermometer updated" });
       });
+      setThermometerConnected(true);
       toast({ title: "Thermometer connected!", description: device.name || "Device paired" });
     } catch (err: any) {
       if (err?.name !== "NotFoundError") toast({ title: "Bluetooth error", description: "Could not connect.", variant: "destructive" });
@@ -589,8 +591,12 @@ export default function Home() {
               </div>
 
               <button data-testid="button-bluetooth" onClick={connectThermometer}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-800/80 border border-blue-600 text-blue-200 hover:text-white hover:border-cyan-400 font-semibold transition-all active:scale-95">
-                <Thermometer className="w-4 h-4" /> Connect Thermometer
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border font-semibold transition-all active:scale-95 ${
+                  thermometerConnected
+                    ? "bg-green-500/20 border-green-500/50 text-green-300"
+                    : "bg-blue-800/80 border-blue-600 text-blue-200 hover:text-white hover:border-cyan-400"
+                }`}>
+                <Thermometer className="w-4 h-4" /> {thermometerConnected ? "Thermometer Connected" : "Connect Thermometer"}
               </button>
               <button data-testid="button-smartwatch-settings" onClick={connectSmartwatch}
                 className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border font-semibold transition-all active:scale-95 ${
