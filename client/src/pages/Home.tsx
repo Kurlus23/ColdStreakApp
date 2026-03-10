@@ -327,8 +327,15 @@ export default function Home() {
     if (!bluetoothCheck()) return;
     try {
       setWatchStatus("Connecting…");
-      const device = await (navigator as any).bluetooth.requestDevice({ filters: [{ services: ["heart_rate"] }] });
+      // Show all nearby BLE devices — many watches only advertise heart_rate
+      // when in workout mode, so we let the user pick any device and then
+      // try to read the standard heart rate service from it.
+      const device = await (navigator as any).bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: ["heart_rate", "battery_service"],
+      });
       const server = await device.gatt.connect();
+      let hrFound = false;
       try {
         const hrService = await server.getPrimaryService("heart_rate");
         const hrChar = await hrService.getCharacteristic("heart_rate_measurement");
@@ -338,9 +345,18 @@ export default function Home() {
           const flags = value.getUint8(0);
           setHR(flags & 0x01 ? value.getUint16(1, true) : value.getUint8(1));
         });
+        hrFound = true;
       } catch {}
       setWatchStatus(`Connected: ${device.name || "Watch"}`);
-      toast({ title: "Smartwatch connected!", description: `Live HR from ${device.name || "your watch"}` });
+      if (hrFound) {
+        toast({ title: "Smartwatch connected!", description: `Live HR from ${device.name || "your watch"}` });
+      } else {
+        toast({
+          title: `${device.name || "Device"} connected`,
+          description: "Connected but no heart rate data found. Your watch may need to be in workout mode, or it may use a proprietary app.",
+          variant: "destructive",
+        });
+      }
     } catch (err: any) {
       setWatchStatus("Not connected");
       if (err?.name !== "NotFoundError") toast({ title: "Watch error", description: "Could not connect.", variant: "destructive" });
