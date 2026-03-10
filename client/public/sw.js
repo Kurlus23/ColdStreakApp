@@ -1,4 +1,4 @@
-const CACHE = "arcticplunge-v1";
+const CACHE = "coldstreak-v1";
 const PRECACHE = ["/", "/src/main.tsx"];
 
 self.addEventListener("install", (e) => {

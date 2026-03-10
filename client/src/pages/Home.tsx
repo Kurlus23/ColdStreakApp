@@ -301,7 +301,7 @@ export default function Home() {
           style={{ textShadow: "0 2px 12px rgba(0,0,0,0.6)" }}
           data-testid="header-title"
         >
-          ArcticPlunge
+          ColdStreak
         </h1>
       </header>
 

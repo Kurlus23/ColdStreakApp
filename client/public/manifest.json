@@ -1,6 +1,6 @@
 {
-  "name": "ArcticPlunge",
-  "short_name": "ArcticPlunge",
+  "name": "ColdStreak",
+  "short_name": "ColdStreak",
   "description": "Cold plunge timer with scoring, history, and streak tracking",
   "start_url": "/",
   "display": "standalone",
