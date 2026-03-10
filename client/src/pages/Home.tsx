@@ -276,8 +276,7 @@ export default function Home() {
       <div className="absolute inset-0 bg-gradient-to-b from-blue-950/60 via-blue-900/20 to-blue-950/80" />
 
       {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-5 pt-8 pb-2">
-        <div className="w-8" />
+      <header className="relative z-10 flex items-center justify-center px-5 pt-8 pb-2">
         <h1
           className="text-3xl font-extrabold italic text-white tracking-wide"
           style={{ textShadow: "0 2px 12px rgba(0,0,0,0.6)" }}
