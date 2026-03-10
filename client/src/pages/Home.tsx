@@ -358,15 +358,29 @@ export default function Home() {
               className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center"
               data-testid="card-timer"
             >
-              <div
+              <button
                 data-testid="display-timer"
-                className={`text-4xl font-mono font-bold tracking-tight leading-none mb-0.5 ${isActive ? "text-white" : "text-slate-200"}`}
+                onClick={() => {
+                  if (isActive) { handleStop(); }
+                  setCountdownMode(m => !m);
+                  setSeconds(0);
+                  setIsRunning(false);
+                  setCountdown(0);
+                  setCountdownRunning(false);
+                }}
+                className="flex flex-col items-center group focus:outline-none"
+                title="Tap to switch mode"
               >
-                {formatTime(displaySeconds)}
-              </div>
-              <div className="text-blue-300 text-[10px] uppercase tracking-widest mb-3">
-                {countdownMode ? "Countdown" : "Time"}
-              </div>
+                <div className={`text-4xl font-mono font-bold tracking-tight leading-none mb-0.5 ${isActive ? "text-white" : "text-slate-200"}`}>
+                  {formatTime(displaySeconds)}
+                </div>
+                <div className="flex items-center gap-1 text-blue-300 group-hover:text-cyan-300 transition-colors text-[10px] uppercase tracking-widest mb-3">
+                  {countdownMode ? "Countdown" : "Stopwatch"}
+                  <svg className="w-2.5 h-2.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
+                  </svg>
+                </div>
+              </button>
               <div className="flex gap-1.5 w-full mt-auto">
                 <button
                   data-testid="button-start"
