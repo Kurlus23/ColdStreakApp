@@ -51,6 +51,25 @@ export const insertLeaderboardEntrySchema = createInsertSchema(leaderboardEntrie
   createdAt: true,
 });
 
+export const userLocations = pgTable("user_locations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  country: text("country").notNull(),
+  description: text("description"),
+  submittedBy: text("submitted_by"),
+  nominationCount: integer("nomination_count").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserLocationSchema = createInsertSchema(userLocations).omit({
+  id: true,
+  nominationCount: true,
+  createdAt: true,
+});
+
+export type UserLocation = typeof userLocations.$inferSelect;
+export type InsertUserLocation = z.infer<typeof insertUserLocationSchema>;
+
 export type InsertPlunge = z.infer<typeof insertPlungeSchema>;
 export type UpdatePlunge = z.infer<typeof updatePlungeSchema>;
 export type Plunge = typeof plunges.$inferSelect;

@@ -14,6 +14,7 @@ import { usePlunges, useCreatePlunge, useUpdatePlunge } from "@/hooks/use-plunge
 import { useLeaderboard, useSubmitLeaderboard } from "@/hooks/use-leaderboard";
 import { useProStatus } from "@/hooks/use-pro-status";
 import { PlungeCard } from "@/components/PlungeCard";
+import { CommunityLocations } from "@/components/CommunityLocations";
 import { PASSPORT_LOCATIONS, usePassportBadges } from "@/lib/passport";
 
 import { type Plunge } from "@shared/schema";
@@ -615,6 +616,9 @@ export default function Home() {
                 </div>
               )}
             </div>
+
+            {/* Community Locations */}
+            <CommunityLocations username={username} />
 
             {/* Today summary */}
             {todayPlunges.length > 0 && (

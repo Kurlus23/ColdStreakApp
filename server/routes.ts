@@ -75,6 +75,37 @@ export async function registerRoutes(
     }
   });
 
+  // Community locations
+  app.get("/api/community-locations", async (req, res) => {
+    const country = req.query.country as string | undefined;
+    const locations = await storage.getUserLocations(country);
+    res.json(locations);
+  });
+
+  app.post("/api/community-locations", async (req, res) => {
+    try {
+      const input = z.object({
+        name: z.string().min(2).max(100),
+        country: z.string().min(2).max(60),
+        description: z.string().max(300).optional(),
+        submittedBy: z.string().max(50).optional(),
+      }).parse(req.body);
+      const loc = await storage.createUserLocation(input);
+      res.status(201).json(loc);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      throw err;
+    }
+  });
+
+  app.post("/api/community-locations/:id/nominate", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const updated = await storage.nominateUserLocation(id);
+    if (!updated) return res.status(404).json({ message: "Location not found" });
+    res.json(updated);
+  });
+
   // Stripe — create checkout session
   app.post("/api/stripe/checkout", async (req, res) => {
     try {

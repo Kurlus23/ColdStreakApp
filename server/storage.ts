@@ -1,10 +1,11 @@
 import { db } from "./db";
 import {
-  plunges, leaderboardEntries, proUsers,
+  plunges, leaderboardEntries, proUsers, userLocations,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
+  type UserLocation, type InsertUserLocation,
 } from "@shared/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 
 export interface IStorage {
   getPlunges(): Promise<Plunge[]>;
@@ -15,6 +16,9 @@ export interface IStorage {
   addLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry>;
   getProUser(email: string): Promise<ProUser | null>;
   createProUser(email: string, stripeSessionId: string): Promise<ProUser>;
+  getUserLocations(country?: string): Promise<UserLocation[]>;
+  createUserLocation(loc: InsertUserLocation): Promise<UserLocation>;
+  nominateUserLocation(id: number): Promise<UserLocation | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -65,6 +69,30 @@ export class DatabaseStorage implements IStorage {
       .onConflictDoUpdate({ target: proUsers.email, set: { stripeSessionId, active: true } })
       .returning();
     return user;
+  }
+
+  async getUserLocations(country?: string): Promise<UserLocation[]> {
+    const query = db.select().from(userLocations).orderBy(desc(userLocations.nominationCount));
+    if (country && country !== "All") {
+      return await db.select().from(userLocations)
+        .where(eq(userLocations.country, country))
+        .orderBy(desc(userLocations.nominationCount));
+    }
+    return await query;
+  }
+
+  async createUserLocation(loc: InsertUserLocation): Promise<UserLocation> {
+    const [created] = await db.insert(userLocations).values(loc).returning();
+    return created;
+  }
+
+  async nominateUserLocation(id: number): Promise<UserLocation | null> {
+    const [updated] = await db
+      .update(userLocations)
+      .set({ nominationCount: sql`${userLocations.nominationCount} + 1` })
+      .where(eq(userLocations.id, id))
+      .returning();
+    return updated ?? null;
   }
 }
 
