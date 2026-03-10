@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import "@/styles/iceberg.css";
 import {
   Play, Pause, RotateCcw, Thermometer, Droplets, History,
   Activity, Snowflake, Timer, AlarmClock, Flame, Target, Zap,
@@ -216,7 +217,12 @@ export default function Home() {
   const watchConnected = watchStatus !== "Not connected" && watchStatus !== "Connecting…";
 
   return (
-    <div className="min-h-screen pb-24 px-4 sm:px-6 max-w-xl mx-auto flex flex-col pt-10 md:pt-16">
+    <div className="min-h-screen">
+      <div className="arctic-bg">
+        <div className="arctic-aurora" />
+        <div className="arctic-iceberg" />
+      </div>
+    <div className="relative z-10 min-h-screen pb-24 px-4 sm:px-6 max-w-xl mx-auto flex flex-col pt-10 md:pt-16">
 
       {/* Header */}
       <header className="flex items-center justify-center gap-3 mb-8">
@@ -523,6 +529,7 @@ export default function Home() {
           )}
         </div>
       )}
+    </div>
     </div>
   );
 }
