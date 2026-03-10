@@ -1,4 +1,4 @@
-# OpenPlunge
+# ColdStreak
 
 ## Overview
 
@@ -88,3 +88,20 @@ Preferred communication style: Simple, everyday language.
 
 ### No Authentication
 The app currently has no user authentication or session management. All plunge data is shared/global.
+
+---
+
+## Monetization
+
+### Current Plan (PWA — Stripe)
+- **Free tier**: Last 7 days of history, basic stats, sharing, ads
+- **ColdStreak Pro** (one-time fee ~$7.99): Unlimited history, advanced stats, Plunge Passport + leaderboards, CSV/Apple Health export, custom cold score goals, no ads
+- Payment processor: **Stripe** (one-time payment, email used as Pro identifier for restore)
+- Pro status tied to email, stored in DB + localStorage
+
+### REMINDER: App Store Version → RevenueCat
+When building the native iOS/Android App Store version, Stripe CANNOT be used for in-app purchases of digital goods.
+- Use **RevenueCat** SDK instead (handles Apple IAP + Google Play Billing)
+- RevenueCat skill is available in `.local/skills/revenuecat/`
+- One-time purchases are supported via RevenueCat "non-consumable" product type
+- The app will need to be converted to React Native or wrapped with Capacitor for App Store submission
