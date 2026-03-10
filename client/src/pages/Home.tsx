@@ -491,22 +491,33 @@ export default function Home() {
             <span className="text-[11px] font-semibold">History</span>
           </button>
 
-          {/* Cold Score — center, tapping goes back to timer */}
-          <button
-            data-testid="nav-timer"
-            onClick={() => navTo("timer")}
-            className="flex-1 flex flex-col items-center gap-1 group"
-          >
-            <div className="flex items-center gap-1.5 bg-blue-800/60 group-hover:bg-blue-700/70 border border-blue-600/60 rounded-2xl px-3 py-1.5 transition-all">
-              <Snowflake className="w-4 h-4 text-cyan-300" />
-              <div>
-                <div className="text-[9px] text-blue-400 uppercase tracking-wider leading-none">Cold Score</div>
-                <div className="text-white font-bold text-base leading-tight">
-                  {displayScore > 0 ? displayScore.toFixed(0) : "—"}
+          {/* Cold Score — center */}
+          <div className="flex-1 flex flex-col items-center gap-1">
+            <div className="flex items-center gap-1">
+              <button
+                data-testid="nav-timer"
+                onClick={() => navTo("timer")}
+                className="flex items-center gap-1.5 bg-blue-800/60 hover:bg-blue-700/70 border border-blue-600/60 rounded-2xl px-3 py-1.5 transition-all group"
+              >
+                <Snowflake className="w-4 h-4 text-cyan-300" />
+                <div>
+                  <div className="text-[9px] text-blue-400 uppercase tracking-wider leading-none">Cold Score</div>
+                  <div className="text-white font-bold text-base leading-tight">
+                    {displayScore > 0 ? displayScore.toFixed(0) : "—"}
+                  </div>
                 </div>
-              </div>
+              </button>
+              <button
+                data-testid="button-cold-score-info"
+                onClick={() => toast({
+                  title: "What is Cold Score?",
+                  description: "Cold Score reflects the relative impact of your plunge based on duration × temperature factor. Colder water earns up to 2.3× multiplier. Higher scores mean more cold exposure and greater activation of cold shock proteins and brown fat.",
+                })}
+                className="w-6 h-6 rounded-full bg-blue-700/60 border border-blue-500/40 text-blue-300 hover:text-white hover:bg-blue-600/80 transition-all text-[11px] font-bold flex items-center justify-center"
+                title="What is Cold Score?"
+              >ⓘ</button>
             </div>
-          </button>
+          </div>
 
           {/* Settings */}
           <button

@@ -1,0 +1,241 @@
+import React, { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import './ArcticPlunge.css';
+
+export default function ArcticPlungeApp() {
+  const todayString = new Date().toLocaleDateString();
+
+  const [screen, setScreen] = useState(localStorage.getItem("defaultScreen") || "timer");
+  const setDefaultScreen = (name) => { setScreen(name); localStorage.setItem("defaultScreen", name); };
+
+  const [seconds, setSeconds] = useState(0);
+  const [running, setRunning] = useState(false);
+
+  const [countdown, setCountdown] = useState(0);
+  const [countdownRunning, setCountdownRunning] = useState(false);
+
+  const [minutesInput, setMinutesInput] = useState(3);
+  const [secondsInput, setSecondsInput] = useState(0);
+
+  const [temp, setTemp] = useState(50);
+  const [celsius, setCelsius] = useState(false);
+
+  const [hr, setHR] = useState(0);
+  const [spo2, setO2] = useState(0);
+  const [watchStatus, setWatchStatus] = useState("Not connected");
+
+  const [log, setLog] = useState(JSON.parse(localStorage.getItem("plungeLog") || "[]"));
+
+  useEffect(() => {
+    let interval;
+    if (running) interval = setInterval(() => { setSeconds(s => s + 1); }, 1000);
+    return () => clearInterval(interval);
+  }, [running]);
+
+  const pauseTimer = () => { if(running && seconds>0) logSession(seconds); setRunning(false); };
+
+  useEffect(() => {
+    let interval;
+    if(countdownRunning && countdown>0) interval = setInterval(()=>{ setCountdown(c=>c-1); },1000);
+    if(countdownRunning && countdown===0){
+      setCountdownRunning(false);
+      logSession(minutesInput*60 + secondsInput);
+      const audio = new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
+      audio.play();
+      alert("Plunge finished!");
+    }
+    return ()=>clearInterval(interval);
+  }, [countdownRunning, countdown]);
+
+  const plungeScore = (time, temperature) => {
+    const minutes = time/60;
+    let coldFactor = 1;
+    if(temperature<=55) coldFactor=1.2;
+    if(temperature<=50) coldFactor=1.5;
+    if(temperature<=45) coldFactor=1.9;
+    if(temperature<=40) coldFactor=2.3;
+    return Number((minutes*coldFactor).toFixed(2));
+  };
+
+  const logSession = (duration) => {
+    const tempToLog = celsius ? (temp*9/5+32) : temp;
+    const entry = {
+      date: todayString,
+      duration: duration,
+      temperature: tempToLog,
+      score: plungeScore(duration,tempToLog),
+      hrMin: hr || null,
+      hrMax: hr || null,
+      hrAvg: hr || null,
+      spo2Min: spo2 || null,
+      spo2Max: spo2 || null,
+      spo2Avg: spo2 || null
+    };
+    const updated = [entry,...log];
+    setLog(updated);
+    localStorage.setItem("plungeLog", JSON.stringify(updated));
+    setSeconds(0);
+    setCountdown(0);
+  };
+
+  const formatTime = (s) => { const m=Math.floor(s/60); const sec=s%60; return `${m}:${sec.toString().padStart(2,"0")}`; };
+  const startCountdown = ()=>{ setCountdown(minutesInput*60+secondsInput); setCountdownRunning(true); };
+
+  const todayLog = log.filter(l=>l.date===todayString);
+  const todayTotal = todayLog.reduce((sum,l)=>sum+l.duration,0);
+  const todayScore = todayLog.reduce((sum,l)=>sum+Number(l.score),0);
+  const last7Days = log.slice(0,50).filter(entry=>(new Date()-new Date(entry.date))/(1000*60*60*24)<=7);
+  const weeklyMinutes = last7Days.reduce((sum,l)=>sum+l.duration,0)/60;
+  const weeklyGoal = 11;
+
+  const getStreak = ()=>{
+    let streak=0;
+    const dates=[...new Set(log.map(l=>l.date))];
+    const sorted=dates.map(d=>new Date(d)).sort((a,b)=>b-a);
+    let current=new Date();
+    for(let d of sorted){
+      const diff=Math.floor((current-d)/(1000*60*60*24));
+      if(diff<=1){ streak++; current=d; } else break;
+    }
+    return streak;
+  };
+  const streak = getStreak();
+
+  const deleteLog = (i)=>{ const updated=[...log]; updated.splice(i,1); setLog(updated); localStorage.setItem("plungeLog",JSON.stringify(updated)); };
+
+  const connectThermometer = async()=>{ try {
+    const device = await navigator.bluetooth.requestDevice({filters:[{services:['health_thermometer']}]});
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService('health_thermometer');
+    const characteristic = await service.getCharacteristic('temperature_measurement');
+    characteristic.startNotifications();
+    characteristic.addEventListener('characteristicvaluechanged',(event)=>{
+      const value = event.target.value;
+      let tempC=value.getUint8(1); let tempF=(tempC*9/5)+32;
+      setTemp(celsius ? tempC : tempF);
+    });
+    alert('Thermometer connected!');
+  } catch(err){ console.error(err); alert('Could not connect to thermometer'); }};
+
+  const connectSmartwatch = async()=>{
+    setWatchStatus("Connected: Live data active if supported");
+  };
+
+  return (
+    <div className="app-container">
+      <div className="background-iceberg"></div>
+      <div className="content p-6 grid gap-6 max-w-xl mx-auto">
+
+        <h1 className="text-2xl font-bold text-center mb-4 text-white">ArcticPlunge</h1>
+
+        <Card>
+          <CardContent className="p-4 flex justify-around">
+            <Button onClick={()=>setDefaultScreen("timer")}>Timer</Button>
+            <Button onClick={()=>setDefaultScreen("countdown")}>Countdown</Button>
+            <Button onClick={()=>setDefaultScreen("temperature")}>Temperature</Button>
+            <Button onClick={()=>setDefaultScreen("history")}>History</Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4 text-center text-sm text-white">
+            <div>🔥 Streak: {streak} days</div>
+            <div>Today: {(todayTotal/60).toFixed(1)} min</div>
+
+            {/* Cold Score Button */}
+            <div className="my-2">
+              <Button
+                onClick={() =>
+                  alert(
+                    "Cold Score represents the relative impact of your plunge based on duration and water temperature. Higher scores indicate more cold exposure and potentially more cold shock protein and brown fat activation."
+                  )
+                }
+              >
+                Cold Score Today: {todayScore.toFixed(2)}
+              </Button>
+            </div>
+
+            <div>Weekly Exposure: {weeklyMinutes.toFixed(1)} / {weeklyGoal} min</div>
+          </CardContent>
+        </Card>
+
+        {/* Timer Screen */}
+        {screen==="timer" && (
+          <Card>
+            <CardContent className="p-6 text-center text-white">
+              <h2 className="text-xl font-bold mb-4">Cold Plunge Timer</h2>
+              <div className="text-5xl font-mono mb-4">{formatTime(seconds)}</div>
+              <div className="mb-2">HR: {hr} bpm | O₂: {spo2}% | {watchStatus}</div>
+              <div className="flex gap-3 justify-center mb-4">
+                <Button onClick={()=>setRunning(true)}>Start</Button>
+                <Button onClick={pauseTimer}>Pause & Auto Log</Button>
+                <Button onClick={()=>{setSeconds(0); setRunning(false);}}>Reset</Button>
+              </div>
+              <Button onClick={connectThermometer} className="mb-2">Connect Thermometer</Button>
+              <Button onClick={connectSmartwatch}>Connect Smartwatch</Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Countdown Screen */}
+        {screen==="countdown" && (
+          <Card>
+            <CardContent className="p-6 text-center text-white">
+              <h2 className="text-xl font-bold mb-4">Countdown Timer</h2>
+              <div className="text-5xl font-mono mb-4">{formatTime(countdown)}</div>
+              <div className="flex justify-center gap-2 mb-4">
+                <select value={minutesInput} onChange={e=>setMinutesInput(Number(e.target.value))} className="border p-2">
+                  {Array.from({length:61},(_,i)=><option key={i} value={i}>{i} min</option>)}
+                </select>
+                <select value={secondsInput} onChange={e=>setSecondsInput(Number(e.target.value))} className="border p-2">
+                  {Array.from({length:60},(_,i)=><option key={i} value={i}>{i} sec</option>)}
+                </select>
+              </div>
+              <div className="flex justify-center gap-3">
+                <Button onClick={startCountdown}>Start</Button>
+                <Button onClick={()=>{setCountdownRunning(false); setCountdown(0);}}>Reset</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Temperature Screen */}
+        {screen==="temperature" && (
+          <Card>
+            <CardContent className="p-6 text-center text-white">
+              <h2 className="text-xl font-bold mb-4">Set Water Temperature</h2>
+              <div className="flex justify-center gap-2 mb-2">
+                <select value={temp} onChange={e=>setTemp(Number(e.target.value))} className="border rounded p-2 w-24">
+                  {Array.from({length:33},(_,i)=>28+i).map(t=>(
+                    <option key={t} value={t}>{celsius ? t+"°C" : (t*9/5+32).toFixed(0)+"°F"}</option>
+                  ))}
+                </select>
+                <Button onClick={()=>setCelsius(!celsius)}>{celsius ? "Switch to °F" : "Switch to °C"}</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* History Screen */}
+        {screen==="history" && (
+          <Card>
+            <CardContent className="p-6 text-white">
+              <h2 className="text-xl font-bold mb-4">Plunge History</h2>
+              {log.length===0 && <div>No plunges logged yet.</div>}
+              {log.map((l,i)=>(
+                <div key={i} className="border-b py-2 text-sm flex justify-between items-center">
+                  <div>
+                    {l.date} — {(l.duration/60).toFixed(1)} min @ {l.temperature}°F | Score: {l.score} | HR: {l.hrAvg} bpm | O₂: {l.spo2Avg}%
+                  </div>
+                  <Button onClick={()=>deleteLog(i)} className="text-red-500">Delete</Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+      </div>
+    </div>
+  );
+}
