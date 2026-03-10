@@ -7,6 +7,8 @@ export const plunges = pgTable("plunges", {
   duration: integer("duration").notNull(), // in seconds
   temperature: integer("temperature").notNull(), // in fahrenheit
   score: numeric("score", { precision: 10, scale: 2 }).notNull(), // plunge score
+  hrAvg: integer("hr_avg"), // average heart rate bpm (nullable)
+  spo2Avg: integer("spo2_avg"), // average blood oxygen % (nullable)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

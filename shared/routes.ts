@@ -28,6 +28,8 @@ export const api = {
       path: "/api/plunges" as const,
       input: insertPlungeSchema.extend({
         score: z.string().or(z.number()),
+        hrAvg: z.number().int().nullable().optional(),
+        spo2Avg: z.number().int().nullable().optional(),
       }),
       responses: {
         201: z.custom<typeof plunges.$inferSelect>(),
