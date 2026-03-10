@@ -4,6 +4,7 @@ import { z } from "zod";
 
 export const plunges = pgTable("plunges", {
   id: serial("id").primaryKey(),
+  clientId: text("client_id"), // device-specific UUID for data isolation (nullable for legacy rows)
   duration: integer("duration").notNull(), // in seconds
   temperature: integer("temperature").notNull(), // in fahrenheit
   score: numeric("score", { precision: 10, scale: 2 }).notNull(), // plunge score

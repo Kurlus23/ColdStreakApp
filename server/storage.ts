@@ -5,10 +5,10 @@ import {
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
   type UserLocation, type InsertUserLocation,
 } from "@shared/schema";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, sql, or, isNull } from "drizzle-orm";
 
 export interface IStorage {
-  getPlunges(): Promise<Plunge[]>;
+  getPlunges(clientId?: string): Promise<Plunge[]>;
   createPlunge(plunge: InsertPlunge): Promise<Plunge>;
   updatePlunge(id: number, patch: UpdatePlunge): Promise<Plunge>;
   deletePlunge(id: number): Promise<void>;
@@ -22,7 +22,12 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getPlunges(): Promise<Plunge[]> {
+  async getPlunges(clientId?: string): Promise<Plunge[]> {
+    if (clientId) {
+      return await db.select().from(plunges)
+        .where(or(eq(plunges.clientId, clientId), isNull(plunges.clientId)))
+        .orderBy(desc(plunges.createdAt));
+    }
     return await db.select().from(plunges).orderBy(desc(plunges.createdAt));
   }
 

@@ -14,7 +14,8 @@ export async function registerRoutes(
 ): Promise<Server> {
 
   app.get(api.plunges.list.path, async (req, res) => {
-    const allPlunges = await storage.getPlunges();
+    const clientId = req.query.clientId as string | undefined;
+    const allPlunges = await storage.getPlunges(clientId);
     res.json(allPlunges);
   });
 
