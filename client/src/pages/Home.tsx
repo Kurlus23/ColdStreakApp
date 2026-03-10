@@ -99,7 +99,7 @@ export default function Home() {
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [temperature, setTemperature] = useState<number>(
-    () => Number(localStorage.getItem("coldstreak-temperature") ?? 50)
+    () => Math.min(60, Math.max(25, Number(localStorage.getItem("coldstreak-temperature") ?? 50)))
   );
   const [useCelsius, setUseCelsius] = useState(false);
 
@@ -367,8 +367,8 @@ export default function Home() {
                   className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                 >
                   {useCelsius
-                    ? Array.from({ length: 35 }, (_, i) => 4 + i).map((c) => <option key={c} value={c}>{c}°C</option>)
-                    : Array.from({ length: 61 }, (_, i) => 40 + i).map((f) => <option key={f} value={f}>{f}°F</option>)
+                    ? Array.from({ length: 21 }, (_, i) => -4 + i).map((c) => <option key={c} value={c}>{c}°C</option>)
+                    : Array.from({ length: 36 }, (_, i) => 25 + i).map((f) => <option key={f} value={f}>{f}°F</option>)
                   }
                 </select>
                 <span className="text-white text-3xl font-bold leading-none pointer-events-none">{tempDisplay}</span>
