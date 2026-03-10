@@ -204,8 +204,20 @@ export default function Home() {
     if (alarmRef.current) { alarmRef.current.pause(); alarmRef.current.currentTime = 0; }
   };
 
+  const bluetoothCheck = (): boolean => {
+    if (window.self !== window.top) {
+      toast({ title: "Open in a new tab", description: "Bluetooth is blocked inside the preview pane. Tap the ↗ icon to open the app in its own tab, then try again.", variant: "destructive" });
+      return false;
+    }
+    if (!("bluetooth" in navigator)) {
+      toast({ title: "Browser not supported", description: "Web Bluetooth requires Chrome or Edge on Android or desktop — not Safari or Firefox.", variant: "destructive" });
+      return false;
+    }
+    return true;
+  };
+
   const connectThermometer = async () => {
-    if (!("bluetooth" in navigator)) { toast({ title: "Bluetooth not supported", description: "Try Chrome or Edge.", variant: "destructive" }); return; }
+    if (!bluetoothCheck()) return;
     try {
       const device = await (navigator as any).bluetooth.requestDevice({ filters: [{ services: ["health_thermometer"] }] });
       const server = await device.gatt.connect();
@@ -225,7 +237,7 @@ export default function Home() {
   };
 
   const connectSmartwatch = async () => {
-    if (!("bluetooth" in navigator)) { toast({ title: "Bluetooth not supported", description: "Try Chrome or Edge.", variant: "destructive" }); return; }
+    if (!bluetoothCheck()) return;
     try {
       setWatchStatus("Connecting…");
       const device = await (navigator as any).bluetooth.requestDevice({ filters: [{ services: ["heart_rate"] }] });
