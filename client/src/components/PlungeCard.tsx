@@ -36,11 +36,17 @@ export function PlungeCard({ plunge }: PlungeCardProps) {
       </div>
 
       <div className="z-10 text-right">
-        <div className="flex items-start justify-end gap-1">
-          <span className="text-2xl font-display font-bold text-white drop-shadow-sm">
-            {plunge.temperature}
-          </span>
-          <span className="text-cyan-400 font-bold mt-1">°F</span>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-start justify-end gap-1">
+            <span className="text-2xl font-display font-bold text-white drop-shadow-sm">
+              {plunge.temperature}
+            </span>
+            <span className="text-cyan-400 font-bold mt-1">°F</span>
+          </div>
+          <div className="text-sm bg-slate-900/60 px-3 py-1 rounded-lg border border-cyan-500/30">
+            <span className="text-cyan-300 font-semibold">Score: </span>
+            <span className="text-white font-display font-bold">{plunge.score}</span>
+          </div>
         </div>
       </div>
     </div>

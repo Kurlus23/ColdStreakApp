@@ -33,6 +33,12 @@ export default function Home() {
     setSeconds(0);
   };
 
+  const calculateScore = (durationSeconds: number, tempF: number) => {
+    const minutes = durationSeconds / 60;
+    const tempFactor = (60 - tempF) / 10;
+    return (minutes * tempFactor).toFixed(2);
+  };
+
   const handleLogPlunge = () => {
     if (seconds === 0) {
       toast({
@@ -53,8 +59,10 @@ export default function Home() {
       return;
     }
 
+    const score = calculateScore(seconds, tempVal);
+
     createPlunge.mutate(
-      { duration: seconds, temperature: tempVal },
+      { duration: seconds, temperature: tempVal, score },
       {
         onSuccess: () => {
           // Celebrate!
@@ -67,7 +75,7 @@ export default function Home() {
           
           toast({
             title: "Plunge Logged! ❄️",
-            description: `You survived ${formatTime(seconds)} at ${tempVal}°F. Incredible!`,
+            description: `Score: ${score} | ${formatTime(seconds)} at ${tempVal}°F. Incredible!`,
           });
           
           resetTimer();

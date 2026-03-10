@@ -26,7 +26,9 @@ export const api = {
     create: {
       method: "POST" as const,
       path: "/api/plunges" as const,
-      input: insertPlungeSchema,
+      input: insertPlungeSchema.extend({
+        score: z.string().or(z.number()),
+      }),
       responses: {
         201: z.custom<typeof plunges.$inferSelect>(),
         400: errorSchemas.validation,

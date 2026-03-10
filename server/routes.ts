@@ -17,7 +17,12 @@ export async function registerRoutes(
   app.post(api.plunges.create.path, async (req, res) => {
     try {
       const input = api.plunges.create.input.parse(req.body);
-      const newPlunge = await storage.createPlunge(input);
+      // Ensure score is a string for the database
+      const plungeData = {
+        ...input,
+        score: String(input.score),
+      };
+      const newPlunge = await storage.createPlunge(plungeData);
       res.status(201).json(newPlunge);
     } catch (err) {
       if (err instanceof z.ZodError) {
