@@ -27,7 +27,7 @@ const ALL_COUNTRIES = ["All", "Iceland", "Norway", "Switzerland", "Australia", "
 
 interface GeoPos { lat: number; lng: number; }
 
-export function Explore({ username, onClose }: { username: string; onClose: () => void }) {
+export function Explore({ username, onClose, onUpgrade }: { username: string; onClose: () => void; onUpgrade: () => void }) {
   const { toast } = useToast();
   const { isPro } = useProStatus();
   const { badges, awardBadge, hasBadge } = usePassportBadges();
@@ -288,109 +288,11 @@ export function Explore({ username, onClose }: { username: string; onClose: () =
         </div>
       </div>
 
-      {/* ── Plunge Passport Tile ── */}
-      <div className="bg-gradient-to-br from-blue-900/70 to-blue-950/80 border border-blue-700/50 rounded-2xl overflow-hidden">
-        <button
-          data-testid="button-toggle-passport"
-          onClick={() => setPassportOpen((v) => !v)}
-          className="w-full flex items-center gap-3 px-4 py-3.5"
-        >
-          <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/40">
-            <Star className="w-4 h-4 text-cyan-400" />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="text-white font-bold text-sm">Plunge Passport</div>
-            <div className="text-blue-400 text-[11px]">
-              {isPro ? `${badges.size} / ${PASSPORT_LOCATIONS.length} earned` : "Pro — curated bucket-list spots"}
-            </div>
-          </div>
-          {isPro && (
-            <span className="text-xs text-cyan-400 font-bold">
-              {passportFiltered.length} shown
-            </span>
-          )}
-          <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform duration-300 ${passportOpen ? "rotate-180" : ""}`} />
-        </button>
-
-        {passportOpen && (
-          <div className="px-3 pb-3">
-            {!isPro ? (
-              <div className="flex flex-col items-center py-6 gap-2">
-                <Lock className="w-8 h-8 text-blue-600" />
-                <p className="text-blue-400 text-sm text-center">Unlock Plunge Passport with ColdStreak Pro</p>
-              </div>
-            ) : passportFiltered.length === 0 ? (
-              <div className="text-center py-6 text-blue-400 text-sm">No locations match your filters.</div>
-            ) : (
-              <div className="grid grid-cols-1 gap-2">
-                {passportFiltered.map((loc) => {
-                  const earned = hasBadge(loc.id);
-                  const dist = distLabel(loc.lat, loc.lng);
-                  const isOpen = locationIdDetail === loc.id;
-                  return (
-                    <div
-                      key={loc.id}
-                      data-testid={`card-passport-${loc.id}`}
-                      className={`rounded-xl border transition-all ${
-                        earned
-                          ? "bg-cyan-500/10 border-cyan-500/40"
-                          : "bg-blue-900/40 border-blue-700/40"
-                      }`}
-                    >
-                      <button
-                        onClick={() => setLocationIdDetail(isOpen ? null : loc.id)}
-                        className="w-full flex items-center gap-3 p-3 text-left"
-                      >
-                        <div className="text-2xl">{loc.flag}</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-sm font-semibold truncate ${earned ? "text-cyan-200" : "text-white"}`}>
-                              {loc.name}
-                            </span>
-                            {earned && <span className="text-xs text-cyan-400 font-bold">✓</span>}
-                          </div>
-                          <div className="text-[11px] text-blue-400">{loc.country}{loc.state ? `, ${loc.state}` : ""}</div>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          {dist && <div className="text-[11px] text-cyan-400 font-semibold">{dist}</div>}
-                          <div className="text-[10px] text-blue-500">{loc.tempRange}</div>
-                          {loc.seasonal && <div className="text-[10px] text-amber-400">Seasonal</div>}
-                        </div>
-                      </button>
-                      {isOpen && (
-                        <div className="px-3 pb-3 border-t border-blue-700/30 pt-2 space-y-2">
-                          <p className="text-blue-200 text-xs leading-relaxed">{loc.description}</p>
-                          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
-                            <p className="text-amber-300 text-[11px]">⚠ {loc.safetyNote}</p>
-                          </div>
-                          <button
-                            data-testid={`button-earn-badge-${loc.id}`}
-                            onClick={() => { awardBadge(loc.id); setLocationIdDetail(null); toast({ title: `${loc.flag} Badge earned!`, description: loc.name }); }}
-                            disabled={earned}
-                            className={`w-full py-2 rounded-xl text-xs font-bold transition-all active:scale-95 ${
-                              earned
-                                ? "bg-cyan-500/20 text-cyan-400 cursor-default"
-                                : "bg-cyan-500 hover:bg-cyan-400 text-white shadow-lg shadow-cyan-500/30"
-                            }`}
-                          >
-                            {earned ? "Badge Earned ✓" : "Mark as Visited"}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ── Community Locations Tile ── */}
+      {/* ── Community Spots Tile (Pro) ── */}
       <div className="bg-gradient-to-br from-blue-900/70 to-blue-950/80 border border-blue-700/50 rounded-2xl overflow-hidden">
         <button
           data-testid="button-toggle-community"
-          onClick={() => setCommunityOpen((v) => !v)}
+          onClick={() => isPro ? setCommunityOpen((v) => !v) : onUpgrade()}
           className="w-full flex items-center gap-3 px-4 py-3.5"
         >
           <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/40">
@@ -398,13 +300,21 @@ export function Explore({ username, onClose }: { username: string; onClose: () =
           </div>
           <div className="flex-1 text-left">
             <div className="text-white font-bold text-sm">Community Spots</div>
-            <div className="text-blue-400 text-[11px]">Crowd-sourced cold plunge destinations</div>
+            <div className="text-blue-400 text-[11px]">
+              {isPro ? "Crowd-sourced cold plunge destinations" : "Pro — discover & submit spots"}
+            </div>
           </div>
-          <span className="text-xs text-blue-400 font-semibold">{communityFiltered.length} spots</span>
-          <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform duration-300 ${communityOpen ? "rotate-180" : ""}`} />
+          {isPro ? (
+            <span className="text-xs text-blue-400 font-semibold">{communityFiltered.length} spots</span>
+          ) : (
+            <span className="flex items-center gap-1 text-xs text-yellow-400 font-semibold mr-1">
+              <Lock className="w-3 h-3" /> Pro
+            </span>
+          )}
+          <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform duration-300 ${communityOpen && isPro ? "rotate-180" : ""}`} />
         </button>
 
-        {communityOpen && (
+        {communityOpen && isPro && (
           <div className="px-3 pb-3 space-y-2">
             {/* Submit button */}
             <button
@@ -442,11 +352,7 @@ export function Explore({ username, onClose }: { username: string; onClose: () =
                     <span className="text-cyan-300 text-[11px] font-mono">
                       {formGeoPos.lat.toFixed(5)}, {formGeoPos.lng.toFixed(5)}
                     </span>
-                    <button
-                      onClick={() => setFormGeoPos(null)}
-                      className="ml-auto"
-                      data-testid="button-clear-form-geo"
-                    >
+                    <button onClick={() => setFormGeoPos(null)} className="ml-auto" data-testid="button-clear-form-geo">
                       <X className="w-3 h-3 text-cyan-500 hover:text-cyan-300" />
                     </button>
                   </div>
@@ -466,7 +372,7 @@ export function Explore({ username, onClose }: { username: string; onClose: () =
                     onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))}
                     className="bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-2 py-2 focus:outline-none"
                   >
-                    {["USA", "Iceland", "Norway", "Switzerland", "Australia", "Russia", "Canada", "UK", "Germany", "Japan", "Other"].map((c) => (
+                    {["USA","Iceland","Norway","Switzerland","Australia","Russia","Canada","UK","Germany","Japan","Other"].map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
@@ -576,6 +482,91 @@ export function Explore({ username, onClose }: { username: string; onClose: () =
                           />
                         </div>
                       </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Plunge Passport Tile (Pro) ── */}
+      <div className="bg-gradient-to-br from-blue-900/70 to-blue-950/80 border border-blue-700/50 rounded-2xl overflow-hidden">
+        <button
+          data-testid="button-toggle-passport"
+          onClick={() => isPro ? setPassportOpen((v) => !v) : onUpgrade()}
+          className="w-full flex items-center gap-3 px-4 py-3.5"
+        >
+          <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/40">
+            <Star className="w-4 h-4 text-cyan-400" />
+          </div>
+          <div className="flex-1 text-left">
+            <div className="text-white font-bold text-sm">Plunge Passport</div>
+            <div className="text-blue-400 text-[11px]">
+              {isPro ? `${badges.size} / ${PASSPORT_LOCATIONS.length} earned` : "Pro — curated bucket-list spots"}
+            </div>
+          </div>
+          {isPro ? (
+            <span className="text-xs text-cyan-400 font-bold">{passportFiltered.length} shown</span>
+          ) : (
+            <span className="flex items-center gap-1 text-xs text-yellow-400 font-semibold mr-1">
+              <Lock className="w-3 h-3" /> Pro
+            </span>
+          )}
+          <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform duration-300 ${passportOpen && isPro ? "rotate-180" : ""}`} />
+        </button>
+
+        {passportOpen && isPro && (
+          <div className="px-3 pb-3">
+            {passportFiltered.length === 0 ? (
+              <div className="text-center py-6 text-blue-400 text-sm">No locations match your filters.</div>
+            ) : (
+              <div className="grid grid-cols-1 gap-2">
+                {passportFiltered.map((loc) => {
+                  const earned = hasBadge(loc.id);
+                  const dist = distLabel(loc.lat, loc.lng);
+                  const isOpen = locationIdDetail === loc.id;
+                  return (
+                    <div
+                      key={loc.id}
+                      data-testid={`card-passport-${loc.id}`}
+                      className={`rounded-xl border transition-all ${earned ? "bg-cyan-500/10 border-cyan-500/40" : "bg-blue-900/40 border-blue-700/40"}`}
+                    >
+                      <button
+                        onClick={() => setLocationIdDetail(isOpen ? null : loc.id)}
+                        className="w-full flex items-center gap-3 p-3 text-left"
+                      >
+                        <div className="text-2xl">{loc.flag}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-sm font-semibold truncate ${earned ? "text-cyan-200" : "text-white"}`}>{loc.name}</span>
+                            {earned && <span className="text-xs text-cyan-400 font-bold">✓</span>}
+                          </div>
+                          <div className="text-[11px] text-blue-400">{loc.country}{loc.state ? `, ${loc.state}` : ""}</div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          {dist && <div className="text-[11px] text-cyan-400 font-semibold">{dist}</div>}
+                          <div className="text-[10px] text-blue-500">{loc.tempRange}</div>
+                          {loc.seasonal && <div className="text-[10px] text-amber-400">Seasonal</div>}
+                        </div>
+                      </button>
+                      {isOpen && (
+                        <div className="px-3 pb-3 border-t border-blue-700/30 pt-2 space-y-2">
+                          <p className="text-blue-200 text-xs leading-relaxed">{loc.description}</p>
+                          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+                            <p className="text-amber-300 text-[11px]">⚠ {loc.safetyNote}</p>
+                          </div>
+                          <button
+                            data-testid={`button-earn-badge-${loc.id}`}
+                            onClick={() => { awardBadge(loc.id); setLocationIdDetail(null); toast({ title: `${loc.flag} Badge earned!`, description: loc.name }); }}
+                            disabled={earned}
+                            className={`w-full py-2 rounded-xl text-xs font-bold transition-all active:scale-95 ${earned ? "bg-cyan-500/20 text-cyan-400 cursor-default" : "bg-cyan-500 hover:bg-cyan-400 text-white shadow-lg shadow-cyan-500/30"}`}
+                          >
+                            {earned ? "Badge Earned ✓" : "Mark as Visited"}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
