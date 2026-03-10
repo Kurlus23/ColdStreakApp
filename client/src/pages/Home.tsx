@@ -386,20 +386,53 @@ export default function Home() {
               data-testid="card-smartwatch"
             >
               <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
-                Connect<br />Smartwatch
+                {watchConnected ? "Smartwatch" : "Biometrics"}
               </div>
-              <Watch className={`w-9 h-9 ${watchConnected ? "text-green-400" : "text-blue-200"}`} />
-              <button
-                data-testid="button-smartwatch"
-                onClick={connectSmartwatch}
-                className={`w-full py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${
-                  watchConnected
-                    ? "bg-green-500/30 text-green-300 border border-green-500/40"
-                    : "bg-blue-600 hover:bg-blue-500 text-white"
-                }`}
-              >
-                {watchConnected ? "Connected" : "Connect"}
-              </button>
+              <Watch className={`w-7 h-7 ${watchConnected ? "text-green-400" : "text-blue-200"}`} />
+              {watchConnected ? (
+                <button
+                  data-testid="button-smartwatch"
+                  onClick={connectSmartwatch}
+                  className="w-full py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 bg-green-500/30 text-green-300 border border-green-500/40"
+                >Connected</button>
+              ) : (
+                <>
+                  <button
+                    data-testid="button-smartwatch"
+                    onClick={connectSmartwatch}
+                    className="w-full py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 bg-blue-600 hover:bg-blue-500 text-white"
+                  >BT Connect</button>
+                  <div className="w-full border-t border-blue-700/50 pt-2 space-y-1.5">
+                    <div className="text-blue-400 text-[9px] uppercase tracking-widest text-center">Manual</div>
+                    <div className="flex items-center gap-1">
+                      <Heart className="w-3 h-3 text-red-400 shrink-0" />
+                      <input
+                        data-testid="input-manual-hr"
+                        type="number"
+                        min={0} max={250}
+                        value={hr || ""}
+                        onChange={(e) => setHR(Number(e.target.value))}
+                        placeholder="HR"
+                        className="w-full bg-blue-800/80 border border-blue-600/60 rounded-lg px-1.5 py-1 text-white text-xs text-center focus:outline-none focus:border-cyan-400"
+                      />
+                      <span className="text-blue-400 text-[9px] shrink-0">bpm</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Activity className="w-3 h-3 text-cyan-400 shrink-0" />
+                      <input
+                        data-testid="input-manual-spo2"
+                        type="number"
+                        min={0} max={100}
+                        value={spo2 || ""}
+                        onChange={(e) => setSpo2(Number(e.target.value))}
+                        placeholder="O2"
+                        className="w-full bg-blue-800/80 border border-blue-600/60 rounded-lg px-1.5 py-1 text-white text-xs text-center focus:outline-none focus:border-cyan-400"
+                      />
+                      <span className="text-blue-400 text-[9px] shrink-0">%</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -591,9 +624,22 @@ export default function Home() {
             {/* Devices */}
             <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
               <div className="text-white font-semibold flex items-center gap-2"><Bluetooth className="w-4 h-4 text-cyan-400" /> Devices</div>
+
+              <div className="bg-amber-900/40 border border-amber-600/50 rounded-xl px-3 py-2.5 text-amber-200 text-xs leading-relaxed">
+                <span className="font-bold text-amber-300">Bluetooth compatibility note:</span> Web Bluetooth works in <span className="font-semibold">Chrome or Edge</span> on Android and desktop only. It does <span className="font-semibold">not</span> work in Safari, Firefox, or any iOS browser. Most consumer watches (Apple Watch, Garmin, Fitbit) are not accessible from a web app — use the <span className="font-semibold">Manual entry</span> fields on the timer screen instead.
+              </div>
+
               <button data-testid="button-bluetooth" onClick={connectThermometer}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-800/80 border border-blue-600 text-blue-200 hover:text-white hover:border-cyan-400 font-semibold transition-all active:scale-95">
                 <Thermometer className="w-4 h-4" /> Connect Thermometer
+              </button>
+              <button data-testid="button-smartwatch-settings" onClick={connectSmartwatch}
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border font-semibold transition-all active:scale-95 ${
+                  watchConnected
+                    ? "bg-green-500/20 border-green-500/50 text-green-300"
+                    : "bg-blue-800/80 border-blue-600 text-blue-200 hover:text-white hover:border-cyan-400"
+                }`}>
+                <Watch className="w-4 h-4" /> {watchConnected ? "Smartwatch Connected" : "Connect Smartwatch (BT)"}
               </button>
             </div>
           </div>
