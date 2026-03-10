@@ -603,14 +603,9 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                           <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
                             <p className="text-amber-300 text-[11px]">⚠ {loc.safetyNote}</p>
                           </div>
-                          <button
-                            data-testid={`button-earn-badge-${loc.id}`}
-                            onClick={() => { awardBadge(loc.id); setLocationIdDetail(null); toast({ title: `${loc.flag} Badge earned!`, description: loc.name }); }}
-                            disabled={earned}
-                            className={`w-full py-2 rounded-xl text-xs font-bold transition-all active:scale-95 ${earned ? "bg-cyan-500/20 text-cyan-400 cursor-default" : "bg-cyan-500 hover:bg-cyan-400 text-white shadow-lg shadow-cyan-500/30"}`}
-                          >
-                            {earned ? "Badge Earned ✓" : "Mark as Visited"}
-                          </button>
+                          <div className={`w-full py-2 px-3 rounded-xl text-xs text-center ${earned ? "bg-cyan-500/20 text-cyan-300 font-semibold" : "bg-blue-800/60 text-blue-400"}`}>
+                            {earned ? "✓ Plunge confirmed here" : "Log a plunge tagged to this location to earn your badge"}
+                          </div>
                         </div>
                       )}
                     </div>

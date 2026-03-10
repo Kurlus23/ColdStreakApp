@@ -77,6 +77,13 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/leaderboard/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    await storage.deleteLeaderboardEntry(id);
+    res.status(204).send();
+  });
+
   // Community locations
   app.get("/api/community-locations", async (req, res) => {
     const country = req.query.country as string | undefined;

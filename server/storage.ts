@@ -14,6 +14,7 @@ export interface IStorage {
   deletePlunge(id: number): Promise<void>;
   getLeaderboard(locationId: string, limit?: number): Promise<LeaderboardEntry[]>;
   addLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry>;
+  deleteLeaderboardEntry(id: number): Promise<void>;
   getProUser(email: string): Promise<ProUser | null>;
   createProUser(email: string, stripeSessionId: string): Promise<ProUser>;
   getUserLocations(country?: string): Promise<UserLocation[]>;
@@ -60,6 +61,10 @@ export class DatabaseStorage implements IStorage {
       score: String(entry.score),
     }).returning();
     return newEntry;
+  }
+
+  async deleteLeaderboardEntry(id: number): Promise<void> {
+    await db.delete(leaderboardEntries).where(eq(leaderboardEntries.id, id));
   }
 
   async getProUser(email: string): Promise<ProUser | null> {

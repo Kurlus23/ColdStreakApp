@@ -5,7 +5,7 @@ import {
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2,
   Camera, MapPin, Lock, ShieldAlert, Trophy, Medal, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { usePlunges, useCreatePlunge, useUpdatePlunge } from "@/hooks/use-plunges";
-import { useLeaderboard, useSubmitLeaderboard } from "@/hooks/use-leaderboard";
+import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry } from "@/hooks/use-leaderboard";
 import { useProStatus } from "@/hooks/use-pro-status";
 import { PlungeCard } from "@/components/PlungeCard";
 import { Explore } from "@/pages/Explore";
@@ -254,8 +254,10 @@ export default function Home() {
   const createPlunge = useCreatePlunge();
   const updatePlunge = useUpdatePlunge();
   const submitLeaderboard = useSubmitLeaderboard();
+  const deleteLeaderboard = useDeleteLeaderboardEntry();
   const { badges, awardBadge, hasBadge } = usePassportBadges();
   const leaderboard = useLeaderboard(leaderboardLocationId);
+  const [confirmDeleteEntryId, setConfirmDeleteEntryId] = useState<number | null>(null);
 
   const navTo = (s: Screen) => {
     setScreen(s);
@@ -1287,6 +1289,8 @@ export default function Home() {
                       const rankColors = ["text-yellow-400", "text-slate-300", "text-amber-600"];
                       const rankIcons = ["🥇", "🥈", "🥉"];
                       const isTop3 = i < 3;
+                      const isMyEntry = entry.username === username;
+                      const isConfirming = confirmDeleteEntryId === entry.id;
                       return (
                         <div
                           key={entry.id}
@@ -1306,6 +1310,39 @@ export default function Home() {
                               {Math.floor(entry.duration / 60)}:{String(entry.duration % 60).padStart(2, "0")} · {entry.temperature}°F
                             </div>
                           </div>
+                          {isMyEntry && (
+                            <div className="flex items-center gap-1 shrink-0">
+                              {isConfirming ? (
+                                <>
+                                  <button
+                                    data-testid={`button-confirm-delete-entry-${entry.id}`}
+                                    onClick={() => {
+                                      deleteLeaderboard.mutate({ id: entry.id, locationId: leaderboardLocationId! });
+                                      setConfirmDeleteEntryId(null);
+                                    }}
+                                    className="text-[10px] px-2 py-1 bg-red-500 text-white rounded-lg font-bold active:scale-95"
+                                  >
+                                    Delete
+                                  </button>
+                                  <button
+                                    data-testid={`button-cancel-delete-entry-${entry.id}`}
+                                    onClick={() => setConfirmDeleteEntryId(null)}
+                                    className="text-[10px] px-2 py-1 bg-blue-800 text-blue-300 rounded-lg active:scale-95"
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  data-testid={`button-delete-entry-${entry.id}`}
+                                  onClick={() => setConfirmDeleteEntryId(entry.id)}
+                                  className="p-1.5 text-blue-600 hover:text-red-400 transition-colors rounded-lg"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          )}
                           <div className="text-right shrink-0">
                             <div className={`font-bold text-base ${i === 0 ? "text-yellow-400" : "text-cyan-300"}`}>
                               {Number(entry.score).toFixed(1)}

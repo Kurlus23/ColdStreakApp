@@ -40,3 +40,19 @@ export function useSubmitLeaderboard() {
     },
   });
 }
+
+export function useDeleteLeaderboardEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: number; locationId: string }) => {
+      const res = await fetch(`/api/leaderboard/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete entry");
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leaderboard", vars.locationId] });
+    },
+  });
+}
