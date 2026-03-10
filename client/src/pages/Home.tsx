@@ -369,9 +369,16 @@ export default function Home() {
       {screen === "history" && (
         <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
           <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-4 border border-blue-800/50 min-h-full">
-            <h2 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-              <History className="w-5 h-5 text-cyan-400" /> Plunge History
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                <History className="w-5 h-5 text-cyan-400" /> Plunge History
+              </h2>
+              <button
+                data-testid="button-close-history"
+                onClick={() => navTo("timer")}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
+              >✕</button>
+            </div>
 
             {/* Today summary */}
             {todayPlunges.length > 0 && (
@@ -409,9 +416,16 @@ export default function Home() {
       {screen === "settings" && (
         <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
           <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-5 border border-blue-800/50 space-y-6 min-h-full">
-            <h2 className="text-white font-bold text-lg flex items-center gap-2">
-              <Settings className="w-5 h-5 text-cyan-400" /> Settings
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                <Settings className="w-5 h-5 text-cyan-400" /> Settings
+              </h2>
+              <button
+                data-testid="button-close-settings"
+                onClick={() => navTo("timer")}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
+              >✕</button>
+            </div>
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
