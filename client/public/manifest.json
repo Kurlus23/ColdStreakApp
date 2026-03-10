@@ -1,8 +1,25 @@
 {
   "name": "ArcticPlunge",
-  "short_name": "Arctic",
+  "short_name": "ArcticPlunge",
+  "description": "Cold plunge timer with scoring, history, and streak tracking",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0f172a",
-  "theme_color": "#0f172a"
+  "theme_color": "#0f172a",
+  "categories": ["health", "fitness"],
+  "icons": [
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
