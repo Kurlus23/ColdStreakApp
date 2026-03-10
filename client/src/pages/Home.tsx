@@ -87,7 +87,9 @@ export default function Home() {
   // Stopwatch
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
-  const [temperature, setTemperature] = useState<number>(50);
+  const [temperature, setTemperature] = useState<number>(
+    () => Number(localStorage.getItem("coldstreak-temperature") ?? 50)
+  );
   const [useCelsius, setUseCelsius] = useState(false);
 
   // Countdown
@@ -101,6 +103,10 @@ export default function Home() {
   const [weeklyGoalMinutes, setWeeklyGoalMinutes] = useState<number>(
     () => Number(localStorage.getItem("weeklyGoalMinutes") ?? 11)
   );
+
+  useEffect(() => {
+    localStorage.setItem("coldstreak-temperature", String(temperature));
+  }, [temperature]);
 
   // Alarm sound
   const [alarmUrl, setAlarmUrl] = useState<string>(
