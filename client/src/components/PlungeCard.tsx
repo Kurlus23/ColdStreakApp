@@ -1,13 +1,22 @@
 import { format } from "date-fns";
-import { Snowflake, Clock, Trash2, Heart, MapPin, Share2 } from "lucide-react";
+import { Snowflake, Clock, Trash2, Heart, MapPin, Share2, Flame } from "lucide-react";
 import { type Plunge } from "@shared/schema";
 import { PASSPORT_LOCATIONS } from "@/lib/passport";
 import { useDeletePlunge } from "@/hooks/use-plunges";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
+function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
+  const durationMin = durationSeconds / 60;
+  const tempC = (tempF - 32) * 5 / 9;
+  const deltaT = Math.max(0, 37 - tempC);
+  const weightKg = weightLbs / 2.205;
+  return Math.max(0, durationMin * deltaT * weightKg * 0.0077);
+}
+
 interface PlungeCardProps {
   plunge: Plunge;
+  bodyWeightLbs?: number;
 }
 
 function formatTime(totalSeconds: number) {
@@ -16,11 +25,12 @@ function formatTime(totalSeconds: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function PlungeCard({ plunge }: PlungeCardProps) {
+export function PlungeCard({ plunge, bodyWeightLbs = 154 }: PlungeCardProps) {
   const deletePlunge = useDeletePlunge();
   const { toast } = useToast();
   const [confirming, setConfirming] = useState(false);
   const [photoExpanded, setPhotoExpanded] = useState(false);
+  const calories = Math.round(estimateCalories(plunge.duration, plunge.temperature, bodyWeightLbs));
 
   const handleDelete = () => {
     if (!confirming) {
@@ -37,7 +47,7 @@ export function PlungeCard({ plunge }: PlungeCardProps) {
       `🧊 Cold Plunge Complete!\n` +
       `⏱️ ${formatTime(plunge.duration)} at ${plunge.temperature}°F\n` +
       `${locationPart}` +
-      `⚡ Cold Score: ${Number(plunge.score).toFixed(1)}\n` +
+      `⚡ Cold Score: ${Number(plunge.score).toFixed(1)} · 🔥 ~${calories} kcal burned\n` +
       `Tracked with ColdStreak 💪`;
 
     if (navigator.share) {
@@ -127,6 +137,10 @@ export function PlungeCard({ plunge }: PlungeCardProps) {
               <div className="text-sm bg-slate-900/60 px-3 py-1 rounded-lg border border-cyan-500/30 mt-1">
                 <span className="text-cyan-300 font-semibold">Score: </span>
                 <span className="text-white font-bold">{Number(plunge.score).toFixed(1)}</span>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-orange-400/90 mt-1 justify-end">
+                <Flame className="w-3 h-3 text-orange-400" />
+                <span>~{calories} kcal</span>
               </div>
             </div>
 

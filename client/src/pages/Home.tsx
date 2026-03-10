@@ -60,6 +60,14 @@ function plungeScore(durationSeconds: number, tempF: number): number {
   return Number((minutes * coldFactor).toFixed(2));
 }
 
+function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
+  const durationMin = durationSeconds / 60;
+  const tempC = (tempF - 32) * 5 / 9;
+  const deltaT = Math.max(0, 37 - tempC);
+  const weightKg = weightLbs / 2.205;
+  return Math.max(0, durationMin * deltaT * weightKg * 0.0077);
+}
+
 function formatTime(totalSeconds: number) {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
@@ -183,7 +191,10 @@ export default function Home() {
   // Pro status
   const { isPro, proEmail, loading: proLoading, startCheckout, verifySession, restorePurchase } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [scoreView, setScoreView] = useState<"today" | "week" | "info">("today");
+  const [scoreView, setScoreView] = useState<"today" | "week" | "kcal" | "info">("today");
+  const [bodyWeightLbs, setBodyWeightLbs] = useState<number>(
+    () => Number(localStorage.getItem("coldstreak-body-weight") ?? 154)
+  );
   const [restoreEmailInput, setRestoreEmailInput] = useState("");
   const [restoreLoading, setRestoreLoading] = useState(false);
 
@@ -293,6 +304,9 @@ export default function Home() {
   const last7Days = plunges.filter((p) => (Date.now() - new Date(p.createdAt).getTime()) / (1000 * 60 * 60 * 24) <= 7);
   const weeklyMinutes = last7Days.reduce((sum, p) => sum + p.duration, 0) / 60;
   const weeklyScore = last7Days.reduce((sum, p) => sum + Number(p.score), 0);
+  const todayCalories = todayPlunges.reduce((sum, p) => sum + estimateCalories(p.duration, p.temperature, bodyWeightLbs), 0);
+  const weeklyCalories = last7Days.reduce((sum, p) => sum + estimateCalories(p.duration, p.temperature, bodyWeightLbs), 0);
+  const allTimeCalories = plunges.reduce((sum, p) => sum + estimateCalories(p.duration, p.temperature, bodyWeightLbs), 0);
   const weeklyPct = Math.min(100, (weeklyMinutes / weeklyGoalMinutes) * 100);
   const streak = getStreak(plunges);
 
@@ -427,21 +441,31 @@ export default function Home() {
               )}
             </div>
 
-            {/* Cold Score — tappable, cycles today → week → info */}
+            {/* Cold Score — tappable, cycles today → week → kcal → info */}
             <button
               data-testid="card-cold-score"
-              onClick={() => setScoreView(v => v === "today" ? "week" : v === "week" ? "info" : "today")}
+              onClick={() => setScoreView(v => v === "today" ? "week" : v === "week" ? "kcal" : v === "kcal" ? "info" : "today")}
               className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 hover:border-cyan-500/50 w-full"
             >
               {scoreView === "info" ? (
                 <>
                   <Info className="w-5 h-5 text-cyan-400 shrink-0" />
                   <p className="text-blue-200 text-[9px] leading-tight text-center">
-                    Duration × temp factor.<br />
-                    Colder water (40°F) earns<br />
-                    up to <span className="text-cyan-300 font-bold">2.3×</span> multiplier.
+                    Score: duration × temp factor. 40°F = <span className="text-cyan-300 font-bold">2.3×</span>.<br />
+                    Kcal: thermogenesis model — set weight in Settings.
                   </p>
                   <div className="text-blue-500 text-[9px]">tap to cycle</div>
+                </>
+              ) : scoreView === "kcal" ? (
+                <>
+                  <div className="text-orange-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
+                    Calories<br />Burned
+                  </div>
+                  <Flame className="w-7 h-7 text-orange-400" />
+                  <div className="text-orange-300 font-bold text-2xl leading-none">
+                    {todayCalories > 0 ? Math.round(todayCalories) : "—"}
+                  </div>
+                  <div className="text-orange-400/70 text-[10px]">kcal today</div>
                 </>
               ) : (
                 <>
@@ -456,10 +480,7 @@ export default function Home() {
                     }
                   </div>
                   <div className="text-blue-400 text-[10px]">
-                    {scoreView === "today"
-                      ? (isActive ? "live" : "today")
-                      : "this week"
-                    }
+                    {scoreView === "today" ? (isActive ? "live" : "today") : "this week"}
                   </div>
                 </>
               )}
@@ -524,7 +545,7 @@ export default function Home() {
               const locked = isPro ? [] : sorted.filter((p) => new Date(p.createdAt) < sevenDaysAgo);
               return (
                 <div className="space-y-3">
-                  {visible.map((plunge) => <PlungeCard key={plunge.id} plunge={plunge} />)}
+                  {visible.map((plunge) => <PlungeCard key={plunge.id} plunge={plunge} bodyWeightLbs={bodyWeightLbs} />)}
                   {locked.length > 0 && (
                     <button
                       data-testid="banner-upgrade-history"
@@ -641,6 +662,33 @@ export default function Home() {
               <p className="text-blue-500 text-xs mt-2">This name appears on location leaderboards when you submit a plunge.</p>
             </div>
 
+            {/* Body Weight */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+              <div className="text-white font-semibold flex items-center gap-2 mb-3">
+                <Flame className="w-4 h-4 text-orange-400" /> Body Weight
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  data-testid="input-body-weight"
+                  type="number"
+                  min={50}
+                  max={500}
+                  value={bodyWeightLbs}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    if (val >= 50 && val <= 500) {
+                      setBodyWeightLbs(val);
+                      localStorage.setItem("coldstreak-body-weight", String(val));
+                    }
+                  }}
+                  className="w-24 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 text-center font-bold"
+                />
+                <span className="text-blue-400 text-sm">lbs</span>
+                <span className="text-blue-500 text-xs ml-1">({Math.round(bodyWeightLbs / 2.205)} kg)</span>
+              </div>
+              <p className="text-blue-500 text-xs mt-2">Used to estimate calories burned per plunge.</p>
+            </div>
+
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
@@ -676,6 +724,30 @@ export default function Home() {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              {/* Calorie stats row */}
+              <div className="col-span-2 bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+                <div className="text-blue-400 text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
+                  <Flame className="w-3.5 h-3.5 text-orange-400" /> Est. Calories Burned
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <div className="text-orange-300 font-bold text-lg leading-none">{Math.round(todayCalories) || "—"}</div>
+                    <div className="text-blue-500 text-[10px] mt-0.5">today</div>
+                  </div>
+                  <div className="border-x border-blue-800">
+                    <div className="text-orange-300 font-bold text-lg leading-none">{Math.round(weeklyCalories) || "—"}</div>
+                    <div className="text-blue-500 text-[10px] mt-0.5">this week</div>
+                  </div>
+                  <div>
+                    <div className="text-orange-300 font-bold text-lg leading-none">{Math.round(allTimeCalories) || "—"}</div>
+                    <div className="text-blue-500 text-[10px] mt-0.5">all time</div>
+                  </div>
+                </div>
+                <p className="text-blue-600 text-[10px] mt-3 leading-relaxed">
+                  Estimated via thermogenesis model. Cold water forces your body to generate heat, burning extra calories beyond your normal resting rate.
+                </p>
               </div>
             </div>
 
