@@ -518,14 +518,16 @@ export default function Home() {
               <button
                 data-testid="button-toggle-passport"
                 onClick={() => setPassportOpen((o) => !o)}
-                className="w-full flex items-center gap-2 bg-blue-900/60 hover:bg-blue-800/70 border border-blue-700/40 rounded-2xl px-4 py-3 transition-all active:scale-[0.99]"
+                className={`w-full flex items-center gap-2 border rounded-2xl px-4 py-3.5 transition-all active:scale-[0.99] ${passportOpen ? "bg-blue-800/80 border-blue-600/60" : "bg-blue-900/60 hover:bg-blue-800/70 border-blue-700/40"}`}
               >
                 <span className="text-lg">🗺️</span>
                 <span className="text-white font-bold flex-1 text-left">Plunge Passport</span>
-                <span className="text-xs text-blue-400 mr-2">{badges.size} / {PASSPORT_LOCATIONS.length}</span>
-                <ChevronDown
-                  className={`w-4 h-4 text-blue-400 transition-transform duration-300 ${passportOpen ? "rotate-180" : ""}`}
-                />
+                <span className="text-xs text-cyan-400 font-semibold mr-1">{badges.size}/{PASSPORT_LOCATIONS.length}</span>
+                <div className={`flex items-center justify-center w-6 h-6 rounded-full transition-colors ${passportOpen ? "bg-blue-600/60" : "bg-blue-800/60"}`}>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-blue-300 transition-transform duration-300 ${passportOpen ? "rotate-180" : ""}`}
+                  />
+                </div>
               </button>
 
               {passportOpen && (
