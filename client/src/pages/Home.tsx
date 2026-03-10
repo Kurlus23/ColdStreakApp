@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import icebergBg from "@assets/image_1773152330807.png";
+import "@/styles/iceberg.css";
 import {
   Play, Pause, RotateCcw, Thermometer, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,
@@ -213,13 +213,11 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen max-h-screen overflow-hidden bg-blue-950">
-      {/* Iceberg photo background */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${icebergBg})` }}
-      />
-      {/* Subtle gradient overlay — lightens top for readability */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-blue-950/70" />
+      {/* CSS-drawn arctic background */}
+      <div className="arctic-bg">
+        <div className="arctic-aurora" />
+        <div className="arctic-iceberg" />
+      </div>
 
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-5 pt-8 pb-2">
