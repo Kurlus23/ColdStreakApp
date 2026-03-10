@@ -27,7 +27,7 @@ const ALL_COUNTRIES = ["All", "Iceland", "Norway", "Switzerland", "Australia", "
 
 interface GeoPos { lat: number; lng: number; }
 
-export function Explore({ username }: { username: string }) {
+export function Explore({ username, onClose }: { username: string; onClose: () => void }) {
   const { toast } = useToast();
   const { isPro } = useProStatus();
   const { badges, awardBadge, hasBadge } = usePassportBadges();
@@ -222,7 +222,14 @@ export function Explore({ username }: { username: string }) {
 
   return (
     <div className="px-4 pb-28 pt-4 space-y-4">
-      <h2 className="text-white font-bold text-lg">Explore</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-white font-bold text-lg">Explore</h2>
+        <button
+          data-testid="button-close-explore"
+          onClick={onClose}
+          className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
+        >✕</button>
+      </div>
 
       {/* ── Filter bar ── */}
       <div className="bg-blue-900/50 border border-blue-700/40 rounded-2xl p-3 space-y-2">

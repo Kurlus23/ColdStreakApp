@@ -612,7 +612,7 @@ export default function Home() {
       {/* ─── EXPLORE SCREEN ─── */}
       {screen === "explore" && (
         <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto">
-          <Explore username={username} />
+          <Explore username={username} onClose={() => navTo("timer")} />
         </div>
       )}
 
