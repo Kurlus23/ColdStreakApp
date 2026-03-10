@@ -11,7 +11,7 @@ import { usePlunges, useCreatePlunge } from "@/hooks/use-plunges";
 import { PlungeCard } from "@/components/PlungeCard";
 import { type Plunge } from "@shared/schema";
 
-type Screen = "timer" | "countdown" | "history";
+type Screen = "timer" | "countdown" | "history" | "temperature";
 
 const WEEKLY_GOAL_MINUTES = 11;
 
@@ -211,6 +211,7 @@ export default function Home() {
   const navItems: { id: Screen; label: string; icon: React.ReactNode }[] = [
     { id: "timer", label: "Timer", icon: <Timer className="w-4 h-4" /> },
     { id: "countdown", label: "Countdown", icon: <AlarmClock className="w-4 h-4" /> },
+    { id: "temperature", label: "Temp", icon: <Thermometer className="w-4 h-4" /> },
     { id: "history", label: "History", icon: <History className="w-4 h-4" /> },
   ];
 
@@ -313,60 +314,26 @@ export default function Home() {
               </div>
             )}
 
-            {/* Temp Input row */}
-            <div className="mb-6 flex flex-col items-center gap-3">
-              <label className="text-slate-400 text-xs font-medium uppercase tracking-wider flex items-center gap-1.5">
-                <Thermometer className="w-3.5 h-3.5" /> Water Temp
-              </label>
-              <div className="flex items-center gap-2">
-                <select
-                  data-testid="select-temperature"
-                  value={useCelsius ? Math.round((temperature - 32) * 5 / 9) : temperature}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setTemperature(useCelsius ? Math.round(v * 9 / 5 + 32) : v);
-                  }}
-                  className="bg-slate-900/80 border-2 border-slate-700/80 rounded-2xl py-2.5 px-4 text-white font-semibold text-xl focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all appearance-none text-center"
-                >
-                  {useCelsius
-                    ? Array.from({ length: 35 }, (_, i) => 4 + i).map((c) => (
-                        <option key={c} value={c}>{c}°C</option>
-                      ))
-                    : Array.from({ length: 61 }, (_, i) => 40 + i).map((f) => (
-                        <option key={f} value={f}>{f}°F</option>
-                      ))
-                  }
-                </select>
-                <button
-                  data-testid="button-unit-toggle"
-                  onClick={() => setUseCelsius((u) => !u)}
-                  title="Switch temperature unit"
-                  className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:border-cyan-500/40 text-sm font-semibold transition-all active:scale-95"
-                >
-                  {useCelsius ? "°F" : "°C"}
-                </button>
-                <button
-                  data-testid="button-bluetooth"
-                  onClick={connectThermometer}
-                  title="Connect Bluetooth thermometer"
-                  className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/40 transition-all active:scale-95"
-                >
-                  <Bluetooth className="w-5 h-5" />
-                </button>
-                <button
-                  data-testid="button-smartwatch"
-                  onClick={connectSmartwatch}
-                  title="Connect smartwatch for live HR/SpO2"
-                  className={`p-2.5 rounded-xl border transition-all active:scale-95 ${
-                    watchConnected
-                      ? "bg-green-500/20 border-green-500/40 text-green-400"
-                      : "bg-slate-800 border-slate-700 text-slate-400 hover:text-red-400 hover:border-red-500/40"
-                  }`}
-                >
-                  <Watch className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+            {/* Current temperature badge — tap to go to Temp screen */}
+            <button
+              data-testid="badge-temperature"
+              onClick={() => setScreen("temperature")}
+              className="mb-5 flex items-center gap-2 bg-slate-900/70 border border-slate-700/60 rounded-2xl px-5 py-2.5 hover:border-cyan-500/40 transition-all active:scale-95"
+              title="Tap to change water temperature"
+            >
+              <Thermometer className="w-4 h-4 text-cyan-400" />
+              <span className="text-white font-semibold text-lg">
+                {useCelsius ? `${Math.round((temperature - 32) * 5 / 9)}°C` : `${temperature}°F`}
+              </span>
+              <span className="text-slate-500 text-xs">water temp</span>
+              {watchConnected && (
+                <>
+                  <span className="text-slate-600 mx-1">·</span>
+                  <Watch className="w-3.5 h-3.5 text-green-400" />
+                  <span className="text-green-400 text-xs">Watch</span>
+                </>
+              )}
+            </button>
 
             {/* Clock */}
             <div className="mb-8 text-center">
@@ -492,6 +459,82 @@ export default function Home() {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Temperature Screen */}
+      {screen === "temperature" && (
+        <div className="bg-slate-800/40 border border-slate-700/50 rounded-3xl p-8 flex flex-col items-center gap-6">
+          <div className="text-center">
+            <div className="bg-cyan-500/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Thermometer className="w-8 h-8 text-cyan-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white">Water Temperature</h2>
+            <p className="text-slate-400 text-sm mt-1">Set the temperature before your plunge</p>
+          </div>
+
+          {/* Big temp display */}
+          <div className="text-6xl font-mono font-bold text-white">
+            {useCelsius ? `${Math.round((temperature - 32) * 5 / 9)}°C` : `${temperature}°F`}
+          </div>
+
+          {/* Dropdown + unit toggle */}
+          <div className="flex items-center gap-3">
+            <select
+              data-testid="select-temperature"
+              value={useCelsius ? Math.round((temperature - 32) * 5 / 9) : temperature}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setTemperature(useCelsius ? Math.round(v * 9 / 5 + 32) : v);
+              }}
+              className="bg-slate-900/80 border-2 border-slate-700/80 rounded-2xl py-2.5 px-4 text-white font-semibold text-xl focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all appearance-none text-center"
+            >
+              {useCelsius
+                ? Array.from({ length: 35 }, (_, i) => 4 + i).map((c) => (
+                    <option key={c} value={c}>{c}°C</option>
+                  ))
+                : Array.from({ length: 61 }, (_, i) => 40 + i).map((f) => (
+                    <option key={f} value={f}>{f}°F</option>
+                  ))
+              }
+            </select>
+            <button
+              data-testid="button-unit-toggle"
+              onClick={() => setUseCelsius((u) => !u)}
+              title="Switch temperature unit"
+              className="px-4 py-3 rounded-2xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:border-cyan-500/40 font-semibold transition-all active:scale-95"
+            >
+              {useCelsius ? "→ °F" : "→ °C"}
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="w-full border-t border-slate-700/50" />
+
+          {/* Bluetooth thermometer */}
+          <div className="w-full flex flex-col gap-3">
+            <p className="text-slate-400 text-xs uppercase tracking-wider text-center">Or connect a device</p>
+            <button
+              data-testid="button-bluetooth"
+              onClick={connectThermometer}
+              className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 font-semibold transition-all active:scale-95"
+            >
+              <Bluetooth className="w-5 h-5" />
+              Connect Bluetooth Thermometer
+            </button>
+            <button
+              data-testid="button-smartwatch"
+              onClick={connectSmartwatch}
+              className={`w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl border font-semibold transition-all active:scale-95 ${
+                watchConnected
+                  ? "bg-green-500/20 border-green-500/40 text-green-400"
+                  : "bg-slate-800 border-slate-700 text-slate-300 hover:text-red-400 hover:border-red-500/40"
+              }`}
+            >
+              <Watch className="w-5 h-5" />
+              {watchConnected ? `Watch Connected (${watchStatus.replace("Connected: ", "")})` : "Connect Smartwatch (HR / SpO₂)"}
+            </button>
           </div>
         </div>
       )}
