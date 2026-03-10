@@ -37,3 +37,8 @@ author = "agent"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[userenv]
+
+[userenv.shared]
+VITE_STRIPE_PUBLISHABLE_KEY = "pk_test_51T9Ud4GeGGJPOzmw8FrGhTBcTXkTpzmf9HABBwpmrixKHRSvOdz2lMDD8c7BaDSjURFTN7SGsYb1n9XkJsG0jpU000VnUcAafb"
