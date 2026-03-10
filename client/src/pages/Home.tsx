@@ -213,7 +213,7 @@ export default function Home() {
       return false;
     }
     if (!("bluetooth" in navigator)) {
-      toast({ title: "Browser not supported", description: "Web Bluetooth requires Chrome or Edge on Android or desktop — not Safari or Firefox.", variant: "destructive" });
+      toast({ title: "iPhone / iPad not supported", description: "Apple does not allow Web Bluetooth on iOS or iPadOS — in any browser. Bluetooth device pairing requires an Android phone or a desktop computer running Chrome or Edge.", variant: "destructive" });
       return false;
     }
     return true;
@@ -619,8 +619,9 @@ export default function Home() {
             <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
               <div className="text-white font-semibold flex items-center gap-2"><Bluetooth className="w-4 h-4 text-cyan-400" /> Devices</div>
 
-              <div className="bg-amber-900/40 border border-amber-600/50 rounded-xl px-3 py-2.5 text-amber-200 text-xs leading-relaxed">
-                <span className="font-bold text-amber-300">Bluetooth compatibility note:</span> Web Bluetooth works in <span className="font-semibold">Chrome or Edge</span> on Android and desktop only. It does <span className="font-semibold">not</span> work in Safari, Firefox, or any iOS browser. Most consumer watches (Apple Watch, Garmin, Fitbit) are not accessible from a web app — use the <span className="font-semibold">Manual entry</span> fields on the timer screen instead.
+              <div className="bg-amber-900/40 border border-amber-600/50 rounded-xl px-3 py-2.5 text-amber-200 text-xs leading-relaxed space-y-1">
+                <div><span className="font-bold text-amber-300">iPhone / iPad:</span> Apple blocks Web Bluetooth in all iOS browsers — this feature cannot work on iPhone or iPad regardless of which browser you use.</div>
+                <div><span className="font-bold text-amber-300">Supported:</span> Chrome or Edge on <span className="font-semibold">Android</span> or a <span className="font-semibold">desktop/laptop</span> computer only.</div>
               </div>
 
               <button data-testid="button-bluetooth" onClick={connectThermometer}
