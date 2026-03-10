@@ -4,7 +4,7 @@ import {
   Play, Pause, RotateCcw, Thermometer, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,
   Bluetooth, Watch, Heart, Settings, Bell, Upload, Volume2,
-  Camera, MapPin, Lock, ShieldAlert, Trophy, Medal, User
+  Camera, MapPin, Lock, ShieldAlert, Trophy, Medal, User, ChevronDown
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -164,6 +164,7 @@ export default function Home() {
 
   // Leaderboard
   const [leaderboardLocationId, setLeaderboardLocationId] = useState<string | null>(null);
+  const [passportOpen, setPassportOpen] = useState(false);
 
   // Username (for leaderboard)
   const [username, setUsername] = useState<string>(
@@ -512,44 +513,54 @@ export default function Home() {
               >✕</button>
             </div>
 
-            {/* Plunge Passport */}
+            {/* Plunge Passport — collapsible */}
             <div className="mb-5">
-              <div className="flex items-center gap-2 mb-3">
+              <button
+                data-testid="button-toggle-passport"
+                onClick={() => setPassportOpen((o) => !o)}
+                className="w-full flex items-center gap-2 bg-blue-900/60 hover:bg-blue-800/70 border border-blue-700/40 rounded-2xl px-4 py-3 transition-all active:scale-[0.99]"
+              >
                 <span className="text-lg">🗺️</span>
-                <h3 className="text-white font-bold">Plunge Passport</h3>
-                <span className="text-xs text-blue-400 ml-auto">{badges.size} / {PASSPORT_LOCATIONS.length} earned</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {PASSPORT_LOCATIONS.map((loc) => {
-                  const earned = hasBadge(loc.id);
-                  return (
-                    <button
-                      key={loc.id}
-                      data-testid={`badge-${loc.id}`}
-                      onClick={() => setLeaderboardLocationId(loc.id)}
-                      className={`relative rounded-xl p-2.5 border text-center transition-all active:scale-95 ${
-                        earned
-                          ? "bg-cyan-500/20 border-cyan-500/50 hover:bg-cyan-500/30"
-                          : "bg-blue-900/40 border-blue-700/40 opacity-60 hover:opacity-80"
-                      }`}
-                    >
-                      <div className="text-2xl mb-1">{loc.flag}</div>
-                      <div className={`text-[10px] font-semibold leading-tight ${earned ? "text-cyan-200" : "text-blue-400"}`}>
-                        {loc.name}
-                      </div>
-                      {loc.seasonal && (
-                        <div className="text-[9px] text-amber-400 mt-0.5">Seasonal</div>
-                      )}
-                      {!earned && (
-                        <Lock className="w-3 h-3 text-blue-600 mx-auto mt-1" />
-                      )}
-                      <div className="flex items-center justify-center gap-0.5 mt-1">
-                        <Trophy className="w-2.5 h-2.5 text-yellow-500/60" />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                <span className="text-white font-bold flex-1 text-left">Plunge Passport</span>
+                <span className="text-xs text-blue-400 mr-2">{badges.size} / {PASSPORT_LOCATIONS.length}</span>
+                <ChevronDown
+                  className={`w-4 h-4 text-blue-400 transition-transform duration-300 ${passportOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {passportOpen && (
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {PASSPORT_LOCATIONS.map((loc) => {
+                    const earned = hasBadge(loc.id);
+                    return (
+                      <button
+                        key={loc.id}
+                        data-testid={`badge-${loc.id}`}
+                        onClick={() => setLeaderboardLocationId(loc.id)}
+                        className={`relative rounded-xl p-2.5 border text-center transition-all active:scale-95 ${
+                          earned
+                            ? "bg-cyan-500/20 border-cyan-500/50 hover:bg-cyan-500/30"
+                            : "bg-blue-900/40 border-blue-700/40 opacity-60 hover:opacity-80"
+                        }`}
+                      >
+                        <div className="text-2xl mb-1">{loc.flag}</div>
+                        <div className={`text-[10px] font-semibold leading-tight ${earned ? "text-cyan-200" : "text-blue-400"}`}>
+                          {loc.name}
+                        </div>
+                        {loc.seasonal && (
+                          <div className="text-[9px] text-amber-400 mt-0.5">Seasonal</div>
+                        )}
+                        {!earned && (
+                          <Lock className="w-3 h-3 text-blue-600 mx-auto mt-1" />
+                        )}
+                        <div className="flex items-center justify-center gap-0.5 mt-1">
+                          <Trophy className="w-2.5 h-2.5 text-yellow-500/60" />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Today summary */}
