@@ -22,7 +22,6 @@ const ALARM_PRESETS = [
 
 type Screen = "timer" | "history" | "settings";
 
-const WEEKLY_GOAL_MINUTES = 11;
 
 function plungeScore(durationSeconds: number, tempF: number): number {
   const minutes = durationSeconds / 60;
@@ -74,6 +73,10 @@ export default function Home() {
   const [minutesInput, setMinutesInput] = useState(3);
   const [secondsInput, setSecondsInput] = useState(0);
   const alarmRef = useRef<HTMLAudioElement | null>(null);
+
+  const [weeklyGoalMinutes, setWeeklyGoalMinutes] = useState<number>(
+    () => Number(localStorage.getItem("weeklyGoalMinutes") ?? 11)
+  );
 
   // Alarm sound
   const [alarmUrl, setAlarmUrl] = useState<string>(
@@ -267,7 +270,7 @@ export default function Home() {
   const todayScore = todayPlunges.reduce((sum, p) => sum + Number(p.score), 0);
   const last7Days = plunges.filter((p) => (Date.now() - new Date(p.createdAt).getTime()) / (1000 * 60 * 60 * 24) <= 7);
   const weeklyMinutes = last7Days.reduce((sum, p) => sum + p.duration, 0) / 60;
-  const weeklyPct = Math.min(100, (weeklyMinutes / WEEKLY_GOAL_MINUTES) * 100);
+  const weeklyPct = Math.min(100, (weeklyMinutes / weeklyGoalMinutes) * 100);
   const streak = getStreak(plunges);
   const watchConnected = watchStatus !== "Not connected" && watchStatus !== "Connecting…";
 
@@ -415,7 +418,7 @@ export default function Home() {
             data-testid="display-weekly"
             style={{ textShadow: "0 1px 6px rgba(0,0,0,0.8)" }}
           >
-            Weekly: {weeklyMinutes.toFixed(1)} / {WEEKLY_GOAL_MINUTES} min&nbsp;&nbsp;·&nbsp;&nbsp;
+            Weekly: {weeklyMinutes.toFixed(1)} / {weeklyGoalMinutes} min&nbsp;&nbsp;·&nbsp;&nbsp;
             {seconds > 0 || countdown > 0
               ? `Score: ${plungeScore(displaySeconds, temperature)}`
               : `Streak: ${streak} days`
@@ -496,13 +499,30 @@ export default function Home() {
                 <div className="text-blue-400 text-xs uppercase tracking-wide mb-1 flex items-center gap-1"><Zap className="w-3.5 h-3.5 text-cyan-400" /> Today</div>
                 <div className="text-white font-bold text-xl">{todayScore.toFixed(1)} <span className="text-sm font-normal text-blue-400">pts</span></div>
               </div>
-              <div className="col-span-2 bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
-                <div className="flex justify-between mb-2 text-xs text-blue-400 uppercase tracking-wide">
+              <div className="col-span-2 bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-2">
+                <div className="flex justify-between items-center text-xs text-blue-400 uppercase tracking-wide">
                   <div className="flex items-center gap-1"><Target className="w-3.5 h-3.5" /> Weekly Goal</div>
-                  <span>{weeklyMinutes.toFixed(1)} / {WEEKLY_GOAL_MINUTES} min</span>
+                  <span>{weeklyMinutes.toFixed(1)} / {weeklyGoalMinutes} min</span>
                 </div>
                 <div className="h-2 bg-blue-800 rounded-full overflow-hidden">
                   <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full transition-all duration-700" style={{ width: `${weeklyPct}%` }} />
+                </div>
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-blue-400 text-xs">Goal</span>
+                  <select
+                    data-testid="select-weekly-goal"
+                    value={weeklyGoalMinutes}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setWeeklyGoalMinutes(val);
+                      localStorage.setItem("weeklyGoalMinutes", String(val));
+                    }}
+                    className="bg-blue-800/80 border border-blue-600 rounded-lg px-2 py-1 text-white text-xs font-semibold appearance-none focus:outline-none focus:border-cyan-400"
+                  >
+                    {Array.from({ length: 24 }, (_, i) => (i + 1) * 5).map((m) => (
+                      <option key={m} value={m}>{m} min / week</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
