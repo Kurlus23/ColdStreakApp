@@ -3,13 +3,22 @@ import icebergBg from "@assets/image_1773152998246.png";
 import {
   Play, Pause, RotateCcw, Thermometer, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,
-  Bluetooth, Watch, Heart, Settings, Mic
+  Bluetooth, Watch, Heart, Settings, Mic, Bell, Upload, Volume2
 } from "lucide-react";
+
 import confetti from "canvas-confetti";
 import { useToast } from "@/hooks/use-toast";
 import { usePlunges, useCreatePlunge } from "@/hooks/use-plunges";
 import { PlungeCard } from "@/components/PlungeCard";
+
 import { type Plunge } from "@shared/schema";
+
+const ALARM_PRESETS = [
+  { id: "alarm_clock",   label: "Alarm Clock",    url: "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" },
+  { id: "digital_watch", label: "Digital Watch",  url: "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" },
+  { id: "bugle",         label: "Bugle Charge",   url: "https://actions.google.com/sounds/v1/alarms/bugle_charge.ogg" },
+  { id: "bell",          label: "Bell",           url: "https://actions.google.com/sounds/v1/alarms/medium_bell_ringing_near.ogg" },
+];
 
 type Screen = "timer" | "history" | "settings";
 
@@ -66,6 +75,51 @@ export default function Home() {
   const [secondsInput, setSecondsInput] = useState(0);
   const alarmRef = useRef<HTMLAudioElement | null>(null);
 
+  // Alarm sound
+  const [alarmUrl, setAlarmUrl] = useState<string>(
+    () => localStorage.getItem("alarmUrl") ?? ALARM_PRESETS[0].url
+  );
+  const [alarmLabel, setAlarmLabel] = useState<string>(
+    () => localStorage.getItem("alarmLabel") ?? ALARM_PRESETS[0].label
+  );
+  const [alarmIsCustom, setAlarmIsCustom] = useState<boolean>(
+    () => localStorage.getItem("alarmIsCustom") === "true"
+  );
+  const alarmUploadRef = useRef<HTMLInputElement | null>(null);
+
+  const selectPresetAlarm = (url: string, label: string) => {
+    setAlarmUrl(url);
+    setAlarmLabel(label);
+    setAlarmIsCustom(false);
+    localStorage.setItem("alarmUrl", url);
+    localStorage.setItem("alarmLabel", label);
+    localStorage.setItem("alarmIsCustom", "false");
+  };
+
+  const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setAlarmUrl(dataUrl);
+      setAlarmLabel(file.name.replace(/\.[^.]+$/, ""));
+      setAlarmIsCustom(true);
+      localStorage.setItem("alarmUrl", dataUrl);
+      localStorage.setItem("alarmLabel", file.name.replace(/\.[^.]+$/, ""));
+      localStorage.setItem("alarmIsCustom", "true");
+      toast({ title: "Alarm uploaded", description: `"${file.name.replace(/\.[^.]+$/, "")}" is now your alarm sound.` });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const previewAlarm = () => {
+    const audio = new Audio(alarmUrl);
+    audio.volume = 1;
+    audio.play().catch(() => toast({ title: "Preview failed", description: "Tap the screen first to allow audio playback.", variant: "destructive" }));
+    setTimeout(() => { audio.pause(); audio.currentTime = 0; }, 3000);
+  };
+
   // Biometrics
   const [hr, setHR] = useState<number>(0);
   const [spo2, setSpo2] = useState<number>(0);
@@ -109,7 +163,7 @@ export default function Home() {
       setCountdownRunning(false);
       const targetDuration = minutesInput * 60 + secondsInput;
       doLogPlunge(targetDuration);
-      if (!alarmRef.current) alarmRef.current = new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
+      alarmRef.current = new Audio(alarmUrl);
       alarmRef.current.play().catch(() => {});
       toast({ title: "Time's up! ❄️", description: "Plunge complete — automatically logged!" });
     }
@@ -478,6 +532,60 @@ export default function Home() {
                   </select>
                 </div>
               )}
+            </div>
+
+            {/* Alarm Sound */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-white font-semibold flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-cyan-400" /> Alarm Sound
+                </div>
+                <button
+                  data-testid="button-preview-alarm"
+                  onClick={previewAlarm}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white text-xs font-semibold transition-all active:scale-95"
+                >
+                  <Volume2 className="w-3 h-3" /> Preview
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {ALARM_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    data-testid={`button-alarm-${preset.id}`}
+                    onClick={() => selectPresetAlarm(preset.url, preset.label)}
+                    className={`py-2 px-3 rounded-xl text-sm font-semibold border transition-all active:scale-95 ${
+                      !alarmIsCustom && alarmLabel === preset.label
+                        ? "bg-cyan-500/30 border-cyan-400 text-cyan-200"
+                        : "bg-blue-800/60 border-blue-600/50 text-blue-300 hover:text-white hover:border-blue-400"
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+
+              <input
+                ref={alarmUploadRef}
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={handleAudioUpload}
+                data-testid="input-alarm-upload"
+              />
+              <button
+                data-testid="button-upload-alarm"
+                onClick={() => alarmUploadRef.current?.click()}
+                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${
+                  alarmIsCustom
+                    ? "bg-cyan-500/30 border-cyan-400 text-cyan-200"
+                    : "bg-blue-800/60 border-blue-600/50 text-blue-300 hover:text-white hover:border-blue-400"
+                }`}
+              >
+                <Upload className="w-4 h-4" />
+                {alarmIsCustom ? `Custom: ${alarmLabel}` : "Upload from Device"}
+              </button>
             </div>
 
             {/* Devices */}
