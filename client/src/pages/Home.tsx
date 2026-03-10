@@ -11,12 +11,14 @@ import {
 import confetti from "canvas-confetti";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { usePlunges, useCreatePlunge, useUpdatePlunge } from "@/hooks/use-plunges";
 import { useLeaderboard, useSubmitLeaderboard } from "@/hooks/use-leaderboard";
 import { useProStatus } from "@/hooks/use-pro-status";
 import { PlungeCard } from "@/components/PlungeCard";
 import { Explore } from "@/pages/Explore";
-import { PASSPORT_LOCATIONS, usePassportBadges } from "@/lib/passport";
+import { PASSPORT_LOCATIONS, usePassportBadges, distanceMiles } from "@/lib/passport";
+import { useMutation } from "@tanstack/react-query";
 
 import { type Plunge, type UserLocation } from "@shared/schema";
 
@@ -201,6 +203,34 @@ export default function Home() {
   const [manualMins, setManualMins] = useState(3);
   const [manualSecs, setManualSecs] = useState(0);
   const [manualTempF, setManualTempF] = useState(50);
+  // Manual entry — location
+  const [manualLocSel, setManualLocSel] = useState(""); // "", "community-N", "custom", "new"
+  const [manualLocCustom, setManualLocCustom] = useState("");
+  const [manualLocGeo, setManualLocGeo] = useState<{ lat: number; lng: number } | null>(null);
+  const [manualLocGeoLoading, setManualLocGeoLoading] = useState(false);
+  const [manualNewName, setManualNewName] = useState("");
+  const [manualNewCountry, setManualNewCountry] = useState("USA");
+  const [manualNewState, setManualNewState] = useState("");
+  const [manualNewCity, setManualNewCity] = useState("");
+
+  const createCommunitySpot = useMutation({
+    mutationFn: async (loc: { name: string; country: string; state?: string; city?: string }) => {
+      const res = await fetch("/api/community-locations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(loc),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to create location");
+      return res.json() as Promise<UserLocation>;
+    },
+    onSuccess: (newLoc) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
+      setManualLocSel(`community-${newLoc.id}`);
+      setManualNewName(""); setManualNewCountry("USA"); setManualNewState(""); setManualNewCity("");
+      toast({ title: "Spot created!", description: `${newLoc.name} added to community spots.` });
+    },
+  });
   const [bodyWeightLbs, setBodyWeightLbs] = useState<number>(
     () => Number(localStorage.getItem("coldstreak-body-weight") ?? 154)
   );
@@ -558,6 +588,8 @@ export default function Home() {
                     setManualMins(3);
                     setManualSecs(0);
                     setManualTempF(50);
+                    setManualLocSel(""); setManualLocCustom(""); setManualLocGeo(null);
+                    setManualNewName(""); setManualNewCountry("USA"); setManualNewState(""); setManualNewCity("");
                     setShowManualEntry(true);
                   }}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-600/50 border border-cyan-500/50 text-cyan-200 text-xs font-semibold hover:bg-cyan-500/60 transition-all active:scale-95"
@@ -573,7 +605,29 @@ export default function Home() {
             </div>
 
             {/* Manual entry modal */}
-            {showManualEntry && (
+            {showManualEntry && (() => {
+              // Sort community spots by distance if GPS is available
+              const sortedLocs = manualLocGeo
+                ? [...communityLocs].sort((a, b) => {
+                    const aLat = a.latitude ? Number(a.latitude) : null;
+                    const aLng = a.longitude ? Number(a.longitude) : null;
+                    const bLat = b.latitude ? Number(b.latitude) : null;
+                    const bLng = b.longitude ? Number(b.longitude) : null;
+                    if (aLat === null || aLng === null) return 1;
+                    if (bLat === null || bLng === null) return -1;
+                    return distanceMiles(manualLocGeo.lat, manualLocGeo.lng, aLat, aLng)
+                         - distanceMiles(manualLocGeo.lat, manualLocGeo.lng, bLat, bLng);
+                  })
+                : communityLocs;
+
+              const selCommunityId = manualLocSel.startsWith("community-")
+                ? Number(manualLocSel.replace("community-", ""))
+                : null;
+              const selCommunityLoc = selCommunityId !== null
+                ? communityLocs.find((l) => l.id === selCommunityId)
+                : null;
+
+              return (
               <div className="mb-4 bg-blue-900/80 border border-cyan-600/50 rounded-2xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="text-white font-semibold flex items-center gap-2 text-sm">
@@ -650,17 +704,157 @@ export default function Home() {
                   </select>
                 </div>
 
+                {/* Location */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-blue-400 text-[10px] uppercase tracking-wide">Location (optional)</div>
+                    <button
+                      data-testid="button-manual-near-me"
+                      disabled={manualLocGeoLoading}
+                      onClick={() => {
+                        if (manualLocGeo) { setManualLocGeo(null); return; }
+                        setManualLocGeoLoading(true);
+                        navigator.geolocation?.getCurrentPosition(
+                          (pos) => { setManualLocGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setManualLocGeoLoading(false); },
+                          () => { setManualLocGeoLoading(false); toast({ title: "Location unavailable", variant: "destructive" }); }
+                        );
+                      }}
+                      className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-lg transition-all ${
+                        manualLocGeo ? "bg-cyan-500/30 border border-cyan-400/50 text-cyan-300" : "bg-blue-800/60 border border-blue-600/50 text-blue-400 hover:text-cyan-300"
+                      }`}
+                    >
+                      <MapPin className="w-2.5 h-2.5" />
+                      {manualLocGeoLoading ? "Locating…" : manualLocGeo ? "Near me ✓" : "Near me"}
+                    </button>
+                  </div>
+
+                  <select
+                    data-testid="select-manual-location"
+                    value={manualLocSel}
+                    onChange={(e) => { setManualLocSel(e.target.value); setManualLocCustom(""); }}
+                    className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-400"
+                  >
+                    <option value="">— No location —</option>
+                    {sortedLocs.length > 0 && (
+                      <optgroup label="Community Spots">
+                        {sortedLocs.map((l) => {
+                          const lat = l.latitude ? Number(l.latitude) : null;
+                          const lng = l.longitude ? Number(l.longitude) : null;
+                          const dist = manualLocGeo && lat !== null && lng !== null
+                            ? ` (${distanceMiles(manualLocGeo.lat, manualLocGeo.lng, lat, lng).toFixed(1)} mi)`
+                            : "";
+                          return (
+                            <option key={l.id} value={`community-${l.id}`}>
+                              📍 {l.name}{l.city ? `, ${l.city}` : ""}{dist}
+                            </option>
+                          );
+                        })}
+                      </optgroup>
+                    )}
+                    <option value="custom">📍 Somewhere else…</option>
+                    <option value="new">➕ Add new location…</option>
+                  </select>
+
+                  {/* Custom location text input */}
+                  {manualLocSel === "custom" && (
+                    <input
+                      data-testid="input-manual-loc-custom"
+                      type="text"
+                      placeholder="Type location name…"
+                      value={manualLocCustom}
+                      onChange={(e) => setManualLocCustom(e.target.value)}
+                      className="mt-2 w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                    />
+                  )}
+
+                  {/* Selected community spot info */}
+                  {selCommunityLoc && (
+                    <div className="mt-1.5 text-[11px] text-blue-300 px-1">
+                      📍 {[selCommunityLoc.city, selCommunityLoc.state, selCommunityLoc.country].filter(Boolean).join(", ")}
+                      {selCommunityLoc.description ? ` — ${selCommunityLoc.description}` : ""}
+                    </div>
+                  )}
+
+                  {/* New location mini-form */}
+                  {manualLocSel === "new" && (
+                    <div className="mt-2 space-y-2 bg-blue-800/50 border border-blue-600/50 rounded-xl p-3">
+                      <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-wide">New Community Spot</div>
+                      <input
+                        data-testid="input-manual-new-name"
+                        type="text"
+                        placeholder="Location name *"
+                        value={manualNewName}
+                        onChange={(e) => setManualNewName(e.target.value)}
+                        className="w-full bg-blue-900/60 border border-blue-700 rounded-lg px-3 py-1.5 text-white text-xs placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          data-testid="select-manual-new-country"
+                          value={manualNewCountry}
+                          onChange={(e) => setManualNewCountry(e.target.value)}
+                          className="bg-blue-900/60 border border-blue-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none"
+                        >
+                          {["USA","Canada","Iceland","Norway","Switzerland","Australia","UK","Germany","Japan","Other"].map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                        <input
+                          data-testid="input-manual-new-state"
+                          type="text"
+                          placeholder="State / Region"
+                          value={manualNewState}
+                          onChange={(e) => setManualNewState(e.target.value)}
+                          className="bg-blue-900/60 border border-blue-700 rounded-lg px-2 py-1.5 text-white text-xs placeholder:text-blue-500 focus:outline-none"
+                        />
+                      </div>
+                      <input
+                        data-testid="input-manual-new-city"
+                        type="text"
+                        placeholder="City"
+                        value={manualNewCity}
+                        onChange={(e) => setManualNewCity(e.target.value)}
+                        className="w-full bg-blue-900/60 border border-blue-700 rounded-lg px-3 py-1.5 text-white text-xs placeholder:text-blue-500 focus:outline-none"
+                      />
+                      <button
+                        data-testid="button-manual-create-spot"
+                        disabled={!manualNewName.trim() || createCommunitySpot.isPending}
+                        onClick={() => createCommunitySpot.mutate({
+                          name: manualNewName.trim(),
+                          country: manualNewCountry,
+                          state: manualNewState.trim() || undefined,
+                          city: manualNewCity.trim() || undefined,
+                        })}
+                        className="w-full py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-bold transition-all active:scale-95"
+                      >
+                        {createCommunitySpot.isPending ? "Creating…" : "Create & Select"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <button
                   data-testid="button-submit-manual-plunge"
-                  disabled={createPlunge.isPending || (manualMins === 0 && manualSecs === 0)}
+                  disabled={createPlunge.isPending || (manualMins === 0 && manualSecs === 0) || (manualLocSel === "new")}
                   onClick={() => {
                     const durationSec = manualMins * 60 + manualSecs;
                     if (durationSec === 0) return;
                     const isoDate = new Date(`${manualDate}T${manualTime}:00`).toISOString();
                     const score = plungeScore(durationSec, manualTempF);
+                    const finalLocId = manualLocSel.startsWith("community-") ? manualLocSel : undefined;
+                    const finalLocName = manualLocSel.startsWith("community-")
+                      ? (communityLocs.find((l) => l.id === Number(manualLocSel.replace("community-", "")))?.name)
+                      : manualLocSel === "custom" ? (manualLocCustom.trim() || undefined)
+                      : undefined;
                     createPlunge.mutate(
-                      { duration: durationSec, temperature: manualTempF, score: String(score), hrAvg: null, spo2Avg: null, createdAt: isoDate },
-                      { onSuccess: () => { setShowManualEntry(false); toast({ title: "Plunge logged! ❄️", description: `${manualMins}m ${manualSecs}s at ${manualTempF}°F — added to history.` }); } }
+                      { duration: durationSec, temperature: manualTempF, score: String(score), hrAvg: null, spo2Avg: null, createdAt: isoDate, locationId: finalLocId, locationName: finalLocName },
+                      {
+                        onSuccess: () => {
+                          setShowManualEntry(false);
+                          setManualLocSel(""); setManualLocCustom(""); setManualLocGeo(null);
+                          const locPart = finalLocName ? ` at ${finalLocName}` : "";
+                          toast({ title: "Plunge logged! ❄️", description: `${manualMins}m ${manualSecs}s at ${manualTempF}°F${locPart} — added to history.` });
+                        }
+                      }
                     );
                   }}
                   className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white font-bold text-sm transition-all active:scale-[0.98]"
@@ -668,7 +862,8 @@ export default function Home() {
                   {createPlunge.isPending ? "Saving…" : "Save Plunge"}
                 </button>
               </div>
-            )}
+              );
+            })()}
 
             {/* Today summary */}
             {todayPlunges.length > 0 && (
