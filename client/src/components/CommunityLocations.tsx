@@ -175,7 +175,7 @@ export function CommunityLocations({ username }: { username: string }) {
               >
                 {submitMutation.isPending ? "Submitting…" : "Submit Location"}
               </button>
-              <p className="text-blue-500 text-xs">Locations with {NOMINATION_THRESHOLD}+ nominations are reviewed for inclusion in the official Plunge Passport.</p>
+              <p className="text-blue-500 text-xs">Locations with {NOMINATION_THRESHOLD}+ nominations are reviewed for inclusion in Chill Places.</p>
             </div>
           )}
 

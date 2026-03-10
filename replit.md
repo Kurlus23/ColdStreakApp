@@ -95,7 +95,7 @@ The app currently has no user authentication or session management. All plunge d
 
 ### Current Plan (PWA — Stripe)
 - **Free tier**: Last 7 days of history, basic stats, sharing, ads
-- **ColdStreak Pro** (one-time fee ~$7.99): Unlimited history, advanced stats, Plunge Passport + leaderboards, CSV/Apple Health export, custom cold score goals, no ads
+- **ColdStreak Pro** (one-time fee ~$7.99): Unlimited history, advanced stats, Chill Places + leaderboards, CSV/Apple Health export, custom cold score goals, no ads
 - Payment processor: **Stripe** (one-time payment, email used as Pro identifier for restore)
 - Pro status tied to email, stored in DB + localStorage
 

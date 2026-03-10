@@ -491,7 +491,7 @@ export function Explore({ username, onClose, onUpgrade }: { username: string; on
         )}
       </div>
 
-      {/* ── Plunge Passport Tile (Pro) ── */}
+      {/* ── Chill Places Tile (Pro) ── */}
       <div className="bg-gradient-to-br from-blue-900/70 to-blue-950/80 border border-blue-700/50 rounded-2xl overflow-hidden">
         <button
           data-testid="button-toggle-passport"
@@ -502,7 +502,7 @@ export function Explore({ username, onClose, onUpgrade }: { username: string; on
             <Star className="w-4 h-4 text-cyan-400" />
           </div>
           <div className="flex-1 text-left">
-            <div className="text-white font-bold text-sm">Plunge Passport</div>
+            <div className="text-white font-bold text-sm">Chill Places</div>
             <div className="text-blue-400 text-[11px]">
               {isPro ? `${badges.size} / ${PASSPORT_LOCATIONS.length} earned` : "Pro — curated bucket-list spots"}
             </div>

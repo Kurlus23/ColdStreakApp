@@ -639,7 +639,7 @@ export default function Home() {
                   <CheckCircle2 className="w-4 h-4 text-green-400 ml-auto" />
                 </div>
                 <div className="text-cyan-300 text-xs">Active · {proEmail}</div>
-                <div className="text-blue-400 text-xs pt-1">Unlimited history · Plunge Passport · Advanced stats</div>
+                <div className="text-blue-400 text-xs pt-1">Unlimited history · Chill Places · Advanced stats</div>
               </div>
             ) : (
               <div className="bg-gradient-to-r from-cyan-900/60 to-blue-900/60 rounded-2xl p-4 border border-cyan-700/50 space-y-3">
@@ -648,7 +648,7 @@ export default function Home() {
                   <span className="ml-auto text-yellow-400 text-sm font-bold">$7.99</span>
                 </div>
                 <ul className="space-y-1 text-blue-300 text-xs">
-                  {["Unlimited plunge history", "Plunge Passport + leaderboards", "Advanced stats & personal bests", "CSV / Apple Health export", "No ads"].map((f) => (
+                  {["Unlimited plunge history", "Chill Places + leaderboards", "Advanced stats & personal bests", "CSV / Apple Health export", "No ads"].map((f) => (
                     <li key={f} className="flex items-center gap-1.5"><Sparkles className="w-3 h-3 text-cyan-400 shrink-0" />{f}</li>
                   ))}
                 </ul>
@@ -868,7 +868,7 @@ export default function Home() {
                 ColdStreak is a tracking tool only. It does not provide medical advice. Consult a physician before beginning cold exposure therapy, especially if you have heart conditions, high blood pressure, Raynaud's disease, or are pregnant.
               </p>
               <p className="text-red-200 text-xs leading-relaxed">
-                <span className="font-bold text-red-300">Featured Locations:</span> USA locations listed in the Plunge Passport are spring-fed or managed facilities selected for relative safety and year-round access. Sliding Rock (NC) is listed as seasonal — lifeguards are only present May–Labor Day. Conditions at all locations can change without notice due to weather, drought, flooding, or closures. Always check current local conditions before visiting. Never plunge alone.
+                <span className="font-bold text-red-300">Featured Locations:</span> USA locations listed in Chill Places are spring-fed or managed facilities selected for relative safety and year-round access. Sliding Rock (NC) is listed as seasonal — lifeguards are only present May–Labor Day. Conditions at all locations can change without notice due to weather, drought, flooding, or closures. Always check current local conditions before visiting. Never plunge alone.
               </p>
               <p className="text-red-200/70 text-[10px] leading-relaxed">
                 ColdStreak and its developers accept no liability for injury, illness, or death resulting from cold plunge activities. Use this app at your own risk.
@@ -1170,7 +1170,7 @@ export default function Home() {
                       if (isNewBadge) {
                         const loc = PASSPORT_LOCATIONS.find((l) => l.id === finalLocationId)!;
                         confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 }, colors: ["#fbbf24", "#f59e0b", "#ffffff", "#0ea5e9"] });
-                        toast({ title: "🏅 Passport Badge Unlocked!", description: `${loc.flag} ${loc.name} — added to your Plunge Passport!` });
+                        toast({ title: "🏅 Chill Place Unlocked!", description: `${loc.flag} ${loc.name} — added to your Chill Places!` });
                       } else {
                         toast({ title: "Plunge updated!" });
                       }
@@ -1284,7 +1284,7 @@ export default function Home() {
             <ul className="space-y-2.5">
               {[
                 { icon: "📅", text: "Unlimited plunge history" },
-                { icon: "🗺️", text: "Plunge Passport — earn badges at iconic locations" },
+                { icon: "🗺️", text: "Chill Places — earn badges at iconic locations" },
                 { icon: "🏆", text: "Per-location leaderboards" },
                 { icon: "📈", text: "Advanced stats & personal bests" },
                 { icon: "📤", text: "CSV & Apple Health export" },
