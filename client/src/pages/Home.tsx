@@ -10,6 +10,7 @@ import {
 
 import confetti from "canvas-confetti";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 import { usePlunges, useCreatePlunge, useUpdatePlunge } from "@/hooks/use-plunges";
 import { useLeaderboard, useSubmitLeaderboard } from "@/hooks/use-leaderboard";
 import { useProStatus } from "@/hooks/use-pro-status";
@@ -17,7 +18,7 @@ import { PlungeCard } from "@/components/PlungeCard";
 import { Explore } from "@/pages/Explore";
 import { PASSPORT_LOCATIONS, usePassportBadges } from "@/lib/passport";
 
-import { type Plunge } from "@shared/schema";
+import { type Plunge, type UserLocation } from "@shared/schema";
 
 async function resizeImageToBase64(file: File, maxPx = 800, quality = 0.75): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -208,6 +209,8 @@ export default function Home() {
 
   // Leaderboard
   const [leaderboardLocationId, setLeaderboardLocationId] = useState<string | null>(null);
+  const [leaderboardLocName, setLeaderboardLocName] = useState<string>("");
+  const { data: communityLocs = [] } = useQuery<UserLocation[]>({ queryKey: ["/api/community-locations"] });
   // Username (for leaderboard)
   const [username, setUsername] = useState<string>(
     () => localStorage.getItem("coldstreak-username") ?? ""
@@ -722,7 +725,15 @@ export default function Home() {
       {/* ─── EXPLORE SCREEN ─── */}
       {screen === "explore" && (
         <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto">
-          <Explore username={username} onClose={() => navTo("timer")} onUpgrade={() => setShowUpgradeModal(true)} />
+          <Explore
+            username={username}
+            onClose={() => navTo("timer")}
+            onUpgrade={() => setShowUpgradeModal(true)}
+            onViewLeaderboard={(locationId, name) => {
+              setLeaderboardLocationId(locationId);
+              setLeaderboardLocName(name);
+            }}
+          />
         </div>
       )}
 
@@ -1016,7 +1027,11 @@ export default function Home() {
 
       {/* ─── LEADERBOARD MODAL ─── */}
       {leaderboardLocationId && (() => {
-        const loc = PASSPORT_LOCATIONS.find((l) => l.id === leaderboardLocationId)!;
+        const passportLoc = PASSPORT_LOCATIONS.find((l) => l.id === leaderboardLocationId);
+        const isCommunity = leaderboardLocationId.startsWith("community-");
+        const displayFlag = passportLoc?.flag ?? "📍";
+        const displayName = leaderboardLocName || passportLoc?.name || leaderboardLocationId;
+        const displaySub = passportLoc?.tempRange ?? (isCommunity ? "Community spot" : "");
         return (
           <div className="fixed inset-0 z-40 flex items-end justify-center">
             <div className="absolute inset-0 bg-black/70" onClick={() => setLeaderboardLocationId(null)} />
@@ -1027,10 +1042,10 @@ export default function Home() {
               {/* Header */}
               <div className="flex items-center justify-between mb-4 shrink-0">
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl">{loc.flag}</span>
+                  <span className="text-3xl">{displayFlag}</span>
                   <div>
-                    <h3 className="text-white font-bold text-base leading-tight">{loc.name}</h3>
-                    <p className="text-blue-400 text-xs">{loc.tempRange}</p>
+                    <h3 className="text-white font-bold text-base leading-tight">{displayName}</h3>
+                    <p className="text-blue-400 text-xs">{displaySub}</p>
                   </div>
                 </div>
                 <button
@@ -1044,7 +1059,7 @@ export default function Home() {
               <div className="flex items-center gap-2 mb-3 shrink-0">
                 <Trophy className="w-4 h-4 text-yellow-400" />
                 <span className="text-white font-semibold text-sm">Top Plungers</span>
-                {hasBadge(loc.id) && (
+                {!isCommunity && hasBadge(leaderboardLocationId) && (
                   <span className="text-[10px] bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 px-2 py-0.5 rounded-full font-semibold">You've been here!</span>
                 )}
               </div>
@@ -1192,6 +1207,13 @@ export default function Home() {
                 className="w-full bg-blue-900/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm appearance-none focus:outline-none focus:border-cyan-400"
               >
                 <option value="">— No location —</option>
+                {communityLocs.length > 0 && (
+                  <optgroup label="Community Spots">
+                    {communityLocs.map((l) => (
+                      <option key={`community-${l.id}`} value={`community-${l.id}`}>📍 {l.name}{l.city ? `, ${l.city}` : ""}{l.state ? `, ${l.state}` : ""}</option>
+                    ))}
+                  </optgroup>
+                )}
                 <optgroup label="International">
                   {PASSPORT_LOCATIONS.filter((l) => l.country !== "USA").map((l) => (
                     <option key={l.id} value={l.id}>{l.flag} {l.name}, {l.country}</option>
@@ -1219,7 +1241,18 @@ export default function Home() {
               {promptLocationId && promptLocationId !== "custom" && (
                 <div className="bg-blue-900/50 rounded-xl px-3 py-2 border border-blue-700/40">
                   {(() => {
-                    const loc = PASSPORT_LOCATIONS.find((l) => l.id === promptLocationId)!;
+                    if (promptLocationId.startsWith("community-")) {
+                      const cid = Number(promptLocationId.replace("community-", ""));
+                      const cloc = communityLocs.find((l) => l.id === cid);
+                      return (
+                        <div className="text-xs text-blue-300 leading-relaxed">
+                          <span className="font-semibold text-cyan-300">📍 {cloc?.name ?? "Community Spot"}</span>
+                          {cloc?.description ? ` — ${cloc.description}` : ""}
+                        </div>
+                      );
+                    }
+                    const loc = PASSPORT_LOCATIONS.find((l) => l.id === promptLocationId);
+                    if (!loc) return null;
                     return (
                       <div className="text-xs text-blue-300 leading-relaxed">
                         <span className="font-semibold text-cyan-300">{loc.flag} {loc.name}</span>
@@ -1277,12 +1310,17 @@ export default function Home() {
               disabled={promptSaving || (!promptPhotoData && !promptLocationId)}
               onClick={async () => {
                 if (!photoPromptId) return;
-                const finalLocationId = promptLocationId !== "custom" ? promptLocationId : undefined;
-                const finalLocationName = promptLocationId === "custom"
-                  ? promptCustomLocation.trim()
-                  : promptLocationId
-                    ? PASSPORT_LOCATIONS.find((l) => l.id === promptLocationId)?.name
-                    : undefined;
+                const isCommunityPick = promptLocationId.startsWith("community-");
+                const finalLocationId = promptLocationId && promptLocationId !== "custom" ? promptLocationId : undefined;
+                let finalLocationName: string | undefined;
+                if (promptLocationId === "custom") {
+                  finalLocationName = promptCustomLocation.trim() || undefined;
+                } else if (isCommunityPick) {
+                  const cid = Number(promptLocationId.replace("community-", ""));
+                  finalLocationName = communityLocs.find((l) => l.id === cid)?.name;
+                } else if (promptLocationId) {
+                  finalLocationName = PASSPORT_LOCATIONS.find((l) => l.id === promptLocationId)?.name;
+                }
 
                 if (!promptPhotoData && !finalLocationName) {
                   setPhotoPromptId(null);
@@ -1301,17 +1339,26 @@ export default function Home() {
                   },
                   {
                     onSuccess: () => {
-                      const isNewBadge = finalLocationId && !hasBadge(finalLocationId);
-                      if (finalLocationId) awardBadge(finalLocationId);
-                      if (isNewBadge) {
-                        const loc = PASSPORT_LOCATIONS.find((l) => l.id === finalLocationId)!;
-                        confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 }, colors: ["#fbbf24", "#f59e0b", "#ffffff", "#0ea5e9"] });
-                        toast({ title: "🏅 Chill Place Unlocked!", description: `${loc.flag} ${loc.name} — added to your Chill Places!` });
+                      // Passport badge — only for official Chill Places
+                      if (finalLocationId && !isCommunityPick) {
+                        const isNewBadge = !hasBadge(finalLocationId);
+                        awardBadge(finalLocationId);
+                        if (isNewBadge) {
+                          const loc = PASSPORT_LOCATIONS.find((l) => l.id === finalLocationId);
+                          if (loc) {
+                            confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 }, colors: ["#fbbf24", "#f59e0b", "#ffffff", "#0ea5e9"] });
+                            toast({ title: "🏅 Chill Place Unlocked!", description: `${loc.flag} ${loc.name} — added to your Chill Places!` });
+                          } else {
+                            toast({ title: "Plunge updated!" });
+                          }
+                        } else {
+                          toast({ title: "Plunge updated!" });
+                        }
                       } else {
                         toast({ title: "Plunge updated!" });
                       }
 
-                      // Submit to leaderboard if opted in
+                      // Submit to leaderboard if opted in (works for both passport and community)
                       if (finalLocationId && promptSubmitLeaderboard && username.trim() && promptPlungeRef.current) {
                         const { score, duration, temperature: temp } = promptPlungeRef.current;
                         submitLeaderboard.mutate({

@@ -35,7 +35,12 @@ const ALL_COUNTRIES = ["All", "Iceland", "Norway", "Switzerland", "Australia", "
 
 interface GeoPos { lat: number; lng: number; }
 
-export function Explore({ username, onClose, onUpgrade }: { username: string; onClose: () => void; onUpgrade: () => void }) {
+export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
+  username: string;
+  onClose: () => void;
+  onUpgrade: () => void;
+  onViewLeaderboard?: (locationId: string, name: string) => void;
+}) {
   const { toast } = useToast();
   const { isPro } = useProStatus();
   const { badges, awardBadge, hasBadge } = usePassportBadges();
@@ -500,6 +505,16 @@ export function Explore({ username, onClose, onUpgrade }: { username: string; on
                             <Trophy className="w-3 h-3" />
                             {hasVoted ? "Voted" : "Vote"}
                           </button>
+                          {onViewLeaderboard && (
+                            <button
+                              data-testid={`button-leaderboard-${loc.id}`}
+                              onClick={() => onViewLeaderboard(`community-${loc.id}`, loc.name)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20 transition-all active:scale-95"
+                            >
+                              <Trophy className="w-3 h-3" />
+                              Board
+                            </button>
+                          )}
                         </div>
                       </div>
                       <div className="mt-2">
