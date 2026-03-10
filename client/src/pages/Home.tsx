@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Play, Pause, RotateCcw, Thermometer, Droplets, History,
-  Activity, Snowflake, Timer, AlarmClock, Flame, Target, Zap
+  Activity, Snowflake, Timer, AlarmClock, Flame, Target, Zap,
+  Bluetooth
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useToast } from "@/hooks/use-toast";
@@ -34,24 +35,15 @@ function getStreak(plunges: Plunge[]): number {
   const dates = [...new Set(
     plunges.map((p) => new Date(p.createdAt).toLocaleDateString())
   )];
-  const sorted = dates
-    .map((d) => new Date(d))
-    .sort((a, b) => b.getTime() - a.getTime());
-
+  const sorted = dates.map((d) => new Date(d)).sort((a, b) => b.getTime() - a.getTime());
   let streak = 0;
   let current = new Date();
   current.setHours(0, 0, 0, 0);
-
   for (const d of sorted) {
     const dCopy = new Date(d);
     dCopy.setHours(0, 0, 0, 0);
     const diff = Math.round((current.getTime() - dCopy.getTime()) / (1000 * 60 * 60 * 24));
-    if (diff <= 1) {
-      streak++;
-      current = dCopy;
-    } else {
-      break;
-    }
+    if (diff <= 1) { streak++; current = dCopy; } else break;
   }
   return streak;
 }
@@ -67,20 +59,38 @@ export default function Home() {
   // Countdown
   const [countdown, setCountdown] = useState(0);
   const [countdownRunning, setCountdownRunning] = useState(false);
-  const [minutesInput, setMinutesInput] = useState<string>("3");
-  const [secondsInput, setSecondsInput] = useState<string>("0");
+  const [minutesInput, setMinutesInput] = useState(3);
+  const [secondsInput, setSecondsInput] = useState(0);
   const alarmRef = useRef<HTMLAudioElement | null>(null);
 
   const { toast } = useToast();
   const { data: plunges = [], isLoading } = usePlunges();
   const createPlunge = useCreatePlunge();
 
+  const getTempVal = () => {
+    const v = parseInt(temperature, 10);
+    return isNaN(v) ? 50 : v;
+  };
+
+  const doLogPlunge = useCallback((durationSec: number) => {
+    const tempVal = getTempVal();
+    const score = plungeScore(durationSec, tempVal);
+    createPlunge.mutate(
+      { duration: durationSec, temperature: tempVal, score: String(score) },
+      {
+        onSuccess: () => {
+          confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
+          toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${tempVal}°F` });
+        },
+      }
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [temperature, createPlunge, toast]);
+
   // Stopwatch effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isRunning) {
-      interval = setInterval(() => setSeconds((s) => s + 1), 1000);
-    }
+    if (isRunning) interval = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => clearInterval(interval);
   }, [isRunning]);
 
@@ -92,23 +102,44 @@ export default function Home() {
     }
     if (countdownRunning && countdown === 0) {
       setCountdownRunning(false);
+      const targetDuration = minutesInput * 60 + secondsInput;
+      doLogPlunge(targetDuration);
       if (!alarmRef.current) {
-        alarmRef.current = new Audio(
-          "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
-        );
+        alarmRef.current = new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
       }
       alarmRef.current.play().catch(() => {});
-      toast({ title: "Time's up! ❄️", description: "Your plunge is complete. Great work!" });
+      toast({ title: "Time's up! ❄️", description: "Plunge complete — automatically logged!" });
     }
     return () => clearInterval(interval);
-  }, [countdownRunning, countdown, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdownRunning, countdown]);
+
+  // Pause & auto-log the stopwatch
+  const handlePauseAndLog = () => {
+    if (isRunning && seconds > 0) {
+      setIsRunning(false);
+      doLogPlunge(seconds);
+      setSeconds(0);
+    } else {
+      setIsRunning(false);
+    }
+  };
+
+  // Manual log (still available if timer is paused mid-session)
+  const handleLogPlunge = () => {
+    if (seconds === 0) {
+      toast({ title: "No duration recorded", description: "Start the timer first.", variant: "destructive" });
+      return;
+    }
+    doLogPlunge(seconds);
+    setSeconds(0);
+    setIsRunning(false);
+  };
 
   const startCountdown = () => {
-    const mins = parseInt(minutesInput, 10) || 0;
-    const secs = parseInt(secondsInput, 10) || 0;
-    const total = mins * 60 + secs;
+    const total = minutesInput * 60 + secondsInput;
     if (total <= 0) {
-      toast({ title: "Set a duration", description: "Enter minutes or seconds first.", variant: "destructive" });
+      toast({ title: "Set a duration", description: "Choose minutes or seconds first.", variant: "destructive" });
       return;
     }
     setCountdown(total);
@@ -118,50 +149,46 @@ export default function Home() {
   const resetCountdown = () => {
     setCountdownRunning(false);
     setCountdown(0);
-    if (alarmRef.current) {
-      alarmRef.current.pause();
-      alarmRef.current.currentTime = 0;
-    }
+    if (alarmRef.current) { alarmRef.current.pause(); alarmRef.current.currentTime = 0; }
   };
 
-  const handleLogPlunge = () => {
-    if (seconds === 0) {
-      toast({ title: "No duration recorded", description: "Start the timer before logging!", variant: "destructive" });
+  // Bluetooth thermometer
+  const connectThermometer = async () => {
+    if (!("bluetooth" in navigator)) {
+      toast({ title: "Bluetooth not supported", description: "Your browser doesn't support Web Bluetooth.", variant: "destructive" });
       return;
     }
-    const tempVal = parseInt(temperature, 10);
-    if (isNaN(tempVal) || tempVal < -60 || tempVal > 200) {
-      toast({ title: "Invalid temperature", description: "Enter a valid °F temperature.", variant: "destructive" });
-      return;
-    }
-    const score = plungeScore(seconds, tempVal);
-
-    createPlunge.mutate(
-      { duration: seconds, temperature: tempVal, score: String(score) },
-      {
-        onSuccess: () => {
-          confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
-          toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(seconds)} at ${tempVal}°F` });
-          setSeconds(0);
-          setIsRunning(false);
-        },
+    try {
+      const device = await (navigator as any).bluetooth.requestDevice({
+        filters: [{ services: ["health_thermometer"] }],
+      });
+      const server = await device.gatt.connect();
+      const service = await server.getPrimaryService("health_thermometer");
+      const characteristic = await service.getCharacteristic("temperature_measurement");
+      await characteristic.startNotifications();
+      characteristic.addEventListener("characteristicvaluechanged", (event: Event) => {
+        const value = (event.target as BluetoothRemoteGATTCharacteristic).value!;
+        const tempC = value.getUint8(1);
+        const tempF = Math.round((tempC * 9) / 5 + 32);
+        setTemperature(String(tempF));
+        toast({ title: "Temperature updated", description: `Thermometer reading: ${tempF}°F` });
+      });
+      toast({ title: "Thermometer connected!", description: `Device: ${device.name || "Unknown"}` });
+    } catch (err: any) {
+      if (err?.name !== "NotFoundError") {
+        toast({ title: "Bluetooth error", description: "Could not connect to thermometer.", variant: "destructive" });
       }
-    );
+    }
   };
 
-  // Stats derived from DB plunges
+  // Stats
   const todayString = new Date().toLocaleDateString();
   const todayPlunges = plunges.filter((p) => new Date(p.createdAt).toLocaleDateString() === todayString);
   const todayTotalSec = todayPlunges.reduce((sum, p) => sum + p.duration, 0);
   const todayScore = todayPlunges.reduce((sum, p) => sum + Number(p.score), 0);
-
-  const last7Days = plunges.filter((p) => {
-    const diff = (Date.now() - new Date(p.createdAt).getTime()) / (1000 * 60 * 60 * 24);
-    return diff <= 7;
-  });
+  const last7Days = plunges.filter((p) => (Date.now() - new Date(p.createdAt).getTime()) / (1000 * 60 * 60 * 24) <= 7);
   const weeklyMinutes = last7Days.reduce((sum, p) => sum + p.duration, 0) / 60;
   const weeklyPct = Math.min(100, (weeklyMinutes / WEEKLY_GOAL_MINUTES) * 100);
-
   const streak = getStreak(plunges);
 
   const navItems: { id: Screen; label: string; icon: React.ReactNode }[] = [
@@ -249,21 +276,30 @@ export default function Home() {
           <div className="absolute inset-0 bg-cyan-500/3 blur-3xl rounded-full pointer-events-none" />
           <div className="relative z-10 flex flex-col items-center">
 
-            {/* Temp Input */}
-            <div className="mb-6 flex flex-col items-center">
-              <label className="text-slate-400 text-xs font-medium mb-2 uppercase tracking-wider flex items-center gap-1.5">
+            {/* Temp Input + Bluetooth */}
+            <div className="mb-6 flex flex-col items-center gap-3">
+              <label className="text-slate-400 text-xs font-medium uppercase tracking-wider flex items-center gap-1.5">
                 <Thermometer className="w-3.5 h-3.5" /> Water Temp
               </label>
-              <div className="relative w-32">
-                <input
-                  data-testid="input-temperature"
-                  type="number"
-                  value={temperature}
-                  onChange={(e) => setTemperature(e.target.value)}
-                  className="w-full bg-slate-900/80 border-2 border-slate-700/80 rounded-2xl py-2.5 pl-4 pr-9 text-white font-semibold text-xl focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all text-center"
-                  placeholder="50"
-                />
-                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-cyan-500 font-bold pointer-events-none">°F</span>
+              <div className="flex items-center gap-2">
+                <div className="relative w-28">
+                  <input
+                    data-testid="input-temperature"
+                    type="number"
+                    value={temperature}
+                    onChange={(e) => setTemperature(e.target.value)}
+                    className="w-full bg-slate-900/80 border-2 border-slate-700/80 rounded-2xl py-2.5 pl-4 pr-9 text-white font-semibold text-xl focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all text-center"
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-cyan-500 font-bold pointer-events-none">°F</span>
+                </div>
+                <button
+                  data-testid="button-bluetooth"
+                  onClick={connectThermometer}
+                  title="Connect Bluetooth thermometer"
+                  className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/40 transition-all active:scale-95"
+                >
+                  <Bluetooth className="w-5 h-5" />
+                </button>
               </div>
             </div>
 
@@ -279,7 +315,7 @@ export default function Home() {
               </div>
               {seconds > 0 && (
                 <div className="text-cyan-400 text-sm mt-2 font-medium">
-                  Score preview: {plungeScore(seconds, parseInt(temperature, 10) || 50)}
+                  Score preview: {plungeScore(seconds, getTempVal())}
                 </div>
               )}
             </div>
@@ -287,17 +323,27 @@ export default function Home() {
             {/* Controls */}
             <div className="flex flex-col w-full max-w-xs gap-3">
               <div className="flex gap-3 w-full">
+                {/* Start */}
                 <button
-                  data-testid="button-start-pause"
-                  onClick={() => setIsRunning(!isRunning)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-base transition-all duration-300 active:scale-95 ${
-                    isRunning
-                      ? "bg-slate-700 text-cyan-400 border border-slate-600 hover:bg-slate-600"
-                      : "bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:shadow-lg hover:shadow-cyan-500/25"
-                  }`}
+                  data-testid="button-start"
+                  onClick={() => setIsRunning(true)}
+                  disabled={isRunning}
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold active:scale-95 hover:shadow-lg hover:shadow-cyan-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {isRunning ? <><Pause className="w-4 h-4 fill-current" /> Pause</> : <><Play className="w-4 h-4 fill-current" /> Start</>}
+                  <Play className="w-4 h-4 fill-current" /> Start
                 </button>
+
+                {/* Pause & Log */}
+                <button
+                  data-testid="button-pause-log"
+                  onClick={handlePauseAndLog}
+                  disabled={!isRunning}
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-slate-700 text-cyan-400 border border-slate-600 font-bold active:scale-95 hover:bg-slate-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Pause className="w-4 h-4 fill-current" /> Pause & Log
+                </button>
+
+                {/* Reset */}
                 <button
                   data-testid="button-reset"
                   onClick={() => { setSeconds(0); setIsRunning(false); }}
@@ -308,15 +354,18 @@ export default function Home() {
                 </button>
               </div>
 
-              <button
-                data-testid="button-log-plunge"
-                onClick={handleLogPlunge}
-                disabled={createPlunge.isPending || seconds === 0}
-                className="w-full py-3.5 rounded-2xl bg-slate-800 text-white font-semibold border border-slate-700 hover:bg-slate-700 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
-              >
-                <Activity className={`w-4 h-4 text-cyan-400 ${createPlunge.isPending ? "animate-pulse" : ""}`} />
-                {createPlunge.isPending ? "Logging..." : "Log Plunge"}
-              </button>
+              {/* Manual log if paused partway */}
+              {seconds > 0 && !isRunning && (
+                <button
+                  data-testid="button-log-plunge"
+                  onClick={handleLogPlunge}
+                  disabled={createPlunge.isPending}
+                  className="w-full py-3.5 rounded-2xl bg-slate-800 text-white font-semibold border border-slate-700 hover:bg-slate-700 transition-all flex items-center justify-center gap-2 disabled:opacity-40 active:scale-95"
+                >
+                  <Activity className={`w-4 h-4 text-cyan-400 ${createPlunge.isPending ? "animate-pulse" : ""}`} />
+                  {createPlunge.isPending ? "Logging..." : "Log Plunge"}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -326,33 +375,35 @@ export default function Home() {
       {screen === "countdown" && (
         <div className="bg-slate-800/40 border border-slate-700/50 rounded-3xl p-8 flex flex-col items-center">
 
-          {/* Duration Inputs */}
+          {/* Dropdown Selectors */}
           {!countdownRunning && countdown === 0 && (
             <div className="mb-6 flex items-center gap-3">
               <div className="flex flex-col items-center">
-                <label className="text-xs text-slate-400 uppercase tracking-wide mb-1.5">Min</label>
-                <input
-                  data-testid="input-countdown-minutes"
-                  type="number"
-                  min="0"
-                  max="99"
+                <label className="text-xs text-slate-400 uppercase tracking-wide mb-1.5">Minutes</label>
+                <select
+                  data-testid="select-countdown-minutes"
                   value={minutesInput}
-                  onChange={(e) => setMinutesInput(e.target.value)}
-                  className="w-20 bg-slate-900/80 border-2 border-slate-700 rounded-xl py-2 text-white font-bold text-2xl text-center focus:outline-none focus:border-cyan-500 transition-colors"
-                />
+                  onChange={(e) => setMinutesInput(Number(e.target.value))}
+                  className="bg-slate-900/80 border-2 border-slate-700 rounded-xl px-3 py-2.5 text-white font-bold text-lg focus:outline-none focus:border-cyan-500 transition-colors appearance-none text-center w-24"
+                >
+                  {Array.from({ length: 61 }, (_, i) => (
+                    <option key={i} value={i}>{i} min</option>
+                  ))}
+                </select>
               </div>
               <span className="text-slate-400 text-2xl font-bold mt-5">:</span>
               <div className="flex flex-col items-center">
-                <label className="text-xs text-slate-400 uppercase tracking-wide mb-1.5">Sec</label>
-                <input
-                  data-testid="input-countdown-seconds"
-                  type="number"
-                  min="0"
-                  max="59"
+                <label className="text-xs text-slate-400 uppercase tracking-wide mb-1.5">Seconds</label>
+                <select
+                  data-testid="select-countdown-seconds"
                   value={secondsInput}
-                  onChange={(e) => setSecondsInput(e.target.value)}
-                  className="w-20 bg-slate-900/80 border-2 border-slate-700 rounded-xl py-2 text-white font-bold text-2xl text-center focus:outline-none focus:border-cyan-500 transition-colors"
-                />
+                  onChange={(e) => setSecondsInput(Number(e.target.value))}
+                  className="bg-slate-900/80 border-2 border-slate-700 rounded-xl px-3 py-2.5 text-white font-bold text-lg focus:outline-none focus:border-cyan-500 transition-colors appearance-none text-center w-24"
+                >
+                  {Array.from({ length: 60 }, (_, i) => (
+                    <option key={i} value={i}>{i} sec</option>
+                  ))}
+                </select>
               </div>
             </div>
           )}
@@ -368,7 +419,7 @@ export default function Home() {
               {formatTime(countdown)}
             </div>
             {countdownRunning && (
-              <div className="text-slate-400 text-sm mt-2">Stay in the cold! You've got this.</div>
+              <div className="text-slate-400 text-sm mt-2">Stay in the cold — plunge auto-logs when done!</div>
             )}
           </div>
 
@@ -424,7 +475,6 @@ export default function Home() {
       {/* History Screen */}
       {screen === "history" && (
         <div>
-          {/* Today's summary */}
           {todayPlunges.length > 0 && (
             <div className="bg-slate-800/50 border border-cyan-500/20 rounded-2xl p-4 mb-5 flex items-center justify-between">
               <div>

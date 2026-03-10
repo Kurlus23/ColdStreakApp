@@ -34,6 +34,14 @@ export const api = {
         400: errorSchemas.validation,
       },
     },
+    delete: {
+      method: "DELETE" as const,
+      path: "/api/plunges/:id" as const,
+      responses: {
+        204: z.void(),
+        404: errorSchemas.notFound,
+      },
+    },
   },
 };
 

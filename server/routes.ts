@@ -35,5 +35,12 @@ export async function registerRoutes(
     }
   });
 
+  app.delete(api.plunges.delete.path, async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    await storage.deletePlunge(id);
+    res.status(204).send();
+  });
+
   return httpServer;
 }
