@@ -1,218 +1,468 @@
-import { useState, useEffect } from "react";
-import { Play, Pause, RotateCcw, Thermometer, Droplets, History, Activity, Snowflake } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import {
+  Play, Pause, RotateCcw, Thermometer, Droplets, History,
+  Activity, Snowflake, Timer, AlarmClock, Flame, Target, Zap
+} from "lucide-react";
 import confetti from "canvas-confetti";
 import { useToast } from "@/hooks/use-toast";
 import { usePlunges, useCreatePlunge } from "@/hooks/use-plunges";
 import { PlungeCard } from "@/components/PlungeCard";
+import { type Plunge } from "@shared/schema";
+
+type Screen = "timer" | "countdown" | "history";
+
+const WEEKLY_GOAL_MINUTES = 11;
+
+function plungeScore(durationSeconds: number, tempF: number): number {
+  const minutes = durationSeconds / 60;
+  let coldFactor = 1;
+  if (tempF <= 55) coldFactor = 1.2;
+  if (tempF <= 50) coldFactor = 1.5;
+  if (tempF <= 45) coldFactor = 1.9;
+  if (tempF <= 40) coldFactor = 2.3;
+  return Number((minutes * coldFactor).toFixed(2));
+}
+
+function formatTime(totalSeconds: number) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function getStreak(plunges: Plunge[]): number {
+  if (!plunges.length) return 0;
+  const dates = [...new Set(
+    plunges.map((p) => new Date(p.createdAt).toLocaleDateString())
+  )];
+  const sorted = dates
+    .map((d) => new Date(d))
+    .sort((a, b) => b.getTime() - a.getTime());
+
+  let streak = 0;
+  let current = new Date();
+  current.setHours(0, 0, 0, 0);
+
+  for (const d of sorted) {
+    const dCopy = new Date(d);
+    dCopy.setHours(0, 0, 0, 0);
+    const diff = Math.round((current.getTime() - dCopy.getTime()) / (1000 * 60 * 60 * 24));
+    if (diff <= 1) {
+      streak++;
+      current = dCopy;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
 
 export default function Home() {
+  const [screen, setScreen] = useState<Screen>("timer");
+
+  // Stopwatch
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [temperature, setTemperature] = useState<string>("50");
-  
+
+  // Countdown
+  const [countdown, setCountdown] = useState(0);
+  const [countdownRunning, setCountdownRunning] = useState(false);
+  const [minutesInput, setMinutesInput] = useState<string>("3");
+  const [secondsInput, setSecondsInput] = useState<string>("0");
+  const alarmRef = useRef<HTMLAudioElement | null>(null);
+
   const { toast } = useToast();
-  const { data: plunges, isLoading } = usePlunges();
+  const { data: plunges = [], isLoading } = usePlunges();
   const createPlunge = useCreatePlunge();
 
-  // Timer Effect
+  // Stopwatch effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isRunning) {
-      interval = setInterval(() => {
-        setSeconds((s) => s + 1);
-      }, 1000);
+      interval = setInterval(() => setSeconds((s) => s + 1), 1000);
     }
     return () => clearInterval(interval);
   }, [isRunning]);
 
-  // Handlers
-  const toggleTimer = () => setIsRunning(!isRunning);
-  
-  const resetTimer = () => {
-    setIsRunning(false);
-    setSeconds(0);
+  // Countdown effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (countdownRunning && countdown > 0) {
+      interval = setInterval(() => setCountdown((c) => c - 1), 1000);
+    }
+    if (countdownRunning && countdown === 0) {
+      setCountdownRunning(false);
+      if (!alarmRef.current) {
+        alarmRef.current = new Audio(
+          "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
+        );
+      }
+      alarmRef.current.play().catch(() => {});
+      toast({ title: "Time's up! ❄️", description: "Your plunge is complete. Great work!" });
+    }
+    return () => clearInterval(interval);
+  }, [countdownRunning, countdown, toast]);
+
+  const startCountdown = () => {
+    const mins = parseInt(minutesInput, 10) || 0;
+    const secs = parseInt(secondsInput, 10) || 0;
+    const total = mins * 60 + secs;
+    if (total <= 0) {
+      toast({ title: "Set a duration", description: "Enter minutes or seconds first.", variant: "destructive" });
+      return;
+    }
+    setCountdown(total);
+    setCountdownRunning(true);
   };
 
-  const calculateScore = (durationSeconds: number, tempF: number) => {
-    const minutes = durationSeconds / 60;
-    const tempFactor = (60 - tempF) / 10;
-    return (minutes * tempFactor).toFixed(2);
+  const resetCountdown = () => {
+    setCountdownRunning(false);
+    setCountdown(0);
+    if (alarmRef.current) {
+      alarmRef.current.pause();
+      alarmRef.current.currentTime = 0;
+    }
   };
 
   const handleLogPlunge = () => {
     if (seconds === 0) {
-      toast({
-        title: "No duration recorded",
-        description: "Start the timer before logging your plunge!",
-        variant: "destructive",
-      });
+      toast({ title: "No duration recorded", description: "Start the timer before logging!", variant: "destructive" });
       return;
     }
-
     const tempVal = parseInt(temperature, 10);
-    if (isNaN(tempVal) || tempVal < -100 || tempVal > 200) {
-      toast({
-        title: "Invalid Temperature",
-        description: "Please enter a valid temperature in °F.",
-        variant: "destructive",
-      });
+    if (isNaN(tempVal) || tempVal < -60 || tempVal > 200) {
+      toast({ title: "Invalid temperature", description: "Enter a valid °F temperature.", variant: "destructive" });
       return;
     }
-
-    const score = calculateScore(seconds, tempVal);
+    const score = plungeScore(seconds, tempVal);
 
     createPlunge.mutate(
-      { duration: seconds, temperature: tempVal, score },
+      { duration: seconds, temperature: tempVal, score: String(score) },
       {
         onSuccess: () => {
-          // Celebrate!
-          confetti({
-            particleCount: 150,
-            spread: 80,
-            origin: { y: 0.6 },
-            colors: ['#0ea5e9', '#ffffff', '#38bdf8', '#bae6fd']
-          });
-          
-          toast({
-            title: "Plunge Logged! ❄️",
-            description: `Score: ${score} | ${formatTime(seconds)} at ${tempVal}°F. Incredible!`,
-          });
-          
-          resetTimer();
+          confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
+          toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(seconds)} at ${tempVal}°F` });
+          setSeconds(0);
+          setIsRunning(false);
         },
       }
     );
   };
 
-  // Format Helper
-  const formatTime = (totalSeconds: number) => {
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
+  // Stats derived from DB plunges
+  const todayString = new Date().toLocaleDateString();
+  const todayPlunges = plunges.filter((p) => new Date(p.createdAt).toLocaleDateString() === todayString);
+  const todayTotalSec = todayPlunges.reduce((sum, p) => sum + p.duration, 0);
+  const todayScore = todayPlunges.reduce((sum, p) => sum + Number(p.score), 0);
+
+  const last7Days = plunges.filter((p) => {
+    const diff = (Date.now() - new Date(p.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+    return diff <= 7;
+  });
+  const weeklyMinutes = last7Days.reduce((sum, p) => sum + p.duration, 0) / 60;
+  const weeklyPct = Math.min(100, (weeklyMinutes / WEEKLY_GOAL_MINUTES) * 100);
+
+  const streak = getStreak(plunges);
+
+  const navItems: { id: Screen; label: string; icon: React.ReactNode }[] = [
+    { id: "timer", label: "Timer", icon: <Timer className="w-4 h-4" /> },
+    { id: "countdown", label: "Countdown", icon: <AlarmClock className="w-4 h-4" /> },
+    { id: "history", label: "History", icon: <History className="w-4 h-4" /> },
+  ];
 
   return (
-    <div className="min-h-screen pb-20 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto flex flex-col pt-12 md:pt-20">
-      
+    <div className="min-h-screen pb-24 px-4 sm:px-6 max-w-xl mx-auto flex flex-col pt-10 md:pt-16">
+
       {/* Header */}
-      <header className="flex items-center justify-center gap-3 mb-10">
+      <header className="flex items-center justify-center gap-3 mb-8">
         <div className="bg-gradient-to-br from-cyan-400 to-blue-600 p-2.5 rounded-xl shadow-lg shadow-cyan-500/20">
           <Droplets className="w-7 h-7 text-white" />
         </div>
-        <h1 className="text-3xl md:text-4xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300">
+        <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300">
           OpenPlunge
         </h1>
       </header>
 
-      {/* Main Timer Card */}
-      <div className="glass-panel p-8 md:p-12 mb-12 relative overflow-hidden group">
-        {/* Subtle decorative background glow inside the card */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-cyan-500/5 blur-3xl rounded-full pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col items-center">
-          
-          {/* Temperature Input */}
-          <div className="mb-8 flex flex-col items-center">
-            <label className="text-slate-400 text-sm font-medium mb-3 uppercase tracking-wider flex items-center gap-2">
-              <Thermometer className="w-4 h-4" /> Water Temp
-            </label>
-            <div className="relative w-36 group/input">
-              <input
-                type="number"
-                value={temperature}
-                onChange={(e) => setTemperature(e.target.value)}
-                className="w-full bg-slate-900/80 border-2 border-slate-700/80 rounded-2xl py-3 pl-6 pr-10 text-white font-display font-semibold text-2xl focus:outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/20 transition-all text-center placeholder:text-slate-600"
-                placeholder="50"
-              />
-              <span className="absolute right-5 top-1/2 -translate-y-1/2 text-cyan-500 font-bold text-xl pointer-events-none group-focus-within/input:text-cyan-400 transition-colors">
-                °F
-              </span>
+      {/* Stats Banner */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4 flex items-center gap-3" data-testid="stat-streak">
+          <div className="bg-orange-500/20 p-2 rounded-xl">
+            <Flame className="w-5 h-5 text-orange-400" />
+          </div>
+          <div>
+            <div className="text-xs text-slate-400 uppercase tracking-wide">Streak</div>
+            <div className="text-xl font-bold text-white">{streak} <span className="text-sm font-normal text-slate-400">days</span></div>
+          </div>
+        </div>
+
+        <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4 flex items-center gap-3" data-testid="stat-today-score">
+          <div className="bg-cyan-500/20 p-2 rounded-xl">
+            <Zap className="w-5 h-5 text-cyan-400" />
+          </div>
+          <div>
+            <div className="text-xs text-slate-400 uppercase tracking-wide">Today's Score</div>
+            <div className="text-xl font-bold text-white">{todayScore.toFixed(2)}</div>
+          </div>
+        </div>
+
+        <div className="col-span-2 bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4" data-testid="stat-weekly">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-blue-400" />
+              <span className="text-xs text-slate-400 uppercase tracking-wide">Weekly Exposure</span>
             </div>
+            <span className="text-sm font-semibold text-white">
+              {weeklyMinutes.toFixed(1)} <span className="text-slate-400">/ {WEEKLY_GOAL_MINUTES} min</span>
+            </span>
           </div>
-
-          {/* The Clock */}
-          <div className="mb-10 text-center">
-            <h2 className={`text-[6rem] md:text-[8rem] leading-none font-display font-bold timer-nums transition-colors duration-500 ${isRunning ? 'text-white text-glow' : 'text-slate-200'}`}>
-              {formatTime(seconds)}
-            </h2>
+          <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-700"
+              style={{ width: `${weeklyPct}%` }}
+            />
           </div>
+        </div>
+      </div>
 
-          {/* Controls */}
-          <div className="flex flex-col w-full max-w-sm gap-4">
-            <div className="flex gap-4 w-full">
-              <button
-                onClick={toggleTimer}
-                className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-lg transition-all duration-300 active:scale-95 ${
-                  isRunning 
-                    ? 'bg-slate-800 text-cyan-400 border border-slate-700 hover:bg-slate-700/80 shadow-inner' 
-                    : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:shadow-lg hover:shadow-cyan-500/25 hover:-translate-y-0.5'
+      {/* Navigation Tabs */}
+      <div className="flex bg-slate-800/60 border border-slate-700/50 rounded-2xl p-1 mb-6">
+        {navItems.map((item) => (
+          <button
+            key={item.id}
+            data-testid={`nav-${item.id}`}
+            onClick={() => setScreen(item.id)}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              screen === item.id
+                ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            {item.icon}
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Timer Screen */}
+      {screen === "timer" && (
+        <div className="bg-slate-800/40 border border-slate-700/50 rounded-3xl p-8 relative overflow-hidden">
+          <div className="absolute inset-0 bg-cyan-500/3 blur-3xl rounded-full pointer-events-none" />
+          <div className="relative z-10 flex flex-col items-center">
+
+            {/* Temp Input */}
+            <div className="mb-6 flex flex-col items-center">
+              <label className="text-slate-400 text-xs font-medium mb-2 uppercase tracking-wider flex items-center gap-1.5">
+                <Thermometer className="w-3.5 h-3.5" /> Water Temp
+              </label>
+              <div className="relative w-32">
+                <input
+                  data-testid="input-temperature"
+                  type="number"
+                  value={temperature}
+                  onChange={(e) => setTemperature(e.target.value)}
+                  className="w-full bg-slate-900/80 border-2 border-slate-700/80 rounded-2xl py-2.5 pl-4 pr-9 text-white font-semibold text-xl focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all text-center"
+                  placeholder="50"
+                />
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-cyan-500 font-bold pointer-events-none">°F</span>
+              </div>
+            </div>
+
+            {/* Clock */}
+            <div className="mb-8 text-center">
+              <div
+                data-testid="display-timer"
+                className={`text-[5.5rem] md:text-[7rem] leading-none font-mono font-bold transition-colors duration-500 ${
+                  isRunning ? "text-white" : "text-slate-200"
                 }`}
               >
-                {isRunning ? (
-                  <><Pause className="w-5 h-5 fill-current" /> Pause</>
-                ) : (
-                  <><Play className="w-5 h-5 fill-current" /> Start Timer</>
-                )}
-              </button>
-              
-              <button
-                onClick={resetTimer}
-                disabled={seconds === 0}
-                className="w-16 h-16 shrink-0 flex items-center justify-center bg-slate-800 text-slate-400 rounded-2xl border border-slate-700/50 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-800 disabled:hover:text-slate-400 active:scale-95"
-                title="Reset Timer"
-              >
-                <RotateCcw className="w-6 h-6" />
-              </button>
-            </div>
-
-            <button
-              onClick={handleLogPlunge}
-              disabled={createPlunge.isPending || seconds === 0}
-              className="w-full py-4 rounded-2xl bg-slate-800 text-white font-semibold text-lg border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group active:scale-95 shadow-lg shadow-black/20"
-            >
-              {createPlunge.isPending ? (
-                <Activity className="w-5 h-5 animate-pulse" />
-              ) : (
-                <Activity className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
+                {formatTime(seconds)}
+              </div>
+              {seconds > 0 && (
+                <div className="text-cyan-400 text-sm mt-2 font-medium">
+                  Score preview: {plungeScore(seconds, parseInt(temperature, 10) || 50)}
+                </div>
               )}
-              {createPlunge.isPending ? "Logging..." : "Log Plunge"}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* History Section */}
-      <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 fill-mode-both">
-        <div className="flex items-center gap-2 mb-6 px-2">
-          <History className="w-5 h-5 text-cyan-500" />
-          <h3 className="text-xl font-display font-semibold text-white">Plunge History</h3>
-        </div>
-
-        {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-24 bg-slate-800/50 rounded-2xl animate-pulse border border-slate-700/30"></div>
-            ))}
-          </div>
-        ) : !plunges?.length ? (
-          <div className="bg-slate-900/40 border border-slate-800 border-dashed rounded-3xl p-10 text-center">
-            <div className="bg-slate-800/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Snowflake className="w-8 h-8 text-slate-500" />
             </div>
-            <p className="text-slate-300 font-medium text-lg mb-1">No plunges yet</p>
-            <p className="text-slate-500 text-sm">Your history will appear here once you brave the cold.</p>
+
+            {/* Controls */}
+            <div className="flex flex-col w-full max-w-xs gap-3">
+              <div className="flex gap-3 w-full">
+                <button
+                  data-testid="button-start-pause"
+                  onClick={() => setIsRunning(!isRunning)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-base transition-all duration-300 active:scale-95 ${
+                    isRunning
+                      ? "bg-slate-700 text-cyan-400 border border-slate-600 hover:bg-slate-600"
+                      : "bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:shadow-lg hover:shadow-cyan-500/25"
+                  }`}
+                >
+                  {isRunning ? <><Pause className="w-4 h-4 fill-current" /> Pause</> : <><Play className="w-4 h-4 fill-current" /> Start</>}
+                </button>
+                <button
+                  data-testid="button-reset"
+                  onClick={() => { setSeconds(0); setIsRunning(false); }}
+                  disabled={seconds === 0 && !isRunning}
+                  className="w-14 h-14 shrink-0 flex items-center justify-center bg-slate-800 text-slate-400 rounded-2xl border border-slate-700/50 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                </button>
+              </div>
+
+              <button
+                data-testid="button-log-plunge"
+                onClick={handleLogPlunge}
+                disabled={createPlunge.isPending || seconds === 0}
+                className="w-full py-3.5 rounded-2xl bg-slate-800 text-white font-semibold border border-slate-700 hover:bg-slate-700 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+              >
+                <Activity className={`w-4 h-4 text-cyan-400 ${createPlunge.isPending ? "animate-pulse" : ""}`} />
+                {createPlunge.isPending ? "Logging..." : "Log Plunge"}
+              </button>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Display newest first */}
-            {[...plunges]
-              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-              .map((plunge) => (
-                <PlungeCard key={plunge.id} plunge={plunge} />
+        </div>
+      )}
+
+      {/* Countdown Screen */}
+      {screen === "countdown" && (
+        <div className="bg-slate-800/40 border border-slate-700/50 rounded-3xl p-8 flex flex-col items-center">
+
+          {/* Duration Inputs */}
+          {!countdownRunning && countdown === 0 && (
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex flex-col items-center">
+                <label className="text-xs text-slate-400 uppercase tracking-wide mb-1.5">Min</label>
+                <input
+                  data-testid="input-countdown-minutes"
+                  type="number"
+                  min="0"
+                  max="99"
+                  value={minutesInput}
+                  onChange={(e) => setMinutesInput(e.target.value)}
+                  className="w-20 bg-slate-900/80 border-2 border-slate-700 rounded-xl py-2 text-white font-bold text-2xl text-center focus:outline-none focus:border-cyan-500 transition-colors"
+                />
+              </div>
+              <span className="text-slate-400 text-2xl font-bold mt-5">:</span>
+              <div className="flex flex-col items-center">
+                <label className="text-xs text-slate-400 uppercase tracking-wide mb-1.5">Sec</label>
+                <input
+                  data-testid="input-countdown-seconds"
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={secondsInput}
+                  onChange={(e) => setSecondsInput(e.target.value)}
+                  className="w-20 bg-slate-900/80 border-2 border-slate-700 rounded-xl py-2 text-white font-bold text-2xl text-center focus:outline-none focus:border-cyan-500 transition-colors"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Countdown Display */}
+          <div className="mb-8 text-center">
+            <div
+              data-testid="display-countdown"
+              className={`text-[5.5rem] md:text-[7rem] leading-none font-mono font-bold transition-colors duration-500 ${
+                countdownRunning ? "text-white" : countdown > 0 ? "text-cyan-300" : "text-slate-200"
+              }`}
+            >
+              {formatTime(countdown)}
+            </div>
+            {countdownRunning && (
+              <div className="text-slate-400 text-sm mt-2">Stay in the cold! You've got this.</div>
+            )}
+          </div>
+
+          {/* Countdown Controls */}
+          <div className="flex gap-3 w-full max-w-xs">
+            {!countdownRunning && countdown === 0 ? (
+              <button
+                data-testid="button-countdown-start"
+                onClick={startCountdown}
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold active:scale-95 hover:shadow-lg hover:shadow-cyan-500/25 transition-all"
+              >
+                <Play className="w-4 h-4 fill-current" /> Start Countdown
+              </button>
+            ) : countdownRunning ? (
+              <>
+                <button
+                  data-testid="button-countdown-pause"
+                  onClick={() => setCountdownRunning(false)}
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-slate-700 text-cyan-400 border border-slate-600 font-bold active:scale-95 transition-all"
+                >
+                  <Pause className="w-4 h-4 fill-current" /> Pause
+                </button>
+                <button
+                  data-testid="button-countdown-reset"
+                  onClick={resetCountdown}
+                  className="w-14 h-14 shrink-0 flex items-center justify-center bg-slate-800 text-slate-400 rounded-2xl border border-slate-700/50 hover:bg-slate-700 hover:text-white transition-colors active:scale-95"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  data-testid="button-countdown-resume"
+                  onClick={() => setCountdownRunning(true)}
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold active:scale-95 transition-all"
+                >
+                  <Play className="w-4 h-4 fill-current" /> Resume
+                </button>
+                <button
+                  data-testid="button-countdown-reset-paused"
+                  onClick={resetCountdown}
+                  className="w-14 h-14 shrink-0 flex items-center justify-center bg-slate-800 text-slate-400 rounded-2xl border border-slate-700/50 hover:bg-slate-700 hover:text-white transition-colors active:scale-95"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* History Screen */}
+      {screen === "history" && (
+        <div>
+          {/* Today's summary */}
+          {todayPlunges.length > 0 && (
+            <div className="bg-slate-800/50 border border-cyan-500/20 rounded-2xl p-4 mb-5 flex items-center justify-between">
+              <div>
+                <div className="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Today</div>
+                <div className="text-white font-semibold">{(todayTotalSec / 60).toFixed(1)} min total</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Score</div>
+                <div className="text-cyan-400 font-bold text-lg">{todayScore.toFixed(2)}</div>
+              </div>
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-20 bg-slate-800/50 rounded-2xl animate-pulse border border-slate-700/30" />
               ))}
-          </div>
-        )}
-      </div>
+            </div>
+          ) : !plunges.length ? (
+            <div className="bg-slate-900/40 border border-slate-800 border-dashed rounded-3xl p-10 text-center">
+              <div className="bg-slate-800/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Snowflake className="w-8 h-8 text-slate-500" />
+              </div>
+              <p className="text-slate-300 font-medium text-lg mb-1">No plunges yet</p>
+              <p className="text-slate-500 text-sm">Your history will appear here once you brave the cold.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {[...plunges]
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map((plunge) => (
+                  <PlungeCard key={plunge.id} plunge={plunge} />
+                ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
