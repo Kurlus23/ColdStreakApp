@@ -386,53 +386,20 @@ export default function Home() {
               data-testid="card-smartwatch"
             >
               <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
-                {watchConnected ? "Smartwatch" : "Biometrics"}
+                Connect<br />Smartwatch
               </div>
-              <Watch className={`w-7 h-7 ${watchConnected ? "text-green-400" : "text-blue-200"}`} />
-              {watchConnected ? (
-                <button
-                  data-testid="button-smartwatch"
-                  onClick={connectSmartwatch}
-                  className="w-full py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 bg-green-500/30 text-green-300 border border-green-500/40"
-                >Connected</button>
-              ) : (
-                <>
-                  <button
-                    data-testid="button-smartwatch"
-                    onClick={connectSmartwatch}
-                    className="w-full py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 bg-blue-600 hover:bg-blue-500 text-white"
-                  >BT Connect</button>
-                  <div className="w-full border-t border-blue-700/50 pt-2 space-y-1.5">
-                    <div className="text-blue-400 text-[9px] uppercase tracking-widest text-center">Manual</div>
-                    <div className="flex items-center gap-1">
-                      <Heart className="w-3 h-3 text-red-400 shrink-0" />
-                      <input
-                        data-testid="input-manual-hr"
-                        type="number"
-                        min={0} max={250}
-                        value={hr || ""}
-                        onChange={(e) => setHR(Number(e.target.value))}
-                        placeholder="HR"
-                        className="w-full bg-blue-800/80 border border-blue-600/60 rounded-lg px-1.5 py-1 text-white text-xs text-center focus:outline-none focus:border-cyan-400"
-                      />
-                      <span className="text-blue-400 text-[9px] shrink-0">bpm</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Activity className="w-3 h-3 text-cyan-400 shrink-0" />
-                      <input
-                        data-testid="input-manual-spo2"
-                        type="number"
-                        min={0} max={100}
-                        value={spo2 || ""}
-                        onChange={(e) => setSpo2(Number(e.target.value))}
-                        placeholder="O2"
-                        className="w-full bg-blue-800/80 border border-blue-600/60 rounded-lg px-1.5 py-1 text-white text-xs text-center focus:outline-none focus:border-cyan-400"
-                      />
-                      <span className="text-blue-400 text-[9px] shrink-0">%</span>
-                    </div>
-                  </div>
-                </>
-              )}
+              <Watch className={`w-9 h-9 ${watchConnected ? "text-green-400" : "text-blue-200"}`} />
+              <button
+                data-testid="button-smartwatch"
+                onClick={connectSmartwatch}
+                className={`w-full py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                  watchConnected
+                    ? "bg-green-500/30 text-green-300 border border-green-500/40"
+                    : "bg-blue-600 hover:bg-blue-500 text-white"
+                }`}
+              >
+                {watchConnected ? "Connected" : "Connect"}
+              </button>
             </div>
           </div>
 
