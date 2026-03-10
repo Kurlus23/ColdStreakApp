@@ -3,7 +3,7 @@ import icebergBg from "@assets/image_1773152998246.png";
 import {
   Play, Pause, RotateCcw, Thermometer, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,
-  Bluetooth, Watch, Heart, Settings, Mic, Bell, Upload, Volume2
+  Bluetooth, Watch, Heart, Settings, Bell, Upload, Volume2
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -285,13 +285,6 @@ export default function Home() {
         >
           ArcticPlunge
         </h1>
-        <button
-          data-testid="button-mic"
-          className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white transition-colors"
-          title="Voice control (coming soon)"
-        >
-          <Mic className="w-6 h-6 drop-shadow" />
-        </button>
       </header>
 
       {/* ─── TIMER SCREEN ─── */}
