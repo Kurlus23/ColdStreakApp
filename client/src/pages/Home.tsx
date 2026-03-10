@@ -519,7 +519,7 @@ export default function Home() {
                     }}
                     className="bg-blue-800/80 border border-blue-600 rounded-lg px-2 py-1 text-white text-xs font-semibold appearance-none focus:outline-none focus:border-cyan-400"
                   >
-                    {Array.from({ length: 24 }, (_, i) => (i + 1) * 5).map((m) => (
+                    {Array.from({ length: 110 }, (_, i) => i + 11).map((m) => (
                       <option key={m} value={m}>{m} min / week</option>
                     ))}
                   </select>
