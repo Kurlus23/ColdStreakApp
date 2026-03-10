@@ -4,12 +4,13 @@ import {
   Play, Pause, RotateCcw, Thermometer, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,
   Bluetooth, Watch, Heart, Settings, Bell, Upload, Volume2,
-  Camera, MapPin, Lock, ShieldAlert
+  Camera, MapPin, Lock, ShieldAlert, Trophy, Medal, User
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
 import { useToast } from "@/hooks/use-toast";
 import { usePlunges, useCreatePlunge, useUpdatePlunge } from "@/hooks/use-plunges";
+import { useLeaderboard, useSubmitLeaderboard } from "@/hooks/use-leaderboard";
 import { PlungeCard } from "@/components/PlungeCard";
 import { PASSPORT_LOCATIONS, usePassportBadges } from "@/lib/passport";
 
@@ -158,13 +159,27 @@ export default function Home() {
   const [promptLocationId, setPromptLocationId] = useState<string>("");
   const [promptCustomLocation, setPromptCustomLocation] = useState<string>("");
   const [promptSaving, setPromptSaving] = useState(false);
+  const [promptSubmitLeaderboard, setPromptSubmitLeaderboard] = useState(true);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Leaderboard
+  const [leaderboardLocationId, setLeaderboardLocationId] = useState<string | null>(null);
+
+  // Username (for leaderboard)
+  const [username, setUsername] = useState<string>(
+    () => localStorage.getItem("coldstreak-username") ?? ""
+  );
+
+  // Plunge data stored for leaderboard submission after save
+  const promptPlungeRef = useRef<{ score: string; duration: number; temperature: number } | null>(null);
 
   const { toast } = useToast();
   const { data: plunges = [], isLoading } = usePlunges();
   const createPlunge = useCreatePlunge();
   const updatePlunge = useUpdatePlunge();
+  const submitLeaderboard = useSubmitLeaderboard();
   const { badges, awardBadge, hasBadge } = usePassportBadges();
+  const leaderboard = useLeaderboard(leaderboardLocationId);
 
   const navTo = (s: Screen) => {
     setScreen(s);
@@ -179,10 +194,12 @@ export default function Home() {
         onSuccess: (newPlunge) => {
           confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
           toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${temperature}°F` });
+          promptPlungeRef.current = { score: String(score), duration: durationSec, temperature };
           setPhotoPromptId(newPlunge.id);
           setPromptPhotoData(null);
           setPromptLocationId("");
           setPromptCustomLocation("");
+          setPromptSubmitLeaderboard(true);
         },
       }
     );
@@ -506,13 +523,14 @@ export default function Home() {
                 {PASSPORT_LOCATIONS.map((loc) => {
                   const earned = hasBadge(loc.id);
                   return (
-                    <div
+                    <button
                       key={loc.id}
                       data-testid={`badge-${loc.id}`}
-                      className={`relative rounded-xl p-2.5 border text-center transition-all ${
+                      onClick={() => setLeaderboardLocationId(loc.id)}
+                      className={`relative rounded-xl p-2.5 border text-center transition-all active:scale-95 ${
                         earned
-                          ? "bg-cyan-500/20 border-cyan-500/50"
-                          : "bg-blue-900/40 border-blue-700/40 opacity-60"
+                          ? "bg-cyan-500/20 border-cyan-500/50 hover:bg-cyan-500/30"
+                          : "bg-blue-900/40 border-blue-700/40 opacity-60 hover:opacity-80"
                       }`}
                     >
                       <div className="text-2xl mb-1">{loc.flag}</div>
@@ -525,7 +543,10 @@ export default function Home() {
                       {!earned && (
                         <Lock className="w-3 h-3 text-blue-600 mx-auto mt-1" />
                       )}
-                    </div>
+                      <div className="flex items-center justify-center gap-0.5 mt-1">
+                        <Trophy className="w-2.5 h-2.5 text-yellow-500/60" />
+                      </div>
+                    </button>
                   );
                 })}
               </div>
@@ -576,6 +597,28 @@ export default function Home() {
                 onClick={() => navTo("timer")}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
               >✕</button>
+            </div>
+
+            {/* Username */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+              <div className="text-white font-semibold flex items-center gap-2 mb-3">
+                <User className="w-4 h-4 text-cyan-400" /> Leaderboard Name
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  data-testid="input-settings-username"
+                  type="text"
+                  placeholder="Enter your display name…"
+                  value={username}
+                  maxLength={24}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    localStorage.setItem("coldstreak-username", e.target.value);
+                  }}
+                  className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+              <p className="text-blue-500 text-xs mt-2">This name appears on location leaderboards when you submit a plunge.</p>
             </div>
 
             {/* Stats */}
@@ -754,6 +797,99 @@ export default function Home() {
         </div>
       )}
 
+      {/* ─── LEADERBOARD MODAL ─── */}
+      {leaderboardLocationId && (() => {
+        const loc = PASSPORT_LOCATIONS.find((l) => l.id === leaderboardLocationId)!;
+        return (
+          <div className="fixed inset-0 z-40 flex items-end justify-center">
+            <div className="absolute inset-0 bg-black/70" onClick={() => setLeaderboardLocationId(null)} />
+            <div
+              data-testid="sheet-leaderboard"
+              className="relative z-10 w-full max-w-lg bg-blue-950 border border-blue-700/60 rounded-t-3xl p-5 pb-8 shadow-2xl max-h-[80vh] flex flex-col"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4 shrink-0">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">{loc.flag}</span>
+                  <div>
+                    <h3 className="text-white font-bold text-base leading-tight">{loc.name}</h3>
+                    <p className="text-blue-400 text-xs">{loc.tempRange}</p>
+                  </div>
+                </div>
+                <button
+                  data-testid="button-close-leaderboard"
+                  onClick={() => setLeaderboardLocationId(null)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
+                >✕</button>
+              </div>
+
+              {/* Title */}
+              <div className="flex items-center gap-2 mb-3 shrink-0">
+                <Trophy className="w-4 h-4 text-yellow-400" />
+                <span className="text-white font-semibold text-sm">Top Plungers</span>
+                {hasBadge(loc.id) && (
+                  <span className="text-[10px] bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 px-2 py-0.5 rounded-full font-semibold">You've been here!</span>
+                )}
+              </div>
+
+              {/* Leaderboard entries */}
+              <div className="overflow-y-auto flex-1">
+                {leaderboard.isLoading ? (
+                  <div className="space-y-2">
+                    {[1,2,3].map((i) => <div key={i} className="h-12 bg-blue-900/40 rounded-xl animate-pulse" />)}
+                  </div>
+                ) : !leaderboard.data?.length ? (
+                  <div className="text-center py-10">
+                    <Trophy className="w-10 h-10 text-blue-700 mx-auto mb-2" />
+                    <p className="text-blue-400 text-sm">No entries yet.</p>
+                    <p className="text-blue-600 text-xs mt-1">Be the first to plunge here and submit your score!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {leaderboard.data.map((entry, i) => {
+                      const rankColors = ["text-yellow-400", "text-slate-300", "text-amber-600"];
+                      const rankIcons = ["🥇", "🥈", "🥉"];
+                      const isTop3 = i < 3;
+                      return (
+                        <div
+                          key={entry.id}
+                          data-testid={`leaderboard-entry-${i}`}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+                            i === 0
+                              ? "bg-yellow-500/10 border-yellow-500/30"
+                              : "bg-blue-900/40 border-blue-700/30"
+                          }`}
+                        >
+                          <div className={`text-lg font-bold w-7 text-center shrink-0 ${isTop3 ? rankColors[i] : "text-blue-500"}`}>
+                            {isTop3 ? rankIcons[i] : `${i + 1}`}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-white font-semibold text-sm truncate">{entry.username}</div>
+                            <div className="text-blue-400 text-xs">
+                              {Math.floor(entry.duration / 60)}:{String(entry.duration % 60).padStart(2, "0")} · {entry.temperature}°F
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className={`font-bold text-base ${i === 0 ? "text-yellow-400" : "text-cyan-300"}`}>
+                              {Number(entry.score).toFixed(1)}
+                            </div>
+                            <div className="text-blue-500 text-[10px]">pts</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <p className="text-blue-600 text-[10px] text-center mt-3 shrink-0">
+                Tag this location after a plunge to submit your score
+              </p>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ─── PHOTO / LOCATION PROMPT ─── */}
       {photoPromptId !== null && (
         <div className="fixed inset-0 z-40 flex items-end justify-center">
@@ -878,6 +1014,46 @@ export default function Home() {
               )}
             </div>
 
+            {/* Leaderboard submission toggle — only for passport locations */}
+            {promptLocationId && promptLocationId !== "custom" && (
+              <div className="bg-blue-900/50 rounded-2xl p-3 border border-blue-700/40 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                    <Trophy className="w-4 h-4 text-yellow-400" />
+                    Submit to Leaderboard
+                  </div>
+                  <button
+                    data-testid="button-toggle-leaderboard"
+                    onClick={() => setPromptSubmitLeaderboard((v) => !v)}
+                    className={`w-11 h-6 rounded-full border-2 transition-all relative ${
+                      promptSubmitLeaderboard
+                        ? "bg-cyan-500 border-cyan-400"
+                        : "bg-blue-800 border-blue-600"
+                    }`}
+                  >
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${promptSubmitLeaderboard ? "left-[22px]" : "left-0.5"}`} />
+                  </button>
+                </div>
+                {promptSubmitLeaderboard && (
+                  <div className="flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                    <input
+                      data-testid="input-username"
+                      type="text"
+                      placeholder="Your name on the leaderboard…"
+                      value={username}
+                      maxLength={24}
+                      onChange={(e) => {
+                        setUsername(e.target.value);
+                        localStorage.setItem("coldstreak-username", e.target.value);
+                      }}
+                      className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Save */}
             <button
               data-testid="button-save-photo"
@@ -908,14 +1084,28 @@ export default function Home() {
                   },
                   {
                     onSuccess: () => {
-                      if (finalLocationId && !hasBadge(finalLocationId)) {
-                        awardBadge(finalLocationId);
+                      const isNewBadge = finalLocationId && !hasBadge(finalLocationId);
+                      if (finalLocationId) awardBadge(finalLocationId);
+                      if (isNewBadge) {
                         const loc = PASSPORT_LOCATIONS.find((l) => l.id === finalLocationId)!;
                         confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 }, colors: ["#fbbf24", "#f59e0b", "#ffffff", "#0ea5e9"] });
-                        toast({ title: `🏅 Passport Badge Unlocked!`, description: `${loc.flag} ${loc.name} — added to your Plunge Passport!` });
+                        toast({ title: "🏅 Passport Badge Unlocked!", description: `${loc.flag} ${loc.name} — added to your Plunge Passport!` });
                       } else {
                         toast({ title: "Plunge updated!" });
                       }
+
+                      // Submit to leaderboard if opted in
+                      if (finalLocationId && promptSubmitLeaderboard && username.trim() && promptPlungeRef.current) {
+                        const { score, duration, temperature: temp } = promptPlungeRef.current;
+                        submitLeaderboard.mutate({
+                          locationId: finalLocationId,
+                          username: username.trim(),
+                          score,
+                          duration,
+                          temperature: temp,
+                        });
+                      }
+
                       setPhotoPromptId(null);
                       setPromptSaving(false);
                     },

@@ -15,6 +15,16 @@ export const plunges = pgTable("plunges", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const leaderboardEntries = pgTable("leaderboard_entries", {
+  id: serial("id").primaryKey(),
+  locationId: text("location_id").notNull(), // passport location id
+  username: text("username").notNull(),
+  score: numeric("score", { precision: 10, scale: 2 }).notNull(),
+  duration: integer("duration").notNull(), // in seconds
+  temperature: integer("temperature").notNull(), // in fahrenheit
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertPlungeSchema = createInsertSchema(plunges).omit({
   id: true,
   createdAt: true,
@@ -26,6 +36,13 @@ export const updatePlungeSchema = insertPlungeSchema.partial().pick({
   locationId: true,
 });
 
+export const insertLeaderboardEntrySchema = createInsertSchema(leaderboardEntries).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertPlunge = z.infer<typeof insertPlungeSchema>;
 export type UpdatePlunge = z.infer<typeof updatePlungeSchema>;
 export type Plunge = typeof plunges.$inferSelect;
+export type InsertLeaderboardEntry = z.infer<typeof insertLeaderboardEntrySchema>;
+export type LeaderboardEntry = typeof leaderboardEntries.$inferSelect;

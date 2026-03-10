@@ -1,24 +1,26 @@
 import { format } from "date-fns";
-import { Snowflake, Clock, Trash2, Heart, MapPin } from "lucide-react";
+import { Snowflake, Clock, Trash2, Heart, MapPin, Share2 } from "lucide-react";
 import { type Plunge } from "@shared/schema";
 import { PASSPORT_LOCATIONS } from "@/lib/passport";
 import { useDeletePlunge } from "@/hooks/use-plunges";
+import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
 interface PlungeCardProps {
   plunge: Plunge;
 }
 
+function formatTime(totalSeconds: number) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 export function PlungeCard({ plunge }: PlungeCardProps) {
   const deletePlunge = useDeletePlunge();
+  const { toast } = useToast();
   const [confirming, setConfirming] = useState(false);
   const [photoExpanded, setPhotoExpanded] = useState(false);
-
-  const formatTime = (totalSeconds: number) => {
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
 
   const handleDelete = () => {
     if (!confirming) {
@@ -27,6 +29,33 @@ export function PlungeCard({ plunge }: PlungeCardProps) {
       return;
     }
     deletePlunge.mutate(plunge.id);
+  };
+
+  const handleShare = async () => {
+    const locationPart = plunge.locationName ? `📍 ${plunge.locationName}\n` : "";
+    const text =
+      `🧊 Cold Plunge Complete!\n` +
+      `⏱️ ${formatTime(plunge.duration)} at ${plunge.temperature}°F\n` +
+      `${locationPart}` +
+      `⚡ Cold Score: ${Number(plunge.score).toFixed(1)}\n` +
+      `Tracked with ColdStreak 💪`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "ColdStreak Plunge", text });
+      } catch (e: any) {
+        if (e?.name !== "AbortError") {
+          toast({ title: "Share failed", variant: "destructive" });
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(text);
+        toast({ title: "Copied to clipboard!", description: "Paste to share with friends." });
+      } catch {
+        toast({ title: "Could not copy", variant: "destructive" });
+      }
+    }
   };
 
   const hasVitals = plunge.hrAvg || plunge.spo2Avg;
@@ -70,11 +99,7 @@ export function PlungeCard({ plunge }: PlungeCardProps) {
                 onClick={() => setPhotoExpanded(true)}
                 className="shrink-0 w-14 h-14 rounded-xl overflow-hidden border border-slate-600/50 hover:border-cyan-400/60 transition-all active:scale-95"
               >
-                <img
-                  src={plunge.photoData}
-                  alt="Plunge"
-                  className="w-full h-full object-cover"
-                />
+                <img src={plunge.photoData} alt="Plunge" className="w-full h-full object-cover" />
               </button>
             ) : (
               <div className="shrink-0 bg-slate-900/80 p-3 rounded-xl shadow-inner border border-slate-700/50 text-cyan-400 group-hover:text-cyan-300 transition-colors group-hover:scale-110 duration-300">
@@ -92,8 +117,8 @@ export function PlungeCard({ plunge }: PlungeCardProps) {
             </div>
           </div>
 
-          {/* Right: temp + score + delete */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Right: temp + score + share + delete */}
+          <div className="flex items-center gap-2 shrink-0">
             <div className="text-right">
               <div className="flex items-start justify-end gap-1">
                 <span className="text-2xl font-bold text-white">{plunge.temperature}</span>
@@ -101,23 +126,34 @@ export function PlungeCard({ plunge }: PlungeCardProps) {
               </div>
               <div className="text-sm bg-slate-900/60 px-3 py-1 rounded-lg border border-cyan-500/30 mt-1">
                 <span className="text-cyan-300 font-semibold">Score: </span>
-                <span className="text-white font-bold">{plunge.score}</span>
+                <span className="text-white font-bold">{Number(plunge.score).toFixed(1)}</span>
               </div>
             </div>
 
-            <button
-              data-testid={`button-delete-plunge-${plunge.id}`}
-              onClick={handleDelete}
-              disabled={deletePlunge.isPending}
-              title={confirming ? "Click again to confirm delete" : "Delete plunge"}
-              className={`p-2 rounded-xl transition-all duration-200 disabled:opacity-40 active:scale-95 ${
-                confirming
-                  ? "bg-red-500/20 text-red-400 border border-red-500/40"
-                  : "text-slate-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20"
-              }`}
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <div className="flex flex-col gap-1">
+              <button
+                data-testid={`button-share-plunge-${plunge.id}`}
+                onClick={handleShare}
+                title="Share this plunge"
+                className="p-2 rounded-xl text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 border border-transparent hover:border-cyan-500/20 transition-all duration-200 active:scale-95"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+
+              <button
+                data-testid={`button-delete-plunge-${plunge.id}`}
+                onClick={handleDelete}
+                disabled={deletePlunge.isPending}
+                title={confirming ? "Click again to confirm delete" : "Delete plunge"}
+                className={`p-2 rounded-xl transition-all duration-200 disabled:opacity-40 active:scale-95 ${
+                  confirming
+                    ? "bg-red-500/20 text-red-400 border border-red-500/40"
+                    : "text-slate-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20"
+                }`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 

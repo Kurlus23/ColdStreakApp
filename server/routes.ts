@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
-import { api, buildUrl } from "@shared/routes";
+import { api } from "@shared/routes";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -17,18 +17,12 @@ export async function registerRoutes(
   app.post(api.plunges.create.path, async (req, res) => {
     try {
       const input = api.plunges.create.input.parse(req.body);
-      const plungeData = {
-        ...input,
-        score: String(input.score),
-      };
+      const plungeData = { ...input, score: String(input.score) };
       const newPlunge = await storage.createPlunge(plungeData);
       res.status(201).json(newPlunge);
     } catch (err) {
       if (err instanceof z.ZodError) {
-        return res.status(400).json({
-          message: err.errors[0].message,
-          field: err.errors[0].path.join('.'),
-        });
+        return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join('.') });
       }
       throw err;
     }
@@ -44,10 +38,7 @@ export async function registerRoutes(
       res.json(updated);
     } catch (err) {
       if (err instanceof z.ZodError) {
-        return res.status(400).json({
-          message: err.errors[0].message,
-          field: err.errors[0].path.join('.'),
-        });
+        return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join('.') });
       }
       throw err;
     }
@@ -58,6 +49,26 @@ export async function registerRoutes(
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
     await storage.deletePlunge(id);
     res.status(204).send();
+  });
+
+  // Leaderboard
+  app.get("/api/leaderboard/:locationId", async (req, res) => {
+    const { locationId } = req.params;
+    const entries = await storage.getLeaderboard(locationId);
+    res.json(entries);
+  });
+
+  app.post("/api/leaderboard", async (req, res) => {
+    try {
+      const input = api.leaderboard.submit.input.parse(req.body);
+      const entry = await storage.addLeaderboardEntry({ ...input, score: String(input.score) });
+      res.status(201).json(entry);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
   });
 
   return httpServer;

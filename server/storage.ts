@@ -1,5 +1,9 @@
 import { db } from "./db";
-import { plunges, type InsertPlunge, type UpdatePlunge, type Plunge } from "@shared/schema";
+import {
+  plunges, leaderboardEntries,
+  type InsertPlunge, type UpdatePlunge, type Plunge,
+  type InsertLeaderboardEntry, type LeaderboardEntry,
+} from "@shared/schema";
 import { desc, eq } from "drizzle-orm";
 
 export interface IStorage {
@@ -7,6 +11,8 @@ export interface IStorage {
   createPlunge(plunge: InsertPlunge): Promise<Plunge>;
   updatePlunge(id: number, patch: UpdatePlunge): Promise<Plunge>;
   deletePlunge(id: number): Promise<void>;
+  getLeaderboard(locationId: string, limit?: number): Promise<LeaderboardEntry[]>;
+  addLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -26,6 +32,23 @@ export class DatabaseStorage implements IStorage {
 
   async deletePlunge(id: number): Promise<void> {
     await db.delete(plunges).where(eq(plunges.id, id));
+  }
+
+  async getLeaderboard(locationId: string, limit = 10): Promise<LeaderboardEntry[]> {
+    return await db
+      .select()
+      .from(leaderboardEntries)
+      .where(eq(leaderboardEntries.locationId, locationId))
+      .orderBy(desc(leaderboardEntries.score))
+      .limit(limit);
+  }
+
+  async addLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry> {
+    const [newEntry] = await db.insert(leaderboardEntries).values({
+      ...entry,
+      score: String(entry.score),
+    }).returning();
+    return newEntry;
   }
 }
 

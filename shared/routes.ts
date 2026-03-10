@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { insertPlungeSchema, updatePlungeSchema, plunges } from "./schema";
+import { insertPlungeSchema, updatePlungeSchema, insertLeaderboardEntrySchema, plunges, leaderboardEntries } from "./schema";
 
 export const errorSchemas = {
   validation: z.object({
@@ -52,6 +52,26 @@ export const api = {
       responses: {
         204: z.void(),
         404: errorSchemas.notFound,
+      },
+    },
+  },
+  leaderboard: {
+    list: {
+      method: "GET" as const,
+      path: "/api/leaderboard/:locationId" as const,
+      responses: {
+        200: z.array(z.custom<typeof leaderboardEntries.$inferSelect>()),
+      },
+    },
+    submit: {
+      method: "POST" as const,
+      path: "/api/leaderboard" as const,
+      input: insertLeaderboardEntrySchema.extend({
+        score: z.string().or(z.number()),
+      }),
+      responses: {
+        201: z.custom<typeof leaderboardEntries.$inferSelect>(),
+        400: errorSchemas.validation,
       },
     },
   },
