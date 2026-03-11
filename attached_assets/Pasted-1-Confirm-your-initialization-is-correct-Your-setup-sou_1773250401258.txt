@@ -1,0 +1,54 @@
+1. Confirm your initialization is correct
+Your setup sounds mostly right, but there are two things to check:
+
+Env variable naming: For Vite-based React apps, the recommended prefix is VITE_PUBLIC_ — not just VITE_. So your .env should look like:
+
+VITE_PUBLIC_POSTHOG_KEY=phc_...  
+VITE_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com  
+And in analytics.ts:
+
+import.meta.env.VITE_PUBLIC_POSTHOG_KEY  
+import.meta.env.VITE_PUBLIC_POSTHOG_HOST  
+Use PostHogProvider + defaults: The recommended pattern for Vite is to wrap your app with PostHogProvider and pass a defaults option, which automatically configures PostHog with recommended settings for new projects. Your main.tsx should look like:
+
+import posthog from 'posthog-js'  
+import { PostHogProvider } from 'posthog-js/react'
+
+const options = {  
+  api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,  
+  defaults: '2026-01-30',  
+} as const
+
+posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, options)
+
+createRoot(document.getElementById('root')!).render(  
+  <StrictMode>  
+    <PostHogProvider client={posthog}>  
+      <App />  
+    </PostHogProvider>  
+  </StrictMode>  
+)  
+(React product analytics installation docs)
+
+2. Verify events are arriving
+Your project shows no events yet. To verify things are working after you fix the config:
+
+Open your app in the browser.
+Go to /activity/explore in PostHog — you'll see a live event stream as events come in.
+Alternatively, open browser DevTools → Network tab and filter for requests to us.i.posthog.com. You should see /e/ or /batch/ requests firing.
+You can also add this to your init to get verbose console output during development:
+
+loaded: (ph) => {  
+  if (import.meta.env.DEV) ph.debug()  
+}  
+3. Session recording (free plan)
+All you need to do is install the JavaScript web library and enable "Record user sessions" in your project settings.
+
+That's it — no code changes needed. Once enabled, PostHog will automatically start capturing sessions.
+
+If you had previously disabled session recordings, check that disable_session_recording is not set to true in your init config.
+
+(Session replay installation docs)
+
+4. Funnel: timer_started → plunge_logged → pro_upgrade_started
+Your project has no events yet, but I'll create the funnel now so it's ready the moment events start arriving.
