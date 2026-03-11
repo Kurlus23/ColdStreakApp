@@ -52,7 +52,6 @@ async function resizeImageToBase64(file: File, maxPx = 800, quality = 0.75): Pro
 const ALARM_PRESETS = [
   { id: "alarm_clock",   label: "Alarm Clock",    url: "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" },
   { id: "digital_watch", label: "Digital Watch",  url: "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" },
-  { id: "bugle",         label: "Bugle Charge",   url: "https://actions.google.com/sounds/v1/alarms/bugle_charge.ogg" },
   { id: "bell",          label: "Bell",           url: "https://actions.google.com/sounds/v1/alarms/medium_bell_ringing_near.ogg" },
 ];
 
@@ -249,6 +248,7 @@ export default function Home() {
   const [settingsRestoreEmail, setSettingsRestoreEmail] = useState("");
   const [showSettingsRestore, setShowSettingsRestore] = useState(false);
   const [badgesOpen, setBadgesOpen] = useState(true);
+  const [userOpen, setUserOpen] = useState(true);
   const [homeLabel, setHomeLabel] = useState(() => localStorage.getItem("coldstreak-home-label") || "Home");
   const [safetySeen] = useState(() => !!localStorage.getItem("coldstreak-safety-seen"));
   const [safetyOpen, setSafetyOpen] = useState(() => !localStorage.getItem("coldstreak-safety-seen"));
@@ -1107,54 +1107,127 @@ export default function Home() {
               </div>
             )}
 
-            {/* Username */}
-            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
-              <div className="text-white font-semibold flex items-center gap-2 mb-3">
-                <User className="w-4 h-4 text-cyan-400" /> Leaderboard Name
-              </div>
-              {/* Badge preview */}
-              {(StreakBadge || DaysBadge) && (
-                <div className="flex items-center gap-2 mb-3 bg-blue-800/40 rounded-xl px-3 py-2 border border-blue-700/30">
-                  <span className="text-blue-400 text-xs truncate">{username || "You"}</span>
-                  {StreakBadge}
-                  {DaysBadge}
+            {/* User */}
+            <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40">
+              <button
+                data-testid="button-toggle-user"
+                onClick={() => setUserOpen(v => !v)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-cyan-400" />
+                  <span className="text-white font-semibold text-sm">User</span>
+                </div>
+                <span className={`text-blue-400 text-xs transition-transform duration-200 ${userOpen ? "rotate-180" : ""}`}>▼</span>
+              </button>
+              {userOpen && (
+                <div className="px-4 pb-4 space-y-4 border-t border-blue-700/30 pt-3">
+
+                  {/* Leaderboard name */}
+                  <div>
+                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                      <User className="w-3 h-3" /> Leaderboard Name
+                    </label>
+                    {(StreakBadge || DaysBadge) && (
+                      <div className="flex items-center gap-2 mb-2 bg-blue-800/40 rounded-xl px-3 py-2 border border-blue-700/30">
+                        <span className="text-blue-400 text-xs truncate">{username || "You"}</span>
+                        {StreakBadge}
+                        {DaysBadge}
+                      </div>
+                    )}
+                    <input
+                      data-testid="input-settings-username"
+                      type="text"
+                      placeholder="Enter your display name…"
+                      value={username}
+                      maxLength={24}
+                      onChange={(e) => {
+                        setUsername(e.target.value);
+                        localStorage.setItem("coldstreak-username", e.target.value);
+                      }}
+                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                    />
+                    <p className="text-blue-500 text-xs mt-1">Shown on leaderboards when you submit a plunge.</p>
+                  </div>
+
+                  {/* Home label */}
+                  <div>
+                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                      🏠 Home Location Label
+                    </label>
+                    <input
+                      data-testid="input-home-label"
+                      type="text"
+                      placeholder="e.g. Ice Barrel, Garage Tub, Bathtub…"
+                      value={homeLabel}
+                      maxLength={40}
+                      onChange={(e) => {
+                        setHomeLabel(e.target.value || "Home");
+                        localStorage.setItem("coldstreak-home-label", e.target.value || "Home");
+                      }}
+                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                    />
+                    <p className="text-blue-500 text-xs mt-1">Private — shares always show "Home".</p>
+                  </div>
+
+                  {/* Body weight */}
+                  <div>
+                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                      <Flame className="w-3 h-3 text-orange-400" /> Body Weight
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        data-testid="input-body-weight"
+                        type="number"
+                        min={50}
+                        max={500}
+                        value={bodyWeightLbs}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          if (!isNaN(val) && val > 0) setBodyWeightLbs(val);
+                        }}
+                        onBlur={(e) => {
+                          const clamped = Math.min(500, Math.max(50, Number(e.target.value) || 154));
+                          setBodyWeightLbs(clamped);
+                          localStorage.setItem("coldstreak-body-weight", String(clamped));
+                        }}
+                        className="w-24 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 text-center font-bold"
+                      />
+                      <span className="text-blue-400 text-sm">lbs</span>
+                      <span className="text-blue-500 text-xs">({Math.round(bodyWeightLbs / 2.205)} kg)</span>
+                    </div>
+                    <p className="text-blue-500 text-xs mt-1">Used to estimate calories burned per plunge.</p>
+                  </div>
+
+                  {/* Weekly goal */}
+                  <div>
+                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                      <Target className="w-3 h-3" /> Weekly Goal
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <select
+                        data-testid="select-weekly-goal"
+                        value={weeklyGoalMinutes}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setWeeklyGoalMinutes(val);
+                          localStorage.setItem("weeklyGoalMinutes", String(val));
+                        }}
+                        className="bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm font-semibold appearance-none focus:outline-none focus:border-cyan-400"
+                      >
+                        {Array.from({ length: 110 }, (_, i) => i + 11).map((m) => (
+                          <option key={m} value={m}>{m} min / week</option>
+                        ))}
+                      </select>
+                      <span className="text-blue-400 text-xs">{weeklyMinutes.toFixed(1)} min done</span>
+                    </div>
+                    <div className="mt-2 h-2 bg-blue-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full transition-all duration-700" style={{ width: `${weeklyPct}%` }} />
+                    </div>
+                  </div>
+
                 </div>
               )}
-              <div className="flex items-center gap-2">
-                <input
-                  data-testid="input-settings-username"
-                  type="text"
-                  placeholder="Enter your display name…"
-                  value={username}
-                  maxLength={24}
-                  onChange={(e) => {
-                    setUsername(e.target.value);
-                    localStorage.setItem("coldstreak-username", e.target.value);
-                  }}
-                  className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-              <p className="text-blue-500 text-xs mt-2">This name appears on location leaderboards when you submit a plunge.</p>
-            </div>
-
-            {/* Home Location */}
-            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-2">
-              <label className="text-white font-semibold text-sm flex items-center gap-2">
-                🏠 Home Location Label
-              </label>
-              <input
-                data-testid="input-home-label"
-                type="text"
-                placeholder="e.g. Ice Barrel, Garage Tub, Bathtub…"
-                value={homeLabel}
-                maxLength={40}
-                onChange={(e) => {
-                  setHomeLabel(e.target.value || "Home");
-                  localStorage.setItem("coldstreak-home-label", e.target.value || "Home");
-                }}
-                className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-              />
-              <p className="text-blue-500 text-xs">Shown only in your own history. Shares and leaderboards always show "Home" — your address stays private.</p>
             </div>
 
             {/* Achievements */}
@@ -1240,35 +1313,6 @@ export default function Home() {
               );
             })()}
 
-            {/* Body Weight */}
-            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
-              <div className="text-white font-semibold flex items-center gap-2 mb-3">
-                <Flame className="w-4 h-4 text-orange-400" /> Body Weight
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  data-testid="input-body-weight"
-                  type="number"
-                  min={50}
-                  max={500}
-                  value={bodyWeightLbs}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    if (!isNaN(val) && val > 0) setBodyWeightLbs(val);
-                  }}
-                  onBlur={(e) => {
-                    const clamped = Math.min(500, Math.max(50, Number(e.target.value) || 154));
-                    setBodyWeightLbs(clamped);
-                    localStorage.setItem("coldstreak-body-weight", String(clamped));
-                  }}
-                  className="w-24 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 text-center font-bold"
-                />
-                <span className="text-blue-400 text-sm">lbs</span>
-                <span className="text-blue-500 text-xs ml-1">({Math.round(bodyWeightLbs / 2.205)} kg)</span>
-              </div>
-              <p className="text-blue-500 text-xs mt-2">Used to estimate calories burned per plunge.</p>
-            </div>
-
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
@@ -1279,30 +1323,13 @@ export default function Home() {
                 <div className="text-blue-400 text-xs uppercase tracking-wide mb-1 flex items-center gap-1"><Zap className="w-3.5 h-3.5 text-cyan-400" /> Today</div>
                 <div className="text-white font-bold text-xl">{todayScore.toFixed(1)} <span className="text-sm font-normal text-blue-400">pts</span></div>
               </div>
-              <div className="col-span-2 bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-2">
-                <div className="flex justify-between items-center text-xs text-blue-400 uppercase tracking-wide">
-                  <div className="flex items-center gap-1"><Target className="w-3.5 h-3.5" /> Weekly Goal</div>
+              <div className="col-span-2 bg-blue-900/60 rounded-2xl p-3 border border-blue-700/40">
+                <div className="flex justify-between items-center text-xs text-blue-400 uppercase tracking-wide mb-1.5">
+                  <div className="flex items-center gap-1"><Target className="w-3.5 h-3.5" /> Weekly</div>
                   <span>{weeklyMinutes.toFixed(1)} / {weeklyGoalMinutes} min</span>
                 </div>
                 <div className="h-2 bg-blue-800 rounded-full overflow-hidden">
                   <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full transition-all duration-700" style={{ width: `${weeklyPct}%` }} />
-                </div>
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-blue-400 text-xs">Goal</span>
-                  <select
-                    data-testid="select-weekly-goal"
-                    value={weeklyGoalMinutes}
-                    onChange={(e) => {
-                      const val = Number(e.target.value);
-                      setWeeklyGoalMinutes(val);
-                      localStorage.setItem("weeklyGoalMinutes", String(val));
-                    }}
-                    className="bg-blue-800/80 border border-blue-600 rounded-lg px-2 py-1 text-white text-xs font-semibold appearance-none focus:outline-none focus:border-cyan-400"
-                  >
-                    {Array.from({ length: 110 }, (_, i) => i + 11).map((m) => (
-                      <option key={m} value={m}>{m} min / week</option>
-                    ))}
-                  </select>
                 </div>
               </div>
 
