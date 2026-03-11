@@ -619,7 +619,7 @@ export default function Home() {
                       title="Estimated thermogenic calorie burn. Varies by individual physiology — not a precise measurement."
                       className="text-orange-400/70 text-[10px] cursor-help"
                     >
-                      {scoreView === "kcal" ? "kcal today (est.)" : "kcal this week (est.)"}
+                      {scoreView === "kcal" ? "kcal today (est.)" : "kcal/week (est.)"}
                     </div>
                   </>
                 ) : (
