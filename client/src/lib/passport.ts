@@ -328,14 +328,18 @@ export interface TitleUnlock {
 }
 
 export const TITLE_UNLOCKS: Array<TitleUnlock & {
-  isUnlocked: (badges: Set<string>, stateBadges: string[], tierBadges: Difficulty[]) => boolean;
+  isUnlocked: (badges: Set<string>, stateBadges: string[], tierBadges: Difficulty[], plungeCount: number) => boolean;
 }> = [
-  { title: "Cold-Blooded",  description: "Earn your 1st Chill Place badge",          isUnlocked: (b) => b.size >= 1 },
+  // ── Home plunger track (any plunge) ──────────────────────────────────────
+  { title: "Cold-Blooded",  description: "Log your 1st plunge",                      isUnlocked: (_b, _s, _t, c) => c >= 1 },
+  // ── Chill Places track (passport badges) ─────────────────────────────────
+  { title: "Chillin'",      description: "Earn your 1st Chill Place badge",          isUnlocked: (b) => b.size >= 1 },
   { title: "Frost Runner",  description: "Earn 5 Chill Place badges",                isUnlocked: (b) => b.size >= 5 },
   { title: "Ice Warrior",   description: "Earn 10 Chill Place badges",               isUnlocked: (b) => b.size >= 10 },
   { title: "Ice Ninja",     description: "Earn 15 Chill Place badges",               isUnlocked: (b) => b.size >= 15 },
   { title: "Snow Wolf",     description: "Earn 20 Chill Place badges",               isUnlocked: (b) => b.size >= 20 },
   { title: "Glacial",       description: "Earn all Chill Place badges",              isUnlocked: (b) => b.size >= PASSPORT_LOCATIONS.length },
+  // ── Regional track (state + tier mastery) ─────────────────────────────────
   { title: "Polar Bear",    description: "Complete 1 State Badge",                   isUnlocked: (_b, s) => s.length >= 1 },
   { title: "Arctic Fox",    description: "Complete 3 State Badges",                  isUnlocked: (_b, s) => s.length >= 3 },
   { title: "Chill Seeker",  description: "Complete all Beginner spots",              isUnlocked: (_b, _s, t) => t.includes("beginner") },

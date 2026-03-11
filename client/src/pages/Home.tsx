@@ -399,6 +399,31 @@ export default function Home() {
   const weeklyPct = Math.min(100, (weeklyMinutes / weeklyGoalMinutes) * 100);
   const streak = getStreak(plunges);
 
+  // Total unique days plunged in the current calendar year
+  const thisYear = new Date().getFullYear();
+  const totalPlungeDaysThisYear = new Set(
+    plunges
+      .filter((p) => new Date(p.createdAt).getFullYear() === thisYear)
+      .map((p) => new Date(p.createdAt).toDateString())
+  ).size;
+
+  // Inline badge elements shown next to username
+  const StreakBadge = streak > 0 ? (
+    <span
+      data-testid="badge-streak"
+      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-yellow-500/25 border border-yellow-400/50 text-yellow-300 text-[10px] font-bold leading-none shrink-0"
+      title={`${streak}-day streak`}
+    >🔥{streak}</span>
+  ) : null;
+
+  const DaysBadge = totalPlungeDaysThisYear > 0 ? (
+    <span
+      data-testid="badge-total-days"
+      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-slate-400/20 border border-slate-400/40 text-slate-300 text-[10px] font-bold leading-none shrink-0"
+      title={`${totalPlungeDaysThisYear} days plunged this year`}
+    >#{totalPlungeDaysThisYear}</span>
+  ) : null;
+
   const displaySeconds = countdownMode ? countdown : seconds;
   const isActive = countdownMode ? countdownRunning : isRunning;
   const displayScore = isActive && displaySeconds > 0 ? plungeScore(displaySeconds, temperature) : todayScore;
@@ -1021,6 +1046,14 @@ export default function Home() {
               <div className="text-white font-semibold flex items-center gap-2 mb-3">
                 <User className="w-4 h-4 text-cyan-400" /> Leaderboard Name
               </div>
+              {/* Badge preview */}
+              {(StreakBadge || DaysBadge) && (
+                <div className="flex items-center gap-2 mb-3 bg-blue-800/40 rounded-xl px-3 py-2 border border-blue-700/30">
+                  <span className="text-blue-400 text-xs truncate">{username || "You"}</span>
+                  {StreakBadge}
+                  {DaysBadge}
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <input
                   data-testid="input-settings-username"
@@ -1074,7 +1107,7 @@ export default function Home() {
                   {/* Title cards */}
                   <div className="grid grid-cols-2 gap-1.5">
                     {TITLE_UNLOCKS.map((t) => {
-                      const unlocked = t.isUnlocked(badges, stateBadges, tierBadges);
+                      const unlocked = t.isUnlocked(badges, stateBadges, tierBadges, plunges.length);
                       const active = userTitle === t.title;
                       return (
                         <button
@@ -1491,11 +1524,13 @@ export default function Home() {
                             {isTop3 ? rankIcons[i] : `${i + 1}`}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-baseline gap-1.5 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                               <span className="text-white font-semibold text-sm truncate">{entry.username}</span>
                               {isMyEntry && userTitle && (
                                 <span className="text-yellow-300 text-[10px] font-semibold shrink-0">· {userTitle}</span>
                               )}
+                              {isMyEntry && StreakBadge}
+                              {isMyEntry && !streak && DaysBadge}
                             </div>
                             <div className="text-blue-400 text-xs">
                               {Math.floor(entry.duration / 60)}:{String(entry.duration % 60).padStart(2, "0")} · {entry.temperature}°F
@@ -1576,6 +1611,17 @@ export default function Home() {
                 className="text-blue-400 hover:text-white text-sm font-semibold transition-colors"
               >Skip</button>
             </div>
+
+            {/* Badge earned celebration */}
+            {(StreakBadge || DaysBadge) && (
+              <div className="flex items-center gap-2 bg-blue-900/60 border border-blue-700/40 rounded-xl px-3 py-2">
+                <span className="text-blue-400 text-xs flex-1">
+                  {streak > 0 ? `${streak}-day streak!` : `${totalPlungeDaysThisYear} days this year`}
+                </span>
+                {StreakBadge}
+                {DaysBadge}
+              </div>
+            )}
 
             {/* Photo picker */}
             <input
