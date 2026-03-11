@@ -9,14 +9,15 @@ initMonitoring();
 
 const POSTHOG_KEY = import.meta.env.VITE_PUBLIC_POSTHOG_KEY as string | undefined;
 
+console.log("[PostHog] key present:", !!POSTHOG_KEY, POSTHOG_KEY?.slice(0, 8));
+
 if (POSTHOG_KEY) {
   posthog.init(POSTHOG_KEY, {
     api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
-    defaults: "2026-01-30",
     loaded: (ph) => {
       if (import.meta.env.DEV) ph.debug();
     },
-  } as const);
+  });
 }
 
 const root = document.getElementById("root")!;
