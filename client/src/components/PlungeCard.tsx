@@ -55,7 +55,7 @@ export function buildShareText({
   ];
   if (streak && streak > 0) lines.push(`🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}`);
   if (locationName) lines.push(`📍 ${locationName}`);
-  lines.push(`\nTracked with ColdStreak 💪`);
+  lines.push(`\nTracked with ColdStreak`);
   return lines.join("\n");
 }
 
