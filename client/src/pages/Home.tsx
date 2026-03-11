@@ -280,8 +280,9 @@ export default function Home() {
   const [confirmDeleteEntryId, setConfirmDeleteEntryId] = useState<number | null>(null);
 
   const navTo = (s: Screen) => {
-    setScreen(s);
-    localStorage.setItem("defaultScreen", s);
+    const next = screen === s ? "timer" : s;
+    setScreen(next);
+    localStorage.setItem("defaultScreen", next);
   };
 
   const doLogPlunge = useCallback((durationSec: number) => {
