@@ -333,100 +333,96 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
           </div>
         )}
 
-        <div className="relative z-10 flex items-start justify-between gap-3">
-          {/* Left: photo thumbnail + icon + time + date */}
-          <div className="flex items-center gap-3 flex-1 min-w-0">
+        {/* Main info row */}
+        <div className="relative z-10 flex items-center justify-between gap-3">
+          {/* Left: photo + time + date */}
+          <div className="flex items-center gap-3 min-w-0">
             {photoSrc ? (
               <button
                 data-testid={`button-photo-${plunge.id}`}
                 onClick={() => setPhotoExpanded(true)}
-                className="shrink-0 w-14 h-14 rounded-xl overflow-hidden border border-slate-600/50 hover:border-cyan-400/60 transition-all active:scale-95"
+                className="shrink-0 w-12 h-12 rounded-xl overflow-hidden border border-slate-600/50 hover:border-cyan-400/60 transition-all active:scale-95"
               >
                 <img src={photoSrc} alt="Plunge" className="w-full h-full object-cover" />
               </button>
             ) : (
-              <div className="shrink-0 bg-slate-900/80 p-3 rounded-xl shadow-inner border border-slate-700/50 text-cyan-400 group-hover:text-cyan-300 transition-colors group-hover:scale-110 duration-300">
-                <Snowflake className="w-6 h-6" strokeWidth={2} />
+              <div className="shrink-0 bg-slate-900/80 p-2.5 rounded-xl border border-slate-700/50 text-cyan-400">
+                <Snowflake className="w-5 h-5" strokeWidth={2} />
               </div>
             )}
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-white font-semibold text-lg">
-                <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+              <div className="flex items-center gap-1.5 text-white font-semibold">
+                <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 {formatTime(plunge.duration)}
               </div>
-              <div className="text-sm text-slate-400 mt-0.5">
+              <div className="text-xs text-slate-400 mt-0.5 truncate">
                 {format(new Date(plunge.createdAt), "MMM d, yyyy 'at' h:mm a")}
               </div>
             </div>
           </div>
 
-          {/* Right: temp + score + share + edit + delete */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="text-right">
-              <div className="flex items-start justify-end gap-1">
-                <span className="text-2xl font-bold text-white">{plunge.temperature}</span>
-                <span className="text-cyan-400 font-bold mt-1">°F</span>
-              </div>
-              <div className="text-sm bg-slate-900/60 px-3 py-1 rounded-lg border border-cyan-500/30 mt-1">
-                <span className="text-cyan-300 font-semibold">Score: </span>
-                <span className="text-white font-bold">{Number(plunge.score).toFixed(1)}</span>
-              </div>
-              <div className="flex items-center gap-1 text-xs text-orange-400/90 mt-1 justify-end">
-                <Flame className="w-3 h-3 text-orange-400" />
-                <span>~{calories} kcal</span>
-              </div>
+          {/* Right: temp + score + kcal */}
+          <div className="text-right shrink-0">
+            <div className="flex items-baseline justify-end gap-0.5">
+              <span className="text-xl font-bold text-white">{plunge.temperature}</span>
+              <span className="text-cyan-400 font-bold text-sm">°F</span>
             </div>
-
-            <div className="flex flex-col gap-1">
-              <button
-                data-testid={`button-share-plunge-${plunge.id}`}
-                onClick={handleShare}
-                title="Share this plunge"
-                className="p-2 rounded-xl text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 border border-transparent hover:border-cyan-500/20 transition-all duration-200 active:scale-95"
-              >
-                <Share2 className="w-4 h-4" />
-              </button>
-
-              {photoSrc && (
-                <button
-                  data-testid={`button-save-overlay-${plunge.id}`}
-                  onClick={handleSaveWithOverlay}
-                  disabled={saving}
-                  title="Save photo with stats"
-                  className="p-2 rounded-xl text-slate-500 hover:text-orange-400 hover:bg-orange-500/10 border border-transparent hover:border-orange-500/20 transition-all duration-200 active:scale-95 disabled:opacity-40"
-                >
-                  <Download className="w-4 h-4" />
-                </button>
-              )}
-
-              <button
-                data-testid={`button-edit-plunge-${plunge.id}`}
-                onClick={() => editing ? setEditing(false) : openEdit()}
-                title="Edit location"
-                className={`p-2 rounded-xl border transition-all duration-200 active:scale-95 ${
-                  editing
-                    ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/40"
-                    : "text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 border-transparent hover:border-cyan-500/20"
-                }`}
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
-
-              <button
-                data-testid={`button-delete-plunge-${plunge.id}`}
-                onClick={handleDelete}
-                disabled={deletePlunge.isPending}
-                title={confirming ? "Click again to confirm delete" : "Delete plunge"}
-                className={`p-2 rounded-xl transition-all duration-200 disabled:opacity-40 active:scale-95 ${
-                  confirming
-                    ? "bg-red-500/20 text-red-400 border border-red-500/40"
-                    : "text-slate-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20"
-                }`}
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+            <div className="text-xs bg-slate-900/60 px-2 py-0.5 rounded-lg border border-cyan-500/30 mt-1">
+              <span className="text-cyan-300 font-semibold">Score: </span>
+              <span className="text-white font-bold">{Number(plunge.score).toFixed(1)}</span>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-orange-400/80 mt-1 justify-end">
+              <Flame className="w-3 h-3" />
+              <span>~{calories} kcal</span>
             </div>
           </div>
+        </div>
+
+        {/* Action bar */}
+        <div className="relative z-10 mt-3 pt-2.5 border-t border-slate-700/40 flex items-center justify-around">
+          <button
+            data-testid={`button-share-plunge-${plunge.id}`}
+            onClick={handleShare}
+            className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-slate-400 hover:text-cyan-400 transition-colors active:scale-95"
+          >
+            <Share2 className="w-4 h-4" />
+            <span className="text-[10px]">Share</span>
+          </button>
+
+          {photoSrc && (
+            <button
+              data-testid={`button-save-overlay-${plunge.id}`}
+              onClick={handleSaveWithOverlay}
+              disabled={saving}
+              className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-slate-400 hover:text-orange-400 transition-colors active:scale-95 disabled:opacity-40"
+            >
+              <Download className="w-4 h-4" />
+              <span className="text-[10px]">Save</span>
+            </button>
+          )}
+
+          <button
+            data-testid={`button-edit-plunge-${plunge.id}`}
+            onClick={() => editing ? setEditing(false) : openEdit()}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-colors active:scale-95 ${
+              editing ? "text-cyan-400" : "text-slate-400 hover:text-cyan-400"
+            }`}
+          >
+            <Pencil className="w-4 h-4" />
+            <span className="text-[10px]">Edit</span>
+          </button>
+
+          <button
+            data-testid={`button-delete-plunge-${plunge.id}`}
+            onClick={handleDelete}
+            disabled={deletePlunge.isPending}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-colors active:scale-95 disabled:opacity-40 ${
+              confirming ? "text-red-400" : "text-slate-400 hover:text-red-400"
+            }`}
+          >
+            <Trash2 className="w-4 h-4" />
+            <span className="text-[10px]">{confirming ? "Confirm" : "Delete"}</span>
+          </button>
         </div>
 
         {/* Vitals row */}
