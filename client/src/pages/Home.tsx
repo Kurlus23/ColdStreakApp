@@ -1459,12 +1459,13 @@ export default function Home() {
                       <input
                         data-testid="input-body-weight"
                         type="number"
-                        min={50}
-                        max={500}
-                        value={bodyWeightLbs}
+                        placeholder="154"
+                        value={bodyWeightLbs === 0 ? "" : bodyWeightLbs}
                         onChange={(e) => {
-                          const val = Number(e.target.value);
-                          if (!isNaN(val) && val > 0) setBodyWeightLbs(val);
+                          const raw = e.target.value;
+                          if (raw === "" || raw === "-") return;
+                          const val = Number(raw);
+                          if (!isNaN(val)) setBodyWeightLbs(val);
                         }}
                         onBlur={(e) => {
                           const clamped = Math.min(500, Math.max(50, Number(e.target.value) || 154));
