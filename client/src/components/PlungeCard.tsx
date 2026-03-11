@@ -111,12 +111,22 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
     deletePlunge.mutate(plunge.id);
   };
 
-  const handleSaveToDevice = () => {
+  const handleSaveToDevice = async () => {
     if (!photoSrc) return;
-    const a = document.createElement("a");
-    a.href = photoSrc;
-    a.download = `coldstreak-${plunge.id}.jpg`;
-    a.click();
+    try {
+      const res = await fetch(photoSrc);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `coldstreak-${plunge.id}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      toast({ title: "Could not save photo", variant: "destructive" });
+    }
   };
 
   const handleShare = async () => {
