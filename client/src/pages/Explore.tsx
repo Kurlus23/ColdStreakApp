@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   MapPin, Compass, Search, X, ChevronDown, Lock,
@@ -54,6 +54,46 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   });
   const [countryFilter, setCountryFilter] = useState("All");
   const [searchText, setSearchText] = useState("");
+  const [zipGeoPos, setZipGeoPos] = useState<GeoPos | null>(null);
+  const [zipLabel, setZipLabel] = useState<string | null>(null);
+  const [zipLoading, setZipLoading] = useState(false);
+  const zipDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const isZip = /^\d{5}$/.test(searchText.trim());
+    if (!isZip) {
+      setZipGeoPos(null);
+      setZipLabel(null);
+      setZipLoading(false);
+      if (zipDebounceRef.current) clearTimeout(zipDebounceRef.current);
+      return;
+    }
+    setZipLoading(true);
+    if (zipDebounceRef.current) clearTimeout(zipDebounceRef.current);
+    zipDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?postalcode=${searchText.trim()}&country=USA&format=json&limit=1`,
+          { headers: { "Accept-Language": "en" } }
+        );
+        const data = await res.json();
+        if (data?.[0]) {
+          const { lat, lon, display_name } = data[0];
+          setZipGeoPos({ lat: Number(lat), lng: Number(lon) });
+          const parts = display_name.split(",").slice(0, 2).join(",").trim();
+          setZipLabel(parts);
+        } else {
+          setZipGeoPos(null);
+          setZipLabel("Unknown zip code");
+        }
+      } catch {
+        setZipGeoPos(null);
+        setZipLabel(null);
+      } finally {
+        setZipLoading(false);
+      }
+    }, 600);
+  }, [searchText]);
 
   // ── Tile open/close state ──
   const [passportOpen, setPassportOpen] = useState(true);
@@ -181,21 +221,24 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     },
   });
 
+  // ── Effective geo: zip geocode overrides GPS when searching by zip ──
+  const effectiveGeoPos = zipGeoPos ?? geoPos;
+
   // ── Filter helpers ──
   function matchesText(tokens: (string | undefined | null)[]): boolean {
-    if (!searchText.trim()) return true;
+    if (!searchText.trim() || /^\d{5}$/.test(searchText.trim())) return true;
     const q = searchText.toLowerCase();
     return tokens.some((t) => t?.toLowerCase().includes(q));
   }
 
   function withinRange(lat: number, lng: number): boolean {
-    if (!radiusMiles || !geoPos) return true;
-    return distanceMiles(geoPos.lat, geoPos.lng, lat, lng) <= radiusMiles;
+    if (!radiusMiles || !effectiveGeoPos) return true;
+    return distanceMiles(effectiveGeoPos.lat, effectiveGeoPos.lng, lat, lng) <= radiusMiles;
   }
 
   function getDist(lat: number, lng: number): number | null {
-    if (!geoPos) return null;
-    return distanceMiles(geoPos.lat, geoPos.lng, lat, lng);
+    if (!effectiveGeoPos) return null;
+    return distanceMiles(effectiveGeoPos.lat, effectiveGeoPos.lng, lat, lng);
   }
 
   function distLabel(lat: number, lng: number): string | null {
@@ -213,8 +256,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       return true;
     })
     .sort((a, b) => {
-      if (!geoPos) return 0;
-      return distanceMiles(geoPos.lat, geoPos.lng, a.lat, a.lng) - distanceMiles(geoPos.lat, geoPos.lng, b.lat, b.lng);
+      if (!effectiveGeoPos) return 0;
+      return distanceMiles(effectiveGeoPos.lat, effectiveGeoPos.lng, a.lat, a.lng) - distanceMiles(effectiveGeoPos.lat, effectiveGeoPos.lng, b.lat, b.lng);
     });
 
   // ── Filtered, sorted & limited Community locations ──
@@ -232,13 +275,13 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       return true;
     })
     .sort((a, b) => {
-      if (!geoPos) return b.nominationCount - a.nominationCount;
+      if (!effectiveGeoPos) return b.nominationCount - a.nominationCount;
       const aLat = a.latitude ? Number(a.latitude) : null;
       const aLng = a.longitude ? Number(a.longitude) : null;
       const bLat = b.latitude ? Number(b.latitude) : null;
       const bLng = b.longitude ? Number(b.longitude) : null;
       if (aLat !== null && aLng !== null && bLat !== null && bLng !== null) {
-        return distanceMiles(geoPos.lat, geoPos.lng, aLat, aLng) - distanceMiles(geoPos.lat, geoPos.lng, bLat, bLng);
+        return distanceMiles(effectiveGeoPos.lat, effectiveGeoPos.lng, aLat, aLng) - distanceMiles(effectiveGeoPos.lat, effectiveGeoPos.lng, bLat, bLng);
       }
       if (aLat !== null) return -1;
       if (bLat !== null) return 1;
@@ -320,6 +363,21 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             </button>
           )}
         </div>
+        {zipLoading && (
+          <div className="text-[11px] text-blue-400 flex items-center gap-1.5 px-1">
+            <span className="w-2.5 h-2.5 rounded-full border-2 border-blue-400 border-t-transparent animate-spin inline-block" />
+            Looking up zip code…
+          </div>
+        )}
+        {zipGeoPos && zipLabel && !zipLoading && (
+          <div className="text-[11px] text-cyan-300 flex items-center gap-1 px-1">
+            <MapPin className="w-3 h-3 shrink-0" />
+            Searching near <span className="font-semibold">{zipLabel}</span>
+          </div>
+        )}
+        {/^\d{5}$/.test(searchText.trim()) && !zipLoading && !zipGeoPos && zipLabel === "Unknown zip code" && (
+          <div className="text-[11px] text-red-400 px-1">Zip code not found</div>
+        )}
       </div>
 
       {/* ── Community Spots Tile (Pro) ── */}
@@ -335,12 +393,12 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
           <div className="flex-1 text-left">
             <div className="text-white font-bold text-sm">Community Spots</div>
             <div className="text-blue-400 text-[11px]">
-              {isPro ? (geoPos ? "Sorted by distance from you" : "Sorted by most nominations") : "Pro — discover & submit spots"}
+              {isPro ? (effectiveGeoPos ? "Sorted by distance from you" : "Sorted by most nominations") : "Pro — discover & submit spots"}
             </div>
           </div>
           {isPro ? (
             <span className="text-xs text-blue-400 font-semibold">
-              {geoPos ? `Nearest ${communityFiltered.length}` : `Top ${communityFiltered.length}`}
+              {effectiveGeoPos ? `Nearest ${communityFiltered.length}` : `Top ${communityFiltered.length}`}
             </span>
           ) : (
             <span className="flex items-center gap-1 text-xs text-yellow-400 font-semibold mr-1">
