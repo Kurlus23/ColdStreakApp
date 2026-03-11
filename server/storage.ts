@@ -33,6 +33,8 @@ export interface IStorage {
   getUserByResetToken(token: string): Promise<User | null>;
   clearResetToken(id: number): Promise<void>;
   updatePassword(id: number, passwordHash: string): Promise<void>;
+  setVerifyToken(userId: number, token: string): Promise<void>;
+  verifyEmailToken(token: string): Promise<User | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -177,6 +179,23 @@ export class DatabaseStorage implements IStorage {
 
   async updatePassword(id: number, passwordHash: string): Promise<void> {
     await db.update(users).set({ passwordHash }).where(eq(users.id, id));
+  }
+
+  async setVerifyToken(userId: number, token: string): Promise<void> {
+    await db.update(users)
+      .set({ emailVerifyToken: token })
+      .where(eq(users.id, userId));
+  }
+
+  async verifyEmailToken(token: string): Promise<User | null> {
+    const [user] = await db.select().from(users)
+      .where(eq(users.emailVerifyToken, token));
+    if (!user) return null;
+    const [updated] = await db.update(users)
+      .set({ emailVerified: true, emailVerifyToken: null })
+      .where(eq(users.id, user.id))
+      .returning();
+    return updated ?? null;
   }
 }
 

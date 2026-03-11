@@ -7,6 +7,7 @@ const USER_KEY = "coldstreak-auth-user";
 export interface AuthUser {
   id: number;
   email: string;
+  emailVerified: boolean;
 }
 
 function loadUser(): AuthUser | null {
@@ -32,6 +33,15 @@ export function useAuth() {
     localStorage.setItem(USER_KEY, JSON.stringify(u));
     setUser(u);
   };
+
+  const updateUser = useCallback((patch: Partial<AuthUser>) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...patch };
+      localStorage.setItem(USER_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   const register = useCallback(async (email: string, password: string): Promise<boolean> => {
     setLoading(true);
@@ -92,9 +102,23 @@ export function useAuth() {
     }
   }, []);
 
+  const resendVerification = useCallback(async (): Promise<boolean> => {
+    const token = getAuthToken();
+    if (!token) return false;
+    try {
+      await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
   const clearError = useCallback(() => setError(null), []);
 
-  return { user, loading, error, register, login, logout, syncLocalData, clearError };
+  return { user, loading, error, register, login, logout, syncLocalData, resendVerification, updateUser, clearError };
 }
 
 async function extractMessage(err: unknown): Promise<string> {

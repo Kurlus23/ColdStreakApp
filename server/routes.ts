@@ -7,7 +7,7 @@ import Stripe from "stripe";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { sendPasswordResetEmail } from "./email";
+import { sendPasswordResetEmail, sendVerificationEmail } from "./email";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-02-24.acacia" });
 const PRICE_ID = process.env.STRIPE_PRICE_ID!;
@@ -54,7 +54,13 @@ export async function registerRoutes(
       const user = await storage.createUser(email, passwordHash);
       const token = signToken({ userId: user.id, email: user.email });
 
-      res.status(201).json({ token, user: { id: user.id, email: user.email } });
+      // Send verification email (fire and forget — don't block signup)
+      const verifyToken = crypto.randomBytes(32).toString("hex");
+      await storage.setVerifyToken(user.id, verifyToken);
+      const origin = req.headers.origin || `${req.protocol}://${req.headers.host}`;
+      sendVerificationEmail(email, `${origin}/verify-email?token=${verifyToken}`).catch(console.error);
+
+      res.status(201).json({ token, user: { id: user.id, email: user.email, emailVerified: false } });
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       throw err;
@@ -75,7 +81,7 @@ export async function registerRoutes(
       if (!valid) return res.status(401).json({ message: "Invalid email or password" });
 
       const token = signToken({ userId: user.id, email: user.email });
-      res.json({ token, user: { id: user.id, email: user.email } });
+      res.json({ token, user: { id: user.id, email: user.email, emailVerified: user.emailVerified } });
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       throw err;
@@ -87,7 +93,28 @@ export async function registerRoutes(
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUserById(payload.userId);
     if (!user) return res.status(401).json({ message: "User not found" });
-    res.json({ id: user.id, email: user.email });
+    res.json({ id: user.id, email: user.email, emailVerified: user.emailVerified });
+  });
+
+  app.get("/api/auth/verify-email", async (req, res) => {
+    const token = String(req.query.token || "");
+    if (!token) return res.status(400).json({ message: "Missing token" });
+    const user = await storage.verifyEmailToken(token);
+    if (!user) return res.status(400).json({ message: "Invalid or already used verification link" });
+    res.json({ ok: true, emailVerified: true });
+  });
+
+  app.post("/api/auth/resend-verification", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUserById(payload.userId);
+    if (!user) return res.status(401).json({ message: "User not found" });
+    if (user.emailVerified) return res.json({ ok: true, already: true });
+    const verifyToken = crypto.randomBytes(32).toString("hex");
+    await storage.setVerifyToken(user.id, verifyToken);
+    const origin = req.headers.origin || `${req.protocol}://${req.headers.host}`;
+    sendVerificationEmail(user.email, `${origin}/verify-email?token=${verifyToken}`).catch(console.error);
+    res.json({ ok: true });
   });
 
   // Claim local (clientId) plunges to the logged-in account
