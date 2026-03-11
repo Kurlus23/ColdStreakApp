@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { getPhoto, deletePhoto } from "@/lib/photoStore";
 import { buildShareImage } from "@/lib/shareImage";
+import { InterstitialAd } from "@/components/AdUnit";
 
 function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
   const durationMin = durationSeconds / 60;
@@ -23,6 +24,7 @@ interface PlungeCardProps {
   streak?: number;
   homeLabel?: string;
   communityLocs?: UserLocation[];
+  isPro?: boolean;
 }
 
 function formatTime(totalSeconds: number) {
@@ -80,7 +82,7 @@ function resolveLocationDisplay(locId: string | null | undefined, locName: strin
   return null;
 }
 
-export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, homeLabel, communityLocs = [] }: PlungeCardProps) {
+export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, homeLabel, communityLocs = [], isPro = false }: PlungeCardProps) {
   const deletePlunge = useDeletePlunge();
   const updatePlunge = useUpdatePlunge();
   const { toast } = useToast();
@@ -92,6 +94,14 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
   const [editing, setEditing] = useState(false);
   const [editSel, setEditSel] = useState<string>("");
   const [editCustom, setEditCustom] = useState("");
+
+  // Ad gate: pending action fires after user dismisses interstitial
+  const [pendingAction, setPendingAction] = useState<(() => Promise<void>) | null>(null);
+
+  const withAdGate = (action: () => Promise<void>) => {
+    if (isPro) { action(); return; }
+    setPendingAction(() => action);
+  };
 
   const calories = Math.round(estimateCalories(plunge.duration, plunge.temperature, bodyWeightLbs));
 
@@ -302,14 +312,14 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
             <button
               data-testid={`button-save-to-device-${plunge.id}`}
-              onClick={(e) => { e.stopPropagation(); handleSaveToDevice(); }}
+              onClick={(e) => { e.stopPropagation(); withAdGate(handleSaveToDevice); }}
               className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-semibold px-4 py-2 rounded-full transition-all active:scale-95"
             >
               <Download className="w-4 h-4" /> Save
             </button>
             <button
               data-testid={`button-share-photo-${plunge.id}`}
-              onClick={(e) => { e.stopPropagation(); handleShare(); }}
+              onClick={(e) => { e.stopPropagation(); withAdGate(handleShare); }}
               className="flex items-center gap-2 bg-cyan-500/30 hover:bg-cyan-500/50 border border-cyan-400/40 text-cyan-200 text-sm font-semibold px-4 py-2 rounded-full transition-all active:scale-95"
             >
               <Share2 className="w-4 h-4" /> Share
@@ -363,7 +373,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
           <div className="flex items-center gap-0.5 shrink-0">
             <button
               data-testid={`button-share-plunge-${plunge.id}`}
-              onClick={handleShare}
+              onClick={() => withAdGate(handleShare)}
               title="Share"
               className="p-1.5 rounded-lg text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all active:scale-95"
             >
@@ -373,7 +383,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
             {photoSrc && (
               <button
                 data-testid={`button-save-overlay-${plunge.id}`}
-                onClick={handleSaveWithOverlay}
+                onClick={() => withAdGate(handleSaveWithOverlay)}
                 disabled={saving}
                 title="Save photo with stats"
                 className="p-1.5 rounded-lg text-slate-500 hover:text-orange-400 hover:bg-orange-500/10 transition-all active:scale-95 disabled:opacity-40"
@@ -522,6 +532,18 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
           </div>
         )}
       </div>
+
+      {/* Ad gate interstitial — shows before Share / Save for free users */}
+      {pendingAction && (
+        <InterstitialAd
+          adIndex={plunge.id % 3}
+          onDismiss={() => {
+            const action = pendingAction;
+            setPendingAction(null);
+            action();
+          }}
+        />
+      )}
     </>
   );
 }

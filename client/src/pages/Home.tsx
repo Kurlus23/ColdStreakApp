@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import { savePhoto } from "@/lib/photoStore";
 import icebergBg from "@assets/image_1773152998246.png";
 import {
@@ -17,6 +17,7 @@ import { usePlunges, useCreatePlunge, useUpdatePlunge, useDeletePlunge } from "@
 import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry } from "@/hooks/use-leaderboard";
 import { useProStatus } from "@/hooks/use-pro-status";
 import { PlungeCard, buildShareText } from "@/components/PlungeCard";
+import { FeedAd, InterstitialAd } from "@/components/AdUnit";
 import { buildShareImage } from "@/lib/shareImage";
 import { Explore } from "@/pages/Explore";
 import {
@@ -200,6 +201,7 @@ export default function Home() {
   // Pro status
   const { isPro, proEmail, loading: proLoading, startCheckout, verifySession, restorePurchase } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showPostSessionAd, setShowPostSessionAd] = useState(false);
   const [showAchievements, setShowAchievements] = useState(() => {
     return localStorage.getItem("coldstreak-achievements-open") !== "false";
   });
@@ -295,6 +297,7 @@ export default function Home() {
           setPromptLocationId("");
           setPromptCustomLocation("");
           setPromptSubmitLeaderboard(true);
+          setShowPostSessionAd(true);
         },
       }
     );
@@ -973,7 +976,14 @@ export default function Home() {
               const locked = isPro ? [] : sorted.filter((p) => new Date(p.createdAt) < sevenDaysAgo);
               return (
                 <div className="space-y-3">
-                  {visible.map((plunge) => <PlungeCard key={plunge.id} plunge={plunge} bodyWeightLbs={bodyWeightLbs} username={username} streak={streak} homeLabel={homeLabel} communityLocs={communityLocs} />)}
+                  {visible.map((plunge, idx) => (
+                    <Fragment key={plunge.id}>
+                      <PlungeCard plunge={plunge} bodyWeightLbs={bodyWeightLbs} username={username} streak={streak} homeLabel={homeLabel} communityLocs={communityLocs} isPro={isPro} />
+                      {!isPro && (idx + 1) % 5 === 0 && idx !== visible.length - 1 && (
+                        <FeedAd index={Math.floor(idx / 5)} />
+                      )}
+                    </Fragment>
+                  ))}
                   {locked.length > 0 && (
                     <button
                       data-testid="banner-upgrade-history"
@@ -2106,6 +2116,14 @@ export default function Home() {
           </button>
         </div>
       </div>
+
+      {/* ─── POST-SESSION AD ─── */}
+      {showPostSessionAd && !isPro && (
+        <InterstitialAd
+          adIndex={plunges.length % 3}
+          onDismiss={() => setShowPostSessionAd(false)}
+        />
+      )}
 
       {/* ─── UPGRADE MODAL ─── */}
       {showUpgradeModal && (
