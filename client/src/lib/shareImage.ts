@@ -45,67 +45,34 @@ export async function buildShareImage({
 
       const w = canvas.width;
       const h = canvas.height;
-
-      // Scale everything relative to a 1080-wide reference
       const sc = w / 1080;
       const pad = 44 * sc;
 
-      const statCenterY = h - 52 * sc;
-      const locY = statCenterY - 44 * sc;
-
-      // Location line (cyan, above stats)
-      const locText =
-        locationId === "home"
-          ? "📍 Home"
-          : locationName
-          ? `📍 ${locationName}`
-          : null;
-      if (locText) {
-        setShadow(ctx, 12 * sc);
-        ctx.font = `${15 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-        ctx.fillStyle = "rgba(96,220,255,0.95)";
-        ctx.textAlign = "left";
-        ctx.textBaseline = "middle";
-        ctx.fillText(locText, pad, locY);
-      }
-
-      // Stats columns: TEMP | TIME | STREAK
-      const cols: { label: string; value: string }[] = [
-        { label: "TEMP", value: `${temperature}°F` },
-        { label: "TIME", value: formatTime(duration) },
+      // Build a single sentence: 43°F · 6:30 · 5d 🔥 · 📍 Hamlin Pond
+      const parts: string[] = [
+        `${temperature}°F`,
+        formatTime(duration),
       ];
-      if (streak && streak > 0) {
-        cols.push({ label: "STREAK", value: `${streak}d 🔥` });
-      }
+      if (streak && streak > 0) parts.push(`${streak}d 🔥`);
+      const loc =
+        locationId === "home" ? "📍 Home" : locationName ? `📍 ${locationName}` : null;
+      if (loc) parts.push(loc);
 
-      const colW = (w - pad * 2) / cols.length;
+      const line = parts.join("  ·  ");
 
-      cols.forEach((col, i) => {
-        const x = pad + colW * i;
-
-        // Value
-        setShadow(ctx, 14 * sc);
-        ctx.font = `bold ${26 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-        ctx.fillStyle = "#ffffff";
-        ctx.textAlign = "left";
-        ctx.textBaseline = "alphabetic";
-        ctx.fillText(col.value, x, statCenterY);
-
-        // Label
-        setShadow(ctx, 10 * sc, 0.75);
-        ctx.font = `${11 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-        ctx.fillStyle = "rgba(148,200,255,0.85)";
-        ctx.textBaseline = "top";
-        ctx.fillText(col.label, x, statCenterY + 4 * sc);
-      });
-
-      // ColdStreak watermark — bottom right, subtle
-      setShadow(ctx, 8 * sc, 0.6);
-      ctx.font = `bold ${13 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-      ctx.fillStyle = "rgba(255,255,255,0.5)";
-      ctx.textAlign = "right";
+      setShadow(ctx, 14 * sc);
+      ctx.font = `bold ${20 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText("ColdStreak ❄️", w - pad, h - 18 * sc);
+      ctx.fillText(line, pad, h - 36 * sc);
+
+      // Watermark
+      setShadow(ctx, 8 * sc, 0.6);
+      ctx.font = `bold ${12 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.fillStyle = "rgba(255,255,255,0.45)";
+      ctx.textAlign = "right";
+      ctx.fillText("ColdStreak ❄️", w - pad, h - 36 * sc);
 
       clearShadow(ctx);
 
