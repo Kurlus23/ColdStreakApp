@@ -114,10 +114,24 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
   const downloadBlob = async (dataUrl: string) => {
     const res = await fetch(dataUrl);
     const blob = await res.blob();
+    const filename = `coldstreak-${plunge.id}.jpg`;
+    const file = new File([blob], filename, { type: "image/jpeg" });
+
+    // On mobile, use native share sheet (has "Save Image" / "Save to Photos")
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "ColdStreak" });
+        return;
+      } catch (err: any) {
+        if (err?.name === "AbortError") return; // user cancelled — don't fall through
+      }
+    }
+
+    // Desktop fallback: anchor download
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `coldstreak-${plunge.id}.jpg`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
