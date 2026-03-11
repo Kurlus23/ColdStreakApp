@@ -20,7 +20,7 @@ import { Explore } from "@/pages/Explore";
 import {
   PASSPORT_LOCATIONS, usePassportBadges, distanceMiles,
   DIFFICULTY_META, TIER_MASTER_META, STATE_EMOJI,
-  computeStateBadges, computeTierBadges,
+  computeStateBadges, computeTierBadges, TITLE_UNLOCKS,
   type Difficulty,
 } from "@/lib/passport";
 import { useMutation } from "@tanstack/react-query";
@@ -1039,49 +1039,107 @@ export default function Home() {
             </div>
 
             {/* Title */}
-            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
-              <div className="text-white font-semibold flex items-center gap-2">
-                <Medal className="w-4 h-4 text-yellow-400" /> Your Title
-              </div>
-              {userTitle ? (
-                <div className="flex items-center gap-2 bg-blue-800/60 rounded-xl px-3 py-2">
-                  <span className="text-cyan-300 font-bold text-sm">{username || "You"}</span>
-                  <span className="text-yellow-300 text-xs font-semibold">· {userTitle}</span>
-                  <button
-                    data-testid="button-clear-title"
-                    onClick={() => { setUserTitle(""); localStorage.removeItem("coldstreak-user-title"); }}
-                    className="ml-auto text-blue-500 hover:text-blue-300 text-xs transition-colors"
-                  >✕ Clear</button>
+            {(() => {
+              const stateBadges = computeStateBadges(badges);
+              const tierBadges = computeTierBadges(badges);
+              const presetTitles = TITLE_UNLOCKS.map((t) => t.title);
+              const isPreset = presetTitles.includes(userTitle);
+              const customValue = isPreset ? "" : userTitle;
+              const canCustomize = badges.size >= 1;
+              return (
+                <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-white font-semibold flex items-center gap-2">
+                      <Medal className="w-4 h-4 text-yellow-400" /> Your Title
+                    </div>
+                    {userTitle && (
+                      <button
+                        data-testid="button-clear-title"
+                        onClick={() => { setUserTitle(""); localStorage.removeItem("coldstreak-user-title"); }}
+                        className="text-blue-500 hover:text-blue-300 text-xs transition-colors"
+                      >✕ Clear</button>
+                    )}
+                  </div>
+
+                  {/* Active title preview */}
+                  {userTitle ? (
+                    <div className="flex items-center gap-2 bg-blue-800/60 rounded-xl px-3 py-2 border border-cyan-500/30">
+                      <span className="text-cyan-300 font-bold text-sm">{username || "You"}</span>
+                      <span className="text-yellow-300 text-xs font-semibold">· {userTitle}</span>
+                    </div>
+                  ) : (
+                    <p className="text-blue-500 text-xs">Earn badges to unlock titles — they appear next to your name on leaderboards.</p>
+                  )}
+
+                  {/* Title cards */}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {TITLE_UNLOCKS.map((t) => {
+                      const unlocked = t.isUnlocked(badges, stateBadges, tierBadges);
+                      const active = userTitle === t.title;
+                      return (
+                        <button
+                          key={t.title}
+                          data-testid={`button-title-${t.title.replace(/[\s-]/g, "-").toLowerCase()}`}
+                          disabled={!unlocked}
+                          onClick={() => {
+                            if (!unlocked) return;
+                            const next = active ? "" : t.title;
+                            setUserTitle(next);
+                            next ? localStorage.setItem("coldstreak-user-title", next) : localStorage.removeItem("coldstreak-user-title");
+                          }}
+                          className={`flex flex-col items-start px-3 py-2 rounded-xl text-left transition-all active:scale-95 ${
+                            active
+                              ? "bg-cyan-500/20 border border-cyan-400/60 text-cyan-200"
+                              : unlocked
+                              ? "bg-blue-800/60 border border-blue-600/50 text-blue-200 hover:border-cyan-500/40 hover:text-white"
+                              : "bg-blue-900/40 border border-blue-800/40 text-blue-700 cursor-not-allowed"
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 w-full">
+                            {unlocked ? (
+                              <span className="text-[10px] text-yellow-400">★</span>
+                            ) : (
+                              <span className="text-[10px] text-blue-700">🔒</span>
+                            )}
+                            <span className={`text-xs font-bold truncate ${active ? "text-cyan-300" : unlocked ? "text-white" : "text-blue-700"}`}>
+                              {t.title}
+                            </span>
+                            {active && <span className="ml-auto text-[10px] text-cyan-400 shrink-0">ON</span>}
+                          </div>
+                          {!unlocked && (
+                            <div className="text-[10px] text-blue-600 mt-0.5 leading-tight">{t.description}</div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Custom title — unlocked after first badge */}
+                  <div>
+                    <div className="text-[11px] text-blue-400 mb-1.5">
+                      {canCustomize ? "Custom title" : "🔒 Custom title — earn 1 badge to unlock"}
+                    </div>
+                    <input
+                      data-testid="input-custom-title"
+                      type="text"
+                      placeholder={canCustomize ? "Type your own title…" : "Locked"}
+                      disabled={!canCustomize}
+                      maxLength={20}
+                      value={customValue}
+                      onChange={(e) => {
+                        setUserTitle(e.target.value);
+                        e.target.value ? localStorage.setItem("coldstreak-user-title", e.target.value) : localStorage.removeItem("coldstreak-user-title");
+                      }}
+                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-cyan-400 ${
+                        canCustomize
+                          ? "bg-blue-800/80 border-blue-600 text-white placeholder:text-blue-500"
+                          : "bg-blue-900/40 border-blue-800/30 text-blue-700 placeholder:text-blue-700 cursor-not-allowed"
+                      }`}
+                    />
+                  </div>
                 </div>
-              ) : (
-                <p className="text-blue-500 text-xs">Pick a title or write your own — it shows next to your name on leaderboards.</p>
-              )}
-              <div className="flex flex-wrap gap-1.5">
-                {["Polar Bear","Ice Warrior","Frost Runner","Cold Blooded","Arctic Fox","Cryo Legend","Wim Hof Jr.","Glacial","Ice Ninja","Snow Wolf"].map((t) => (
-                  <button
-                    key={t}
-                    data-testid={`button-title-${t.replace(/\s/g, "-").toLowerCase()}`}
-                    onClick={() => { setUserTitle(t); localStorage.setItem("coldstreak-user-title", t); }}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
-                      userTitle === t
-                        ? "bg-cyan-500 text-white shadow shadow-cyan-500/30"
-                        : "bg-blue-800/60 border border-blue-700/40 text-blue-300 hover:text-white"
-                    }`}
-                  >{t}</button>
-                ))}
-              </div>
-              <div className="flex gap-2 items-center">
-                <input
-                  data-testid="input-custom-title"
-                  type="text"
-                  placeholder="Custom title…"
-                  maxLength={20}
-                  value={["Polar Bear","Ice Warrior","Frost Runner","Cold Blooded","Arctic Fox","Cryo Legend","Wim Hof Jr.","Glacial","Ice Ninja","Snow Wolf"].includes(userTitle) ? "" : userTitle}
-                  onChange={(e) => { setUserTitle(e.target.value); localStorage.setItem("coldstreak-user-title", e.target.value); }}
-                  className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Achievements */}
             {(() => {

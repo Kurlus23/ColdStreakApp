@@ -322,6 +322,30 @@ export function computeStateBadges(earnedIds: Set<string>): string[] {
     .map(([state]) => state);
 }
 
+export interface TitleUnlock {
+  title: string;
+  description: string; // shown when locked
+}
+
+export const TITLE_UNLOCKS: Array<TitleUnlock & {
+  isUnlocked: (badges: Set<string>, stateBadges: string[], tierBadges: Difficulty[]) => boolean;
+}> = [
+  { title: "Cold-Blooded",  description: "Earn your 1st Chill Place badge",          isUnlocked: (b) => b.size >= 1 },
+  { title: "Frost Runner",  description: "Earn 5 Chill Place badges",                isUnlocked: (b) => b.size >= 5 },
+  { title: "Ice Warrior",   description: "Earn 10 Chill Place badges",               isUnlocked: (b) => b.size >= 10 },
+  { title: "Ice Ninja",     description: "Earn 15 Chill Place badges",               isUnlocked: (b) => b.size >= 15 },
+  { title: "Snow Wolf",     description: "Earn 20 Chill Place badges",               isUnlocked: (b) => b.size >= 20 },
+  { title: "Glacial",       description: "Earn all Chill Place badges",              isUnlocked: (b) => b.size >= PASSPORT_LOCATIONS.length },
+  { title: "Polar Bear",    description: "Complete 1 State Badge",                   isUnlocked: (_b, s) => s.length >= 1 },
+  { title: "Arctic Fox",    description: "Complete 3 State Badges",                  isUnlocked: (_b, s) => s.length >= 3 },
+  { title: "Chill Seeker",  description: "Complete all Beginner spots",              isUnlocked: (_b, _s, t) => t.includes("beginner") },
+  { title: "Cold Chaser",   description: "Complete all Cold spots",                  isUnlocked: (_b, _s, t) => t.includes("cold") },
+  { title: "Ice Initiate",  description: "Complete all Very Cold spots",             isUnlocked: (_b, _s, t) => t.includes("very-cold") },
+  { title: "Frost Master",  description: "Complete all Ice Water spots",             isUnlocked: (_b, _s, t) => t.includes("ice-water") },
+  { title: "Legend of Ice", description: "Complete all Legendary spots",             isUnlocked: (_b, _s, t) => t.includes("legendary") },
+  { title: "Cryo Legend",   description: "Achieve all 5 Tier Mastery badges",        isUnlocked: (_b, _s, t) => t.length >= 5 },
+];
+
 /** Returns difficulty tiers where every passport location in that tier has been earned. */
 export function computeTierBadges(earnedIds: Set<string>): Difficulty[] {
   const byTier: Record<Difficulty, string[]> = {
