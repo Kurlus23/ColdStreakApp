@@ -60,8 +60,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const zipDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const isZip = /^\d{5}$/.test(searchText.trim());
-    if (!isZip) {
+    const trimmed = searchText.trim();
+    if (trimmed.length < 3) {
       setZipGeoPos(null);
       setZipLabel(null);
       setZipLoading(false);
@@ -72,10 +72,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     if (zipDebounceRef.current) clearTimeout(zipDebounceRef.current);
     zipDebounceRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?postalcode=${searchText.trim()}&country=USA&format=json&limit=1`,
-          { headers: { "Accept-Language": "en" } }
-        );
+        const isZip = /^\d{5}$/.test(trimmed);
+        const url = isZip
+          ? `https://nominatim.openstreetmap.org/search?postalcode=${trimmed}&country=USA&format=json&limit=1`
+          : `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(trimmed)}&format=json&limit=1&addressdetails=1`;
+        const res = await fetch(url, { headers: { "Accept-Language": "en" } });
         const data = await res.json();
         if (data?.[0]) {
           const { lat, lon, display_name } = data[0];
@@ -84,7 +85,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
           setZipLabel(parts);
         } else {
           setZipGeoPos(null);
-          setZipLabel("Unknown zip code");
+          setZipLabel(isZip ? "Unknown zip code" : null);
         }
       } catch {
         setZipGeoPos(null);
@@ -92,7 +93,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       } finally {
         setZipLoading(false);
       }
-    }, 600);
+    }, 700);
   }, [searchText]);
 
   // ── Tile open/close state ──
@@ -226,7 +227,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
 
   // ── Filter helpers ──
   function matchesText(tokens: (string | undefined | null)[]): boolean {
-    if (!searchText.trim() || /^\d{5}$/.test(searchText.trim())) return true;
+    if (!searchText.trim()) return true;
+    if (zipGeoPos) return true; // geographic mode — show all, sorted/filtered by distance
     const q = searchText.toLowerCase();
     return tokens.some((t) => t?.toLowerCase().includes(q));
   }
