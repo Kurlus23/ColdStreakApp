@@ -68,3 +68,50 @@ Once deployed:
 - The `capacitor.config.ts` is at the project root
 - `androidScheme: "https"` ensures secure context for all browser APIs
 - SplashScreen background matches the app's dark blue theme (`#0f1f3d`)
+
+---
+
+## ⏳ TODO — Health Tracker Integration (Android)
+
+When building the Android version, add automatic export to **Google Health Connect**
+so plunge sessions (duration, calories, workout type) sync directly to the user's
+health app without any manual CSV step.
+
+**Recommended package:** `@capacitor-community/health-connect`
+
+**What to log per plunge:**
+- Workout type: `EXERCISE_TYPE_SWIMMING` (closest match) or `OTHER`
+- Duration: plunge duration in seconds
+- Calories: use the existing `estimateCalories(duration, tempF, weightLbs)` formula
+- Start/end time: from `plunge.createdAt`
+
+**Steps when ready:**
+1. `npm install @capacitor-community/health-connect`
+2. Add Health Connect permissions to `AndroidManifest.xml`
+3. Request permission on first Pro login
+4. Write session on every plunge log (in `doLogPlunge` success handler)
+5. Declare Health Connect usage in Play Store listing (required by Google)
+
+---
+
+## ⏳ TODO — Health Tracker Integration (iOS)
+
+When building the iOS App Store version, add **Apple HealthKit** integration so
+plunge sessions sync directly to the Health app.
+
+**Recommended package:** `@capacitor-community/health` (covers both HealthKit + Google Fit)
+
+**What to log per plunge:**
+- Category: `HKWorkoutActivityTypeOther` or swimming
+- Duration, active energy burned (calories), start/end time
+
+**Steps when ready:**
+1. `npm install @capacitor-community/health`
+2. Add `NSHealthShareUsageDescription` and `NSHealthUpdateUsageDescription` to `Info.plist`
+3. Enable HealthKit capability in Xcode (requires Apple Developer account)
+4. Request permission on first Pro login
+5. Write session on every plunge log (in `doLogPlunge` success handler)
+
+**Note:** Apple requires you to justify HealthKit usage during App Store review.
+Describe it as: "ColdStreak writes cold plunge workout sessions and estimated calorie
+burn to Apple Health to help users track their wellness data in one place."

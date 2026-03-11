@@ -6,7 +6,7 @@ import {
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -350,6 +350,37 @@ export default function Home() {
     auth.logout();
     setSyncDone(false);
     queryClient.invalidateQueries({ queryKey: ["/api/plunges"] });
+  };
+
+  const exportCSV = () => {
+    const headers = ["Date", "Time", "Duration", "Duration (sec)", "Temp (°F)", "Temp (°C)", "Cold Score", "Calories (kcal est.)", "Location"];
+    const rows = plunges.map((p) => {
+      const d = new Date(p.createdAt);
+      const calories = Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs));
+      const tempC = Math.round(((p.temperature - 32) * 5) / 9 * 10) / 10;
+      const mins = Math.floor(p.duration / 60);
+      const secs = p.duration % 60;
+      return [
+        d.toLocaleDateString(),
+        d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        `${mins}m ${secs}s`,
+        p.duration,
+        p.temperature,
+        tempC,
+        Number(p.score).toFixed(1),
+        calories,
+        p.locationName || "",
+      ];
+    });
+    const csv = [headers, ...rows].map((r) => r.map((v) => `"${v}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `coldstreak-plunges-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    Analytics.track("csv_exported", { plunge_count: plunges.length });
   };
 
   const doLogPlunge = useCallback((durationSec: number) => {
@@ -741,6 +772,16 @@ export default function Home() {
                 <History className="w-5 h-5 text-cyan-400" /> Plunge History
               </h2>
               <div className="flex items-center gap-2">
+                {isPro && plunges.length > 0 && (
+                  <button
+                    data-testid="button-export-csv"
+                    onClick={exportCSV}
+                    title="Export plunge history as CSV"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-700/50 border border-blue-600/50 text-blue-200 text-xs font-semibold hover:bg-blue-600/60 transition-all active:scale-95"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Export CSV
+                  </button>
+                )}
                 <button
                   data-testid="button-manual-plunge"
                   onClick={() => {
