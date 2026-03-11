@@ -249,6 +249,7 @@ export default function Home() {
   const [settingsRestoreEmail, setSettingsRestoreEmail] = useState("");
   const [showSettingsRestore, setShowSettingsRestore] = useState(false);
   const [badgesOpen, setBadgesOpen] = useState(true);
+  const [homeLabel, setHomeLabel] = useState(() => localStorage.getItem("coldstreak-home-label") || "Home");
   const [safetySeen] = useState(() => !!localStorage.getItem("coldstreak-safety-seen"));
   const [safetyOpen, setSafetyOpen] = useState(() => !localStorage.getItem("coldstreak-safety-seen"));
   const [tosOpen, setTosOpen] = useState(false);
@@ -969,7 +970,7 @@ export default function Home() {
               const locked = isPro ? [] : sorted.filter((p) => new Date(p.createdAt) < sevenDaysAgo);
               return (
                 <div className="space-y-3">
-                  {visible.map((plunge) => <PlungeCard key={plunge.id} plunge={plunge} bodyWeightLbs={bodyWeightLbs} username={username} streak={streak} />)}
+                  {visible.map((plunge) => <PlungeCard key={plunge.id} plunge={plunge} bodyWeightLbs={bodyWeightLbs} username={username} streak={streak} homeLabel={homeLabel} />)}
                   {locked.length > 0 && (
                     <button
                       data-testid="banner-upgrade-history"
@@ -1132,6 +1133,26 @@ export default function Home() {
                 />
               </div>
               <p className="text-blue-500 text-xs mt-2">This name appears on location leaderboards when you submit a plunge.</p>
+            </div>
+
+            {/* Home Location */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-2">
+              <label className="text-white font-semibold text-sm flex items-center gap-2">
+                🏠 Home Location Label
+              </label>
+              <input
+                data-testid="input-home-label"
+                type="text"
+                placeholder="e.g. Ice Barrel, Garage Tub, Bathtub…"
+                value={homeLabel}
+                maxLength={40}
+                onChange={(e) => {
+                  setHomeLabel(e.target.value || "Home");
+                  localStorage.setItem("coldstreak-home-label", e.target.value || "Home");
+                }}
+                className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+              />
+              <p className="text-blue-500 text-xs">Shown only in your own history. Shares and leaderboards always show "Home" — your address stays private.</p>
             </div>
 
             {/* Achievements */}
@@ -1742,6 +1763,7 @@ export default function Home() {
                 className="w-full bg-blue-900/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm appearance-none focus:outline-none focus:border-cyan-400"
               >
                 <option value="">— No location —</option>
+                <option value="home">🏠 Home</option>
                 {communityLocs.length > 0 && (
                   <optgroup label="Community Spots">
                     {communityLocs.map((l) => (
@@ -1773,7 +1795,16 @@ export default function Home() {
                 />
               )}
 
-              {promptLocationId && promptLocationId !== "custom" && (
+              {promptLocationId === "home" && (
+                <div className="bg-blue-900/50 rounded-xl px-3 py-2 border border-blue-700/40">
+                  <div className="text-xs text-blue-300 leading-relaxed">
+                    <span className="font-semibold text-cyan-300">🏠 {homeLabel}</span>
+                    {" — "}Private. Shows as "Home" when shared with friends.
+                  </div>
+                </div>
+              )}
+
+              {promptLocationId && promptLocationId !== "custom" && promptLocationId !== "home" && (
                 <div className="bg-blue-900/50 rounded-xl px-3 py-2 border border-blue-700/40">
                   {(() => {
                     if (promptLocationId.startsWith("community-")) {
@@ -1799,8 +1830,8 @@ export default function Home() {
               )}
             </div>
 
-            {/* Leaderboard submission toggle — only for passport locations */}
-            {promptLocationId && promptLocationId !== "custom" && (
+            {/* Leaderboard submission toggle — only for passport/community locations, not home */}
+            {promptLocationId && promptLocationId !== "custom" && promptLocationId !== "home" && (
               <div className="bg-blue-900/50 rounded-2xl p-3 border border-blue-700/40 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm font-semibold text-white">
@@ -1846,9 +1877,12 @@ export default function Home() {
               onClick={async () => {
                 if (!photoPromptId) return;
                 const isCommunityPick = promptLocationId.startsWith("community-");
+                const isHomePick = promptLocationId === "home";
                 const finalLocationId = promptLocationId && promptLocationId !== "custom" ? promptLocationId : undefined;
                 let finalLocationName: string | undefined;
-                if (promptLocationId === "custom") {
+                if (isHomePick) {
+                  finalLocationName = homeLabel;
+                } else if (promptLocationId === "custom") {
                   finalLocationName = promptCustomLocation.trim() || undefined;
                 } else if (isCommunityPick) {
                   const cid = Number(promptLocationId.replace("community-", ""));
@@ -1943,6 +1977,7 @@ export default function Home() {
                     duration: promptPlungeRef.current.duration,
                     streak,
                     locationName,
+                    locationId: promptLocationId,
                   });
                   if (navigator.share) {
                     if (promptPhotoData) {

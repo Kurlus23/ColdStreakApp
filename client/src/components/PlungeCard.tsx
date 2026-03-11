@@ -20,6 +20,7 @@ interface PlungeCardProps {
   bodyWeightLbs?: number;
   username?: string;
   streak?: number;
+  homeLabel?: string;
 }
 
 function formatTime(totalSeconds: number) {
@@ -40,12 +41,14 @@ export function buildShareText({
   duration,
   streak,
   locationName,
+  locationId,
 }: {
   username?: string;
   temperature: number;
   duration: number;
   streak?: number;
   locationName?: string | null;
+  locationId?: string | null;
 }): string {
   const name = username?.trim() || "I";
   const verb = name === "I" ? "just completed" : "just completed";
@@ -54,12 +57,13 @@ export function buildShareText({
     `⏱️ Duration: ${formatTime(duration)}`,
   ];
   if (streak && streak > 0) lines.push(`🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}`);
-  if (locationName) lines.push(`📍 ${locationName}`);
+  if (locationId === "home") lines.push(`📍 Home`);
+  else if (locationName) lines.push(`📍 ${locationName}`);
   lines.push(`\nTracked with ColdStreak`);
   return lines.join("\n");
 }
 
-export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak }: PlungeCardProps) {
+export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, homeLabel }: PlungeCardProps) {
   const deletePlunge = useDeletePlunge();
   const { toast } = useToast();
   const [confirming, setConfirming] = useState(false);
@@ -98,6 +102,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak }: Pl
       duration: plunge.duration,
       streak,
       locationName: plunge.locationName,
+      locationId: plunge.locationId,
     });
 
     if (navigator.share) {
@@ -271,16 +276,20 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak }: Pl
         )}
 
         {/* Location row */}
-        {plunge.locationName && (
+        {(plunge.locationName || plunge.locationId === "home") && (
           <div
             data-testid={`location-${plunge.id}`}
             className="relative z-10 mt-2 flex items-center gap-2 text-sm"
           >
             <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-            {passportLocation && (
+            {plunge.locationId === "home" ? (
+              <span className="text-base leading-none">🏠</span>
+            ) : passportLocation ? (
               <span className="text-base leading-none">{passportLocation.flag}</span>
-            )}
-            <span className="text-cyan-300 font-medium truncate">{plunge.locationName}</span>
+            ) : null}
+            <span className="text-cyan-300 font-medium truncate">
+              {plunge.locationId === "home" ? (homeLabel || "Home") : plunge.locationName}
+            </span>
             {passportLocation && (
               <span className="text-[10px] bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wide">
                 Passport
