@@ -247,6 +247,7 @@ export default function Home() {
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [settingsRestoreEmail, setSettingsRestoreEmail] = useState("");
   const [showSettingsRestore, setShowSettingsRestore] = useState(false);
+  const [badgesOpen, setBadgesOpen] = useState(true);
 
   // Leaderboard
   const [leaderboardLocationId, setLeaderboardLocationId] = useState<string | null>(null);
@@ -1112,11 +1113,23 @@ export default function Home() {
               const earnedTiers = new Set(computeTierBadges(badges));
               const totalAchievements = earnedStates.size + earnedTiers.size;
               return (
-                <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+                <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40">
+                  <button
+                    data-testid="button-toggle-badges"
+                    onClick={() => setBadgesOpen((v) => !v)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-semibold text-sm">Achievements</span>
+                      <span className="text-cyan-500 text-xs">({totalAchievements} earned)</span>
+                    </div>
+                    <span className={`text-blue-400 text-xs transition-transform duration-200 ${badgesOpen ? "rotate-180" : ""}`}>▼</span>
+                  </button>
+                  {badgesOpen && <div className="px-4 pb-4 space-y-4 border-t border-blue-700/30 pt-3">
                   {/* Tier Master Badges */}
                   <div>
                     <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">
-                      Tier Badges <span className="text-cyan-500 normal-case">({totalAchievements} earned)</span>
+                      Tier Badges
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {allTiers.map((tier) => {
@@ -1170,6 +1183,7 @@ export default function Home() {
                       })}
                     </div>
                   </div>
+                  </div>}
                 </div>
               );
             })()}
