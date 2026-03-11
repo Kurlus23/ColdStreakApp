@@ -17,6 +17,7 @@ import { usePlunges, useCreatePlunge, useUpdatePlunge, useDeletePlunge } from "@
 import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry } from "@/hooks/use-leaderboard";
 import { useProStatus } from "@/hooks/use-pro-status";
 import { PlungeCard, buildShareText } from "@/components/PlungeCard";
+import { buildShareImage } from "@/lib/shareImage";
 import { Explore } from "@/pages/Explore";
 import {
   PASSPORT_LOCATIONS, usePassportBadges, distanceMiles,
@@ -2012,9 +2013,17 @@ export default function Home() {
                   if (navigator.share) {
                     if (promptPhotoData) {
                       try {
-                        const res = await fetch(promptPhotoData);
+                        const composited = await buildShareImage({
+                          photoDataUrl: promptPhotoData,
+                          temperature: promptPlungeRef.current.temperature,
+                          duration: promptPlungeRef.current.duration,
+                          streak,
+                          locationName,
+                          locationId: promptLocationId,
+                        });
+                        const res = await fetch(composited);
                         const blob = await res.blob();
-                        const file = new File([blob], "coldstreak-plunge.jpg", { type: blob.type || "image/jpeg" });
+                        const file = new File([blob], "coldstreak-plunge.jpg", { type: "image/jpeg" });
                         if (navigator.canShare?.({ files: [file] })) {
                           await navigator.share({ files: [file], text });
                           return;

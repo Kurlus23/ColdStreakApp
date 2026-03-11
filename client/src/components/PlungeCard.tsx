@@ -6,6 +6,7 @@ import { useDeletePlunge } from "@/hooks/use-plunges";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { getPhoto, deletePhoto } from "@/lib/photoStore";
+import { buildShareImage } from "@/lib/shareImage";
 
 function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
   const durationMin = durationSeconds / 60;
@@ -108,7 +109,15 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
     if (navigator.share) {
       if (photoSrc) {
         try {
-          const file = await dataUrlToFile(photoSrc, `coldstreak-plunge.jpg`);
+          const composited = await buildShareImage({
+            photoDataUrl: photoSrc,
+            temperature: plunge.temperature,
+            duration: plunge.duration,
+            streak,
+            locationName: plunge.locationName,
+            locationId: plunge.locationId,
+          });
+          const file = await dataUrlToFile(composited, `coldstreak-plunge.jpg`);
           if (navigator.canShare?.({ files: [file] })) {
             await navigator.share({ files: [file], text });
             return;
