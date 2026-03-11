@@ -333,6 +333,14 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
                 </span>
               )}
             </div>
+          ) : !editing ? (
+            <div
+              data-testid={`location-${plunge.id}`}
+              className="flex items-center gap-1.5 text-sm min-w-0"
+            >
+              <MapPin className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+              <span className="text-slate-500 font-medium">Location Unknown</span>
+            </div>
           ) : (
             <div />
           )}
