@@ -13,7 +13,7 @@ import confetti from "canvas-confetti";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { usePlunges, useCreatePlunge, useUpdatePlunge } from "@/hooks/use-plunges";
+import { usePlunges, useCreatePlunge, useUpdatePlunge, useDeletePlunge } from "@/hooks/use-plunges";
 import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry } from "@/hooks/use-leaderboard";
 import { useProStatus } from "@/hooks/use-pro-status";
 import { PlungeCard, buildShareText } from "@/components/PlungeCard";
@@ -268,6 +268,7 @@ export default function Home() {
   const { data: plunges = [], isLoading } = usePlunges();
   const createPlunge = useCreatePlunge();
   const updatePlunge = useUpdatePlunge();
+  const deletePlunge = useDeletePlunge();
   const submitLeaderboard = useSubmitLeaderboard();
   const deleteLeaderboard = useDeleteLeaderboardEntry();
   const { badges, awardBadge, hasBadge } = usePassportBadges();
@@ -2013,6 +2014,23 @@ export default function Home() {
                 <Share2 className="w-4 h-4" /> Share with friends
               </button>
             )}
+
+            {/* Discard */}
+            <button
+              data-testid="button-discard-plunge"
+              onClick={() => {
+                if (!photoPromptId) return;
+                deletePlunge.mutate(photoPromptId, {
+                  onSuccess: () => {
+                    toast({ title: "Plunge discarded", description: "Nothing was saved." });
+                  },
+                });
+                setPhotoPromptId(null);
+              }}
+              className="w-full py-2 text-red-400/70 hover:text-red-300 text-xs font-semibold transition-colors"
+            >
+              Discard plunge
+            </button>
           </div>
         </div>
       )}
