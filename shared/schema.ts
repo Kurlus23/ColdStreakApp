@@ -2,9 +2,21 @@ import { pgTable, text, serial, integer, timestamp, numeric, boolean, uniqueInde
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
 export const plunges = pgTable("plunges", {
   id: serial("id").primaryKey(),
   clientId: text("client_id"), // device-specific UUID for data isolation (nullable for legacy rows)
+  userId: integer("user_id"), // linked account user (nullable)
   duration: integer("duration").notNull(), // in seconds
   temperature: integer("temperature").notNull(), // in fahrenheit
   score: numeric("score", { precision: 10, scale: 2 }).notNull(), // plunge score

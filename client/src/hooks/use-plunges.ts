@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl, type PlungeInput, type PlungeUpdateInput } from "@shared/routes";
+import { getAuthToken } from "@/hooks/use-auth";
 
-function getClientId(): string {
+export function getClientId(): string {
   const KEY = "coldstreak-client-id";
   let id = localStorage.getItem(KEY);
   if (!id) {
@@ -11,13 +12,26 @@ function getClientId(): string {
   return id;
 }
 
+function buildHeaders(extra?: Record<string, string>): Record<string, string> {
+  const token = getAuthToken();
+  const headers: Record<string, string> = { ...(extra || {}) };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
+}
+
 export function usePlunges() {
   return useQuery({
     queryKey: [api.plunges.list.path],
     queryFn: async () => {
+      const token = getAuthToken();
       const clientId = getClientId();
-      const url = `${api.plunges.list.path}?clientId=${encodeURIComponent(clientId)}`;
-      const res = await fetch(url, { credentials: "include" });
+      const url = token
+        ? api.plunges.list.path
+        : `${api.plunges.list.path}?clientId=${encodeURIComponent(clientId)}`;
+      const res = await fetch(url, {
+        credentials: "include",
+        headers: buildHeaders(),
+      });
       if (!res.ok) throw new Error("Failed to fetch plunge history");
       return api.plunges.list.responses[200].parse(await res.json());
     },
@@ -32,7 +46,7 @@ export function useCreatePlunge() {
       const validated = api.plunges.create.input.parse({ ...data, clientId });
       const res = await fetch(api.plunges.create.path, {
         method: api.plunges.create.method,
-        headers: { "Content-Type": "application/json" },
+        headers: buildHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(validated),
         credentials: "include",
       });
@@ -57,7 +71,7 @@ export function useUpdatePlunge() {
     mutationFn: async ({ id, patch }: { id: number; patch: PlungeUpdateInput }) => {
       const res = await fetch(buildUrl(api.plunges.update.path, { id }), {
         method: api.plunges.update.method,
-        headers: { "Content-Type": "application/json" },
+        headers: buildHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(patch),
         credentials: "include",
       });
@@ -76,6 +90,7 @@ export function useDeletePlunge() {
     mutationFn: async (id: number) => {
       const res = await fetch(buildUrl(api.plunges.delete.path, { id }), {
         method: api.plunges.delete.method,
+        headers: buildHeaders(),
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to delete plunge");

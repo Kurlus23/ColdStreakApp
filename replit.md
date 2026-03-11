@@ -2,9 +2,9 @@
 
 ## Overview
 
-OpenPlunge is a cold plunge tracking web app. It lets users time their cold plunge sessions (with both a stopwatch and a countdown timer), log each session with duration and water temperature, and then view their plunge history. The app calculates a "plunge score" based on how long and how cold the session was, tracks daily streaks, and monitors weekly exposure minutes toward a goal. A confetti celebration fires when a plunge is logged.
+ColdStreak is a cold plunge tracking web app (PWA + Android via Capacitor). Users time cold plunge sessions, log history, track Cold Score / streaks / weekly goals, earn achievement badges, explore curated Chill Places, submit community locations, compete on leaderboards, and optionally upgrade to Pro (ad-free, unlimited history).
 
-The project is a full-stack TypeScript app with a React frontend and an Express backend, sharing types and validation schemas through a `shared/` directory. Data is persisted in a PostgreSQL database via Drizzle ORM.
+Full-stack TypeScript: React + Vite frontend, Express backend, PostgreSQL via Drizzle ORM.
 
 ---
 
@@ -18,90 +18,107 @@ Preferred communication style: Simple, everyday language.
 
 ### Frontend
 
-- **Framework**: React 18 with TypeScript, bundled by Vite
-- **Routing**: `wouter` (lightweight client-side router). There's one main route (`/`) pointing to the `Home` page and a catch-all 404 page.
-- **State & Data Fetching**: TanStack React Query handles server state. Custom hooks `usePlunges` and `useCreatePlunge` in `client/src/hooks/use-plunges.ts` encapsulate all API calls.
-- **UI Components**: shadcn/ui (New York style) built on top of Radix UI primitives. Tailwind CSS handles styling with a custom dark "ice/cold" theme (deep navy + cyan accents) defined in CSS variables.
-- **Fonts**: DM Sans (body) and Outfit (display) from Google Fonts.
-- **PWA**: A `manifest.json` is present for standalone mobile install support.
-- **Confetti**: `canvas-confetti` fires a celebration effect when a plunge is successfully logged.
+- **Framework**: React 18 + TypeScript, bundled by Vite
+- **Routing**: `wouter`. Routes: `/` (Home), `/privacy`, `/terms`
+- **State & Data Fetching**: TanStack React Query. Custom hooks in `client/src/hooks/`
+- **UI**: shadcn/ui (New York) on Radix UI. Tailwind CSS with custom dark navy/cyan theme
+- **Fonts**: DM Sans + Outfit via Google Fonts
+- **PWA**: `manifest.json` + service worker for standalone mobile install
+- **Analytics**: PostHog (`VITE_PUBLIC_POSTHOG_KEY`) — events: timer_started, plunge_logged, pro_upgrade_started, etc.
+- **Error monitoring**: Sentry (`VITE_SENTRY_DSN`) with React ErrorBoundary
+- **Android**: Capacitor (`capacitor.config.ts`) wraps the built web app. See `ANDROID_BUILD.md`
 
 ### Backend
 
-- **Framework**: Express.js running on Node.js with TypeScript (via `tsx` in dev).
-- **API Routes**: Defined in `server/routes.ts`. Two endpoints:
-  - `GET /api/plunges` — returns all plunges ordered by newest first
-  - `POST /api/plunges` — validates input with Zod and creates a new plunge record
-- **Storage Layer**: `server/storage.ts` defines an `IStorage` interface with a `DatabaseStorage` implementation using Drizzle ORM queries. This abstraction makes it easy to swap the storage backend if needed.
-- **Dev Server**: In development, Vite runs as middleware inside the Express server (via `server/vite.ts`), so there's a single server for both API and frontend.
-- **Production Build**: `script/build.ts` runs Vite for the client and esbuild for the server, bundling key server dependencies to reduce cold-start time.
+- **Framework**: Express.js + TypeScript (tsx in dev)
+- **Auth**: JWT (`jsonwebtoken`) + bcrypt (`bcryptjs`). Token extracted from `Authorization: Bearer` header. Secret from `SESSION_SECRET` env var.
+- **API Routes** (`server/routes.ts`):
+  - `POST /api/auth/register` — create account (email + password)
+  - `POST /api/auth/login` — login, returns JWT
+  - `GET /api/auth/me` — verify token
+  - `POST /api/auth/sync` — claim local clientId plunges to logged-in account
+  - `GET /api/plunges` — returns plunges (by userId if authed, else by clientId)
+  - `POST /api/plunges` — create plunge (attaches userId if authed)
+  - `PATCH /api/plunges/:id`, `DELETE /api/plunges/:id`
+  - `GET /api/leaderboard/:locationId`, `POST /api/leaderboard`, `DELETE /api/leaderboard/:id`
+  - `GET /api/community-locations`, `POST /api/community-locations`, `POST /api/community-locations/:id/nominate`
+  - `POST /api/stripe/checkout`, `GET /api/stripe/verify`
+  - `GET /api/pro-status/:email`
+- **Storage Layer**: `server/storage.ts` — `IStorage` interface + `DatabaseStorage` with Drizzle
 
-### Shared Layer (`shared/`)
+### Shared Layer
 
-- **Schema** (`shared/schema.ts`): Drizzle table definitions and Zod-inferred TypeScript types. The single `plunges` table has: `id`, `duration` (seconds), `temperature` (°F), `score` (numeric), `createdAt`.
-- **Routes manifest** (`shared/routes.ts`): A typed API route registry (`api` object) with path, method, input schema, and response schemas defined in one place. Both client hooks and server routes import from here, keeping the API contract in sync automatically.
+- **Schema** (`shared/schema.ts`): `users`, `plunges`, `leaderboardEntries`, `proUsers`, `userLocations`
+- **Routes manifest** (`shared/routes.ts`): Typed API contract shared by client and server
 
-### Database
+### Database Tables
 
-- **PostgreSQL** via the `pg` driver and Drizzle ORM.
-- Connection via `DATABASE_URL` environment variable.
-- Migrations managed with `drizzle-kit` (`db:push` script for development).
-- Schema file: `shared/schema.ts`.
-
-### Key Design Decisions
-
-| Decision | Rationale |
+| Table | Key Fields |
 |---|---|
-| Shared `routes.ts` for API contract | Single source of truth for paths, input/output schemas; both client and server validate against the same Zod schemas |
-| Drizzle ORM + PostgreSQL | Type-safe queries, minimal boilerplate, easy schema evolution with `drizzle-kit` |
-| `IStorage` interface | Decouples route logic from database implementation; easy to swap in a mock for testing |
-| Single Express server serves both API and Vite in dev | Simpler dev setup; no CORS issues; HMR still works via Vite middleware |
-| TanStack React Query | Handles caching, refetching, and mutation state without manual `useEffect` plumbing |
-| shadcn/ui + Tailwind | Accessible, unstyled-then-restyled component primitives; custom design tokens applied via CSS variables |
+| `users` | id, email, passwordHash, createdAt |
+| `plunges` | id, clientId, userId (nullable), duration, temperature, score, photoData, locationName, createdAt |
+| `leaderboard_entries` | id, locationId, username, score, duration, temperature |
+| `pro_users` | id, email, stripeSessionId, active |
+| `user_locations` | id, name, country, state, city, latitude, longitude, nominationCount |
+
+### Device Identity
+
+Plunges use a `clientId` (UUID stored in localStorage) for anonymous tracking. When a user creates an account and syncs, plunges are migrated to their `userId`. Logged-in users fetch plunges by userId; anonymous users fetch by clientId.
 
 ---
 
-## External Dependencies
+## Key Files
 
-### Runtime Services
-- **PostgreSQL database** — Required. Must be provisioned and `DATABASE_URL` set as an environment variable before the app will start.
-
-### Key npm Dependencies
-
-| Package | Purpose |
+| File | Purpose |
 |---|---|
-| `drizzle-orm` + `drizzle-kit` | ORM and migration tooling for PostgreSQL |
-| `drizzle-zod` | Auto-generates Zod schemas from Drizzle table definitions |
-| `zod` | Runtime validation for API inputs and outputs |
-| `express` | HTTP server and API routing |
-| `@tanstack/react-query` | Client-side server state management |
-| `wouter` | Lightweight React router |
-| `canvas-confetti` | Celebration animation on plunge log |
-| `date-fns` | Date formatting in the history view |
-| `radix-ui/*` (many packages) | Accessible UI primitives underlying shadcn/ui components |
-| `tailwind-merge` + `clsx` | Utility for merging Tailwind class names safely |
-| `lucide-react` | Icon set used throughout the UI |
-| `@replit/vite-plugin-*` | Replit-specific dev tooling (runtime error overlay, cartographer, dev banner) |
+| `client/src/pages/Home.tsx` | Main app (timer, history, settings, leaderboard, badges) |
+| `client/src/components/PlungeCard.tsx` | Plunge history card with share/save/edit/delete |
+| `client/src/components/AdUnit.tsx` | FeedAd + InterstitialAd (skipped for Pro users) |
+| `client/src/components/Onboarding.tsx` | First-launch 3-slide onboarding flow |
+| `client/src/hooks/use-auth.ts` | Auth state hook (login/register/logout/sync) |
+| `client/src/hooks/use-plunges.ts` | Plunge CRUD hooks (includes auth headers) |
+| `client/src/lib/analytics.ts` | PostHog event tracking |
+| `client/src/lib/monitoring.ts` | Sentry error monitoring |
+| `client/src/lib/queryClient.ts` | TanStack Query client (includes auth header injection) |
+| `client/src/pages/Explore.tsx` | Chill Places + community locations |
+| `client/src/pages/Privacy.tsx` | Public privacy policy page |
+| `client/src/pages/Terms.tsx` | Public terms of service page |
+| `capacitor.config.ts` | Android/iOS wrapper config (appId: com.coldstreak.app) |
+| `ANDROID_BUILD.md` | Step-by-step Android build + Play Store submission guide |
 
-### External APIs / CDNs
-- **Google Fonts** — Loaded via `<link>` tags in `client/index.html` for DM Sans, Outfit, Fira Code, and Geist Mono fonts. Requires internet access at page load (no self-hosting).
+---
 
-### No Authentication
-The app currently has no user authentication or session management. All plunge data is shared/global.
+## Environment Variables
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `DATABASE_URL` | Secret | PostgreSQL connection string |
+| `SESSION_SECRET` | Secret | JWT signing key |
+| `STRIPE_SECRET_KEY` | Secret | Stripe server-side key |
+| `STRIPE_PRICE_ID` | Secret | Stripe price ID for Pro |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Shared | Stripe client-side key |
+| `VITE_PUBLIC_POSTHOG_KEY` | Secret | PostHog project API key |
+| `VITE_SENTRY_DSN` | Secret | Sentry DSN for error tracking |
 
 ---
 
 ## Monetization
 
-### Current Plan (PWA — Stripe)
-- **Free tier**: Last 7 days of history, basic stats, sharing, ads
-- **ColdStreak Pro** (one-time fee ~$7.99): Unlimited history, advanced stats, Chill Places + leaderboards, CSV/Apple Health export, custom cold score goals, no ads
-- Payment processor: **Stripe** (one-time payment, email used as Pro identifier for restore)
-- Pro status tied to email, stored in DB + localStorage
+- **Free tier**: Ads every 5 cards (FeedAd), interstitial before share/save (InterstitialAd), last 7 days history
+- **ColdStreak Pro** (~$7.99 one-time via Stripe): No ads, unlimited history, leaderboards, Chill Places
 
-### REMINDER: App Store Version → RevenueCat
-When building the native iOS/Android App Store version, Stripe CANNOT be used for in-app purchases of digital goods.
-- Use **RevenueCat** SDK instead (handles Apple IAP + Google Play Billing)
-- RevenueCat skill is available in `.local/skills/revenuecat/`
-- One-time purchases are supported via RevenueCat "non-consumable" product type
-- The app will need to be converted to React Native or wrapped with Capacitor for App Store submission
+> **App Store note**: For native iOS/Android App Store builds, Stripe must be replaced with RevenueCat (Apple IAP + Google Play Billing). See `.local/skills/revenuecat/`.
+
+---
+
+## Launch Status
+
+- ✅ Step 1 — Deploy (free tier on Replit)
+- ✅ Step 2 — Privacy policy + Terms of Service pages
+- ✅ Step 3 — PostHog analytics
+- ✅ Step 4 — Sentry error monitoring
+- 🔧 Step 5 — Android build (Capacitor configured; run `ANDROID_BUILD.md` steps locally)
+- ✅ Step 6 — First-launch onboarding flow
+- ✅ Step 7 — Account login + data sync
+- ⬜ Step 8 — Stripe live mode
+- ⬜ Step 9 — Custom domain (~$12)

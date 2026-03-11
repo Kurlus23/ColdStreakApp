@@ -1,19 +1,115 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import Stripe from "stripe";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-02-24.acacia" });
 const PRICE_ID = process.env.STRIPE_PRICE_ID!;
+const JWT_SECRET = process.env.SESSION_SECRET || "coldstreak-dev-secret";
+
+interface JwtPayload { userId: number; email: string; }
+
+function signToken(payload: JwtPayload): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "90d" });
+}
+
+function verifyToken(token: string): JwtPayload | null {
+  try {
+    return jwt.verify(token, JWT_SECRET) as JwtPayload;
+  } catch {
+    return null;
+  }
+}
+
+function extractUser(req: Request): JwtPayload | null {
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith("Bearer ")) return null;
+  return verifyToken(auth.slice(7));
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
 
+  // ── Auth ──────────────────────────────────────────────────────────────
+
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { email, password } = z.object({
+        email: z.string().email(),
+        password: z.string().min(6, "Password must be at least 6 characters"),
+      }).parse(req.body);
+
+      const existing = await storage.getUserByEmail(email);
+      if (existing) return res.status(409).json({ message: "An account with this email already exists" });
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      const user = await storage.createUser(email, passwordHash);
+      const token = signToken({ userId: user.id, email: user.email });
+
+      res.status(201).json({ token, user: { id: user.id, email: user.email } });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      throw err;
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = z.object({
+        email: z.string().email(),
+        password: z.string().min(1),
+      }).parse(req.body);
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) return res.status(401).json({ message: "Invalid email or password" });
+
+      const valid = await bcrypt.compare(password, user.passwordHash);
+      if (!valid) return res.status(401).json({ message: "Invalid email or password" });
+
+      const token = signToken({ userId: user.id, email: user.email });
+      res.json({ token, user: { id: user.id, email: user.email } });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      throw err;
+    }
+  });
+
+  app.get("/api/auth/me", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUserById(payload.userId);
+    if (!user) return res.status(401).json({ message: "User not found" });
+    res.json({ id: user.id, email: user.email });
+  });
+
+  // Claim local (clientId) plunges to the logged-in account
+  app.post("/api/auth/sync", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    try {
+      const { clientId } = z.object({ clientId: z.string().min(1) }).parse(req.body);
+      await storage.claimPlunges(clientId, payload.userId);
+      res.json({ ok: true });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      throw err;
+    }
+  });
+
+  // ── Plunges ────────────────────────────────────────────────────────────
+
   app.get(api.plunges.list.path, async (req, res) => {
+    const authUser = extractUser(req);
+    if (authUser) {
+      const allPlunges = await storage.getPlunges(undefined, authUser.userId);
+      return res.json(allPlunges);
+    }
     const clientId = req.query.clientId as string | undefined;
     const allPlunges = await storage.getPlunges(clientId);
     res.json(allPlunges);
@@ -21,9 +117,11 @@ export async function registerRoutes(
 
   app.post(api.plunges.create.path, async (req, res) => {
     try {
+      const authUser = extractUser(req);
       const { createdAt: customDateStr, ...input } = api.plunges.create.input.parse(req.body);
       const plungeData: any = { ...input, score: String(input.score) };
       if (customDateStr) plungeData.createdAt = new Date(customDateStr);
+      if (authUser) plungeData.userId = authUser.userId;
       const newPlunge = await storage.createPlunge(plungeData);
       res.status(201).json(newPlunge);
     } catch (err) {
@@ -57,7 +155,8 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  // Leaderboard
+  // ── Leaderboard ────────────────────────────────────────────────────────
+
   app.get("/api/leaderboard/:locationId", async (req, res) => {
     const { locationId } = req.params;
     const entries = await storage.getLeaderboard(locationId);
@@ -84,7 +183,8 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  // Community locations
+  // ── Community locations ────────────────────────────────────────────────
+
   app.get("/api/community-locations", async (req, res) => {
     const country = req.query.country as string | undefined;
     const locations = await storage.getUserLocations(country);
@@ -119,7 +219,8 @@ export async function registerRoutes(
     res.json(updated);
   });
 
-  // Stripe — create checkout session
+  // ── Stripe ─────────────────────────────────────────────────────────────
+
   app.post("/api/stripe/checkout", async (req, res) => {
     try {
       const { successUrl, cancelUrl } = z.object({
@@ -144,7 +245,6 @@ export async function registerRoutes(
     }
   });
 
-  // Stripe — verify completed session and store pro status
   app.get("/api/stripe/verify", async (req, res) => {
     const { session_id } = req.query;
     if (!session_id || typeof session_id !== "string") {
@@ -167,7 +267,6 @@ export async function registerRoutes(
     }
   });
 
-  // Pro status — check by email (for restore purchase)
   app.get("/api/pro-status/:email", async (req, res) => {
     const email = decodeURIComponent(req.params.email).toLowerCase();
     const user = await storage.getProUser(email);

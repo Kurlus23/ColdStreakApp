@@ -1,29 +1,43 @@
 import { db } from "./db";
 import {
-  plunges, leaderboardEntries, proUsers, userLocations,
+  plunges, leaderboardEntries, proUsers, userLocations, users,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
-  type UserLocation, type InsertUserLocation,
+  type UserLocation, type InsertUserLocation, type User,
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and } from "drizzle-orm";
 
 export interface IStorage {
-  getPlunges(clientId?: string): Promise<Plunge[]>;
+  // Plunges
+  getPlunges(clientId?: string, userId?: number): Promise<Plunge[]>;
   createPlunge(plunge: InsertPlunge): Promise<Plunge>;
   updatePlunge(id: number, patch: UpdatePlunge): Promise<Plunge>;
   deletePlunge(id: number): Promise<void>;
+  claimPlunges(clientId: string, userId: number): Promise<void>;
+  // Leaderboard
   getLeaderboard(locationId: string, limit?: number): Promise<LeaderboardEntry[]>;
   addLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry>;
   deleteLeaderboardEntry(id: number): Promise<void>;
+  // Pro users
   getProUser(email: string): Promise<ProUser | null>;
   createProUser(email: string, stripeSessionId: string): Promise<ProUser>;
+  // Community locations
   getUserLocations(country?: string): Promise<UserLocation[]>;
   createUserLocation(loc: InsertUserLocation): Promise<UserLocation>;
   nominateUserLocation(id: number): Promise<UserLocation | null>;
+  // Auth users
+  createUser(email: string, passwordHash: string): Promise<User>;
+  getUserByEmail(email: string): Promise<User | null>;
+  getUserById(id: number): Promise<User | null>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getPlunges(clientId?: string): Promise<Plunge[]> {
+  async getPlunges(clientId?: string, userId?: number): Promise<Plunge[]> {
+    if (userId) {
+      return await db.select().from(plunges)
+        .where(eq(plunges.userId, userId))
+        .orderBy(desc(plunges.createdAt));
+    }
     if (clientId) {
       return await db.select().from(plunges)
         .where(or(eq(plunges.clientId, clientId), isNull(plunges.clientId)))
@@ -44,6 +58,12 @@ export class DatabaseStorage implements IStorage {
 
   async deletePlunge(id: number): Promise<void> {
     await db.delete(plunges).where(eq(plunges.id, id));
+  }
+
+  async claimPlunges(clientId: string, userId: number): Promise<void> {
+    await db.update(plunges)
+      .set({ userId })
+      .where(and(eq(plunges.clientId, clientId), isNull(plunges.userId)));
   }
 
   async getLeaderboard(locationId: string, limit = 10): Promise<LeaderboardEntry[]> {
@@ -112,6 +132,24 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userLocations.id, id))
       .returning();
     return updated ?? null;
+  }
+
+  async createUser(email: string, passwordHash: string): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({ email: email.toLowerCase(), passwordHash })
+      .returning();
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    const [user] = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
+    return user ?? null;
+  }
+
+  async getUserById(id: number): Promise<User | null> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user ?? null;
   }
 }
 

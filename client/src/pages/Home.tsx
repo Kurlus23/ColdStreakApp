@@ -20,6 +20,8 @@ import { PlungeCard, buildShareText } from "@/components/PlungeCard";
 import { FeedAd, InterstitialAd } from "@/components/AdUnit";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
 import { Analytics } from "@/lib/analytics";
+import { useAuth } from "@/hooks/use-auth";
+import { getClientId } from "@/hooks/use-plunges";
 import { buildShareImage } from "@/lib/shareImage";
 import { Explore } from "@/pages/Explore";
 import {
@@ -104,6 +106,11 @@ function getStreak(plunges: Plunge[]): number {
 
 export default function Home() {
   const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
+  const auth = useAuth();
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [syncDone, setSyncDone] = useState(false);
 
   const [screen, setScreen] = useState<Screen>(
     () => (localStorage.getItem("defaultScreen") as Screen) || "timer"
@@ -287,6 +294,31 @@ export default function Home() {
     const next = screen === s ? "timer" : s;
     setScreen(next);
     localStorage.setItem("defaultScreen", next);
+  };
+
+  const handleAuthSubmit = async () => {
+    const ok = authMode === "login"
+      ? await auth.login(authEmail, authPassword)
+      : await auth.register(authEmail, authPassword);
+    if (ok) {
+      setAuthEmail("");
+      setAuthPassword("");
+      queryClient.invalidateQueries({ queryKey: ["/api/plunges"] });
+    }
+  };
+
+  const handleSync = async () => {
+    const ok = await auth.syncLocalData(getClientId());
+    if (ok) {
+      setSyncDone(true);
+      queryClient.invalidateQueries({ queryKey: ["/api/plunges"] });
+    }
+  };
+
+  const handleLogout = () => {
+    auth.logout();
+    setSyncDone(false);
+    queryClient.invalidateQueries({ queryKey: ["/api/plunges"] });
   };
 
   const doLogPlunge = useCallback((durationSec: number) => {
@@ -1147,6 +1179,87 @@ export default function Home() {
               </button>
               {userOpen && (
                 <div className="px-4 pb-4 space-y-4 border-t border-blue-700/30 pt-3">
+
+                  {/* Account */}
+                  <div>
+                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
+                      <User className="w-3 h-3" /> Account
+                    </label>
+                    {auth.user ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 bg-blue-800/40 rounded-xl px-3 py-2.5 border border-blue-700/30">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                          <span className="text-cyan-300 text-xs truncate flex-1">{auth.user.email}</span>
+                        </div>
+                        {!syncDone ? (
+                          <button
+                            data-testid="button-sync-data"
+                            onClick={handleSync}
+                            disabled={auth.loading}
+                            className="w-full py-2.5 rounded-xl bg-blue-700/60 hover:bg-blue-700 border border-blue-600 text-blue-100 text-xs font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            {auth.loading ? "Syncing…" : "Sync local data to account"}
+                          </button>
+                        ) : (
+                          <p className="text-green-400 text-xs flex items-center gap-1.5 px-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Local data synced to your account
+                          </p>
+                        )}
+                        <button
+                          data-testid="button-account-signout"
+                          onClick={handleLogout}
+                          className="w-full py-2 rounded-xl bg-transparent border border-blue-700/50 text-blue-400 text-xs font-semibold hover:border-red-500/50 hover:text-red-400 transition-colors"
+                        >
+                          Sign out
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex rounded-xl overflow-hidden border border-blue-700/50">
+                          <button
+                            data-testid="button-auth-mode-login"
+                            onClick={() => { setAuthMode("login"); auth.clearError(); }}
+                            className={`flex-1 py-2 text-xs font-semibold transition-colors ${authMode === "login" ? "bg-cyan-500 text-blue-950" : "bg-blue-800/60 text-blue-300 hover:bg-blue-700/60"}`}
+                          >Sign In</button>
+                          <button
+                            data-testid="button-auth-mode-register"
+                            onClick={() => { setAuthMode("register"); auth.clearError(); }}
+                            className={`flex-1 py-2 text-xs font-semibold transition-colors ${authMode === "register" ? "bg-cyan-500 text-blue-950" : "bg-blue-800/60 text-blue-300 hover:bg-blue-700/60"}`}
+                          >Create Account</button>
+                        </div>
+                        <input
+                          data-testid="input-auth-email"
+                          type="email"
+                          placeholder="Email"
+                          value={authEmail}
+                          onChange={(e) => setAuthEmail(e.target.value)}
+                          className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                        />
+                        <input
+                          data-testid="input-auth-password"
+                          type="password"
+                          placeholder={authMode === "register" ? "Password (min 6 chars)" : "Password"}
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
+                          className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                        />
+                        {auth.error && (
+                          <p className="text-red-400 text-xs px-1">{auth.error}</p>
+                        )}
+                        <button
+                          data-testid="button-auth-submit"
+                          onClick={handleAuthSubmit}
+                          disabled={auth.loading || !authEmail || !authPassword}
+                          className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-blue-950 text-sm font-bold transition-colors disabled:opacity-50"
+                        >
+                          {auth.loading ? "Please wait…" : authMode === "login" ? "Sign In" : "Create Account"}
+                        </button>
+                        <p className="text-blue-500 text-xs text-center">Your plunges sync across all your devices</p>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Leaderboard name */}
                   <div>
