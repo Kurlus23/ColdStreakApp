@@ -111,21 +111,47 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
     deletePlunge.mutate(plunge.id);
   };
 
+  const downloadBlob = async (dataUrl: string) => {
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `coldstreak-${plunge.id}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   const handleSaveToDevice = async () => {
     if (!photoSrc) return;
     try {
-      const res = await fetch(photoSrc);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `coldstreak-${plunge.id}.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      await downloadBlob(photoSrc);
     } catch {
       toast({ title: "Could not save photo", variant: "destructive" });
+    }
+  };
+
+  const [saving, setSaving] = useState(false);
+
+  const handleSaveWithOverlay = async () => {
+    if (!photoSrc) return;
+    setSaving(true);
+    try {
+      const composited = await buildShareImage({
+        photoDataUrl: photoSrc,
+        temperature: plunge.temperature,
+        duration: plunge.duration,
+        streak,
+        locationName: plunge.locationName,
+        locationId: plunge.locationId,
+      });
+      await downloadBlob(composited);
+    } catch {
+      toast({ title: "Could not save photo", variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -337,6 +363,18 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
               >
                 <Share2 className="w-4 h-4" />
               </button>
+
+              {photoSrc && (
+                <button
+                  data-testid={`button-save-overlay-${plunge.id}`}
+                  onClick={handleSaveWithOverlay}
+                  disabled={saving}
+                  title="Save photo with stats"
+                  className="p-2 rounded-xl text-slate-500 hover:text-orange-400 hover:bg-orange-500/10 border border-transparent hover:border-orange-500/20 transition-all duration-200 active:scale-95 disabled:opacity-40"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              )}
 
               <button
                 data-testid={`button-edit-plunge-${plunge.id}`}
