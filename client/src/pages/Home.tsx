@@ -615,8 +615,11 @@ export default function Home() {
                         : (weeklyCalories > 0 ? Math.round(weeklyCalories) : "—")
                       }
                     </div>
-                    <div className="text-orange-400/70 text-[10px]">
-                      {scoreView === "kcal" ? "kcal today" : "kcal this week"}
+                    <div
+                      title="Estimated thermogenic calorie burn. Varies by individual physiology — not a precise measurement."
+                      className="text-orange-400/70 text-[10px] cursor-help"
+                    >
+                      {scoreView === "kcal" ? "kcal today (est.)" : "kcal this week (est.)"}
                     </div>
                   </>
                 ) : (
@@ -1484,6 +1487,9 @@ export default function Home() {
                   </p>
                   <p className="text-red-200 text-xs leading-relaxed">
                     <span className="font-bold text-red-300">Featured Locations:</span> USA locations listed in Chill Places are spring-fed or managed facilities selected for relative safety and year-round access. Sliding Rock (NC) is listed as seasonal — lifeguards are only present May–Labor Day. Conditions at all locations can change without notice due to weather, drought, flooding, or closures. Always check current local conditions before visiting. Never plunge alone.
+                  </p>
+                  <p className="text-red-200 text-xs leading-relaxed">
+                    <span className="font-bold text-red-300">Calorie Estimates:</span> The kcal figures shown on each plunge are rough estimates of <span className="italic">potential</span> additional calories burned via thermogenesis — the energy your body expends generating heat in cold water. They are calculated from duration, water temperature, and body weight using a simplified model and are <span className="font-bold text-red-300">not a precise measurement</span>. Actual calorie burn varies significantly based on individual physiology, acclimatization, movement, and other factors. Do not use these figures for nutritional or medical decisions.
                   </p>
                   <p className="text-red-200/70 text-[10px] leading-relaxed">
                     ColdStreak and its developers accept no liability for injury, illness, or death resulting from cold plunge activities. Use this app at your own risk.

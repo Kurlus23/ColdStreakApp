@@ -433,8 +433,11 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
               <span className="text-slate-600">·</span>
               <span className="text-xs text-cyan-300 font-semibold">Score {Number(plunge.score).toFixed(1)}</span>
               <span className="text-slate-600">·</span>
-              <span className="flex items-center gap-0.5 text-xs text-orange-400/80">
-                <Flame className="w-3 h-3" />~{calories} kcal
+              <span
+                title="Estimated thermogenic calorie burn. Varies by individual physiology — not a precise measurement."
+                className="flex items-center gap-0.5 text-xs text-orange-400/80 cursor-help"
+              >
+                <Flame className="w-3 h-3" />~{calories} kcal est.
               </span>
             </div>
           </div>
