@@ -937,6 +937,7 @@ export default function Home() {
                     className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-400"
                   >
                     <option value="">— No location —</option>
+                    <option value="home">🏠 {homeLabel}</option>
                     {sortedLocs.length > 0 && (
                       <optgroup label="Community Spots">
                         {sortedLocs.map((l) => {
@@ -1042,8 +1043,10 @@ export default function Home() {
                     if (durationSec === 0) return;
                     const isoDate = new Date(`${manualDate}T${manualTime}:00`).toISOString();
                     const score = plungeScore(durationSec, manualTempF);
-                    const finalLocId = manualLocSel.startsWith("community-") ? manualLocSel : undefined;
-                    const finalLocName = manualLocSel.startsWith("community-")
+                    const finalLocId = manualLocSel === "home" ? "home" : manualLocSel.startsWith("community-") ? manualLocSel : undefined;
+                    const finalLocName = manualLocSel === "home"
+                      ? (homeLabel || "Home")
+                      : manualLocSel.startsWith("community-")
                       ? (communityLocs.find((l) => l.id === Number(manualLocSel.replace("community-", "")))?.name)
                       : manualLocSel === "custom" ? (manualLocCustom.trim() || undefined)
                       : undefined;
