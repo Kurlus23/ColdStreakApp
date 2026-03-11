@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   MapPin, Compass, Search, X, ChevronDown, Lock,
-  Trophy, Flame, Navigation, Star, Plus, Send
+  Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useProStatus } from "@/hooks/use-pro-status";
@@ -106,6 +106,24 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   // ── Tile open/close state ──
   const [passportOpen, setPassportOpen] = useState(true);
   const [communityOpen, setCommunityOpen] = useState(true);
+
+  // ── Community disclaimer ──
+  const DISCLAIMER_KEY = "coldstreak-community-disclaimer-ack";
+  const [showCommunityDisclaimer, setShowCommunityDisclaimer] = useState(false);
+  const acknowledged = typeof window !== "undefined" && !!localStorage.getItem(DISCLAIMER_KEY);
+
+  const handleCommunityToggle = () => {
+    if (!isPro) { onUpgrade(); return; }
+    if (!acknowledged && !communityOpen) {
+      setShowCommunityDisclaimer(true);
+    }
+    setCommunityOpen((v) => !v);
+  };
+
+  const handleAcknowledgeDisclaimer = () => {
+    localStorage.setItem(DISCLAIMER_KEY, "1");
+    setShowCommunityDisclaimer(false);
+  };
 
   // ── Community submission form ──
   const [showForm, setShowForm] = useState(false);
@@ -314,6 +332,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     : null;
 
   return (
+    <>
     <div className="px-4 pb-28 pt-4 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-white font-bold text-lg">Explore</h2>
@@ -445,31 +464,43 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
 
       {/* ── Community Spots Tile (Pro) ── */}
       <div className="bg-gradient-to-br from-blue-900/70 to-blue-950/80 border border-blue-700/50 rounded-2xl overflow-hidden">
-        <button
-          data-testid="button-toggle-community"
-          onClick={() => isPro ? setCommunityOpen((v) => !v) : onUpgrade()}
-          className="w-full flex items-center gap-3 px-4 py-3.5"
-        >
-          <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/40">
-            <MapPin className="w-4 h-4 text-indigo-400" />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="text-white font-bold text-sm">Community Spots</div>
-            <div className="text-blue-400 text-[11px]">
-              {isPro ? (effectiveGeoPos ? "Sorted by distance from you" : "Sorted by most nominations") : "Pro — discover & submit spots"}
+        <div className="flex items-center">
+          <button
+            data-testid="button-toggle-community"
+            onClick={handleCommunityToggle}
+            className="flex-1 flex items-center gap-3 px-4 py-3.5"
+          >
+            <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/40">
+              <MapPin className="w-4 h-4 text-indigo-400" />
             </div>
-          </div>
-          {isPro ? (
-            <span className="text-xs text-blue-400 font-semibold">
-              {effectiveGeoPos ? `Nearest ${communityFiltered.length}` : `Top ${communityFiltered.length}`}
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 text-xs text-yellow-400 font-semibold mr-1">
-              <Lock className="w-3 h-3" /> Pro
-            </span>
+            <div className="flex-1 text-left">
+              <div className="text-white font-bold text-sm">Community Spots</div>
+              <div className="text-blue-400 text-[11px]">
+                {isPro ? (effectiveGeoPos ? "Sorted by distance from you" : "Sorted by most nominations") : "Pro — discover & submit spots"}
+              </div>
+            </div>
+            {isPro ? (
+              <span className="text-xs text-blue-400 font-semibold">
+                {effectiveGeoPos ? `Nearest ${communityFiltered.length}` : `Top ${communityFiltered.length}`}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-xs text-yellow-400 font-semibold mr-1">
+                <Lock className="w-3 h-3" /> Pro
+              </span>
+            )}
+            <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform duration-300 ${communityOpen && isPro ? "rotate-180" : ""}`} />
+          </button>
+          {isPro && (
+            <button
+              data-testid="button-community-disclaimer"
+              onClick={(e) => { e.stopPropagation(); setShowCommunityDisclaimer(true); }}
+              title="Location disclaimer"
+              className="p-3 text-indigo-400/60 hover:text-indigo-300 transition-colors"
+            >
+              <Info className="w-4 h-4" />
+            </button>
           )}
-          <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform duration-300 ${communityOpen && isPro ? "rotate-180" : ""}`} />
-        </button>
+        </div>
 
         {communityOpen && isPro && (
           <div className="px-3 pb-3 space-y-2">
@@ -774,5 +805,60 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
         )}
       </div>
     </div>
+
+    {/* ── Community Disclaimer Modal ── */}
+    {showCommunityDisclaimer && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
+        <div className="w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-indigo-700/50 rounded-2xl shadow-2xl overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-slate-800">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/40 shrink-0">
+              <ShieldAlert className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm">Community Location Disclaimer</p>
+              <p className="text-slate-400 text-[11px]">Please read before exploring</p>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="px-5 py-4 space-y-3 text-sm text-slate-300 leading-relaxed">
+            <p>
+              Community Spots are submitted by ColdStreak users and <span className="text-white font-semibold">have not been verified</span> for safety, accuracy, or accessibility by ColdStreak.
+            </p>
+            <p>
+              Cold water immersion carries <span className="text-white font-semibold">serious risks</span> including hypothermia, cold shock, and cardiac events. Conditions at any location — water temperature, currents, accessibility — can change without notice.
+            </p>
+            <p>
+              Always assess conditions yourself before entering any body of water, never plunge alone, and <span className="text-white font-semibold">consult a physician</span> if you have any heart, respiratory, or circulatory conditions.
+            </p>
+            <p className="text-slate-500 text-[11px]">
+              ColdStreak is not liable for any injury, loss, or damages arising from use of community-submitted locations.
+            </p>
+          </div>
+
+          {/* Action */}
+          <div className="px-5 pb-5">
+            <button
+              data-testid="button-acknowledge-disclaimer"
+              onClick={handleAcknowledgeDisclaimer}
+              className="w-full py-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-sm transition-all active:scale-95"
+            >
+              I Understand — Show Community Spots
+            </button>
+            {!localStorage.getItem(DISCLAIMER_KEY) && (
+              <button
+                data-testid="button-dismiss-disclaimer"
+                onClick={() => setShowCommunityDisclaimer(false)}
+                className="w-full mt-2 py-2 text-slate-500 text-xs hover:text-slate-400 transition-colors"
+              >
+                Not now
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
