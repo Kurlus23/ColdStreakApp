@@ -460,7 +460,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             {/* Community location cards */}
             {communityFiltered.length === 0 ? (
               <div className="text-center py-6 text-blue-400 text-sm">
-                {nearbyOnly ? `No community spots within ${NEARBY_MILES} miles.` : "No spots yet — be the first to suggest one!"}
+                {radiusMiles > 0 && geoPos ? `No community spots within ${radiusMiles} miles.` : "No spots yet — be the first to suggest one!"}
               </div>
             ) : (
               <div className="space-y-2">
