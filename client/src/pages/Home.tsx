@@ -305,6 +305,26 @@ export default function Home() {
     setForgotSent(true);
   };
 
+  const LAST_SYNC_KEY = "coldstreak-last-sync";
+
+  const backgroundSync = useCallback(async () => {
+    const ok = await auth.syncLocalData(getClientId());
+    if (ok) {
+      localStorage.setItem(LAST_SYNC_KEY, String(Date.now()));
+      queryClient.invalidateQueries({ queryKey: ["/api/plunges"] });
+    }
+  }, [auth]);
+
+  // Daily sync on app open
+  useEffect(() => {
+    if (!auth.user) return;
+    const last = Number(localStorage.getItem(LAST_SYNC_KEY) || "0");
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    if (Date.now() - last > oneDayMs) {
+      backgroundSync();
+    }
+  }, [auth.user]);
+
   const handleAuthSubmit = async () => {
     const ok = authMode === "login"
       ? await auth.login(authEmail, authPassword)
@@ -312,13 +332,15 @@ export default function Home() {
     if (ok) {
       setAuthEmail("");
       setAuthPassword("");
-      queryClient.invalidateQueries({ queryKey: ["/api/plunges"] });
+      // Auto-sync local plunges immediately on login/register
+      backgroundSync();
     }
   };
 
   const handleSync = async () => {
     const ok = await auth.syncLocalData(getClientId());
     if (ok) {
+      localStorage.setItem(LAST_SYNC_KEY, String(Date.now()));
       setSyncDone(true);
       queryClient.invalidateQueries({ queryKey: ["/api/plunges"] });
     }
@@ -346,11 +368,12 @@ export default function Home() {
           setPromptCustomLocation("");
           setPromptSubmitLeaderboard(true);
           setShowPostSessionAd(true);
+          backgroundSync();
         },
       }
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [temperature, createPlunge, toast]);
+  }, [temperature, createPlunge, toast, backgroundSync]);
 
   // Stopwatch
   useEffect(() => {
