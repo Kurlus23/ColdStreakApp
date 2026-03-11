@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Snowflake, Clock, Trash2, Heart, MapPin, Share2, Flame, Download, Pencil, Check, X } from "lucide-react";
+import { Clock, Trash2, Heart, MapPin, Share2, Flame, Download, Pencil, Check, X } from "lucide-react";
 import { type Plunge, type UserLocation } from "@shared/schema";
 import { PASSPORT_LOCATIONS } from "@/lib/passport";
 import { useDeletePlunge, useUpdatePlunge } from "@/hooks/use-plunges";
@@ -386,46 +386,35 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
         </div>
 
         {/* Main info row */}
-        <div className="relative z-10 flex items-center justify-between gap-3">
-          {/* Left: photo + time + date */}
-          <div className="flex items-center gap-3 min-w-0">
-            {photoSrc ? (
-              <button
-                data-testid={`button-photo-${plunge.id}`}
-                onClick={() => setPhotoExpanded(true)}
-                className="shrink-0 w-12 h-12 rounded-xl overflow-hidden border border-slate-600/50 hover:border-cyan-400/60 transition-all active:scale-95"
-              >
-                <img src={photoSrc} alt="Plunge" className="w-full h-full object-cover" />
-              </button>
-            ) : (
-              <div className="shrink-0 bg-slate-900/80 p-2.5 rounded-xl border border-slate-700/50 text-cyan-400">
-                <Snowflake className="w-5 h-5" strokeWidth={2} />
-              </div>
-            )}
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-white font-semibold">
-                <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                {formatTime(plunge.duration)}
-              </div>
-              <div className="text-xs text-slate-400 mt-0.5 truncate">
-                {format(new Date(plunge.createdAt), "MMM d, yyyy 'at' h:mm a")}
-              </div>
-            </div>
-          </div>
+        <div className="relative z-10 flex items-center gap-3">
+          {/* Photo thumbnail — only when available */}
+          {photoSrc && (
+            <button
+              data-testid={`button-photo-${plunge.id}`}
+              onClick={() => setPhotoExpanded(true)}
+              className="shrink-0 w-14 h-14 rounded-xl overflow-hidden border border-slate-600/50 hover:border-cyan-400/60 transition-all active:scale-95"
+            >
+              <img src={photoSrc} alt="Plunge" className="w-full h-full object-cover" />
+            </button>
+          )}
 
-          {/* Right: temp + score + kcal */}
-          <div className="text-right shrink-0">
-            <div className="flex items-baseline justify-end gap-0.5">
-              <span className="text-xl font-bold text-white">{plunge.temperature}</span>
-              <span className="text-cyan-400 font-bold text-sm">°F</span>
+          {/* Text column: duration · date · stats */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              <span className="text-white font-bold text-base">{formatTime(plunge.duration)}</span>
             </div>
-            <div className="text-xs bg-slate-900/60 px-2 py-0.5 rounded-lg border border-cyan-500/30 mt-1">
-              <span className="text-cyan-300 font-semibold">Score: </span>
-              <span className="text-white font-bold">{Number(plunge.score).toFixed(1)}</span>
+            <div className="text-xs text-slate-400 mt-0.5">
+              {format(new Date(plunge.createdAt), "MMM d, yyyy 'at' h:mm a")}
             </div>
-            <div className="flex items-center gap-1 text-xs text-orange-400/80 mt-1 justify-end">
-              <Flame className="w-3 h-3" />
-              <span>~{calories} kcal</span>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <span className="text-sm font-semibold text-white">{plunge.temperature}<span className="text-cyan-400 text-xs">°F</span></span>
+              <span className="text-slate-600">·</span>
+              <span className="text-xs text-cyan-300 font-semibold">Score {Number(plunge.score).toFixed(1)}</span>
+              <span className="text-slate-600">·</span>
+              <span className="flex items-center gap-0.5 text-xs text-orange-400/80">
+                <Flame className="w-3 h-3" />~{calories} kcal
+              </span>
             </div>
           </div>
         </div>
