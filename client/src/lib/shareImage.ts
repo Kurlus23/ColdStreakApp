@@ -4,6 +4,20 @@ function formatTime(totalSeconds: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function setShadow(ctx: CanvasRenderingContext2D, blur: number, alpha = 0.9) {
+  ctx.shadowColor = `rgba(0,0,0,${alpha})`;
+  ctx.shadowBlur = blur;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+}
+
+function clearShadow(ctx: CanvasRenderingContext2D) {
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+}
+
 export async function buildShareImage({
   photoDataUrl,
   temperature,
@@ -32,15 +46,6 @@ export async function buildShareImage({
       const w = canvas.width;
       const h = canvas.height;
 
-      // Soft gradient covering bottom ~35% — photo is fully visible above it
-      const gradH = h * 0.38;
-      const grad = ctx.createLinearGradient(0, h - gradH, 0, h);
-      grad.addColorStop(0, "rgba(0,4,20,0)");
-      grad.addColorStop(0.45, "rgba(0,4,20,0.52)");
-      grad.addColorStop(1, "rgba(0,4,20,0.88)");
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, h - gradH, w, gradH);
-
       // Scale everything relative to a 1080-wide reference
       const sc = w / 1080;
       const pad = 44 * sc;
@@ -56,6 +61,7 @@ export async function buildShareImage({
           ? `📍 ${locationName}`
           : null;
       if (locText) {
+        setShadow(ctx, 12 * sc);
         ctx.font = `${15 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
         ctx.fillStyle = "rgba(96,220,255,0.95)";
         ctx.textAlign = "left";
@@ -78,6 +84,7 @@ export async function buildShareImage({
         const x = pad + colW * i;
 
         // Value
+        setShadow(ctx, 14 * sc);
         ctx.font = `bold ${26 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
         ctx.fillStyle = "#ffffff";
         ctx.textAlign = "left";
@@ -85,6 +92,7 @@ export async function buildShareImage({
         ctx.fillText(col.value, x, statCenterY);
 
         // Label
+        setShadow(ctx, 10 * sc, 0.75);
         ctx.font = `${11 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
         ctx.fillStyle = "rgba(148,200,255,0.85)";
         ctx.textBaseline = "top";
@@ -92,11 +100,14 @@ export async function buildShareImage({
       });
 
       // ColdStreak watermark — bottom right, subtle
+      setShadow(ctx, 8 * sc, 0.6);
       ctx.font = `bold ${13 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-      ctx.fillStyle = "rgba(255,255,255,0.38)";
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
       ctx.textAlign = "right";
       ctx.textBaseline = "middle";
       ctx.fillText("ColdStreak ❄️", w - pad, h - 18 * sc);
+
+      clearShadow(ctx);
 
       resolve(canvas.toDataURL("image/jpeg", 0.93));
     };
