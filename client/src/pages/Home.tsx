@@ -245,6 +245,8 @@ export default function Home() {
   );
   const [restoreEmailInput, setRestoreEmailInput] = useState("");
   const [restoreLoading, setRestoreLoading] = useState(false);
+  const [settingsRestoreEmail, setSettingsRestoreEmail] = useState("");
+  const [showSettingsRestore, setShowSettingsRestore] = useState(false);
 
   // Leaderboard
   const [leaderboardLocationId, setLeaderboardLocationId] = useState<string | null>(null);
@@ -1019,24 +1021,56 @@ export default function Home() {
                 >
                   Upgrade to Pro — One-Time $7.99
                 </button>
-                <button
-                  data-testid="button-restore-purchase"
-                  onClick={async () => {
-                    const email = prompt("Enter the email you used to purchase ColdStreak Pro:");
-                    if (!email) return;
-                    setRestoreLoading(true);
-                    const ok = await restorePurchase(email);
-                    setRestoreLoading(false);
-                    if (ok) {
-                      toast({ title: "✅ Pro restored!", description: "Welcome back to ColdStreak Pro." });
-                    } else {
-                      toast({ title: "Not found", description: "No Pro purchase found for that email.", variant: "destructive" });
-                    }
-                  }}
-                  className="w-full py-2 rounded-xl border border-blue-600/50 text-blue-400 text-xs font-semibold transition-all active:scale-[0.98] hover:border-blue-400 flex items-center justify-center gap-1.5"
-                >
-                  <RestoreIcon className="w-3 h-3" /> Restore Purchase
-                </button>
+                {!showSettingsRestore ? (
+                  <button
+                    data-testid="button-restore-purchase"
+                    onClick={() => setShowSettingsRestore(true)}
+                    className="w-full py-2 rounded-xl border border-blue-600/50 text-blue-400 text-xs font-semibold transition-all active:scale-[0.98] hover:border-blue-400 flex items-center justify-center gap-1.5"
+                  >
+                    <RestoreIcon className="w-3 h-3" /> Restore Purchase
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-blue-400 text-xs text-center">Enter the email you used at checkout:</p>
+                    <div className="flex gap-2">
+                      <input
+                        data-testid="input-settings-restore-email"
+                        type="email"
+                        autoFocus
+                        placeholder="your@email.com"
+                        value={settingsRestoreEmail}
+                        onChange={(e) => setSettingsRestoreEmail(e.target.value)}
+                        className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                      />
+                      <button
+                        data-testid="button-settings-restore-submit"
+                        disabled={restoreLoading || !settingsRestoreEmail.trim()}
+                        onClick={async () => {
+                          setRestoreLoading(true);
+                          const ok = await restorePurchase(settingsRestoreEmail.trim());
+                          setRestoreLoading(false);
+                          if (ok) {
+                            setShowSettingsRestore(false);
+                            setSettingsRestoreEmail("");
+                            toast({ title: "✅ Pro restored!", description: "Welcome back to ColdStreak Pro." });
+                          } else {
+                            toast({ title: "Not found", description: "No Pro purchase found for that email.", variant: "destructive" });
+                          }
+                        }}
+                        className="px-3 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold disabled:opacity-40 transition-all"
+                      >
+                        {restoreLoading ? "…" : "Go"}
+                      </button>
+                      <button
+                        data-testid="button-settings-restore-cancel"
+                        onClick={() => { setShowSettingsRestore(false); setSettingsRestoreEmail(""); }}
+                        className="px-3 py-2 rounded-xl border border-blue-700 text-blue-400 text-xs font-semibold hover:border-blue-500 transition-all"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1077,7 +1111,14 @@ export default function Home() {
               const earnedStates = new Set(computeStateBadges(badges));
               const earnedTiers = new Set(computeTierBadges(badges));
               const totalAchievements = earnedStates.size + earnedTiers.size;
-="flex flex-wrap gap-1.5">
+              return (
+                <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+                  {/* Tier Master Badges */}
+                  <div>
+                    <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">
+                      Tier Badges <span className="text-cyan-500 normal-case">({totalAchievements} earned)</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
                       {allTiers.map((tier) => {
                         const earned = earnedTiers.has(tier);
                         const meta = DIFFICULTY_META[tier];
