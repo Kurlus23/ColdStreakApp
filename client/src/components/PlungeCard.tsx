@@ -1,8 +1,8 @@
 import { format } from "date-fns";
-import { Snowflake, Clock, Trash2, Heart, MapPin, Share2, Flame, Download } from "lucide-react";
-import { type Plunge } from "@shared/schema";
+import { Snowflake, Clock, Trash2, Heart, MapPin, Share2, Flame, Download, Pencil, Check, X } from "lucide-react";
+import { type Plunge, type UserLocation } from "@shared/schema";
 import { PASSPORT_LOCATIONS } from "@/lib/passport";
-import { useDeletePlunge } from "@/hooks/use-plunges";
+import { useDeletePlunge, useUpdatePlunge } from "@/hooks/use-plunges";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { getPhoto, deletePhoto } from "@/lib/photoStore";
@@ -22,6 +22,7 @@ interface PlungeCardProps {
   username?: string;
   streak?: number;
   homeLabel?: string;
+  communityLocs?: UserLocation[];
 }
 
 function formatTime(totalSeconds: number) {
@@ -64,12 +65,34 @@ export function buildShareText({
   return lines.join("\n");
 }
 
-export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, homeLabel }: PlungeCardProps) {
+function resolveLocationDisplay(locId: string | null | undefined, locName: string | null | undefined, communityLocs: UserLocation[], homeLabel?: string) {
+  if (locId === "home") return { label: homeLabel || "Home", icon: "🏠" };
+  if (locId?.startsWith("community-")) {
+    const id = Number(locId.replace("community-", ""));
+    const cl = communityLocs.find((l) => l.id === id);
+    return { label: cl?.name ?? locName ?? "", icon: null };
+  }
+  if (locId) {
+    const pl = PASSPORT_LOCATIONS.find((l) => l.id === locId);
+    if (pl) return { label: pl.name, icon: pl.flag };
+  }
+  if (locName) return { label: locName, icon: null };
+  return null;
+}
+
+export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, homeLabel, communityLocs = [] }: PlungeCardProps) {
   const deletePlunge = useDeletePlunge();
+  const updatePlunge = useUpdatePlunge();
   const { toast } = useToast();
   const [confirming, setConfirming] = useState(false);
   const [photoExpanded, setPhotoExpanded] = useState(false);
   const [localPhoto, setLocalPhoto] = useState<string | null>(null);
+
+  // Edit location state
+  const [editing, setEditing] = useState(false);
+  const [editSel, setEditSel] = useState<string>("");
+  const [editCustom, setEditCustom] = useState("");
+
   const calories = Math.round(estimateCalories(plunge.duration, plunge.temperature, bodyWeightLbs));
 
   useEffect(() => {
@@ -145,6 +168,64 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
     }
   };
 
+  const openEdit = () => {
+    // Pre-populate selector from current plunge
+    if (plunge.locationId === "home") {
+      setEditSel("home");
+      setEditCustom("");
+    } else if (plunge.locationId?.startsWith("community-")) {
+      setEditSel(plunge.locationId);
+      setEditCustom("");
+    } else if (plunge.locationId) {
+      setEditSel(plunge.locationId);
+      setEditCustom("");
+    } else if (plunge.locationName) {
+      setEditSel("custom");
+      setEditCustom(plunge.locationName);
+    } else {
+      setEditSel("");
+      setEditCustom("");
+    }
+    setEditing(true);
+  };
+
+  const handleSaveLocation = () => {
+    let locationId: string | null = null;
+    let locationName: string | null = null;
+
+    if (editSel === "home") {
+      locationId = "home";
+      locationName = homeLabel || "Home";
+    } else if (editSel === "custom") {
+      locationId = null;
+      locationName = editCustom.trim() || null;
+    } else if (editSel === "") {
+      locationId = null;
+      locationName = null;
+    } else if (editSel.startsWith("community-")) {
+      locationId = editSel;
+      const cid = Number(editSel.replace("community-", ""));
+      locationName = communityLocs.find((l) => l.id === cid)?.name ?? null;
+    } else {
+      // Passport location
+      locationId = editSel;
+      locationName = PASSPORT_LOCATIONS.find((l) => l.id === editSel)?.name ?? null;
+    }
+
+    updatePlunge.mutate(
+      { id: plunge.id, patch: { locationId, locationName } },
+      {
+        onSuccess: () => {
+          setEditing(false);
+          toast({ title: "Location updated" });
+        },
+        onError: () => {
+          toast({ title: "Failed to update location", variant: "destructive" });
+        },
+      }
+    );
+  };
+
   const hasVitals = plunge.hrAvg || plunge.spo2Avg;
   const passportLocation = plunge.locationId
     ? PASSPORT_LOCATIONS.find((l) => l.id === plunge.locationId)
@@ -194,7 +275,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/0 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
         <div className="relative z-10 flex items-start justify-between gap-3">
-          {/* Left: photo thumbnail (if any) + icon + time + date */}
+          {/* Left: photo thumbnail + icon + time + date */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
             {photoSrc ? (
               <button
@@ -220,7 +301,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
             </div>
           </div>
 
-          {/* Right: temp + score + share + delete */}
+          {/* Right: temp + score + share + edit + delete */}
           <div className="flex items-center gap-2 shrink-0">
             <div className="text-right">
               <div className="flex items-start justify-end gap-1">
@@ -245,6 +326,19 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
                 className="p-2 rounded-xl text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 border border-transparent hover:border-cyan-500/20 transition-all duration-200 active:scale-95"
               >
                 <Share2 className="w-4 h-4" />
+              </button>
+
+              <button
+                data-testid={`button-edit-plunge-${plunge.id}`}
+                onClick={() => editing ? setEditing(false) : openEdit()}
+                title="Edit location"
+                className={`p-2 rounded-xl border transition-all duration-200 active:scale-95 ${
+                  editing
+                    ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/40"
+                    : "text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 border-transparent hover:border-cyan-500/20"
+                }`}
+              >
+                <Pencil className="w-4 h-4" />
               </button>
 
               <button
@@ -285,7 +379,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
         )}
 
         {/* Location row */}
-        {(plunge.locationName || plunge.locationId === "home") && (
+        {!editing && (plunge.locationName || plunge.locationId === "home") && (
           <div
             data-testid={`location-${plunge.id}`}
             className="relative z-10 mt-2 flex items-center gap-2 text-sm"
@@ -304,6 +398,67 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
                 Passport
               </span>
             )}
+          </div>
+        )}
+
+        {/* Inline location editor */}
+        {editing && (
+          <div className="relative z-10 mt-3 bg-slate-900/60 border border-cyan-500/30 rounded-xl p-3 space-y-2">
+            <div className="text-cyan-400 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5">
+              <MapPin className="w-3 h-3" /> Edit Location
+            </div>
+
+            <select
+              data-testid={`select-edit-location-${plunge.id}`}
+              value={editSel}
+              onChange={(e) => { setEditSel(e.target.value); setEditCustom(""); }}
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-400 appearance-none"
+            >
+              <option value="">— No location —</option>
+              <option value="home">🏠 Home</option>
+              {communityLocs.length > 0 && (
+                <>
+                  <option disabled>──── Community ────</option>
+                  {communityLocs.map((l) => (
+                    <option key={`community-${l.id}`} value={`community-${l.id}`}>{l.name}</option>
+                  ))}
+                </>
+              )}
+              <option disabled>──── Passport Spots ────</option>
+              {PASSPORT_LOCATIONS.map((l) => (
+                <option key={l.id} value={l.id}>{l.flag} {l.name} · {l.state}</option>
+              ))}
+              <option value="custom">✏️ Custom…</option>
+            </select>
+
+            {editSel === "custom" && (
+              <input
+                data-testid={`input-edit-location-custom-${plunge.id}`}
+                type="text"
+                value={editCustom}
+                onChange={(e) => setEditCustom(e.target.value)}
+                placeholder="Enter location name…"
+                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+              />
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                data-testid={`button-save-location-${plunge.id}`}
+                onClick={handleSaveLocation}
+                disabled={updatePlunge.isPending}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 text-sm font-semibold hover:bg-cyan-500/30 transition-all active:scale-95 disabled:opacity-50"
+              >
+                <Check className="w-3.5 h-3.5" /> Save
+              </button>
+              <button
+                data-testid={`button-cancel-location-${plunge.id}`}
+                onClick={() => setEditing(false)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-slate-700/60 border border-slate-600/50 text-slate-300 text-sm font-semibold hover:bg-slate-700 transition-all active:scale-95"
+              >
+                <X className="w-3.5 h-3.5" /> Cancel
+              </button>
+            </div>
           </div>
         )}
       </div>

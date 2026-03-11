@@ -91,5 +91,6 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
 }
 
 export type PlungeInput = z.infer<typeof api.plunges.create.input>;
+export type PlungeUpdateInput = z.infer<typeof api.plunges.update.input>;
 export type PlungeResponse = z.infer<typeof api.plunges.create.responses[201]>;
 export type PlungesListResponse = z.infer<typeof api.plunges.list.responses[200]>;

@@ -48,15 +48,14 @@ export async function buildShareImage({
       const sc = w / 1080;
       const pad = 44 * sc;
 
-      // Build a single sentence: 43°F · 6:30 · 5d 🔥 · 📍 Hamlin Pond
-      const parts: string[] = [
-        `${temperature}°F`,
-        formatTime(duration),
-      ];
-      if (streak && streak > 0) parts.push(`${streak}d 🔥`);
+      // Build a single sentence: 📍 Hamlin Pond · 5d 🔥 · 6:30 · 43°F
+      const parts: string[] = [];
       const loc =
         locationId === "home" ? "📍 Home" : locationName ? `📍 ${locationName}` : null;
       if (loc) parts.push(loc);
+      if (streak && streak > 0) parts.push(`${streak}d 🔥`);
+      parts.push(formatTime(duration));
+      parts.push(`${temperature}°F`);
 
       const line = parts.join("  ·  ");
 
