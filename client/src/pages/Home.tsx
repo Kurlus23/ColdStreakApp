@@ -203,7 +203,8 @@ export default function Home() {
   const [showAchievements, setShowAchievements] = useState(() => {
     return localStorage.getItem("coldstreak-achievements-open") !== "false";
   });
-  const [scoreView, setScoreView] = useState<"today" | "week" | "kcal" | "info">("today");
+  const [scoreView, setScoreView] = useState<"today" | "week" | "kcal" | "kcal-week">("today");
+  const [scoreInfoOpen, setScoreInfoOpen] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const todayDateStr = new Date().toISOString().slice(0, 10);
   const nowTimeStr = new Date().toTimeString().slice(0, 5);
@@ -560,50 +561,75 @@ export default function Home() {
               )}
             </div>
 
-            {/* Cold Score — tappable, cycles today → week → kcal → info */}
-            <button
-              data-testid="card-cold-score"
-              onClick={() => setScoreView(v => v === "today" ? "week" : v === "week" ? "kcal" : v === "kcal" ? "info" : "today")}
-              className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 hover:border-cyan-500/50 w-full"
-            >
-              {scoreView === "info" ? (
-                <>
-                  <Info className="w-5 h-5 text-cyan-400 shrink-0" />
-                  <p className="text-blue-200 text-[9px] leading-tight text-center">
-                    Score: duration × temp factor. 40°F = <span className="text-cyan-300 font-bold">2.3×</span>.<br />
-                    Kcal: thermogenesis model — set weight in Settings.
+            {/* Cold Score — tappable, cycles today → week → kcal (daily) → kcal (weekly) */}
+            <div className="relative w-full">
+              {/* Info button — top-right corner */}
+              <button
+                data-testid="button-score-info"
+                onClick={(e) => { e.stopPropagation(); setScoreInfoOpen(v => !v); }}
+                className="absolute top-2 right-2 z-10 w-5 h-5 flex items-center justify-center rounded-full bg-blue-800/70 border border-blue-600/50 text-blue-400 hover:text-cyan-300 hover:border-cyan-500/50 transition-all text-[10px] font-bold"
+              >ℹ</button>
+
+              {/* Info popup */}
+              {scoreInfoOpen && (
+                <div className="absolute top-8 right-2 z-20 w-52 bg-blue-950 border border-blue-600/60 rounded-xl p-3 shadow-2xl shadow-black/60">
+                  <button
+                    onClick={() => setScoreInfoOpen(false)}
+                    className="absolute top-1.5 right-2 text-blue-500 hover:text-white text-xs"
+                  >✕</button>
+                  <p className="text-blue-200 text-[10px] leading-relaxed">
+                    <span className="text-cyan-300 font-bold">Cold Score</span> = duration (min) × temperature factor.<br />
+                    40°F = <span className="text-cyan-300 font-bold">2.3×</span> · 50°F = <span className="text-cyan-300 font-bold">1.7×</span> · 60°F = <span className="text-cyan-300 font-bold">1.0×</span>
                   </p>
-                  <div className="text-blue-500 text-[9px]">tap to cycle</div>
-                </>
-              ) : scoreView === "kcal" ? (
-                <>
-                  <div className="text-orange-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
-                    Calories<br />Burned
-                  </div>
-                  <Flame className="w-7 h-7 text-orange-400" />
-                  <div className="text-orange-300 font-bold text-2xl leading-none">
-                    {todayCalories > 0 ? Math.round(todayCalories) : "—"}
-                  </div>
-                  <div className="text-orange-400/70 text-[10px]">kcal today</div>
-                </>
-              ) : (
-                <>
-                  <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
-                    Cold<br />Score
-                  </div>
-                  <Snowflake className="w-7 h-7 text-cyan-400" />
-                  <div className="text-cyan-300 font-bold text-2xl leading-none">
-                    {scoreView === "today"
-                      ? (displayScore > 0 ? displayScore.toFixed(1) : "—")
-                      : (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
-                    }
-                  </div>
-                  <div className="text-blue-400 text-[10px]">
-                    {scoreView === "today" ? (isActive ? "live" : "today") : "this week"}
-                  </div>
-                </>
+                  <p className="text-blue-200 text-[10px] leading-relaxed mt-2">
+                    <span className="text-orange-300 font-bold">Calories</span> = thermogenesis model based on temp, duration &amp; body weight. Set your weight in Settings.
+                  </p>
+                </div>
               )}
-            </button>
+
+              <button
+                data-testid="card-cold-score"
+                onClick={() => {
+                  setScoreInfoOpen(false);
+                  setScoreView(v => v === "today" ? "week" : v === "week" ? "kcal" : v === "kcal" ? "kcal-week" : "today");
+                }}
+                className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 hover:border-cyan-500/50 w-full"
+              >
+                {scoreView === "kcal" || scoreView === "kcal-week" ? (
+                  <>
+                    <div className="text-orange-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
+                      Calories<br />Burned
+                    </div>
+                    <Flame className="w-7 h-7 text-orange-400" />
+                    <div className="text-orange-300 font-bold text-2xl leading-none">
+                      {scoreView === "kcal"
+                        ? (todayCalories > 0 ? Math.round(todayCalories) : "—")
+                        : (weeklyCalories > 0 ? Math.round(weeklyCalories) : "—")
+                      }
+                    </div>
+                    <div className="text-orange-400/70 text-[10px]">
+                      {scoreView === "kcal" ? "kcal today" : "kcal this week"}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
+                      Cold<br />Score
+                    </div>
+                    <Snowflake className="w-7 h-7 text-cyan-400" />
+                    <div className="text-cyan-300 font-bold text-2xl leading-none">
+                      {scoreView === "today"
+                        ? (displayScore > 0 ? displayScore.toFixed(1) : "—")
+                        : (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
+                      }
+                    </div>
+                    <div className="text-blue-400 text-[10px]">
+                      {scoreView === "today" ? (isActive ? "live" : "today") : "this week"}
+                    </div>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Weekly goal / score row */}
