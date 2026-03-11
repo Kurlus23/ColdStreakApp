@@ -387,17 +387,6 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
 
         {/* Main info row */}
         <div className="relative z-10 flex items-center gap-3">
-          {/* Photo thumbnail — only when available */}
-          {photoSrc && (
-            <button
-              data-testid={`button-photo-${plunge.id}`}
-              onClick={() => setPhotoExpanded(true)}
-              className="shrink-0 w-14 h-14 rounded-xl overflow-hidden border border-slate-600/50 hover:border-cyan-400/60 transition-all active:scale-95"
-            >
-              <img src={photoSrc} alt="Plunge" className="w-full h-full object-cover" />
-            </button>
-          )}
-
           {/* Text column: duration · date · stats */}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
@@ -417,6 +406,17 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
               </span>
             </div>
           </div>
+
+          {/* Photo thumbnail — right side, only when available */}
+          {photoSrc && (
+            <button
+              data-testid={`button-photo-${plunge.id}`}
+              onClick={() => setPhotoExpanded(true)}
+              className="shrink-0 w-14 h-14 rounded-xl overflow-hidden border border-slate-600/50 hover:border-cyan-400/60 transition-all active:scale-95"
+            >
+              <img src={photoSrc} alt="Plunge" className="w-full h-full object-cover" />
+            </button>
+          )}
         </div>
 
         {/* Vitals row */}
