@@ -248,6 +248,9 @@ export default function Home() {
   const [settingsRestoreEmail, setSettingsRestoreEmail] = useState("");
   const [showSettingsRestore, setShowSettingsRestore] = useState(false);
   const [badgesOpen, setBadgesOpen] = useState(true);
+  const [safetySeen] = useState(() => !!localStorage.getItem("coldstreak-safety-seen"));
+  const [safetyOpen, setSafetyOpen] = useState(() => !localStorage.getItem("coldstreak-safety-seen"));
+  const [tosOpen, setTosOpen] = useState(false);
 
   // Leaderboard
   const [leaderboardLocationId, setLeaderboardLocationId] = useState<string | null>(null);
@@ -1368,23 +1371,114 @@ export default function Home() {
             {/* Safety & Disclaimer */}
             <div
               data-testid="card-disclaimer"
-              className="bg-red-950/40 rounded-2xl p-4 border border-red-800/50 space-y-3"
+              className="bg-red-950/40 rounded-2xl border border-red-800/50"
             >
-              <div className="text-white font-semibold flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-red-400" /> Safety &amp; Disclaimer
-              </div>
-              <p className="text-red-200 text-xs leading-relaxed">
-                <span className="font-bold text-red-300">ASSUMPTION OF RISK:</span> Cold water immersion carries serious health risks including cold water shock, cardiac arrest, hypothermia, loss of consciousness, and drowning. By using ColdStreak, you acknowledge that you voluntarily assume all risks associated with cold plunge activities.
-              </p>
-              <p className="text-red-200 text-xs leading-relaxed">
-                ColdStreak is a tracking tool only. It does not provide medical advice. Consult a physician before beginning cold exposure therapy, especially if you have heart conditions, high blood pressure, Raynaud's disease, or are pregnant.
-              </p>
-              <p className="text-red-200 text-xs leading-relaxed">
-                <span className="font-bold text-red-300">Featured Locations:</span> USA locations listed in Chill Places are spring-fed or managed facilities selected for relative safety and year-round access. Sliding Rock (NC) is listed as seasonal — lifeguards are only present May–Labor Day. Conditions at all locations can change without notice due to weather, drought, flooding, or closures. Always check current local conditions before visiting. Never plunge alone.
-              </p>
-              <p className="text-red-200/70 text-[10px] leading-relaxed">
-                ColdStreak and its developers accept no liability for injury, illness, or death resulting from cold plunge activities. Use this app at your own risk.
-              </p>
+              <button
+                data-testid="button-toggle-safety"
+                onClick={() => setSafetyOpen((v) => !v)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-red-400" />
+                  <span className="text-white font-semibold text-sm">Safety &amp; Disclaimer</span>
+                  {!safetySeen && <span className="text-[10px] bg-red-500/30 text-red-300 px-1.5 py-0.5 rounded-full font-semibold">Please read</span>}
+                </div>
+                <span className={`text-red-400 text-xs transition-transform duration-200 ${safetyOpen ? "rotate-180" : ""}`}>▼</span>
+              </button>
+              {safetyOpen && (
+                <div className="px-4 pb-4 space-y-3 border-t border-red-800/40 pt-3">
+                  <p className="text-red-200 text-xs leading-relaxed">
+                    <span className="font-bold text-red-300">ASSUMPTION OF RISK:</span> Cold water immersion carries serious health risks including cold water shock, cardiac arrest, hypothermia, loss of consciousness, and drowning. By using ColdStreak, you acknowledge that you voluntarily assume all risks associated with cold plunge activities.
+                  </p>
+                  <p className="text-red-200 text-xs leading-relaxed">
+                    ColdStreak is a tracking tool only. It does not provide medical advice. Consult a physician before beginning cold exposure therapy, especially if you have heart conditions, high blood pressure, Raynaud's disease, or are pregnant.
+                  </p>
+                  <p className="text-red-200 text-xs leading-relaxed">
+                    <span className="font-bold text-red-300">Featured Locations:</span> USA locations listed in Chill Places are spring-fed or managed facilities selected for relative safety and year-round access. Sliding Rock (NC) is listed as seasonal — lifeguards are only present May–Labor Day. Conditions at all locations can change without notice due to weather, drought, flooding, or closures. Always check current local conditions before visiting. Never plunge alone.
+                  </p>
+                  <p className="text-red-200/70 text-[10px] leading-relaxed">
+                    ColdStreak and its developers accept no liability for injury, illness, or death resulting from cold plunge activities. Use this app at your own risk.
+                  </p>
+                  {!safetySeen && (
+                    <button
+                      data-testid="button-acknowledge-safety"
+                      onClick={() => {
+                        localStorage.setItem("coldstreak-safety-seen", "true");
+                        setSafetyOpen(false);
+                      }}
+                      className="w-full py-2 rounded-xl bg-red-800/60 border border-red-600/50 text-red-200 text-xs font-semibold hover:bg-red-700/60 transition-all active:scale-95"
+                    >
+                      I understand — collapse
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Terms of Service */}
+            <div
+              data-testid="card-tos"
+              className="bg-blue-900/40 rounded-2xl border border-blue-700/40"
+            >
+              <button
+                data-testid="button-toggle-tos"
+                onClick={() => setTosOpen((v) => !v)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <Info className="w-4 h-4 text-blue-400" />
+                  <span className="text-white font-semibold text-sm">Terms &amp; Legal</span>
+                </div>
+                <span className={`text-blue-400 text-xs transition-transform duration-200 ${tosOpen ? "rotate-180" : ""}`}>▼</span>
+              </button>
+              {tosOpen && (
+                <div className="px-4 pb-4 space-y-4 border-t border-blue-700/30 pt-3">
+
+                  <div>
+                    <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">Terms of Service</p>
+                    <p className="text-blue-200 text-xs leading-relaxed">
+                      By using ColdStreak you agree to these terms. ColdStreak is provided "as is" for personal health tracking purposes only. We reserve the right to modify or discontinue the service at any time without notice. Continued use of the app constitutes acceptance of any updated terms.
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">Privacy Policy</p>
+                    <p className="text-blue-200 text-xs leading-relaxed">
+                      ColdStreak stores your plunge history and settings locally on your device. When you submit a leaderboard entry, your chosen display name and plunge score are stored on our servers. We do not sell or share your personal data with third parties. Your email address (used for Pro verification) is stored securely and used only to verify your purchase.
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">No Medical Advice</p>
+                    <p className="text-blue-200 text-xs leading-relaxed">
+                      Nothing in ColdStreak constitutes medical advice, diagnosis, or treatment. Cold exposure scores, calorie estimates, and wellness metrics are approximations for informational purposes only. Always consult a qualified healthcare provider before starting any cold exposure regimen.
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">Purchases &amp; Refunds</p>
+                    <p className="text-blue-200 text-xs leading-relaxed">
+                      ColdStreak Pro is a one-time purchase that unlocks additional features. All purchases are final and non-refundable except where required by applicable law. If you experience issues with your purchase, contact us through the app.
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">Limitation of Liability</p>
+                    <p className="text-blue-200 text-xs leading-relaxed">
+                      To the fullest extent permitted by law, ColdStreak and its developers shall not be liable for any indirect, incidental, special, or consequential damages arising from use of the app or from cold plunge activities undertaken in connection with it. Your sole remedy for dissatisfaction is to stop using the app.
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">User-Submitted Content</p>
+                    <p className="text-blue-200 text-xs leading-relaxed">
+                      By submitting a community spot or leaderboard entry, you confirm the information is accurate to the best of your knowledge and that you grant ColdStreak a non-exclusive license to display it within the app. We reserve the right to remove any content that is inaccurate, inappropriate, or in violation of these terms.
+                    </p>
+                  </div>
+
+                  <p className="text-blue-500 text-[10px]">Last updated: March 2026. For questions, contact us via the App Store listing.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
