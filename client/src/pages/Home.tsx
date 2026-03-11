@@ -256,6 +256,7 @@ export default function Home() {
   const [safetySeen] = useState(() => !!localStorage.getItem("coldstreak-safety-seen"));
   const [safetyOpen, setSafetyOpen] = useState(() => !localStorage.getItem("coldstreak-safety-seen"));
   const [tosOpen, setTosOpen] = useState(false);
+  const [communityDisclaimerOpen, setCommunityDisclaimerOpen] = useState(false);
 
   // Leaderboard
   const [leaderboardLocationId, setLeaderboardLocationId] = useState<string | null>(null);
@@ -1499,6 +1500,40 @@ export default function Home() {
                       I understand — collapse
                     </button>
                   )}
+                </div>
+              )}
+            </div>
+
+            {/* Community Locations Disclaimer */}
+            <div
+              data-testid="card-community-disclaimer"
+              className="bg-indigo-950/40 rounded-2xl border border-indigo-700/40"
+            >
+              <button
+                data-testid="button-toggle-community-disclaimer"
+                onClick={() => setCommunityDisclaimerOpen((v) => !v)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-indigo-400" />
+                  <span className="text-white font-semibold text-sm">Community Locations</span>
+                </div>
+                <span className={`text-indigo-400 text-xs transition-transform duration-200 ${communityDisclaimerOpen ? "rotate-180" : ""}`}>▼</span>
+              </button>
+              {communityDisclaimerOpen && (
+                <div className="px-4 pb-4 space-y-3 border-t border-indigo-700/30 pt-3">
+                  <p className="text-indigo-200 text-xs leading-relaxed">
+                    <span className="font-bold text-indigo-300">Unverified Content:</span> Community Spots are submitted by ColdStreak users and have not been verified for safety, accuracy, or accessibility by ColdStreak.
+                  </p>
+                  <p className="text-indigo-200 text-xs leading-relaxed">
+                    Cold water immersion carries serious risks including hypothermia, cold shock, and cardiac events. Conditions at any location — water temperature, currents, accessibility — can change without notice.
+                  </p>
+                  <p className="text-indigo-200 text-xs leading-relaxed">
+                    Always assess conditions yourself before entering any body of water, never plunge alone, and consult a physician if you have any heart, respiratory, or circulatory conditions.
+                  </p>
+                  <p className="text-indigo-200/60 text-[10px] leading-relaxed">
+                    ColdStreak is not liable for any injury, loss, or damages arising from use of community-submitted locations.
+                  </p>
                 </div>
               )}
             </div>
