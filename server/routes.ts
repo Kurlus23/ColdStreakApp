@@ -6,6 +6,8 @@ import { z } from "zod";
 import Stripe from "stripe";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import { sendPasswordResetEmail } from "./email";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-02-24.acacia" });
 const PRICE_ID = process.env.STRIPE_PRICE_ID!;
@@ -96,6 +98,49 @@ export async function registerRoutes(
       const { clientId } = z.object({ clientId: z.string().min(1) }).parse(req.body);
       await storage.claimPlunges(clientId, payload.userId);
       res.json({ ok: true });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      throw err;
+    }
+  });
+
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = z.object({ email: z.string().email() }).parse(req.body);
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      const found = await storage.setResetToken(email, token, expiry);
+      if (found) {
+        const origin = req.headers.origin || `${req.protocol}://${req.headers.host}`;
+        const resetUrl = `${origin}/reset-password?token=${token}`;
+        await sendPasswordResetEmail(email, resetUrl);
+      }
+      // Always respond OK — don't reveal whether email exists
+      res.json({ ok: true });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      throw err;
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, password } = z.object({
+        token: z.string().min(1),
+        password: z.string().min(6, "Password must be at least 6 characters"),
+      }).parse(req.body);
+
+      const user = await storage.getUserByResetToken(token);
+      if (!user || !user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
+        return res.status(400).json({ message: "Reset link is invalid or has expired" });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      await storage.updatePassword(user.id, passwordHash);
+      await storage.clearResetToken(user.id);
+
+      const authToken = signToken({ userId: user.id, email: user.email });
+      res.json({ token: authToken, user: { id: user.id, email: user.email } });
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       throw err;

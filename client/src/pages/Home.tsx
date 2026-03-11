@@ -12,7 +12,7 @@ import {
 import confetti from "canvas-confetti";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { usePlunges, useCreatePlunge, useUpdatePlunge, useDeletePlunge } from "@/hooks/use-plunges";
 import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry } from "@/hooks/use-leaderboard";
 import { useProStatus } from "@/hooks/use-pro-status";
@@ -111,6 +111,8 @@ export default function Home() {
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [syncDone, setSyncDone] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
 
   const [screen, setScreen] = useState<Screen>(
     () => (localStorage.getItem("defaultScreen") as Screen) || "timer"
@@ -294,6 +296,12 @@ export default function Home() {
     const next = screen === s ? "timer" : s;
     setScreen(next);
     localStorage.setItem("defaultScreen", next);
+  };
+
+  const handleForgotPassword = async () => {
+    if (!authEmail) return;
+    await apiRequest("POST", "/api/auth/forgot-password", { email: authEmail });
+    setForgotSent(true);
   };
 
   const handleAuthSubmit = async () => {
@@ -1214,6 +1222,41 @@ export default function Home() {
                           Sign out
                         </button>
                       </div>
+                    ) : forgotMode ? (
+                      <div className="space-y-2">
+                        {forgotSent ? (
+                          <div className="bg-green-900/30 border border-green-600/30 rounded-xl px-4 py-3 text-center">
+                            <p className="text-green-300 text-sm font-semibold mb-1">Check your inbox</p>
+                            <p className="text-green-400/80 text-xs">A reset link was sent to {authEmail}</p>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-blue-300 text-xs px-1">Enter your account email and we'll send a reset link.</p>
+                            <input
+                              data-testid="input-forgot-email"
+                              type="email"
+                              placeholder="Your account email"
+                              value={authEmail}
+                              onChange={(e) => setAuthEmail(e.target.value)}
+                              className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                            />
+                            <button
+                              data-testid="button-forgot-submit"
+                              onClick={handleForgotPassword}
+                              disabled={auth.loading || !authEmail}
+                              className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-blue-950 text-sm font-bold transition-colors disabled:opacity-50"
+                            >
+                              {auth.loading ? "Sending…" : "Send Reset Link"}
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => { setForgotMode(false); setForgotSent(false); auth.clearError(); }}
+                          className="w-full py-1.5 text-blue-400 text-xs hover:text-blue-300 transition-colors"
+                        >
+                          ← Back to sign in
+                        </button>
+                      </div>
                     ) : (
                       <div className="space-y-2">
                         <div className="flex rounded-xl overflow-hidden border border-blue-700/50">
@@ -1236,15 +1279,26 @@ export default function Home() {
                           onChange={(e) => setAuthEmail(e.target.value)}
                           className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
                         />
-                        <input
-                          data-testid="input-auth-password"
-                          type="password"
-                          placeholder={authMode === "register" ? "Password (min 6 chars)" : "Password"}
-                          value={authPassword}
-                          onChange={(e) => setAuthPassword(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
-                          className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-                        />
+                        <div className="space-y-1">
+                          <input
+                            data-testid="input-auth-password"
+                            type="password"
+                            placeholder={authMode === "register" ? "Password (min 6 chars)" : "Password"}
+                            value={authPassword}
+                            onChange={(e) => setAuthPassword(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
+                            className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                          />
+                          {authMode === "login" && (
+                            <button
+                              data-testid="button-forgot-password"
+                              onClick={() => { setForgotMode(true); setForgotSent(false); auth.clearError(); }}
+                              className="text-blue-500 text-xs hover:text-cyan-400 transition-colors px-1"
+                            >
+                              Forgot password?
+                            </button>
+                          )}
+                        </div>
                         {auth.error && (
                           <p className="text-red-400 text-xs px-1">{auth.error}</p>
                         )}
