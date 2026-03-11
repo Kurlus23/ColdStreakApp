@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useProStatus } from "@/hooks/use-pro-status";
-import { PASSPORT_LOCATIONS, usePassportBadges, distanceMiles } from "@/lib/passport";
+import { PASSPORT_LOCATIONS, usePassportBadges, distanceMiles, DIFFICULTY_META, type Difficulty } from "@/lib/passport";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { UserLocation } from "@shared/schema";
 
@@ -31,7 +31,14 @@ function saveNominated(s: Set<number>) {
   localStorage.setItem(NOMINATIONS_KEY, JSON.stringify([...s]));
 }
 
-const ALL_COUNTRIES = ["All", "Iceland", "Norway", "Switzerland", "Australia", "Russia", "USA"];
+const DIFFICULTY_FILTERS: Array<{ value: Difficulty | "All"; label: string }> = [
+  { value: "All",        label: "All" },
+  { value: "beginner",  label: "🟢" },
+  { value: "cold",      label: "🟡" },
+  { value: "very-cold", label: "🔵" },
+  { value: "ice-water", label: "🔴" },
+  { value: "legendary", label: "⚫" },
+];
 
 interface GeoPos { lat: number; lng: number; }
 
@@ -52,7 +59,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     const saved = localStorage.getItem(RADIUS_KEY);
     return saved ? Number(saved) : 0;
   });
-  const [countryFilter, setCountryFilter] = useState("All");
+  const [difficultyFilter, setDifficultyFilter] = useState<Difficulty | "All">("All");
   const [searchText, setSearchText] = useState("");
   const [zipGeoPos, setZipGeoPos] = useState<GeoPos | null>(null);
   const [zipLabel, setZipLabel] = useState<string | null>(null);
@@ -252,8 +259,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   // ── Filtered & sorted Passport locations ──
   const passportFiltered = PASSPORT_LOCATIONS
     .filter((loc) => {
-      if (countryFilter !== "All" && loc.country !== countryFilter) return false;
-      if (!matchesText([loc.name, loc.country, loc.state, loc.description])) return false;
+      if (difficultyFilter !== "All" && loc.difficulty !== difficultyFilter) return false;
+      if (!matchesText([loc.name, loc.state, loc.description])) return false;
       if (!withinRange(loc.lat, loc.lng)) return false;
       return true;
     })
@@ -265,7 +272,6 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   // ── Filtered, sorted & limited Community locations ──
   const communityFiltered = communityLocs
     .filter((loc) => {
-      if (countryFilter !== "All" && loc.country !== countryFilter) return false;
       if (!matchesText([loc.name, loc.country, loc.state, loc.city, loc.description])) return false;
       const lat = loc.latitude ? Number(loc.latitude) : null;
       const lng = loc.longitude ? Number(loc.longitude) : null;
@@ -338,15 +344,23 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               ))}
             </select>
           </div>
-          {/* Country filter */}
-          <select
-            data-testid="select-explore-country"
-            value={countryFilter}
-            onChange={(e) => setCountryFilter(e.target.value)}
-            className="flex-none bg-blue-800/60 border border-blue-700/40 text-white text-xs rounded-xl px-2.5 py-1.5 focus:outline-none"
-          >
-            {ALL_COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          {/* Difficulty filter pills */}
+          <div className="flex gap-1 flex-wrap">
+            {DIFFICULTY_FILTERS.map((f) => (
+              <button
+                key={f.value}
+                data-testid={`button-difficulty-${f.value}`}
+                onClick={() => setDifficultyFilter(f.value as Difficulty | "All")}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
+                  difficultyFilter === f.value
+                    ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/30"
+                    : "bg-blue-800/60 border border-blue-700/40 text-blue-300 hover:text-white"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
         {/* Text search */}
         <div className="relative">
@@ -649,7 +663,10 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                             <span className={`text-sm font-semibold truncate ${earned ? "text-cyan-200" : "text-white"}`}>{loc.name}</span>
                             {earned && <span className="text-xs text-cyan-400 font-bold">✓</span>}
                           </div>
-                          <div className="text-[11px] text-blue-400">{loc.country}{loc.state ? `, ${loc.state}` : ""}</div>
+                          <div className={`text-[11px] font-semibold ${DIFFICULTY_META[loc.difficulty].color}`}>
+                            {DIFFICULTY_META[loc.difficulty].label}
+                            {loc.state ? ` · ${loc.state}` : ""}
+                          </div>
                         </div>
                         <div className="text-right flex-shrink-0">
                           {dist && <div className="text-[11px] text-cyan-400 font-semibold">{dist}</div>}
