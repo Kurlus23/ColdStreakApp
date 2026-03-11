@@ -1535,7 +1535,7 @@ export default function Home() {
                   <div>
                     <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">Purchases &amp; Refunds</p>
                     <p className="text-blue-200 text-xs leading-relaxed">
-                      ColdStreak Pro is a one-time purchase that unlocks additional features. All purchases are final and non-refundable except where required by applicable law. If you experience issues with your purchase, contact us through the app.
+                      ColdStreak Pro is a one-time purchase that unlocks additional features. All purchases are final and non-refundable except where required by applicable law.
                     </p>
                   </div>
 
