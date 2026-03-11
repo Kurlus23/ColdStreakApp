@@ -642,7 +642,7 @@ export default function Home() {
           >
             Weekly: {weeklyMinutes.toFixed(1)} / {weeklyGoalMinutes} min&nbsp;&nbsp;·&nbsp;&nbsp;
             {isActive
-              ? `PB: ${personalBest > 0 ? personalBest.toFixed(1) : "—"}`
+              ? <span className="text-cyan-300">Best: {personalBest > 0 ? personalBest.toFixed(1) : "—"}</span>
               : `Streak: ${streak} days`
             }
           </div>
