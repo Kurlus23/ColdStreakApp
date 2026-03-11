@@ -5,13 +5,15 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
+import Privacy from "@/pages/Privacy";
+import Terms from "@/pages/Terms";
 
 function Router() {
   return (
     <Switch>
-      {/* Main Single Page Application Route */}
       <Route path="/" component={Home} />
-      {/* Fallback to 404 */}
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,0 +1,127 @@
+import { Link } from "wouter";
+
+export default function Terms() {
+  return (
+    <div className="min-h-screen bg-white text-slate-800">
+      <div className="max-w-2xl mx-auto px-6 py-12">
+
+        {/* Header */}
+        <div className="mb-10">
+          <Link href="/">
+            <a className="text-cyan-600 text-sm font-semibold hover:underline">← Back to ColdStreak</a>
+          </Link>
+          <h1 className="text-3xl font-bold text-slate-900 mt-4 mb-1">Terms of Service</h1>
+          <p className="text-slate-500 text-sm">Last updated: March 2026</p>
+        </div>
+
+        <div className="space-y-8 text-sm leading-relaxed">
+
+          <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">Acceptance of Terms</h2>
+            <p className="text-slate-600">
+              By downloading, installing, or using ColdStreak ("the App"), you agree to be bound by these Terms of Service. If you do not agree, do not use the App. We reserve the right to update these terms at any time; continued use of the App constitutes acceptance of any changes.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">Use of the App</h2>
+            <p className="text-slate-600 mb-2">ColdStreak is provided for personal, non-commercial health tracking purposes only. You agree not to:</p>
+            <ul className="list-disc pl-5 space-y-2 text-slate-600">
+              <li>Use the App in any way that violates applicable laws or regulations.</li>
+              <li>Attempt to reverse engineer, modify, or create derivative works of the App.</li>
+              <li>Submit false, misleading, or harmful content to community features.</li>
+              <li>Use automated means to access or scrape data from the App.</li>
+              <li>Share your account credentials with others.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">Health and Safety Disclaimer</h2>
+            <p className="text-slate-600 mb-2">
+              <strong className="text-slate-800">ASSUMPTION OF RISK:</strong> Cold water immersion carries serious health risks including cold water shock, cardiac arrest, hypothermia, loss of consciousness, and drowning. By using ColdStreak, you acknowledge that you voluntarily assume all risks associated with cold plunge activities.
+            </p>
+            <p className="text-slate-600 mb-2">
+              ColdStreak is a tracking tool only. It does not provide medical advice, diagnosis, or treatment. Cold exposure scores, calorie estimates, and wellness metrics are approximations for informational purposes only and should not be used as the basis for any medical or nutritional decision.
+            </p>
+            <p className="text-slate-600">
+              Consult a qualified physician before beginning cold exposure therapy, especially if you have heart conditions, high blood pressure, Raynaud's disease, circulatory conditions, or are pregnant.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">Community Locations</h2>
+            <p className="text-slate-600">
+              Community Spots are submitted by ColdStreak users and have not been verified for safety, accuracy, or accessibility by ColdStreak. Conditions at any location — water temperature, currents, depth, accessibility — can change without notice due to weather, flooding, drought, or closures. Always assess conditions yourself before entering any body of water. Never plunge alone. ColdStreak is not liable for any injury, loss, or damages arising from use of community-submitted locations.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">User-Submitted Content</h2>
+            <p className="text-slate-600">
+              By submitting a community spot, leaderboard entry, or any other content, you confirm the information is accurate to the best of your knowledge and grant ColdStreak a non-exclusive, worldwide, royalty-free license to display it within the App. We reserve the right to remove any content that is inaccurate, inappropriate, offensive, or in violation of these terms, without notice.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">ColdStreak Pro — Purchases and Refunds</h2>
+            <p className="text-slate-600">
+              ColdStreak Pro is a one-time in-app purchase that unlocks additional features. All purchases are final and non-refundable except where required by applicable law or the policies of the platform through which you purchased (Apple App Store, Google Play). Pro status is tied to your account and can be restored on a new device by logging in with the same credentials.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">Advertising</h2>
+            <p className="text-slate-600">
+              Free users of ColdStreak may see advertisements served by third-party networks. ColdStreak Pro removes all advertisements. ColdStreak is not responsible for the content of third-party advertisements or the practices of the advertisers.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">Intellectual Property</h2>
+            <p className="text-slate-600">
+              ColdStreak, its logo, name, design, and all content created by us are the intellectual property of ColdStreak and its developers. You may not reproduce, distribute, or create derivative works without our written permission.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">Availability and Changes</h2>
+            <p className="text-slate-600">
+              We reserve the right to modify, suspend, or discontinue the App or any of its features at any time without notice. We are not liable to you or any third party for any such modification, suspension, or discontinuation.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">Limitation of Liability</h2>
+            <p className="text-slate-600">
+              To the fullest extent permitted by applicable law, ColdStreak and its developers shall not be liable for any indirect, incidental, special, punitive, or consequential damages — including but not limited to personal injury, property damage, loss of data, or loss of revenue — arising from your use of the App, cold plunge activities undertaken in connection with it, or reliance on community-submitted location data. Our total liability to you for any claim arising from use of the App shall not exceed the amount you paid for ColdStreak Pro, if any. Your sole remedy for dissatisfaction with the App is to stop using it.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">Governing Law</h2>
+            <p className="text-slate-600">
+              These Terms are governed by and construed in accordance with the laws of the United States. Any disputes arising from these Terms or your use of the App shall be resolved through binding arbitration or in a court of competent jurisdiction.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">Contact</h2>
+            <p className="text-slate-600">
+              For questions about these Terms, contact us via the ColdStreak listing on the App Store or Google Play.
+            </p>
+          </section>
+
+        </div>
+
+        <div className="mt-12 pt-6 border-t border-slate-200">
+          <p className="text-slate-400 text-xs">© 2026 ColdStreak. All rights reserved.</p>
+          <div className="flex gap-4 mt-2">
+            <Link href="/privacy"><a className="text-cyan-600 text-xs hover:underline">Privacy Policy</a></Link>
+            <Link href="/"><a className="text-cyan-600 text-xs hover:underline">Back to App</a></Link>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
