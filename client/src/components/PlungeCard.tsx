@@ -310,28 +310,80 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
       >
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/0 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-        {/* Location row — top of card */}
-        {!editing && (plunge.locationName || plunge.locationId === "home") && (
-          <div
-            data-testid={`location-${plunge.id}`}
-            className="relative z-10 flex items-center gap-2 text-sm mb-3"
-          >
-            <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-            {plunge.locationId === "home" ? (
-              <span className="text-base leading-none">🏠</span>
-            ) : passportLocation ? (
-              <span className="text-base leading-none">{passportLocation.flag}</span>
-            ) : null}
-            <span className="text-cyan-300 font-medium truncate">
-              {plunge.locationId === "home" ? (homeLabel || "Home") : plunge.locationName}
-            </span>
-            {passportLocation && (
-              <span className="text-[10px] bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wide">
-                Passport
+        {/* Top row: location (left) + actions (right) */}
+        <div className="relative z-10 flex items-center justify-between gap-2 mb-3">
+          {/* Location */}
+          {!editing && (plunge.locationName || plunge.locationId === "home") ? (
+            <div
+              data-testid={`location-${plunge.id}`}
+              className="flex items-center gap-1.5 text-sm min-w-0"
+            >
+              <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              {plunge.locationId === "home" ? (
+                <span className="text-base leading-none">🏠</span>
+              ) : passportLocation ? (
+                <span className="text-base leading-none">{passportLocation.flag}</span>
+              ) : null}
+              <span className="text-cyan-300 font-medium truncate">
+                {plunge.locationId === "home" ? (homeLabel || "Home") : plunge.locationName}
               </span>
+              {passportLocation && (
+                <span className="text-[10px] bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wide shrink-0">
+                  Passport
+                </span>
+              )}
+            </div>
+          ) : (
+            <div />
+          )}
+
+          {/* Action buttons — icon only, right-aligned */}
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              data-testid={`button-share-plunge-${plunge.id}`}
+              onClick={handleShare}
+              title="Share"
+              className="p-1.5 rounded-lg text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all active:scale-95"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+
+            {photoSrc && (
+              <button
+                data-testid={`button-save-overlay-${plunge.id}`}
+                onClick={handleSaveWithOverlay}
+                disabled={saving}
+                title="Save photo with stats"
+                className="p-1.5 rounded-lg text-slate-500 hover:text-orange-400 hover:bg-orange-500/10 transition-all active:scale-95 disabled:opacity-40"
+              >
+                <Download className="w-4 h-4" />
+              </button>
             )}
+
+            <button
+              data-testid={`button-edit-plunge-${plunge.id}`}
+              onClick={() => editing ? setEditing(false) : openEdit()}
+              title="Edit location"
+              className={`p-1.5 rounded-lg transition-all active:scale-95 ${
+                editing ? "text-cyan-400 bg-cyan-500/10" : "text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10"
+              }`}
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+
+            <button
+              data-testid={`button-delete-plunge-${plunge.id}`}
+              onClick={handleDelete}
+              disabled={deletePlunge.isPending}
+              title={confirming ? "Tap again to confirm" : "Delete"}
+              className={`p-1.5 rounded-lg transition-all active:scale-95 disabled:opacity-40 ${
+                confirming ? "text-red-400 bg-red-500/10" : "text-slate-500 hover:text-red-400 hover:bg-red-500/10"
+              }`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
-        )}
+        </div>
 
         {/* Main info row */}
         <div className="relative z-10 flex items-center justify-between gap-3">
@@ -376,53 +428,6 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
               <span>~{calories} kcal</span>
             </div>
           </div>
-        </div>
-
-        {/* Action bar */}
-        <div className="relative z-10 mt-3 pt-2.5 border-t border-slate-700/40 flex items-center justify-around">
-          <button
-            data-testid={`button-share-plunge-${plunge.id}`}
-            onClick={handleShare}
-            className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-slate-400 hover:text-cyan-400 transition-colors active:scale-95"
-          >
-            <Share2 className="w-4 h-4" />
-            <span className="text-[10px]">Share</span>
-          </button>
-
-          {photoSrc && (
-            <button
-              data-testid={`button-save-overlay-${plunge.id}`}
-              onClick={handleSaveWithOverlay}
-              disabled={saving}
-              className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-slate-400 hover:text-orange-400 transition-colors active:scale-95 disabled:opacity-40"
-            >
-              <Download className="w-4 h-4" />
-              <span className="text-[10px]">Save</span>
-            </button>
-          )}
-
-          <button
-            data-testid={`button-edit-plunge-${plunge.id}`}
-            onClick={() => editing ? setEditing(false) : openEdit()}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-colors active:scale-95 ${
-              editing ? "text-cyan-400" : "text-slate-400 hover:text-cyan-400"
-            }`}
-          >
-            <Pencil className="w-4 h-4" />
-            <span className="text-[10px]">Edit</span>
-          </button>
-
-          <button
-            data-testid={`button-delete-plunge-${plunge.id}`}
-            onClick={handleDelete}
-            disabled={deletePlunge.isPending}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-colors active:scale-95 disabled:opacity-40 ${
-              confirming ? "text-red-400" : "text-slate-400 hover:text-red-400"
-            }`}
-          >
-            <Trash2 className="w-4 h-4" />
-            <span className="text-[10px]">{confirming ? "Confirm" : "Delete"}</span>
-          </button>
         </div>
 
         {/* Vitals row */}
