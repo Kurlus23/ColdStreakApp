@@ -113,7 +113,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [locationIdDetail, setLocationIdDetail] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    name: "", country: "USA", state: "", city: "", description: "",
+    name: "", country: "USA", state: "", city: "", description: "", difficulty: "",
   });
   const [formGeoPos, setFormGeoPos] = useState<GeoPos | null>(null);
   const [formGeoLoading, setFormGeoLoading] = useState(false);
@@ -303,6 +303,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     }
     submitMutation.mutate({
       ...form,
+      difficulty: form.difficulty || undefined,
       submittedBy: username,
       ...(formGeoPos ? { latitude: formGeoPos.lat, longitude: formGeoPos.lng } : {}),
     });
@@ -325,8 +326,25 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
 
       {/* ── Filter bar ── */}
       <div className="bg-blue-900/50 border border-blue-700/40 rounded-2xl p-3 space-y-2">
-        <div className="flex gap-2">
-          {/* Distance radius */}
+        {/* Row 1: Difficulty filter pills */}
+        <div className="flex gap-1 flex-wrap">
+          {DIFFICULTY_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              data-testid={`button-difficulty-${f.value}`}
+              onClick={() => setDifficultyFilter(f.value as Difficulty | "All")}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
+                difficultyFilter === f.value
+                  ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/30"
+                  : "bg-blue-800/60 border border-blue-700/40 text-blue-300 hover:text-white"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        {/* Row 2: Radius + Search */}
+        <div className="flex gap-2 items-center">
           <div className="relative flex-none">
             <Navigation className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-blue-400 pointer-events-none" />
             <select
@@ -344,40 +362,22 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               ))}
             </select>
           </div>
-          {/* Difficulty filter pills */}
-          <div className="flex gap-1 flex-wrap">
-            {DIFFICULTY_FILTERS.map((f) => (
-              <button
-                key={f.value}
-                data-testid={`button-difficulty-${f.value}`}
-                onClick={() => setDifficultyFilter(f.value as Difficulty | "All")}
-                className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
-                  difficultyFilter === f.value
-                    ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/30"
-                    : "bg-blue-800/60 border border-blue-700/40 text-blue-300 hover:text-white"
-                }`}
-              >
-                {f.label}
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-blue-400 pointer-events-none" />
+            <input
+              data-testid="input-explore-search"
+              type="text"
+              placeholder="State, city, zip, or keyword…"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="w-full bg-blue-800/60 border border-blue-700/40 text-white text-xs rounded-xl pl-8 pr-3 py-1.5 focus:outline-none placeholder-blue-500"
+            />
+            {searchText && (
+              <button onClick={() => setSearchText("")} className="absolute right-2 top-1/2 -translate-y-1/2">
+                <X className="w-3 h-3 text-blue-400" />
               </button>
-            ))}
+            )}
           </div>
-        </div>
-        {/* Text search */}
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-blue-400 pointer-events-none" />
-          <input
-            data-testid="input-explore-search"
-            type="text"
-            placeholder="State, city, zip, or keyword…"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            className="w-full bg-blue-800/60 border border-blue-700/40 text-white text-xs rounded-xl pl-8 pr-3 py-1.5 focus:outline-none placeholder-blue-500"
-          />
-          {searchText && (
-            <button onClick={() => setSearchText("")} className="absolute right-2 top-1/2 -translate-y-1/2">
-              <X className="w-3 h-3 text-blue-400" />
-            </button>
-          )}
         </div>
         {zipLoading && (
           <div className="text-[11px] text-blue-400 flex items-center gap-1.5 px-1">
@@ -511,6 +511,31 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   rows={2}
                   className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none placeholder-blue-500 resize-none"
                 />
+                {/* Difficulty rating */}
+                <div>
+                  <div className="text-[11px] text-blue-400 mb-1.5 px-0.5">Difficulty (optional)</div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {DIFFICULTY_FILTERS.filter((f) => f.value !== "All").map((f) => {
+                      const meta = DIFFICULTY_META[f.value as Difficulty];
+                      return (
+                        <button
+                          key={f.value}
+                          type="button"
+                          data-testid={`button-form-difficulty-${f.value}`}
+                          onClick={() => setForm((prev) => ({ ...prev, difficulty: prev.difficulty === f.value ? "" : f.value }))}
+                          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-all active:scale-95 ${
+                            form.difficulty === f.value
+                              ? "bg-cyan-500 text-white shadow shadow-cyan-500/30"
+                              : "bg-blue-900/60 border border-blue-700/40 text-blue-300 hover:text-white"
+                          }`}
+                        >
+                          <span>{f.label}</span>
+                          <span className={form.difficulty === f.value ? "text-white" : meta.color}>{meta.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <button
                     data-testid="button-submit-location"
@@ -522,7 +547,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     {submitMutation.isPending ? "Saving…" : "Submit"}
                   </button>
                   <button
-                    onClick={() => { setShowForm(false); setFormGeoPos(null); }}
+                    onClick={() => { setShowForm(false); setFormGeoPos(null); setForm({ name: "", country: "USA", state: "", city: "", description: "", difficulty: "" }); }}
                     className="px-3 py-2 rounded-xl bg-blue-800/60 text-blue-400 text-xs hover:text-white transition-all"
                   >
                     Cancel
@@ -557,8 +582,16 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                             <span className="text-white text-sm font-semibold truncate">{loc.name}</span>
                             {isReview && <Flame className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />}
                           </div>
-                          <div className="text-[11px] text-blue-400 mt-0.5">
-                            {[loc.city, loc.state, loc.country].filter(Boolean).join(", ")}
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <span className="text-[11px] text-blue-400">
+                              {[loc.city, loc.state, loc.country].filter(Boolean).join(", ")}
+                            </span>
+                            {loc.difficulty && DIFFICULTY_META[loc.difficulty as Difficulty] && (
+                              <span className={`text-[10px] font-bold ${DIFFICULTY_META[loc.difficulty as Difficulty].color}`}>
+                                {DIFFICULTY_FILTERS.find((f) => f.value === loc.difficulty)?.label}{" "}
+                                {DIFFICULTY_META[loc.difficulty as Difficulty].label}
+                              </span>
+                            )}
                           </div>
                           {loc.description && (
                             <p className="text-blue-300 text-[11px] mt-1 leading-relaxed line-clamp-2">{loc.description}</p>

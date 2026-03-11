@@ -59,6 +59,7 @@ export const userLocations = pgTable("user_locations", {
   state: text("state"),
   city: text("city"),
   description: text("description"),
+  difficulty: text("difficulty"), // "beginner"|"cold"|"very-cold"|"ice-water"|"legendary" (nullable)
   submittedBy: text("submitted_by"),
   latitude: numeric("latitude", { precision: 9, scale: 6 }),
   longitude: numeric("longitude", { precision: 9, scale: 6 }),
