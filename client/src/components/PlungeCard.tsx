@@ -310,6 +310,29 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
       >
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/0 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
+        {/* Location row — top of card */}
+        {!editing && (plunge.locationName || plunge.locationId === "home") && (
+          <div
+            data-testid={`location-${plunge.id}`}
+            className="relative z-10 flex items-center gap-2 text-sm mb-3"
+          >
+            <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            {plunge.locationId === "home" ? (
+              <span className="text-base leading-none">🏠</span>
+            ) : passportLocation ? (
+              <span className="text-base leading-none">{passportLocation.flag}</span>
+            ) : null}
+            <span className="text-cyan-300 font-medium truncate">
+              {plunge.locationId === "home" ? (homeLabel || "Home") : plunge.locationName}
+            </span>
+            {passportLocation && (
+              <span className="text-[10px] bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wide">
+                Passport
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="relative z-10 flex items-start justify-between gap-3">
           {/* Left: photo thumbnail + icon + time + date */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -422,29 +445,6 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
                 <span className="text-blue-400 text-xs font-bold">O₂</span>
                 <span className="text-white text-sm font-semibold">{plunge.spo2Avg}%</span>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Location row */}
-        {!editing && (plunge.locationName || plunge.locationId === "home") && (
-          <div
-            data-testid={`location-${plunge.id}`}
-            className="relative z-10 mt-2 flex items-center gap-2 text-sm"
-          >
-            <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-            {plunge.locationId === "home" ? (
-              <span className="text-base leading-none">🏠</span>
-            ) : passportLocation ? (
-              <span className="text-base leading-none">{passportLocation.flag}</span>
-            ) : null}
-            <span className="text-cyan-300 font-medium truncate">
-              {plunge.locationId === "home" ? (homeLabel || "Home") : plunge.locationName}
-            </span>
-            {passportLocation && (
-              <span className="text-[10px] bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wide">
-                Passport
-              </span>
             )}
           </div>
         )}
