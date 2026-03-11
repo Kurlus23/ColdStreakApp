@@ -1,10 +1,11 @@
 import { format } from "date-fns";
-import { Snowflake, Clock, Trash2, Heart, MapPin, Share2, Flame } from "lucide-react";
+import { Snowflake, Clock, Trash2, Heart, MapPin, Share2, Flame, Download } from "lucide-react";
 import { type Plunge } from "@shared/schema";
 import { PASSPORT_LOCATIONS } from "@/lib/passport";
 import { useDeletePlunge } from "@/hooks/use-plunges";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getPhoto, deletePhoto } from "@/lib/photoStore";
 
 function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
   const durationMin = durationSeconds / 60;
@@ -30,7 +31,14 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154 }: PlungeCardProps) {
   const { toast } = useToast();
   const [confirming, setConfirming] = useState(false);
   const [photoExpanded, setPhotoExpanded] = useState(false);
+  const [localPhoto, setLocalPhoto] = useState<string | null>(null);
   const calories = Math.round(estimateCalories(plunge.duration, plunge.temperature, bodyWeightLbs));
+
+  useEffect(() => {
+    getPhoto(plunge.id).then((p) => setLocalPhoto(p)).catch(() => {});
+  }, [plunge.id]);
+
+  const photoSrc = localPhoto ?? plunge.photoData ?? null;
 
   const handleDelete = () => {
     if (!confirming) {
@@ -38,7 +46,16 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154 }: PlungeCardProps) {
       setTimeout(() => setConfirming(false), 3000);
       return;
     }
+    deletePhoto(plunge.id).catch(() => {});
     deletePlunge.mutate(plunge.id);
+  };
+
+  const handleSaveToDevice = () => {
+    if (!photoSrc) return;
+    const a = document.createElement("a");
+    a.href = photoSrc;
+    a.download = `coldstreak-${plunge.id}.jpg`;
+    a.click();
   };
 
   const handleShare = async () => {
@@ -76,14 +93,14 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154 }: PlungeCardProps) {
   return (
     <>
       {/* Expanded photo overlay */}
-      {photoExpanded && plunge.photoData && (
+      {photoExpanded && photoSrc && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setPhotoExpanded(false)}
           data-testid="overlay-photo-expanded"
         >
           <img
-            src={plunge.photoData}
+            src={photoSrc}
             alt="Plunge photo"
             className="max-w-full max-h-full rounded-2xl object-contain"
           />
@@ -91,6 +108,13 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154 }: PlungeCardProps) {
             className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 border border-white/20 text-white text-lg font-bold"
             onClick={() => setPhotoExpanded(false)}
           >✕</button>
+          <button
+            data-testid={`button-save-to-device-${plunge.id}`}
+            onClick={(e) => { e.stopPropagation(); handleSaveToDevice(); }}
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-semibold px-4 py-2 rounded-full transition-all active:scale-95"
+          >
+            <Download className="w-4 h-4" /> Save to Camera Roll
+          </button>
         </div>
       )}
 
@@ -103,13 +127,13 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154 }: PlungeCardProps) {
         <div className="relative z-10 flex items-start justify-between gap-3">
           {/* Left: photo thumbnail (if any) + icon + time + date */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            {plunge.photoData ? (
+            {photoSrc ? (
               <button
                 data-testid={`button-photo-${plunge.id}`}
                 onClick={() => setPhotoExpanded(true)}
                 className="shrink-0 w-14 h-14 rounded-xl overflow-hidden border border-slate-600/50 hover:border-cyan-400/60 transition-all active:scale-95"
               >
-                <img src={plunge.photoData} alt="Plunge" className="w-full h-full object-cover" />
+                <img src={photoSrc} alt="Plunge" className="w-full h-full object-cover" />
               </button>
             ) : (
               <div className="shrink-0 bg-slate-900/80 p-3 rounded-xl shadow-inner border border-slate-700/50 text-cyan-400 group-hover:text-cyan-300 transition-colors group-hover:scale-110 duration-300">

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { savePhoto } from "@/lib/photoStore";
 import icebergBg from "@assets/image_1773152998246.png";
 import {
   Play, Pause, RotateCcw, Snowflake, History,
@@ -199,6 +200,9 @@ export default function Home() {
   // Pro status
   const { isPro, proEmail, loading: proLoading, startCheckout, verifySession, restorePurchase } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(() => {
+    return localStorage.getItem("coldstreak-achievements-open") !== "false";
+  });
   const [scoreView, setScoreView] = useState<"today" | "week" | "kcal" | "info">("today");
   const [showManualEntry, setShowManualEntry] = useState(false);
   const todayDateStr = new Date().toISOString().slice(0, 10);
@@ -1073,19 +1077,7 @@ export default function Home() {
               const earnedStates = new Set(computeStateBadges(badges));
               const earnedTiers = new Set(computeTierBadges(badges));
               const totalAchievements = earnedStates.size + earnedTiers.size;
-              return (
-                <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="text-white font-semibold flex items-center gap-2">
-                      <Trophy className="w-4 h-4 text-yellow-400" /> Achievements
-                    </div>
-                    <span className="text-blue-400 text-xs font-semibold">{totalAchievements} earned</span>
-                  </div>
-
-                  {/* Tier Mastery */}
-                  <div>
-                    <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">Tier Mastery</div>
-                    <div className="flex flex-wrap gap-1.5">
+="flex flex-wrap gap-1.5">
                       {allTiers.map((tier) => {
                         const earned = earnedTiers.has(tier);
                         const meta = DIFFICULTY_META[tier];
@@ -1700,13 +1692,15 @@ export default function Home() {
                   {
                     id: photoPromptId,
                     patch: {
-                      photoData: promptPhotoData ?? undefined,
                       locationName: finalLocationName ?? undefined,
                       locationId: finalLocationId ?? undefined,
                     },
                   },
                   {
-                    onSuccess: () => {
+                    onSuccess: async () => {
+                      if (promptPhotoData && photoPromptId) {
+                        await savePhoto(photoPromptId, promptPhotoData).catch(() => {});
+                      }
                       // Passport badge — only for official Chill Places
                       if (finalLocationId && !isCommunityPick) {
                         const isNewBadge = !hasBadge(finalLocationId);
