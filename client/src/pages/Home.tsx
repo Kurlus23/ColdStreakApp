@@ -17,7 +17,12 @@ import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry } from 
 import { useProStatus } from "@/hooks/use-pro-status";
 import { PlungeCard } from "@/components/PlungeCard";
 import { Explore } from "@/pages/Explore";
-import { PASSPORT_LOCATIONS, usePassportBadges, distanceMiles } from "@/lib/passport";
+import {
+  PASSPORT_LOCATIONS, usePassportBadges, distanceMiles,
+  DIFFICULTY_META, TIER_MASTER_META, STATE_EMOJI,
+  computeStateBadges, computeTierBadges,
+  type Difficulty,
+} from "@/lib/passport";
 import { useMutation } from "@tanstack/react-query";
 
 import { type Plunge, type UserLocation } from "@shared/schema";
@@ -241,9 +246,12 @@ export default function Home() {
   const [leaderboardLocationId, setLeaderboardLocationId] = useState<string | null>(null);
   const [leaderboardLocName, setLeaderboardLocName] = useState<string>("");
   const { data: communityLocs = [] } = useQuery<UserLocation[]>({ queryKey: ["/api/community-locations"] });
-  // Username (for leaderboard)
+  // Username + title
   const [username, setUsername] = useState<string>(
     () => localStorage.getItem("coldstreak-username") ?? ""
+  );
+  const [userTitle, setUserTitle] = useState<string>(
+    () => localStorage.getItem("coldstreak-user-title") ?? ""
   );
 
   // Plunge data stored for leaderboard submission after save
@@ -1030,6 +1038,126 @@ export default function Home() {
               <p className="text-blue-500 text-xs mt-2">This name appears on location leaderboards when you submit a plunge.</p>
             </div>
 
+            {/* Title */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
+              <div className="text-white font-semibold flex items-center gap-2">
+                <Medal className="w-4 h-4 text-yellow-400" /> Your Title
+              </div>
+              {userTitle ? (
+                <div className="flex items-center gap-2 bg-blue-800/60 rounded-xl px-3 py-2">
+                  <span className="text-cyan-300 font-bold text-sm">{username || "You"}</span>
+                  <span className="text-yellow-300 text-xs font-semibold">· {userTitle}</span>
+                  <button
+                    data-testid="button-clear-title"
+                    onClick={() => { setUserTitle(""); localStorage.removeItem("coldstreak-user-title"); }}
+                    className="ml-auto text-blue-500 hover:text-blue-300 text-xs transition-colors"
+                  >✕ Clear</button>
+                </div>
+              ) : (
+                <p className="text-blue-500 text-xs">Pick a title or write your own — it shows next to your name on leaderboards.</p>
+              )}
+              <div className="flex flex-wrap gap-1.5">
+                {["Polar Bear","Ice Warrior","Frost Runner","Cold Blooded","Arctic Fox","Cryo Legend","Wim Hof Jr.","Glacial","Ice Ninja","Snow Wolf"].map((t) => (
+                  <button
+                    key={t}
+                    data-testid={`button-title-${t.replace(/\s/g, "-").toLowerCase()}`}
+                    onClick={() => { setUserTitle(t); localStorage.setItem("coldstreak-user-title", t); }}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
+                      userTitle === t
+                        ? "bg-cyan-500 text-white shadow shadow-cyan-500/30"
+                        : "bg-blue-800/60 border border-blue-700/40 text-blue-300 hover:text-white"
+                    }`}
+                  >{t}</button>
+                ))}
+              </div>
+              <div className="flex gap-2 items-center">
+                <input
+                  data-testid="input-custom-title"
+                  type="text"
+                  placeholder="Custom title…"
+                  maxLength={20}
+                  value={["Polar Bear","Ice Warrior","Frost Runner","Cold Blooded","Arctic Fox","Cryo Legend","Wim Hof Jr.","Glacial","Ice Ninja","Snow Wolf"].includes(userTitle) ? "" : userTitle}
+                  onChange={(e) => { setUserTitle(e.target.value); localStorage.setItem("coldstreak-user-title", e.target.value); }}
+                  className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+            </div>
+
+            {/* Achievements */}
+            {(() => {
+              const allStates = [...new Set(PASSPORT_LOCATIONS.map((l) => l.state))].sort();
+              const allTiers: Difficulty[] = ["beginner","cold","very-cold","ice-water","legendary"];
+              const earnedStates = new Set(computeStateBadges(badges));
+              const earnedTiers = new Set(computeTierBadges(badges));
+              const totalAchievements = earnedStates.size + earnedTiers.size;
+              return (
+                <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-white font-semibold flex items-center gap-2">
+                      <Trophy className="w-4 h-4 text-yellow-400" /> Achievements
+                    </div>
+                    <span className="text-blue-400 text-xs font-semibold">{totalAchievements} earned</span>
+                  </div>
+
+                  {/* Tier Mastery */}
+                  <div>
+                    <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">Tier Mastery</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {allTiers.map((tier) => {
+                        const earned = earnedTiers.has(tier);
+                        const meta = DIFFICULTY_META[tier];
+                        const master = TIER_MASTER_META[tier];
+                        return (
+                          <div
+                            key={tier}
+                            data-testid={`achievement-tier-${tier}`}
+                            title={earned ? master.award : `Complete all ${meta.label} spots to earn "${master.title}"`}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                              earned
+                                ? "bg-cyan-500/20 border border-cyan-500/50 text-cyan-300"
+                                : "bg-blue-800/40 border border-blue-700/30 text-blue-600"
+                            }`}
+                          >
+                            <span>{meta.emoji}</span>
+                            <span>{earned ? master.title : meta.label}</span>
+                            {earned && <span className="text-[10px] text-cyan-400">✓</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* State Badges */}
+                  <div>
+                    <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">State Badges</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {allStates.map((state) => {
+                        const earned = earnedStates.has(state);
+                        const emoji = STATE_EMOJI[state] ?? "🏆";
+                        const count = PASSPORT_LOCATIONS.filter((l) => l.state === state).length;
+                        return (
+                          <div
+                            key={state}
+                            data-testid={`achievement-state-${state.replace(/[\s/]/g, "-").toLowerCase()}`}
+                            title={earned ? `${state} — all ${count} spot${count > 1 ? "s" : ""} completed!` : `Complete all ${count} ${state} spot${count > 1 ? "s" : ""} to earn this badge`}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                              earned
+                                ? "bg-yellow-500/20 border border-yellow-500/40 text-yellow-200"
+                                : "bg-blue-800/40 border border-blue-700/30 text-blue-600"
+                            }`}
+                          >
+                            <span>{emoji}</span>
+                            <span>{state}</span>
+                            {earned && <span className="text-[10px] text-yellow-400">✓</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Body Weight */}
             <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
               <div className="text-white font-semibold flex items-center gap-2 mb-3">
@@ -1305,7 +1433,12 @@ export default function Home() {
                             {isTop3 ? rankIcons[i] : `${i + 1}`}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-white font-semibold text-sm truncate">{entry.username}</div>
+                            <div className="flex items-baseline gap-1.5 min-w-0">
+                              <span className="text-white font-semibold text-sm truncate">{entry.username}</span>
+                              {isMyEntry && userTitle && (
+                                <span className="text-yellow-300 text-[10px] font-semibold shrink-0">· {userTitle}</span>
+                              )}
+                            </div>
                             <div className="text-blue-400 text-xs">
                               {Math.floor(entry.duration / 60)}:{String(entry.duration % 60).padStart(2, "0")} · {entry.temperature}°F
                             </div>

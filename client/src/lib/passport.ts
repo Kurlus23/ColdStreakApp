@@ -282,6 +282,57 @@ export const PASSPORT_LOCATIONS: PassportLocation[] = [
   },
 ];
 
+// State badges — emoji per state that has passport locations
+export const STATE_EMOJI: Record<string, string> = {
+  "Texas":            "🤠",
+  "Florida":          "🌴",
+  "Massachusetts":    "🦞",
+  "New York":         "🗽",
+  "New Mexico":       "☀️",
+  "North Carolina":   "🏔️",
+  "Tennessee":        "🎵",
+  "Vermont":          "🍁",
+  "California/Nevada":"🏔️",
+  "Wyoming":          "🦅",
+  "Montana":          "🦌",
+  "Washington":       "🌲",
+  "Oregon":           "🌲",
+  "Minnesota":        "❄️",
+  "California":       "🌅",
+  "Arizona":          "🌵",
+};
+
+// Tier mastery — completing all spots in a tier earns this award
+export const TIER_MASTER_META: Record<Difficulty, { title: string; award: string }> = {
+  "beginner":  { title: "Chill Seeker",  award: "All Beginner spots completed" },
+  "cold":      { title: "Cold Chaser",   award: "All Cold spots completed" },
+  "very-cold": { title: "Ice Initiate",  award: "All Very Cold spots completed" },
+  "ice-water": { title: "Frost Master",  award: "All Ice Water spots completed" },
+  "legendary": { title: "Legend of Ice", award: "All Legendary spots completed" },
+};
+
+/** Returns state names where every passport location in that state has been earned. */
+export function computeStateBadges(earnedIds: Set<string>): string[] {
+  const byState: Record<string, string[]> = {};
+  for (const loc of PASSPORT_LOCATIONS) {
+    (byState[loc.state] ??= []).push(loc.id);
+  }
+  return Object.entries(byState)
+    .filter(([, ids]) => ids.every((id) => earnedIds.has(id)))
+    .map(([state]) => state);
+}
+
+/** Returns difficulty tiers where every passport location in that tier has been earned. */
+export function computeTierBadges(earnedIds: Set<string>): Difficulty[] {
+  const byTier: Record<Difficulty, string[]> = {
+    "beginner": [], "cold": [], "very-cold": [], "ice-water": [], "legendary": [],
+  };
+  for (const loc of PASSPORT_LOCATIONS) byTier[loc.difficulty].push(loc.id);
+  return (Object.keys(byTier) as Difficulty[]).filter(
+    (tier) => byTier[tier].length > 0 && byTier[tier].every((id) => earnedIds.has(id))
+  );
+}
+
 const STORAGE_KEY = "coldstreak-badges";
 
 export function usePassportBadges() {
