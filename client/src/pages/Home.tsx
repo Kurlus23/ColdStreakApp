@@ -397,6 +397,7 @@ export default function Home() {
   const todayPlunges = plunges.filter((p) => new Date(p.createdAt).toLocaleDateString() === todayString);
   const todayTotalSec = todayPlunges.reduce((sum, p) => sum + p.duration, 0);
   const todayScore = todayPlunges.reduce((sum, p) => sum + Number(p.score), 0);
+  const personalBest = plunges.length > 0 ? Math.max(...plunges.map((p) => Number(p.score))) : 0;
   const last7Days = plunges.filter((p) => (Date.now() - new Date(p.createdAt).getTime()) / (1000 * 60 * 60 * 24) <= 7);
   const weeklyMinutes = last7Days.reduce((sum, p) => sum + p.duration, 0) / 60;
   const weeklyScore = last7Days.reduce((sum, p) => sum + Number(p.score), 0);
@@ -640,8 +641,8 @@ export default function Home() {
             style={{ textShadow: "0 1px 6px rgba(0,0,0,0.8)" }}
           >
             Weekly: {weeklyMinutes.toFixed(1)} / {weeklyGoalMinutes} min&nbsp;&nbsp;·&nbsp;&nbsp;
-            {seconds > 0 || countdown > 0
-              ? `Score: ${plungeScore(displaySeconds, temperature)}`
+            {isActive
+              ? `PB: ${personalBest > 0 ? personalBest.toFixed(1) : "—"}`
               : `Streak: ${streak} days`
             }
           </div>
