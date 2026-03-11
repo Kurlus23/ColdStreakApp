@@ -9,7 +9,6 @@ initMonitoring();
 
 const POSTHOG_KEY = import.meta.env.VITE_PUBLIC_POSTHOG_KEY as string | undefined;
 
-console.log("[PostHog] key present:", !!POSTHOG_KEY, POSTHOG_KEY?.slice(0, 8));
 
 if (POSTHOG_KEY) {
   posthog.init(POSTHOG_KEY, {
