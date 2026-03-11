@@ -1,0 +1,65 @@
+In data we trustRegion: US Commit: 44a7915368 Join us! https://posthog.com/careers
+chunk-HNWPEUIK.js:1 Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self' 'nonce-1KxjgU9lDWpEthXgiCxzqO' https://*.posthog.com https://*.i.posthog.com".
+ The policy is report-only, so the violation has been logged but no further action has been taken.
+loadPostHogJS.tsx:54 tracking react framerate
+DecompressionWorkerManager.ts:234 Compiling or instantiating a WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self' 'nonce-1KxjgU9lDWpEthXgiCxzqO' https://*.posthog.com https://*.i.posthog.com". The policy is report-only, so the violation has been logged but no further action has been taken.
+api.ts:5658  GET https://us.posthog.com/api/sdk_doctor/ 500 (Internal Server Error)
+(anonymous) @ api.ts:5658
+cfn @ api.ts:5943
+getResponse @ api.ts:5657
+get @ api.ts:5642
+loadRawData @ sidePanelSdkDoctorLogic.tsx:147
+V.<computed> @ index.ts:176
+(anonymous) @ index.cjs.js:1012
+(anonymous) @ index.cjs.js:1745
+t.actions.<computed> @ index.cjs.js:1134
+(anonymous) @ sidePanelSdkDoctorLogic.tsx:306
+afterMount @ index.cjs.js:927
+t.events.<computed> @ index.cjs.js:912
+Oba @ index.cjs.js:1796
+mount @ index.cjs.js:1898
+(anonymous) @ index.cjs.js:663
+DGe @ index.cjs.js:696
+PGe @ index.cjs.js:662
+Rba @ index.cjs.js:621
+gI @ HealthMenu.tsx:38
+sy @ react-dom.production.min.js:160
+m_ @ react-dom.production.min.js:289
+d_ @ react-dom.production.min.js:279
+j3 @ react-dom.production.min.js:279
+Qp @ react-dom.production.min.js:279
+u_ @ react-dom.production.min.js:267
+mm @ scheduler.production.min.js:13
+cm @ scheduler.production.min.js:14Understand this error
+logs.ts:150 Error loading SDK doctor data Ey: Failed to get SDK versions. Please try again later.
+    at cfn (api.ts:5970:23)
+    at async Object.getResponse (api.ts:5657:16)
+    at async Object.get (api.ts:5642:21)
+    at async loadRawData (sidePanelSdkDoctorLogic.tsx:147:42)
+(anonymous) @ rrweb-plugin-console-record.js:160
+(anonymous) @ logs.ts:150
+(anonymous) @ logs.ts:150
+loadRawData @ sidePanelSdkDoctorLogic.tsx:151
+await in loadRawData
+V.<computed> @ index.ts:176
+(anonymous) @ index.cjs.js:1012
+(anonymous) @ index.cjs.js:1745
+t.actions.<computed> @ index.cjs.js:1134
+(anonymous) @ sidePanelSdkDoctorLogic.tsx:306
+afterMount @ index.cjs.js:927
+t.events.<computed> @ index.cjs.js:912
+Oba @ index.cjs.js:1796
+mount @ index.cjs.js:1898
+(anonymous) @ index.cjs.js:663
+DGe @ index.cjs.js:696
+PGe @ index.cjs.js:662
+Rba @ index.cjs.js:621
+gI @ HealthMenu.tsx:38
+sy @ react-dom.production.min.js:160
+m_ @ react-dom.production.min.js:289
+d_ @ react-dom.production.min.js:279
+j3 @ react-dom.production.min.js:279
+Qp @ react-dom.production.min.js:279
+u_ @ react-dom.production.min.js:267
+mm @ scheduler.production.min.js:13
+cm @ scheduler.production.min.js:14Understand this error
