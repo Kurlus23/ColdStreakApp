@@ -1107,7 +1107,7 @@ export default function Home() {
             {/* Achievements */}
             {(() => {
               const allStates = [...new Set(PASSPORT_LOCATIONS.map((l) => l.state))].sort();
-              const allTiers: Difficulty[] = ["beginner","cold","very-cold","ice-water","legendary"];
+              const allTiers: Difficulty[] = ["cold","ice-bath","extreme","arctic"];
               const earnedStates = new Set(computeStateBadges(badges));
               const earnedTiers = new Set(computeTierBadges(badges));
               const totalAchievements = earnedStates.size + earnedTiers.size;

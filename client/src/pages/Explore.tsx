@@ -32,12 +32,11 @@ function saveNominated(s: Set<number>) {
 }
 
 const DIFFICULTY_FILTERS: Array<{ value: Difficulty | "All"; label: string }> = [
-  { value: "All",        label: "All" },
-  { value: "beginner",  label: "🟢" },
-  { value: "cold",      label: "🟡" },
-  { value: "very-cold", label: "🔵" },
-  { value: "ice-water", label: "🔴" },
-  { value: "legendary", label: "⚫" },
+  { value: "All",      label: "All" },
+  { value: "cold",     label: "🥶" },
+  { value: "ice-bath", label: "🧊" },
+  { value: "extreme",  label: "❄️" },
+  { value: "arctic",   label: "🧊🧊" },
 ];
 
 interface GeoPos { lat: number; lng: number; }
@@ -60,6 +59,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     return saved ? Number(saved) : 0;
   });
   const [difficultyFilter, setDifficultyFilter] = useState<Difficulty | "All">("All");
+  const [showDifficultyInfo, setShowDifficultyInfo] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [zipGeoPos, setZipGeoPos] = useState<GeoPos | null>(null);
   const [zipLabel, setZipLabel] = useState<string | null>(null);
@@ -326,8 +326,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
 
       {/* ── Filter bar ── */}
       <div className="bg-blue-900/50 border border-blue-700/40 rounded-2xl p-3 space-y-2">
-        {/* Row 1: Difficulty filter pills */}
-        <div className="flex gap-1 flex-wrap">
+        {/* Row 1: Difficulty filter pills + info button */}
+        <div className="flex gap-1 flex-wrap items-center">
           {DIFFICULTY_FILTERS.map((f) => (
             <button
               key={f.value}
@@ -342,7 +342,54 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               {f.label}
             </button>
           ))}
+          <button
+            data-testid="button-difficulty-info"
+            onClick={() => setShowDifficultyInfo(true)}
+            className="ml-auto w-6 h-6 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-700/40 text-blue-400 hover:text-white hover:border-blue-500 transition-all text-[11px] font-bold"
+            title="What do the difficulty levels mean?"
+          >ℹ</button>
         </div>
+
+        {/* Difficulty info popup */}
+        {showDifficultyInfo && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+            onClick={() => setShowDifficultyInfo(false)}
+          >
+            <div
+              className="bg-blue-950 border border-blue-700/60 rounded-2xl p-5 w-full max-w-xs shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-white font-bold text-sm">Difficulty Scale</span>
+                <button
+                  onClick={() => setShowDifficultyInfo(false)}
+                  className="w-7 h-7 flex items-center justify-center rounded-full bg-blue-800/60 text-blue-300 hover:text-white transition-all text-sm font-bold"
+                >✕</button>
+              </div>
+              <div className="space-y-3">
+                {(["cold","ice-bath","extreme","arctic"] as Difficulty[]).map((d) => {
+                  const meta = DIFFICULTY_META[d];
+                  return (
+                    <div key={d} className="flex items-center gap-3">
+                      <span className="text-2xl w-10 text-center">{meta.emoji}</span>
+                      <div>
+                        <div className={`font-semibold text-sm ${meta.color}`}>{meta.tempLabel} — {meta.label}</div>
+                        <div className="text-blue-400 text-[11px]">{
+                          d === "cold"     ? "Cool & refreshing. Great for beginners." :
+                          d === "ice-bath" ? "Classic ice bath territory. Breathwork recommended." :
+                          d === "extreme"  ? "Serious cold. Cold shock risk. Experienced plungers only." :
+                                            "Near-freezing water. Expert level — know your limits."
+                        }</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-blue-500 text-[10px] mt-4 text-center">Temperatures are typical seasonal ranges for each spot.</p>
+            </div>
+          </div>
+        )}
         {/* Row 2: Radius + Search */}
         <div className="flex gap-2 items-center">
           <div className="relative flex-none">
