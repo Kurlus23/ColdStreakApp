@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
+import { Sentry } from "@/lib/monitoring";
 
 function Router() {
   return (
@@ -21,12 +22,28 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <Sentry.ErrorBoundary fallback={
+      <div className="min-h-screen bg-blue-950 flex items-center justify-center text-white text-center px-6">
+        <div>
+          <p className="text-4xl mb-4">🧊</p>
+          <p className="font-bold text-lg mb-2">Something went wrong</p>
+          <p className="text-blue-300 text-sm mb-6">Try refreshing the page.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-cyan-500 text-blue-950 font-bold px-6 py-3 rounded-xl"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+    }>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </Sentry.ErrorBoundary>
   );
 }
 

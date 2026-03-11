@@ -8,10 +8,13 @@ export function initMonitoring() {
     dsn: SENTRY_DSN,
     environment: import.meta.env.MODE,
     tracesSampleRate: 0.1,
-    replaysOnErrorSampleRate: 0,
-    integrations: [],
+    integrations: [
+      Sentry.browserTracingIntegration(),
+    ],
   });
 }
+
+export { Sentry };
 
 export function captureError(error: unknown, context?: Record<string, unknown>) {
   if (!SENTRY_DSN) return;
