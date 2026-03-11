@@ -335,12 +335,12 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
           <div className="flex-1 text-left">
             <div className="text-white font-bold text-sm">Community Spots</div>
             <div className="text-blue-400 text-[11px]">
-              {isPro ? "Crowd-sourced cold plunge destinations" : "Pro — discover & submit spots"}
+              {isPro ? (geoPos ? "Sorted by distance from you" : "Sorted by most nominations") : "Pro — discover & submit spots"}
             </div>
           </div>
           {isPro ? (
             <span className="text-xs text-blue-400 font-semibold">
-              Top {communityFiltered.length}
+              {geoPos ? `Nearest ${communityFiltered.length}` : `Top ${communityFiltered.length}`}
             </span>
           ) : (
             <span className="flex items-center gap-1 text-xs text-yellow-400 font-semibold mr-1">
