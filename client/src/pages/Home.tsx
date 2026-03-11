@@ -18,6 +18,8 @@ import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry } from 
 import { useProStatus } from "@/hooks/use-pro-status";
 import { PlungeCard, buildShareText } from "@/components/PlungeCard";
 import { FeedAd, InterstitialAd } from "@/components/AdUnit";
+import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
+import { Analytics } from "@/lib/analytics";
 import { buildShareImage } from "@/lib/shareImage";
 import { Explore } from "@/pages/Explore";
 import {
@@ -101,6 +103,8 @@ function getStreak(plunges: Plunge[]): number {
 }
 
 export default function Home() {
+  const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
+
   const [screen, setScreen] = useState<Screen>(
     () => (localStorage.getItem("defaultScreen") as Screen) || "timer"
   );
@@ -291,6 +295,7 @@ export default function Home() {
       { duration: durationSec, temperature, score: String(score), hrAvg: null, spo2Avg: null },
       {
         onSuccess: (newPlunge) => {
+          Analytics.plungeLogged(durationSec, temperature, score);
           confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
           toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${temperature}°F` });
           promptPlungeRef.current = { score: String(score), duration: durationSec, temperature };
@@ -357,6 +362,7 @@ export default function Home() {
   }, [isRunning, countdownRunning, countdownMode]);
 
   const handleStart = () => {
+    Analytics.timerStarted();
     if (countdownMode) {
       const total = minutesInput * 60 + secondsInput;
       if (total <= 0) { toast({ title: "Set a duration first", variant: "destructive" }); return; }
@@ -449,6 +455,9 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen max-h-screen overflow-hidden bg-blue-950">
+      {showOnboarding && (
+        <Onboarding onComplete={() => setShowOnboarding(false)} />
+      )}
       {/* Iceberg photo background */}
       <img
         src={icebergBg}
@@ -2206,7 +2215,7 @@ export default function Home() {
 
             <button
               data-testid="button-checkout"
-              onClick={() => { setShowUpgradeModal(false); startCheckout(); }}
+              onClick={() => { Analytics.proUpgradeStarted(); setShowUpgradeModal(false); startCheckout(); }}
               disabled={proLoading}
               className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-black text-lg shadow-lg shadow-cyan-500/30 transition-all active:scale-[0.98] disabled:opacity-50"
             >
