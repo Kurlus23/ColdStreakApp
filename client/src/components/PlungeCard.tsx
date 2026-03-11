@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Clock, Trash2, Heart, MapPin, Share2, Flame, Download, Pencil, Check, X } from "lucide-react";
+import { Clock, Trash2, Heart, MapPin, Share2, Flame, Download, Pencil, Check, X, Thermometer } from "lucide-react";
 import { type Plunge, type UserLocation } from "@shared/schema";
 import { PASSPORT_LOCATIONS } from "@/lib/passport";
 import { useDeletePlunge, useUpdatePlunge } from "@/hooks/use-plunges";
@@ -15,6 +15,17 @@ function estimateCalories(durationSeconds: number, tempF: number, weightLbs: num
   const deltaT = Math.max(0, 37 - tempC);
   const weightKg = weightLbs / 2.205;
   return Math.max(0, durationMin * deltaT * weightKg * 0.0077);
+}
+
+function calcScore(durationSeconds: number, tempF: number): number {
+  const minutes = durationSeconds / 60;
+  let coldFactor = 1;
+  if (tempF <= 55) coldFactor = 1.2;
+  if (tempF <= 50) coldFactor = 1.5;
+  if (tempF <= 45) coldFactor = 1.9;
+  if (tempF <= 40) coldFactor = 2.5;
+  if (tempF <= 35) coldFactor = 3.2;
+  return Math.round(Math.sqrt(minutes) * coldFactor * 10) / 10;
 }
 
 interface PlungeCardProps {
@@ -90,10 +101,15 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
   const [photoExpanded, setPhotoExpanded] = useState(false);
   const [localPhoto, setLocalPhoto] = useState<string | null>(null);
 
-  // Edit location state
+  // Edit state
   const [editing, setEditing] = useState(false);
   const [editSel, setEditSel] = useState<string>("");
   const [editCustom, setEditCustom] = useState("");
+  const [editMins, setEditMins] = useState(0);
+  const [editSecs, setEditSecs] = useState(0);
+  const [editTemp, setEditTemp] = useState(50);
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
 
   // Ad gate: pending action fires after user dismisses interstitial
   const [pendingAction, setPendingAction] = useState<(() => Promise<void>) | null>(null);
@@ -229,27 +245,31 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
   };
 
   const openEdit = () => {
-    // Pre-populate selector from current plunge
+    // Duration
+    setEditMins(Math.floor(plunge.duration / 60));
+    setEditSecs(plunge.duration % 60);
+    // Temperature
+    setEditTemp(plunge.temperature);
+    // Date & time
+    const d = new Date(plunge.createdAt);
+    setEditDate(d.toISOString().slice(0, 10));
+    setEditTime(d.toTimeString().slice(0, 5));
+    // Location
     if (plunge.locationId === "home") {
-      setEditSel("home");
-      setEditCustom("");
+      setEditSel("home"); setEditCustom("");
     } else if (plunge.locationId?.startsWith("community-")) {
-      setEditSel(plunge.locationId);
-      setEditCustom("");
+      setEditSel(plunge.locationId); setEditCustom("");
     } else if (plunge.locationId) {
-      setEditSel(plunge.locationId);
-      setEditCustom("");
+      setEditSel(plunge.locationId); setEditCustom("");
     } else if (plunge.locationName) {
-      setEditSel("custom");
-      setEditCustom(plunge.locationName);
+      setEditSel("custom"); setEditCustom(plunge.locationName);
     } else {
-      setEditSel("");
-      setEditCustom("");
+      setEditSel(""); setEditCustom("");
     }
     setEditing(true);
   };
 
-  const handleSaveLocation = () => {
+  const handleSave = () => {
     let locationId: string | null = null;
     let locationName: string | null = null;
 
@@ -267,17 +287,21 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
       const cid = Number(editSel.replace("community-", ""));
       locationName = communityLocs.find((l) => l.id === cid)?.name ?? null;
     } else {
-      // Passport location
       locationId = editSel;
       locationName = PASSPORT_LOCATIONS.find((l) => l.id === editSel)?.name ?? null;
     }
 
+    const duration = Math.max(1, editMins * 60 + editSecs);
+    const temperature = Math.min(75, Math.max(32, editTemp));
+    const score = String(calcScore(duration, temperature));
+    const createdAt = new Date(`${editDate}T${editTime}:00`).toISOString();
+
     updatePlunge.mutate(
-      { id: plunge.id, patch: { locationId, locationName } },
+      { id: plunge.id, patch: { locationId, locationName, duration, temperature, score, createdAt } },
       {
         onSuccess: () => {
           setEditing(false);
-          toast({ title: "Location updated" });
+          toast({ title: "Plunge updated" });
         },
         onError: () => {
           toast({ title: "Failed to update location", variant: "destructive" });
@@ -474,58 +498,127 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
           </div>
         )}
 
-        {/* Inline location editor */}
+        {/* Inline full editor */}
         {editing && (
-          <div className="relative z-10 mt-3 bg-slate-900/60 border border-cyan-500/30 rounded-xl p-3 space-y-2">
+          <div className="relative z-10 mt-3 bg-slate-900/60 border border-cyan-500/30 rounded-xl p-3 space-y-3">
             <div className="text-cyan-400 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5">
-              <MapPin className="w-3 h-3" /> Edit Location
+              <Pencil className="w-3 h-3" /> Edit Plunge
             </div>
 
-            <select
-              data-testid={`select-edit-location-${plunge.id}`}
-              value={editSel}
-              onChange={(e) => { setEditSel(e.target.value); setEditCustom(""); }}
-              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-400 appearance-none"
-            >
-              <option value="">— No location —</option>
-              <option value="home">🏠 Home</option>
-              {communityLocs.length > 0 && (
-                <>
-                  <option disabled>──── Community ────</option>
-                  {communityLocs.map((l) => (
-                    <option key={`community-${l.id}`} value={`community-${l.id}`}>{l.name}</option>
-                  ))}
-                </>
-              )}
-              <option disabled>──── Passport Spots ────</option>
-              {PASSPORT_LOCATIONS.map((l) => (
-                <option key={l.id} value={l.id}>{l.flag} {l.name} · {l.state}</option>
-              ))}
-              <option value="custom">✏️ Custom…</option>
-            </select>
+            {/* Date & Time */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-slate-400 text-[10px] uppercase tracking-wide block mb-1">Date</label>
+                <input
+                  data-testid={`input-edit-date-${plunge.id}`}
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+              <div>
+                <label className="text-slate-400 text-[10px] uppercase tracking-wide block mb-1">Time</label>
+                <input
+                  data-testid={`input-edit-time-${plunge.id}`}
+                  type="time"
+                  value={editTime}
+                  onChange={(e) => setEditTime(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+            </div>
 
-            {editSel === "custom" && (
+            {/* Duration */}
+            <div>
+              <label className="text-slate-400 text-[10px] uppercase tracking-wide flex items-center gap-1 mb-1">
+                <Clock className="w-3 h-3" /> Duration
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  data-testid={`input-edit-mins-${plunge.id}`}
+                  type="number" min={0} max={59}
+                  value={editMins}
+                  onChange={(e) => setEditMins(Math.max(0, Math.min(59, Number(e.target.value) || 0)))}
+                  className="w-16 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:outline-none focus:border-cyan-400"
+                />
+                <span className="text-slate-400 text-sm">m</span>
+                <input
+                  data-testid={`input-edit-secs-${plunge.id}`}
+                  type="number" min={0} max={59}
+                  value={editSecs}
+                  onChange={(e) => setEditSecs(Math.max(0, Math.min(59, Number(e.target.value) || 0)))}
+                  className="w-16 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:outline-none focus:border-cyan-400"
+                />
+                <span className="text-slate-400 text-sm">s</span>
+              </div>
+            </div>
+
+            {/* Temperature */}
+            <div>
+              <label className="text-slate-400 text-[10px] uppercase tracking-wide flex items-center gap-1 mb-1">
+                <Thermometer className="w-3 h-3" /> Temperature (°F)
+              </label>
               <input
-                data-testid={`input-edit-location-custom-${plunge.id}`}
-                type="text"
-                value={editCustom}
-                onChange={(e) => setEditCustom(e.target.value)}
-                placeholder="Enter location name…"
-                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                data-testid={`input-edit-temp-${plunge.id}`}
+                type="number" min={32} max={75}
+                value={editTemp}
+                onChange={(e) => setEditTemp(Number(e.target.value) || 50)}
+                onBlur={(e) => setEditTemp(Math.min(75, Math.max(32, Number(e.target.value) || 50)))}
+                className="w-24 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:outline-none focus:border-cyan-400"
               />
-            )}
+            </div>
+
+            {/* Location */}
+            <div>
+              <label className="text-slate-400 text-[10px] uppercase tracking-wide flex items-center gap-1 mb-1">
+                <MapPin className="w-3 h-3" /> Location
+              </label>
+              <select
+                data-testid={`select-edit-location-${plunge.id}`}
+                value={editSel}
+                onChange={(e) => { setEditSel(e.target.value); setEditCustom(""); }}
+                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-400 appearance-none"
+              >
+                <option value="">— No location —</option>
+                <option value="home">🏠 {homeLabel || "Home"}</option>
+                {communityLocs.length > 0 && (
+                  <>
+                    <option disabled>──── Community ────</option>
+                    {communityLocs.map((l) => (
+                      <option key={`community-${l.id}`} value={`community-${l.id}`}>{l.name}</option>
+                    ))}
+                  </>
+                )}
+                <option disabled>──── Passport Spots ────</option>
+                {PASSPORT_LOCATIONS.map((l) => (
+                  <option key={l.id} value={l.id}>{l.flag} {l.name} · {l.state}</option>
+                ))}
+                <option value="custom">✏️ Custom…</option>
+              </select>
+              {editSel === "custom" && (
+                <input
+                  data-testid={`input-edit-location-custom-${plunge.id}`}
+                  type="text"
+                  value={editCustom}
+                  onChange={(e) => setEditCustom(e.target.value)}
+                  placeholder="Enter location name…"
+                  className="mt-2 w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                />
+              )}
+            </div>
 
             <div className="flex gap-2 pt-1">
               <button
-                data-testid={`button-save-location-${plunge.id}`}
-                onClick={handleSaveLocation}
+                data-testid={`button-save-plunge-${plunge.id}`}
+                onClick={handleSave}
                 disabled={updatePlunge.isPending}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 text-sm font-semibold hover:bg-cyan-500/30 transition-all active:scale-95 disabled:opacity-50"
               >
                 <Check className="w-3.5 h-3.5" /> Save
               </button>
               <button
-                data-testid={`button-cancel-location-${plunge.id}`}
+                data-testid={`button-cancel-edit-${plunge.id}`}
                 onClick={() => setEditing(false)}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-slate-700/60 border border-slate-600/50 text-slate-300 text-sm font-semibold hover:bg-slate-700 transition-all active:scale-95"
               >

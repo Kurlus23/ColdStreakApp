@@ -230,7 +230,7 @@ export default function Home() {
   const [manualSecs, setManualSecs] = useState(0);
   const [manualTempF, setManualTempF] = useState(50);
   // Manual entry — location
-  const [manualLocSel, setManualLocSel] = useState(""); // "", "community-N", "custom", "new"
+  const [manualLocSel, setManualLocSel] = useState("home"); // "home", "community-N", "custom", "new"
   const [manualLocCustom, setManualLocCustom] = useState("");
   const [manualLocGeo, setManualLocGeo] = useState<{ lat: number; lng: number } | null>(null);
   const [manualLocGeoLoading, setManualLocGeoLoading] = useState(false);
@@ -790,7 +790,7 @@ export default function Home() {
                     setManualMins(3);
                     setManualSecs(0);
                     setManualTempF(50);
-                    setManualLocSel(""); setManualLocCustom(""); setManualLocGeo(null);
+                    setManualLocSel("home"); setManualLocCustom(""); setManualLocGeo(null);
                     setManualNewName(""); setManualNewCountry("USA"); setManualNewState(""); setManualNewCity("");
                     setShowManualEntry(true);
                   }}
@@ -1055,7 +1055,7 @@ export default function Home() {
                       {
                         onSuccess: () => {
                           setShowManualEntry(false);
-                          setManualLocSel(""); setManualLocCustom(""); setManualLocGeo(null);
+                          setManualLocSel("home"); setManualLocCustom(""); setManualLocGeo(null);
                           const locPart = finalLocName ? ` at ${finalLocName}` : "";
                           toast({ title: "Plunge logged! ❄️", description: `${manualMins}m ${manualSecs}s at ${manualTempF}°F${locPart} — added to history.` });
                         }

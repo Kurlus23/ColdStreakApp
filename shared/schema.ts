@@ -61,6 +61,10 @@ export const updatePlungeSchema = insertPlungeSchema.partial().pick({
   photoData: true,
   locationName: true,
   locationId: true,
+  duration: true,
+  temperature: true,
+  score: true,
+  createdAt: true,
 });
 
 export const insertLeaderboardEntrySchema = createInsertSchema(leaderboardEntries).omit({
