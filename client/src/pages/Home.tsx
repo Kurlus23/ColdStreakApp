@@ -1226,92 +1226,33 @@ export default function Home() {
                     </div>
                   </div>
 
+                  {/* Est. Calories Burned */}
+                  <div>
+                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                      <Flame className="w-3 h-3 text-orange-400" /> Est. Calories Burned
+                    </label>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <div className="text-orange-300 font-bold text-lg leading-none">{Math.round(todayCalories) || "—"}</div>
+                        <div className="text-blue-500 text-[10px] mt-0.5">today</div>
+                      </div>
+                      <div className="border-x border-blue-800">
+                        <div className="text-orange-300 font-bold text-lg leading-none">{Math.round(weeklyCalories) || "—"}</div>
+                        <div className="text-blue-500 text-[10px] mt-0.5">this week</div>
+                      </div>
+                      <div>
+                        <div className="text-orange-300 font-bold text-lg leading-none">{Math.round(allTimeCalories) || "—"}</div>
+                        <div className="text-blue-500 text-[10px] mt-0.5">all time</div>
+                      </div>
+                    </div>
+                    <p className="text-blue-600 text-[10px] mt-2 leading-relaxed">
+                      Estimated via thermogenesis model. Cold water forces your body to generate heat, burning extra calories beyond your normal resting rate.
+                    </p>
+                  </div>
+
                 </div>
               )}
             </div>
-
-            {/* Achievements */}
-            {(() => {
-              const allStates = [...new Set(PASSPORT_LOCATIONS.map((l) => l.state))].sort();
-              const allTiers: Difficulty[] = ["cold","ice-bath","extreme","arctic"];
-              const earnedStates = new Set(computeStateBadges(badges));
-              const earnedTiers = new Set(computeTierBadges(badges));
-              const totalAchievements = earnedStates.size + earnedTiers.size;
-              return (
-                <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40">
-                  <button
-                    data-testid="button-toggle-badges"
-                    onClick={() => setBadgesOpen((v) => !v)}
-                    className="w-full flex items-center justify-between px-4 py-3 text-left"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-semibold text-sm">Achievements</span>
-                      <span className="text-cyan-500 text-xs">({totalAchievements} earned)</span>
-                    </div>
-                    <span className={`text-blue-400 text-xs transition-transform duration-200 ${badgesOpen ? "rotate-180" : ""}`}>▼</span>
-                  </button>
-                  {badgesOpen && <div className="px-4 pb-4 space-y-4 border-t border-blue-700/30 pt-3">
-                  {/* Tier Master Badges */}
-                  <div>
-                    <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">
-                      Tier Badges
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {allTiers.map((tier) => {
-                        const earned = earnedTiers.has(tier);
-                        const meta = DIFFICULTY_META[tier];
-                        const master = TIER_MASTER_META[tier];
-                        return (
-                          <div
-                            key={tier}
-                            data-testid={`achievement-tier-${tier}`}
-                            title={earned ? master.award : `Complete all ${meta.label} spots to earn "${master.title}"`}
-                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                              earned
-                                ? "bg-cyan-500/20 border border-cyan-500/50 text-cyan-300"
-                                : "bg-blue-800/40 border border-blue-700/30 text-blue-600"
-                            }`}
-                          >
-                            <span>{meta.emoji}</span>
-                            <span>{earned ? master.title : meta.label}</span>
-                            {earned && <span className="text-[10px] text-cyan-400">✓</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* State Badges */}
-                  <div>
-                    <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">State Badges</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {allStates.map((state) => {
-                        const earned = earnedStates.has(state);
-                        const emoji = STATE_EMOJI[state] ?? "🏆";
-                        const count = PASSPORT_LOCATIONS.filter((l) => l.state === state).length;
-                        return (
-                          <div
-                            key={state}
-                            data-testid={`achievement-state-${state.replace(/[\s/]/g, "-").toLowerCase()}`}
-                            title={earned ? `${state} — all ${count} spot${count > 1 ? "s" : ""} completed!` : `Complete all ${count} ${state} spot${count > 1 ? "s" : ""} to earn this badge`}
-                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                              earned
-                                ? "bg-yellow-500/20 border border-yellow-500/40 text-yellow-200"
-                                : "bg-blue-800/40 border border-blue-700/30 text-blue-600"
-                            }`}
-                          >
-                            <span>{emoji}</span>
-                            <span>{state}</span>
-                            {earned && <span className="text-[10px] text-yellow-400">✓</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  </div>}
-                </div>
-              );
-            })()}
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
@@ -1333,29 +1274,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Calorie stats row */}
-              <div className="col-span-2 bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
-                <div className="text-blue-400 text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
-                  <Flame className="w-3.5 h-3.5 text-orange-400" /> Est. Calories Burned
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <div className="text-orange-300 font-bold text-lg leading-none">{Math.round(todayCalories) || "—"}</div>
-                    <div className="text-blue-500 text-[10px] mt-0.5">today</div>
-                  </div>
-                  <div className="border-x border-blue-800">
-                    <div className="text-orange-300 font-bold text-lg leading-none">{Math.round(weeklyCalories) || "—"}</div>
-                    <div className="text-blue-500 text-[10px] mt-0.5">this week</div>
-                  </div>
-                  <div>
-                    <div className="text-orange-300 font-bold text-lg leading-none">{Math.round(allTimeCalories) || "—"}</div>
-                    <div className="text-blue-500 text-[10px] mt-0.5">all time</div>
-                  </div>
-                </div>
-                <p className="text-blue-600 text-[10px] mt-3 leading-relaxed">
-                  Estimated via thermogenesis model. Cold water forces your body to generate heat, burning extra calories beyond your normal resting rate.
-                </p>
-              </div>
             </div>
 
             {/* Countdown timer mode */}
@@ -1443,6 +1361,89 @@ export default function Home() {
                 {alarmIsCustom ? `Custom: ${alarmLabel}` : "Upload from Device"}
               </button>
             </div>
+
+            {/* Achievements */}
+            {(() => {
+              const allStates = [...new Set(PASSPORT_LOCATIONS.map((l) => l.state))].sort();
+              const allTiers: Difficulty[] = ["cold","ice-bath","extreme","arctic"];
+              const earnedStates = new Set(computeStateBadges(badges));
+              const earnedTiers = new Set(computeTierBadges(badges));
+              const totalAchievements = earnedStates.size + earnedTiers.size;
+              return (
+                <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40">
+                  <button
+                    data-testid="button-toggle-badges"
+                    onClick={() => setBadgesOpen((v) => !v)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-semibold text-sm">Achievements</span>
+                      <span className="text-cyan-500 text-xs">({totalAchievements} earned)</span>
+                    </div>
+                    <span className={`text-blue-400 text-xs transition-transform duration-200 ${badgesOpen ? "rotate-180" : ""}`}>▼</span>
+                  </button>
+                  {badgesOpen && <div className="px-4 pb-4 space-y-4 border-t border-blue-700/30 pt-3">
+                  {/* Tier Master Badges */}
+                  <div>
+                    <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">
+                      Tier Badges
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {allTiers.map((tier) => {
+                        const earned = earnedTiers.has(tier);
+                        const meta = DIFFICULTY_META[tier];
+                        const master = TIER_MASTER_META[tier];
+                        return (
+                          <div
+                            key={tier}
+                            data-testid={`achievement-tier-${tier}`}
+                            title={earned ? master.award : `Complete all ${meta.label} spots to earn "${master.title}"`}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                              earned
+                                ? "bg-cyan-500/20 border border-cyan-500/50 text-cyan-300"
+                                : "bg-blue-800/40 border border-blue-700/30 text-blue-600"
+                            }`}
+                          >
+                            <span>{meta.emoji}</span>
+                            <span>{earned ? master.title : meta.label}</span>
+                            {earned && <span className="text-[10px] text-cyan-400">✓</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* State Badges */}
+                  <div>
+                    <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">State Badges</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {allStates.map((state) => {
+                        const earned = earnedStates.has(state);
+                        const emoji = STATE_EMOJI[state] ?? "🏆";
+                        const count = PASSPORT_LOCATIONS.filter((l) => l.state === state).length;
+                        return (
+                          <div
+                            key={state}
+                            data-testid={`achievement-state-${state.replace(/[\s/]/g, "-").toLowerCase()}`}
+                            title={earned ? `${state} — all ${count} spot${count > 1 ? "s" : ""} completed!` : `Complete all ${count} ${state} spot${count > 1 ? "s" : ""} to earn this badge`}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                              earned
+                                ? "bg-yellow-500/20 border border-yellow-500/40 text-yellow-200"
+                                : "bg-blue-800/40 border border-blue-700/30 text-blue-600"
+                            }`}
+                          >
+                            <span>{emoji}</span>
+                            <span>{state}</span>
+                            {earned && <span className="text-[10px] text-yellow-400">✓</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  </div>}
+                </div>
+              );
+            })()}
 
             {/* Safety & Disclaimer */}
             <div
