@@ -18,6 +18,8 @@ function estimateCalories(durationSeconds: number, tempF: number, weightLbs: num
 interface PlungeCardProps {
   plunge: Plunge;
   bodyWeightLbs?: number;
+  username?: string;
+  streak?: number;
 }
 
 function formatTime(totalSeconds: number) {
@@ -26,7 +28,38 @@ function formatTime(totalSeconds: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function PlungeCard({ plunge, bodyWeightLbs = 154 }: PlungeCardProps) {
+async function dataUrlToFile(dataUrl: string, filename: string): Promise<File> {
+  const res = await fetch(dataUrl);
+  const blob = await res.blob();
+  return new File([blob], filename, { type: blob.type || "image/jpeg" });
+}
+
+export function buildShareText({
+  username,
+  temperature,
+  duration,
+  streak,
+  locationName,
+}: {
+  username?: string;
+  temperature: number;
+  duration: number;
+  streak?: number;
+  locationName?: string | null;
+}): string {
+  const name = username?.trim() || "I";
+  const verb = name === "I" ? "just completed" : "just completed";
+  const lines: string[] = [
+    `${name} ${verb} a ${temperature}°F plunge! 🧊`,
+    `⏱️ Duration: ${formatTime(duration)}`,
+  ];
+  if (streak && streak > 0) lines.push(`🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}`);
+  if (locationName) lines.push(`📍 ${locationName}`);
+  lines.push(`\nTracked with ColdStreak 💪`);
+  return lines.join("\n");
+}
+
+export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak }: PlungeCardProps) {
   const deletePlunge = useDeletePlunge();
   const { toast } = useToast();
   const [confirming, setConfirming] = useState(false);
@@ -59,29 +92,42 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154 }: PlungeCardProps) {
   };
 
   const handleShare = async () => {
-    const locationPart = plunge.locationName ? `📍 ${plunge.locationName}\n` : "";
-    const text =
-      `🧊 Cold Plunge Complete!\n` +
-      `⏱️ ${formatTime(plunge.duration)} at ${plunge.temperature}°F\n` +
-      `${locationPart}` +
-      `⚡ Cold Score: ${Number(plunge.score).toFixed(1)} · 🔥 ~${calories} kcal burned\n` +
-      `Tracked with ColdStreak 💪`;
+    const text = buildShareText({
+      username,
+      temperature: plunge.temperature,
+      duration: plunge.duration,
+      streak,
+      locationName: plunge.locationName,
+    });
 
     if (navigator.share) {
+      if (photoSrc) {
+        try {
+          const file = await dataUrlToFile(photoSrc, `coldstreak-plunge.jpg`);
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], text });
+            return;
+          }
+        } catch (e: any) {
+          if (e?.name === "AbortError") return;
+        }
+      }
       try {
         await navigator.share({ title: "ColdStreak Plunge", text });
+        return;
       } catch (e: any) {
         if (e?.name !== "AbortError") {
           toast({ title: "Share failed", variant: "destructive" });
         }
+        return;
       }
-    } else {
-      try {
-        await navigator.clipboard.writeText(text);
-        toast({ title: "Copied to clipboard!", description: "Paste to share with friends." });
-      } catch {
-        toast({ title: "Could not copy", variant: "destructive" });
-      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ title: "Copied to clipboard!", description: "Paste to share with friends." });
+    } catch {
+      toast({ title: "Could not copy", variant: "destructive" });
     }
   };
 
@@ -108,13 +154,22 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154 }: PlungeCardProps) {
             className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 border border-white/20 text-white text-lg font-bold"
             onClick={() => setPhotoExpanded(false)}
           >✕</button>
-          <button
-            data-testid={`button-save-to-device-${plunge.id}`}
-            onClick={(e) => { e.stopPropagation(); handleSaveToDevice(); }}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-semibold px-4 py-2 rounded-full transition-all active:scale-95"
-          >
-            <Download className="w-4 h-4" /> Save to Camera Roll
-          </button>
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
+            <button
+              data-testid={`button-save-to-device-${plunge.id}`}
+              onClick={(e) => { e.stopPropagation(); handleSaveToDevice(); }}
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-semibold px-4 py-2 rounded-full transition-all active:scale-95"
+            >
+              <Download className="w-4 h-4" /> Save
+            </button>
+            <button
+              data-testid={`button-share-photo-${plunge.id}`}
+              onClick={(e) => { e.stopPropagation(); handleShare(); }}
+              className="flex items-center gap-2 bg-cyan-500/30 hover:bg-cyan-500/50 border border-cyan-400/40 text-cyan-200 text-sm font-semibold px-4 py-2 rounded-full transition-all active:scale-95"
+            >
+              <Share2 className="w-4 h-4" /> Share
+            </button>
+          </div>
         </div>
       )}
 

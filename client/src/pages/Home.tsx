@@ -6,7 +6,7 @@ import {
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -16,7 +16,7 @@ import { queryClient } from "@/lib/queryClient";
 import { usePlunges, useCreatePlunge, useUpdatePlunge } from "@/hooks/use-plunges";
 import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry } from "@/hooks/use-leaderboard";
 import { useProStatus } from "@/hooks/use-pro-status";
-import { PlungeCard } from "@/components/PlungeCard";
+import { PlungeCard, buildShareText } from "@/components/PlungeCard";
 import { Explore } from "@/pages/Explore";
 import {
   PASSPORT_LOCATIONS, usePassportBadges, distanceMiles,
@@ -940,7 +940,7 @@ export default function Home() {
               const locked = isPro ? [] : sorted.filter((p) => new Date(p.createdAt) < sevenDaysAgo);
               return (
                 <div className="space-y-3">
-                  {visible.map((plunge) => <PlungeCard key={plunge.id} plunge={plunge} bodyWeightLbs={bodyWeightLbs} />)}
+                  {visible.map((plunge) => <PlungeCard key={plunge.id} plunge={plunge} bodyWeightLbs={bodyWeightLbs} username={username} streak={streak} />)}
                   {locked.length > 0 && (
                     <button
                       data-testid="banner-upgrade-history"
@@ -1801,6 +1801,62 @@ export default function Home() {
             >
               {promptSaving ? "Saving…" : "Save"}
             </button>
+
+            {/* Share button */}
+            {promptPlungeRef.current && (
+              <button
+                data-testid="button-share-after-plunge"
+                onClick={async () => {
+                  if (!promptPlungeRef.current) return;
+                  let locationName: string | undefined;
+                  if (promptLocationId === "custom") {
+                    locationName = promptCustomLocation.trim() || undefined;
+                  } else if (promptLocationId.startsWith("community-")) {
+                    const cid = Number(promptLocationId.replace("community-", ""));
+                    locationName = communityLocs.find((l) => l.id === cid)?.name;
+                  } else if (promptLocationId) {
+                    locationName = PASSPORT_LOCATIONS.find((l) => l.id === promptLocationId)?.name;
+                  }
+                  const text = buildShareText({
+                    username,
+                    temperature: promptPlungeRef.current.temperature,
+                    duration: promptPlungeRef.current.duration,
+                    streak,
+                    locationName,
+                  });
+                  if (navigator.share) {
+                    if (promptPhotoData) {
+                      try {
+                        const res = await fetch(promptPhotoData);
+                        const blob = await res.blob();
+                        const file = new File([blob], "coldstreak-plunge.jpg", { type: blob.type || "image/jpeg" });
+                        if (navigator.canShare?.({ files: [file] })) {
+                          await navigator.share({ files: [file], text });
+                          return;
+                        }
+                      } catch (e: any) {
+                        if (e?.name === "AbortError") return;
+                      }
+                    }
+                    try {
+                      await navigator.share({ title: "ColdStreak Plunge", text });
+                      return;
+                    } catch (e: any) {
+                      if (e?.name === "AbortError") return;
+                    }
+                  }
+                  try {
+                    await navigator.clipboard.writeText(text);
+                    toast({ title: "Copied!", description: "Paste to share with friends." });
+                  } catch {
+                    toast({ title: "Could not copy", variant: "destructive" });
+                  }
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-blue-600/60 text-blue-300 text-sm font-semibold hover:border-cyan-500/60 hover:text-cyan-300 transition-all active:scale-95"
+              >
+                <Share2 className="w-4 h-4" /> Share with friends
+              </button>
+            )}
           </div>
         </div>
       )}
