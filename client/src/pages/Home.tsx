@@ -257,9 +257,13 @@ export default function Home() {
       toast({ title: "Spot created!", description: `${newLoc.name} added to community spots.` });
     },
   });
-  const [bodyWeightLbs, setBodyWeightLbs] = useState<number>(
-    () => Number(localStorage.getItem("coldstreak-body-weight") ?? 154)
-  );
+  const [bodyWeightLbs, setBodyWeightLbs] = useState<number>(() => {
+    if (!localStorage.getItem("coldstreak-auth-token")) {
+      localStorage.removeItem("coldstreak-body-weight");
+      return 154;
+    }
+    return Number(localStorage.getItem("coldstreak-body-weight") || 154);
+  });
   const [restoreEmailInput, setRestoreEmailInput] = useState("");
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [settingsRestoreEmail, setSettingsRestoreEmail] = useState("");
@@ -276,9 +280,13 @@ export default function Home() {
   const [leaderboardLocationId, setLeaderboardLocationId] = useState<string | null>(null);
   const [leaderboardLocName, setLeaderboardLocName] = useState<string>("");
   const { data: communityLocs = [] } = useQuery<UserLocation[]>({ queryKey: ["/api/community-locations"] });
-  const [username, setUsername] = useState<string>(
-    () => localStorage.getItem("coldstreak-username") ?? ""
-  );
+  const [username, setUsername] = useState<string>(() => {
+    if (!localStorage.getItem("coldstreak-auth-token")) {
+      localStorage.removeItem("coldstreak-username");
+      return "";
+    }
+    return localStorage.getItem("coldstreak-username") ?? "";
+  });
   // Plunge data stored for leaderboard submission after save
   const promptPlungeRef = useRef<{ score: string; duration: number; temperature: number } | null>(null);
 
