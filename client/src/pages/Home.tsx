@@ -56,10 +56,30 @@ async function resizeImageToBase64(file: File, maxPx = 800, quality = 0.75): Pro
 }
 
 const ALARM_PRESETS = [
-  { id: "alarm_clock",   label: "Alarm Clock",    url: "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" },
-  { id: "digital_watch", label: "Digital Watch",  url: "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" },
-  { id: "bell",          label: "Bell",           url: "https://actions.google.com/sounds/v1/alarms/medium_bell_ringing_near.ogg" },
+  { id: "alarm_clock",   label: "Alarm Clock",    url: "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg",           gain: 1.0 },
+  { id: "digital_watch", label: "Digital Watch",  url: "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg", gain: 3.0 },
+  { id: "bell",          label: "Bell",           url: "https://actions.google.com/sounds/v1/alarms/medium_bell_ringing_near.ogg", gain: 1.0 },
 ];
+const CUSTOM_ALARM_DURATION_MS = 5000;
+
+function playAudio(url: string, gain: number, stopAfterMs?: number): HTMLAudioElement {
+  const audio = new Audio(url);
+  audio.volume = 1;
+  if (gain > 1) {
+    try {
+      const AC = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+      const ctx = new AC();
+      const source = ctx.createMediaElementSource(audio);
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = gain;
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
+    } catch {}
+  }
+  audio.play().catch(() => {});
+  if (stopAfterMs) setTimeout(() => { audio.pause(); audio.currentTime = 0; }, stopAfterMs);
+  return audio;
+}
 
 type Screen = "timer" | "history" | "explore" | "settings";
 
@@ -165,17 +185,25 @@ export default function Home() {
   const [alarmLabel, setAlarmLabel] = useState<string>(
     () => localStorage.getItem("alarmLabel") ?? ALARM_PRESETS[0].label
   );
+  const [alarmGain, setAlarmGain] = useState<number>(
+    () => Number(localStorage.getItem("alarmGain") || ALARM_PRESETS[0].gain)
+  );
   const [alarmIsCustom, setAlarmIsCustom] = useState<boolean>(
     () => localStorage.getItem("alarmIsCustom") === "true"
   );
+  const [alarmCustomLabel, setAlarmCustomLabel] = useState<string>(
+    () => localStorage.getItem("alarmCustomLabel") ?? ""
+  );
   const alarmUploadRef = useRef<HTMLInputElement | null>(null);
 
-  const selectPresetAlarm = (url: string, label: string) => {
+  const selectPresetAlarm = (url: string, label: string, gain: number) => {
     setAlarmUrl(url);
     setAlarmLabel(label);
+    setAlarmGain(gain);
     setAlarmIsCustom(false);
     localStorage.setItem("alarmUrl", url);
     localStorage.setItem("alarmLabel", label);
+    localStorage.setItem("alarmGain", String(gain));
     localStorage.setItem("alarmIsCustom", "false");
   };
 
@@ -185,22 +213,36 @@ export default function Home() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string;
+      const defaultName = file.name.replace(/\.[^.]+$/, "");
       setAlarmUrl(dataUrl);
-      setAlarmLabel(file.name.replace(/\.[^.]+$/, ""));
+      setAlarmLabel(defaultName);
+      setAlarmGain(1.0);
       setAlarmIsCustom(true);
+      setAlarmCustomLabel(defaultName);
       localStorage.setItem("alarmUrl", dataUrl);
-      localStorage.setItem("alarmLabel", file.name.replace(/\.[^.]+$/, ""));
+      localStorage.setItem("alarmLabel", defaultName);
+      localStorage.setItem("alarmGain", "1");
       localStorage.setItem("alarmIsCustom", "true");
-      toast({ title: "Alarm uploaded", description: `"${file.name.replace(/\.[^.]+$/, "")}" is now your alarm sound.` });
+      localStorage.setItem("alarmCustomLabel", defaultName);
+      toast({ title: "Custom alarm uploaded", description: `Tap the label to rename it.` });
     };
     reader.readAsDataURL(file);
   };
 
+  const saveCustomLabel = (name: string) => {
+    const trimmed = name.trim() || "Custom";
+    setAlarmCustomLabel(trimmed);
+    setAlarmLabel(trimmed);
+    localStorage.setItem("alarmCustomLabel", trimmed);
+    localStorage.setItem("alarmLabel", trimmed);
+  };
+
   const previewAlarm = () => {
-    const audio = new Audio(alarmUrl);
-    audio.volume = 1;
-    audio.play().catch(() => toast({ title: "Preview failed", description: "Tap the screen first to allow audio playback.", variant: "destructive" }));
-    setTimeout(() => { audio.pause(); audio.currentTime = 0; }, 3000);
+    try {
+      playAudio(alarmUrl, alarmGain, alarmIsCustom ? CUSTOM_ALARM_DURATION_MS : 3000);
+    } catch {
+      toast({ title: "Preview failed", description: "Tap the screen first to allow audio playback.", variant: "destructive" });
+    }
   };
 
   // Photo / location prompt
@@ -467,8 +509,7 @@ export default function Home() {
       setCountdownRunning(false);
       const targetDuration = minutesInput * 60 + secondsInput;
       doLogPlunge(targetDuration);
-      alarmRef.current = new Audio(alarmUrl);
-      alarmRef.current.play().catch(() => {});
+      alarmRef.current = playAudio(alarmUrl, alarmGain, alarmIsCustom ? CUSTOM_ALARM_DURATION_MS : undefined);
     }
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1665,7 +1706,7 @@ export default function Home() {
                   <button
                     key={preset.id}
                     data-testid={`button-alarm-${preset.id}`}
-                    onClick={() => selectPresetAlarm(preset.url, preset.label)}
+                    onClick={() => selectPresetAlarm(preset.url, preset.label, preset.gain)}
                     className={`py-2 px-3 rounded-xl text-sm font-semibold border transition-all active:scale-95 ${
                       !alarmIsCustom && alarmLabel === preset.label
                         ? "bg-cyan-500/30 border-cyan-400 text-cyan-200"
@@ -1675,28 +1716,59 @@ export default function Home() {
                     {preset.label}
                   </button>
                 ))}
+
+                {/* 4th tile — Custom sound */}
+                <input
+                  ref={alarmUploadRef}
+                  type="file"
+                  accept="audio/*"
+                  className="hidden"
+                  onChange={handleAudioUpload}
+                  data-testid="input-alarm-upload"
+                />
+                <button
+                  data-testid="button-alarm-custom"
+                  onClick={() => {
+                    if (alarmIsCustom) return;
+                    alarmUploadRef.current?.click();
+                  }}
+                  className={`py-2 px-3 rounded-xl text-sm font-semibold border transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
+                    alarmIsCustom
+                      ? "bg-cyan-500/30 border-cyan-400 text-cyan-200"
+                      : "bg-blue-800/60 border-blue-600/50 text-blue-300 hover:text-white hover:border-blue-400"
+                  }`}
+                >
+                  {alarmIsCustom ? (
+                    <span className="truncate max-w-[90px]">{alarmCustomLabel || "Custom"}</span>
+                  ) : (
+                    <><Upload className="w-3.5 h-3.5 shrink-0" /><span>Custom</span></>
+                  )}
+                </button>
               </div>
 
-              <input
-                ref={alarmUploadRef}
-                type="file"
-                accept="audio/*"
-                className="hidden"
-                onChange={handleAudioUpload}
-                data-testid="input-alarm-upload"
-              />
-              <button
-                data-testid="button-upload-alarm"
-                onClick={() => alarmUploadRef.current?.click()}
-                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${
-                  alarmIsCustom
-                    ? "bg-cyan-500/30 border-cyan-400 text-cyan-200"
-                    : "bg-blue-800/60 border-blue-600/50 text-blue-300 hover:text-white hover:border-blue-400"
-                }`}
-              >
-                <Upload className="w-4 h-4" />
-                {alarmIsCustom ? `Custom: ${alarmLabel}` : "Upload from Device"}
-              </button>
+              {/* Custom sound controls — shown when custom is active */}
+              {alarmIsCustom && (
+                <div className="space-y-2">
+                  <input
+                    data-testid="input-custom-alarm-label"
+                    type="text"
+                    placeholder="Name your sound…"
+                    value={alarmCustomLabel}
+                    maxLength={32}
+                    onChange={(e) => setAlarmCustomLabel(e.target.value)}
+                    onBlur={(e) => saveCustomLabel(e.target.value)}
+                    className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                  />
+                  <button
+                    data-testid="button-upload-new-alarm"
+                    onClick={() => alarmUploadRef.current?.click()}
+                    className="flex items-center gap-1.5 text-blue-400 hover:text-cyan-300 text-xs font-semibold transition-colors"
+                  >
+                    <Upload className="w-3 h-3" /> Upload a different file
+                  </button>
+                  <p className="text-blue-500 text-xs">Custom sounds play for 5 seconds.</p>
+                </div>
+              )}
             </div>
 
             {/* Achievements */}
