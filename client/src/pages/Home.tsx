@@ -128,7 +128,8 @@ export default function Home() {
   const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
   const auth = useAuth();
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
-  const [authEmail, setAuthEmail] = useState("");
+  const [rememberEmail, setRememberEmail] = useState<boolean>(() => localStorage.getItem("coldstreak-remember-email") === "true");
+  const [authEmail, setAuthEmail] = useState(() => localStorage.getItem("coldstreak-remember-email") === "true" ? (localStorage.getItem("coldstreak-saved-email") ?? "") : "");
   const [authPassword, setAuthPassword] = useState("");
   const [syncDone, setSyncDone] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
@@ -1454,9 +1455,31 @@ export default function Home() {
                           type="email"
                           placeholder="Email"
                           value={authEmail}
-                          onChange={(e) => setAuthEmail(e.target.value)}
+                          onChange={(e) => {
+                            setAuthEmail(e.target.value);
+                            if (rememberEmail) localStorage.setItem("coldstreak-saved-email", e.target.value);
+                          }}
                           className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
                         />
+                        <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
+                          <input
+                            data-testid="checkbox-remember-email"
+                            type="checkbox"
+                            checked={rememberEmail}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setRememberEmail(checked);
+                              localStorage.setItem("coldstreak-remember-email", String(checked));
+                              if (checked) {
+                                localStorage.setItem("coldstreak-saved-email", authEmail);
+                              } else {
+                                localStorage.removeItem("coldstreak-saved-email");
+                              }
+                            }}
+                            className="w-3.5 h-3.5 accent-cyan-400"
+                          />
+                          <span className="text-blue-400 text-xs">Remember my email</span>
+                        </label>
                         <div className="space-y-1">
                           <input
                             data-testid="input-auth-password"
