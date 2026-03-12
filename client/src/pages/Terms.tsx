@@ -107,7 +107,7 @@ export default function Terms() {
           <section>
             <h2 className="text-base font-bold text-slate-900 mb-2">Contact</h2>
             <p className="text-slate-600">
-              For questions about these Terms, contact us via the ColdStreak listing on the App Store or Google Play.
+              For questions about these Terms, email us at <a href="mailto:ColdStreakApp17@gmail.com" className="text-blue-600 underline">ColdStreakApp17@gmail.com</a> or contact us via the ColdStreak listing on the App Store or Google Play.
             </p>
           </section>
 

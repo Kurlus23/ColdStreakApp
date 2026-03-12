@@ -92,7 +92,7 @@ export default function Privacy() {
               <li>Deletion of your account and associated data.</li>
             </ul>
             <p className="text-slate-600 mt-2">
-              To exercise these rights, contact us via the App Store or Google Play listing for ColdStreak.
+              To exercise these rights, email us at <a href="mailto:ColdStreakApp17@gmail.com" className="text-blue-600 underline">ColdStreakApp17@gmail.com</a> or contact us via the App Store or Google Play listing for ColdStreak.
             </p>
           </section>
 
@@ -113,7 +113,7 @@ export default function Privacy() {
           <section>
             <h2 className="text-base font-bold text-slate-900 mb-2">Contact</h2>
             <p className="text-slate-600">
-              For privacy-related questions or data requests, contact us via the ColdStreak listing on the App Store or Google Play.
+              For privacy-related questions or data requests, email us at <a href="mailto:ColdStreakApp17@gmail.com" className="text-blue-600 underline">ColdStreakApp17@gmail.com</a> or contact us via the ColdStreak listing on the App Store or Google Play.
             </p>
           </section>
 

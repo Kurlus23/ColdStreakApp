@@ -16,7 +16,7 @@ async function sendEmail(to: string, subject: string, html: string): Promise<voi
         "Content-Type": "application/json",
         "Authorization": `Bearer ${RESEND_API_KEY}`,
       },
-      body: JSON.stringify({ from, to: [to], subject, html }),
+      body: JSON.stringify({ from, to: [to], subject, html, reply_to: "ColdStreakApp17@gmail.com" }),
     });
   };
 

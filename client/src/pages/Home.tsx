@@ -2022,7 +2022,7 @@ export default function Home() {
                     </p>
                   </div>
 
-                  <p className="text-blue-500 text-[10px]">Last updated: March 2026. For questions, contact us via the App Store listing.</p>
+                  <p className="text-blue-500 text-[10px]">Last updated: March 2026. For questions, email <a href="mailto:ColdStreakApp17@gmail.com" className="underline">ColdStreakApp17@gmail.com</a> or contact us via the App Store listing.</p>
                 </div>
               )}
             </div>
