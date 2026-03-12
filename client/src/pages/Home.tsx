@@ -1766,7 +1766,7 @@ export default function Home() {
                   >
                     <Upload className="w-3 h-3" /> Upload a different file
                   </button>
-                  <p className="text-blue-500 text-xs">Custom sounds play for 5 seconds.</p>
+                  <p className="text-blue-500 text-xs">Custom sounds play for 5 seconds. Use only sounds you own or have the rights to.</p>
                 </div>
               )}
             </div>
