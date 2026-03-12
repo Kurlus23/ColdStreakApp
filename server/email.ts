@@ -1,5 +1,6 @@
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_ADDRESS = process.env.EMAIL_FROM || "ColdStreak <noreply@coldstreak.app>";
+const FROM_ADDRESS = process.env.EMAIL_FROM || "ColdStreak <noreply@coldstreakapp.com>";
+const FALLBACK_FROM = "ColdStreak <onboarding@resend.dev>";
 
 async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   if (!RESEND_API_KEY) {
@@ -7,19 +8,34 @@ async function sendEmail(to: string, subject: string, html: string): Promise<voi
     console.warn("[email] Subject:", subject);
     return;
   }
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${RESEND_API_KEY}`,
-    },
-    body: JSON.stringify({ from: FROM_ADDRESS, to: [to], subject, html }),
-  });
+
+  const tryFrom = async (from: string): Promise<Response> => {
+    return fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({ from, to: [to], subject, html }),
+    });
+  };
+
+  let res = await tryFrom(FROM_ADDRESS);
+
   if (!res.ok) {
     const body = await res.text();
-    console.error("[email] Resend API error:", res.status, body);
-    throw new Error("Failed to send email");
+    if (res.status === 403 && body.includes("not verified")) {
+      console.warn("[email] Domain not verified, falling back to onboarding@resend.dev");
+      res = await tryFrom(FALLBACK_FROM);
+    }
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.error("[email] Resend API error:", res.status, errBody);
+      throw new Error("Failed to send email");
+    }
   }
+
+  console.log("[email] Sent successfully to:", to, "subject:", subject);
 }
 
 export async function sendVerificationEmail(to: string, verifyUrl: string): Promise<void> {
