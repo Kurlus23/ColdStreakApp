@@ -2428,8 +2428,8 @@ export default function Home() {
       </div>
 
       {/* ─── STICKY BANNER AD ─── */}
-      {!isPro && !showPostSessionAd && (
-        <div className="fixed left-0 right-0 z-40 px-3" style={{ bottom: "82px" }}>
+      {!isPro && !showPostSessionAd && screen === "timer" && (
+        <div className="fixed left-0 right-0 z-30 px-3" style={{ bottom: "248px" }}>
           <BannerAd />
         </div>
       )}
