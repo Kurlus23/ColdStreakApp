@@ -578,6 +578,9 @@ export default function Home() {
       {screen === "timer" && (
         <div className="absolute bottom-20 left-0 right-0 px-3 pb-2">
 
+          {/* Banner Ad — free users only */}
+          {!isPro && <BannerAd />}
+
           {/* 3-column cards */}
           <div className="grid grid-cols-3 gap-2.5 mb-3">
 
@@ -2426,9 +2429,6 @@ export default function Home() {
           </button>
         </div>
       </div>
-
-      {/* ─── STICKY BANNER AD ─── */}
-      {!isPro && !showPostSessionAd && <BannerAd />}
 
       {/* ─── POST-SESSION AD ─── */}
       {showPostSessionAd && !isPro && (

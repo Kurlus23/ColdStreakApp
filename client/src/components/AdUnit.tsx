@@ -54,7 +54,7 @@ export function BannerAd() {
   return (
     <div
       data-testid="banner-ad"
-      className="fixed bottom-16 left-0 right-0 z-40 px-3 pb-1"
+      className="mb-2.5"
     >
       <div className={`relative flex items-center gap-2 bg-gradient-to-r ${ad.bg} border border-slate-700/60 rounded-xl px-3 py-2 shadow-lg`}>
         <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 shrink-0">Ad</span>
