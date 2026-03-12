@@ -80,6 +80,8 @@ export function useAuth() {
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem("coldstreak-is-pro");
+    localStorage.removeItem("coldstreak-pro-email");
     setUser(null);
     setError(null);
   }, []);
