@@ -60,8 +60,8 @@ Then in Android Studio:
 ## Privacy policy & Terms URLs (required for Play Store)
 
 Once deployed:
-- Privacy Policy: `https://yourdomain.com/privacy`
-- Terms of Service: `https://yourdomain.com/terms`
+- Privacy Policy: `https://coldstreakapp.com/privacy`
+- Terms of Service: `https://coldstreakapp.com/terms`
 
 ## Notes
 
