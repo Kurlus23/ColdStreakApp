@@ -74,7 +74,7 @@ export function buildShareText({
   if (streak && streak > 0) lines.push(`🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}`);
   if (locationId === "home") lines.push(`📍 Home`);
   else if (locationName) lines.push(`📍 ${locationName}`);
-  lines.push(`\nTracked with ColdStreak`);
+  lines.push(`\nTracked with ColdStreak 🧊\ncoldstreakapp.com`);
   return lines.join("\n");
 }
 
