@@ -2,11 +2,29 @@ import { useState, useEffect, useCallback } from "react";
 
 const PRO_EMAIL_KEY = "coldstreak-pro-email";
 const PRO_STATUS_KEY = "coldstreak-is-pro";
+const AUTH_USER_KEY = "coldstreak-auth-user";
+
+function getLoggedInEmail(): string | null {
+  try {
+    const raw = localStorage.getItem(AUTH_USER_KEY);
+    if (!raw) return null;
+    const user = JSON.parse(raw);
+    return user?.email ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export function useProStatus() {
-  const [isPro, setIsPro] = useState<boolean>(
-    () => localStorage.getItem(PRO_STATUS_KEY) === "true"
-  );
+  const [isPro, setIsPro] = useState<boolean>(() => {
+    const cached = localStorage.getItem(PRO_STATUS_KEY) === "true";
+    if (!cached) return false;
+    // If a different user is logged in, don't inherit Pro from previous account
+    const proEmail = localStorage.getItem(PRO_EMAIL_KEY);
+    const loggedInEmail = getLoggedInEmail();
+    if (loggedInEmail && proEmail && loggedInEmail !== proEmail) return false;
+    return true;
+  });
   const [proEmail, setProEmail] = useState<string | null>(
     () => localStorage.getItem(PRO_EMAIL_KEY)
   );
@@ -30,6 +48,14 @@ export function useProStatus() {
   useEffect(() => {
     const cachedEmail = localStorage.getItem(PRO_EMAIL_KEY);
     if (!cachedEmail) return;
+
+    // If a different user is logged in, clear Pro immediately
+    const loggedInEmail = getLoggedInEmail();
+    if (loggedInEmail && loggedInEmail !== cachedEmail) {
+      clearPro();
+      return;
+    }
+
     fetch(`/api/pro-status/${encodeURIComponent(cachedEmail)}`)
       .then((r) => r.json())
       .then((data) => {
