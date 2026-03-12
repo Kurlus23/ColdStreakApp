@@ -122,3 +122,24 @@ Plunges use a `clientId` (UUID stored in localStorage) for anonymous tracking. W
 - ✅ Step 7 — Account login + data sync
 - ⬜ Step 8 — Stripe live mode
 - ⬜ Step 9 — Custom domain (~$12)
+
+---
+
+## Growth Roadmap (trigger: ~1,000 registered users)
+
+### Admin Panel (`/admin` — password-protected, owner-only)
+Build when user base reaches scale where manual Stripe dashboard management becomes painful.
+
+**Features planned:**
+- User lookup by email — see account details, plunge count, Pro status
+- Revoke Pro access with one click (marks `pro_users.active = false`)
+- User count dashboard (total registered, Pro count, DAU estimate)
+- Milestone email alert — server automatically emails `ColdStreakApp17@gmail.com` when the 1,000th account is created
+
+**Implementation notes:**
+- Protect route with a hardcoded admin secret env var (`ADMIN_SECRET`)
+- No separate login UI needed — just a header-based token check
+- Refunds still issued manually via Stripe dashboard; admin panel just handles access revocation on the app side
+- Stripe subscription cancellation can be added to the revoke action via `stripe.subscriptions.cancel()`
+
+**To check current user count at any time:** just ask — the database can be queried instantly.
