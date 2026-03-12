@@ -383,6 +383,10 @@ export default function Home() {
   const handleLogout = () => {
     auth.logout();
     setSyncDone(false);
+    localStorage.removeItem("coldstreak-username");
+    localStorage.removeItem("coldstreak-body-weight");
+    setUsername("");
+    setBodyWeightLbs(154);
     queryClient.invalidateQueries({ queryKey: ["/api/plunges"] });
   };
 
