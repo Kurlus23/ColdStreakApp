@@ -36,6 +36,7 @@ export interface IStorage {
   setVerifyToken(userId: number, token: string): Promise<void>;
   verifyEmailToken(token: string): Promise<User | null>;
   updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number }): Promise<User>;
+  getUserCount(): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -205,6 +206,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return updated;
+  }
+
+  async getUserCount(): Promise<number> {
+    const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(users);
+    return count;
   }
 }
 

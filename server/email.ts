@@ -59,6 +59,25 @@ export async function sendVerificationEmail(to: string, verifyUrl: string): Prom
   `);
 }
 
+export async function sendMilestoneEmail(milestone: number, totalUsers: number): Promise<void> {
+  await sendEmail(
+    "ColdStreakApp17@gmail.com",
+    `🎉 ColdStreak hit ${milestone.toLocaleString()} users!`,
+    `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">
+      <h1 style="color:#22d3ee;margin:0 0 8px">🧊 ColdStreak</h1>
+      <h2 style="color:#fff;margin:0 0 24px;font-size:22px">🎉 You hit ${milestone.toLocaleString()} users!</h2>
+      <p style="color:#94a3b8;margin:0 0 16px;line-height:1.6;font-size:16px">
+        Someone just became user #${totalUsers.toLocaleString()} on ColdStreak. You've officially crossed the <strong style="color:#22d3ee">${milestone.toLocaleString()}-user milestone</strong>.
+      </p>
+      <p style="color:#64748b;margin:24px 0 0;font-size:13px">
+        — Your ColdStreak server 🥶
+      </p>
+    </div>
+  `
+  );
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   await sendEmail(to, "Reset your ColdStreak password", `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">

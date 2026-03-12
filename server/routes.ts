@@ -7,7 +7,7 @@ import Stripe from "stripe";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { sendPasswordResetEmail, sendVerificationEmail } from "./email";
+import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail } from "./email";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-02-24.acacia" });
 const PRICE_ID = process.env.STRIPE_PRICE_ID!;
@@ -59,6 +59,14 @@ export async function registerRoutes(
       await storage.setVerifyToken(user.id, verifyToken);
       const origin = req.headers.origin || `${req.protocol}://${req.headers.host}`;
       sendVerificationEmail(email, `${origin}/verify-email?token=${verifyToken}`).catch(console.error);
+
+      // Milestone notification — fire and forget
+      const MILESTONES = [100, 500, 1000, 2500, 5000, 10000];
+      storage.getUserCount().then((count) => {
+        if (MILESTONES.includes(count)) {
+          sendMilestoneEmail(count, count).catch(console.error);
+        }
+      }).catch(console.error);
 
       res.status(201).json({ token, user: { id: user.id, email: user.email, emailVerified: false } });
     } catch (err) {
