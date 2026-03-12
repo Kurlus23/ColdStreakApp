@@ -325,6 +325,40 @@ export default function Home() {
     }
   }, [auth.user]);
 
+  // Restore profile settings (displayName, bodyWeight) from server on login
+  // If server has no value yet, push local values up so they're saved
+  useEffect(() => {
+    if (!auth.user) return;
+    const token = localStorage.getItem("coldstreak-auth-token");
+    if (!token) return;
+    fetch("/api/auth/profile", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((data) => {
+        const localName = localStorage.getItem("coldstreak-username") || "";
+        const localWeight = Number(localStorage.getItem("coldstreak-body-weight")) || 0;
+        const patch: { displayName?: string; bodyWeight?: number } = {};
+
+        if (data.displayName) {
+          setUsername(data.displayName);
+          localStorage.setItem("coldstreak-username", data.displayName);
+        } else if (localName) {
+          patch.displayName = localName;
+        }
+
+        if (data.bodyWeight && data.bodyWeight > 0) {
+          setBodyWeightLbs(data.bodyWeight);
+          localStorage.setItem("coldstreak-body-weight", String(data.bodyWeight));
+        } else if (localWeight > 0) {
+          patch.bodyWeight = localWeight;
+        }
+
+        if (Object.keys(patch).length > 0) {
+          fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(patch) }).catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }, [auth.user]);
+
   const handleAuthSubmit = async () => {
     const ok = authMode === "login"
       ? await auth.login(authEmail, authPassword)
@@ -1428,6 +1462,11 @@ export default function Home() {
                         setUsername(e.target.value);
                         localStorage.setItem("coldstreak-username", e.target.value);
                       }}
+                      onBlur={(e) => {
+                        const token = localStorage.getItem("coldstreak-auth-token");
+                        if (!token || !e.target.value.trim()) return;
+                        fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ displayName: e.target.value.trim() }) }).catch(() => {});
+                      }}
                       className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
                     />
                     <p className="text-blue-500 text-xs mt-1">Shown on leaderboards when you submit a plunge.</p>
@@ -1474,6 +1513,8 @@ export default function Home() {
                           const clamped = Math.min(500, Math.max(50, Number(e.target.value) || 154));
                           setBodyWeightLbs(clamped);
                           localStorage.setItem("coldstreak-body-weight", String(clamped));
+                          const token = localStorage.getItem("coldstreak-auth-token");
+                          if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: clamped }) }).catch(() => {});
                         }}
                         className="w-24 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 text-center font-bold"
                       />

@@ -10,6 +10,8 @@ export const users = pgTable("users", {
   emailVerifyToken: text("email_verify_token"),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
+  displayName: text("display_name"),
+  bodyWeight: integer("body_weight"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

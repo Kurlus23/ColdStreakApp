@@ -35,6 +35,7 @@ export interface IStorage {
   updatePassword(id: number, passwordHash: string): Promise<void>;
   setVerifyToken(userId: number, token: string): Promise<void>;
   verifyEmailToken(token: string): Promise<User | null>;
+  updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number }): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -196,6 +197,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, user.id))
       .returning();
     return updated ?? null;
+  }
+
+  async updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number }): Promise<User> {
+    const [updated] = await db.update(users)
+      .set(patch)
+      .where(eq(users.id, id))
+      .returning();
+    return updated;
   }
 }
 

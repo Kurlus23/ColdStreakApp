@@ -96,6 +96,25 @@ export async function registerRoutes(
     res.json({ id: user.id, email: user.email, emailVerified: user.emailVerified });
   });
 
+  app.get("/api/auth/profile", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUserById(payload.userId);
+    if (!user) return res.status(401).json({ message: "User not found" });
+    res.json({ displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null });
+  });
+
+  app.patch("/api/auth/profile", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    const { displayName, bodyWeight } = req.body;
+    const patch: { displayName?: string; bodyWeight?: number } = {};
+    if (typeof displayName === "string") patch.displayName = displayName.trim().slice(0, 32);
+    if (typeof bodyWeight === "number" && bodyWeight > 0) patch.bodyWeight = Math.round(bodyWeight);
+    const user = await storage.updateUserProfile(payload.userId, patch);
+    res.json({ displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null });
+  });
+
   app.get("/api/auth/verify-email", async (req, res) => {
     const token = String(req.query.token || "");
     if (!token) return res.status(400).json({ message: "Missing token" });
