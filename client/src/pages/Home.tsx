@@ -17,7 +17,7 @@ import { usePlunges, useCreatePlunge, useUpdatePlunge, useDeletePlunge } from "@
 import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry } from "@/hooks/use-leaderboard";
 import { useProStatus } from "@/hooks/use-pro-status";
 import { PlungeCard, buildShareText } from "@/components/PlungeCard";
-import { FeedAd, InterstitialAd } from "@/components/AdUnit";
+import { BannerAd, FeedAd, InterstitialAd } from "@/components/AdUnit";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
 import { Analytics } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
@@ -2426,6 +2426,9 @@ export default function Home() {
           </button>
         </div>
       </div>
+
+      {/* ─── STICKY BANNER AD ─── */}
+      {!isPro && !showPostSessionAd && <BannerAd />}
 
       {/* ─── POST-SESSION AD ─── */}
       {showPostSessionAd && !isPro && (

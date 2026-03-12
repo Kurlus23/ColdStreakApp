@@ -34,7 +34,54 @@ const FEED_ADS = [
   },
 ];
 
-const INTERSTITIAL_ADS = FEED_ADS; // same pool, can diverge later
+const INTERSTITIAL_ADS = FEED_ADS;
+
+// ---------------------------------------------------------------------------
+// Banner Ad — slim sticky strip above the nav bar, rotates every 8s
+// ---------------------------------------------------------------------------
+export function BannerAd() {
+  const [idx, setIdx] = useState(() => Math.floor(Math.random() * FEED_ADS.length));
+  const [visible, setVisible] = useState(true);
+  const ad = FEED_ADS[idx % FEED_ADS.length];
+
+  useEffect(() => {
+    const t = setInterval(() => setIdx((i) => (i + 1) % FEED_ADS.length), 8000);
+    return () => clearInterval(t);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      data-testid="banner-ad"
+      className="fixed bottom-16 left-0 right-0 z-40 px-3 pb-1"
+    >
+      <div className={`relative flex items-center gap-2 bg-gradient-to-r ${ad.bg} border border-slate-700/60 rounded-xl px-3 py-2 shadow-lg`}>
+        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 shrink-0">Ad</span>
+        <p className={`text-xs font-bold ${ad.accent} shrink-0`}>{ad.brand}</p>
+        <p className="text-white/80 text-xs truncate flex-1">{ad.tagline}</p>
+        <a
+          href={ad.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="link-banner-ad-cta"
+          className={`shrink-0 text-xs font-semibold ${ad.accent} flex items-center gap-0.5 hover:underline`}
+        >
+          {ad.cta}
+          <ExternalLink className="w-2.5 h-2.5" />
+        </a>
+        <button
+          onClick={() => setVisible(false)}
+          data-testid="button-dismiss-banner"
+          className="shrink-0 text-slate-500 hover:text-white transition-colors ml-1"
+          aria-label="Dismiss ad"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Feed Ad — drops into the plunge history list
@@ -101,7 +148,6 @@ export function InterstitialAd({
       data-testid="interstitial-ad"
     >
       <div className="relative w-full max-w-sm">
-        {/* Dismiss button */}
         <button
           onClick={remaining === 0 ? onDismiss : undefined}
           data-testid="button-dismiss-ad"
@@ -114,7 +160,6 @@ export function InterstitialAd({
           {remaining === 0 ? <X className="w-4 h-4" /> : remaining}
         </button>
 
-        {/* Ad card */}
         <div
           className={`overflow-hidden bg-gradient-to-br ${ad.bg} border border-slate-600/60 rounded-2xl p-6`}
         >
