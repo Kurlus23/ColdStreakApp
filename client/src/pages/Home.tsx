@@ -152,6 +152,9 @@ export default function Home() {
   const [countdownMode, setCountdownMode] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [countdownRunning, setCountdownRunning] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(orientation: landscape)").matches
+  );
   const [minutesInput, setMinutesInput] = useState(3);
   const [secondsInput, setSecondsInput] = useState(0);
   const alarmRef = useRef<HTMLAudioElement | null>(null);
@@ -543,6 +546,15 @@ export default function Home() {
       release();
     };
   }, [isRunning, countdownRunning, countdownMode]);
+
+  // Landscape detection
+  useEffect(() => {
+    const mq = window.matchMedia("(orientation: landscape)");
+    const handler = (e: MediaQueryListEvent) => setIsLandscape(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
 
   const handleStart = () => {
     Analytics.timerStarted();
@@ -2537,6 +2549,54 @@ export default function Home() {
               Discard plunge
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ─── ACTIVE TIMER OVERLAY ─── */}
+      {isActive && screen === "timer" && (
+        <div
+          className={`fixed z-[60] bg-blue-950/98 backdrop-blur-md flex flex-col items-center justify-center gap-8 transition-all duration-300 ${
+            isLandscape
+              ? "inset-0"
+              : "inset-x-0 bottom-0 rounded-t-3xl border-t border-blue-700/50 animate-in slide-in-from-bottom duration-300"
+          }`}
+          style={isLandscape ? {} : { height: "82vh" }}
+        >
+          {/* Mode label */}
+          <div className="text-blue-400 text-xs font-semibold uppercase tracking-widest -mb-4">
+            {countdownMode ? "Countdown" : "Stopwatch"}
+          </div>
+
+          {/* Giant time */}
+          <div
+            className="font-mono font-bold text-white leading-none"
+            style={{ fontSize: isLandscape ? "18vw" : "28vw" }}
+            data-testid="display-timer-overlay"
+          >
+            {formatTime(displaySeconds)}
+          </div>
+
+          {/* Temp + live score row */}
+          <div className="flex items-center gap-6">
+            <div className="text-center">
+              <div className="text-blue-400 text-xs uppercase tracking-widest mb-0.5">Water Temp</div>
+              <div className="text-white text-2xl font-bold">{tempDisplay}</div>
+            </div>
+            <div className="w-px h-8 bg-blue-700/50" />
+            <div className="text-center">
+              <div className="text-blue-400 text-xs uppercase tracking-widest mb-0.5">Cold Score</div>
+              <div className="text-cyan-300 text-2xl font-bold">{displayScore}</div>
+            </div>
+          </div>
+
+          {/* Stop button */}
+          <button
+            data-testid="button-stop-overlay"
+            onClick={handleStop}
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-20 py-4 rounded-2xl text-xl transition-all active:scale-95 shadow-lg shadow-blue-600/30"
+          >
+            Stop
+          </button>
         </div>
       )}
 
