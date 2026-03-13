@@ -2190,31 +2190,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Matching plunges list */}
-                {earned && (
-                  <div className="overflow-y-auto flex-1 space-y-2">
-                    <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">Your plunges in this range</div>
-                    {matchingPlunges.map((p, i) => (
-                      <div
-                        key={p.id}
-                        data-testid={`badge-detail-plunge-${p.id}`}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl border bg-cyan-500/10 border-cyan-500/30"
-                      >
-                        <div className="w-6 h-6 rounded-full bg-cyan-500/30 flex items-center justify-center shrink-0 text-xs font-bold text-cyan-300">
-                          {i + 1}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-white text-sm font-semibold">{p.temperature}°F · {p.duration}s</div>
-                          <div className="text-blue-400 text-[11px] truncate">
-                            {p.location || "No location"} · {new Date(p.date).toLocaleDateString()}
-                          </div>
-                        </div>
-                        <span className="text-[10px] text-cyan-400 font-semibold shrink-0">✓</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
                 {!earned && (
                   <div className="shrink-0 text-center text-blue-500 text-[11px] mt-2">
                     Log a plunge and enter a temperature of {tier.minTemp}–{tier.maxTemp}°F to earn this badge
