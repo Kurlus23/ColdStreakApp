@@ -1989,14 +1989,20 @@ export default function Home() {
               <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl px-5 pt-5 pb-4 border border-blue-800/50">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <Trophy className="w-6 h-6 text-yellow-400 shrink-0" />
+                    <div className="relative shrink-0">
+                      <Trophy className="w-7 h-7 text-yellow-400" />
+                      {totalEarned > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-blue-950 text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                          {totalEarned}
+                        </span>
+                      )}
+                    </div>
                     <div className="min-w-0">
                       <h2 className="text-white font-bold text-lg leading-tight truncate">
                         {username ? `${username}'s Badges` : "My Badges"}
                       </h2>
-                      <p className="text-blue-400 text-xs">{totalEarned}/{totalPossible} earned</p>
                       {streak > 0 && (
-                        <p className="text-orange-400 text-xs mt-0.5">🔥 {streak} day streak</p>
+                        <p className="text-orange-400 text-xs">🔥 {streak} day streak</p>
                       )}
                     </div>
                   </div>
