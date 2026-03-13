@@ -30,6 +30,7 @@ import {
   DIFFICULTY_META, STATE_EMOJI,
   computeStateBadges,
   TEMP_TIERS,
+  DAYS_TIERS,
 } from "@/lib/passport";
 import { useMutation } from "@tanstack/react-query";
 
@@ -344,6 +345,7 @@ export default function Home() {
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
   const [badgeDetailModal, setBadgeDetailModal] = useState<
+    | { type: "days"; tierId: string }
     | { type: "temp-tier"; tierId: string }
     | { type: "state"; state: string }
     | null
@@ -1902,10 +1904,15 @@ export default function Home() {
           if (cascade) earnedTempTierIds.add(t.id);
         }
 
+        // Days-plunged milestone badges
+        const uniquePlungeDays = new Set(plungeList.map((p) => new Date(p.createdAt).toLocaleDateString())).size;
+        const earnedDaysTierIds = new Set(DAYS_TIERS.filter((t) => uniquePlungeDays >= t.days).map((t) => t.id));
+
         const totalTiers = earnedTempTierIds.size;
         const totalStates = earnedStates.size;
-        const totalEarned = totalTiers + totalStates;
-        const totalPossible = TEMP_TIERS.length + allStates.length;
+        const totalDays = earnedDaysTierIds.size;
+        const totalEarned = totalTiers + totalStates + totalDays;
+        const totalPossible = TEMP_TIERS.length + allStates.length + DAYS_TIERS.length;
 
         return (
           <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
@@ -1949,6 +1956,44 @@ export default function Home() {
                         <div className="text-left">
                           <div>{tier.label}</div>
                           <div className="text-[10px] opacity-70">{tier.minTemp}–{tier.maxTemp}°F</div>
+                        </div>
+                        {earned && <span className="text-[10px] text-cyan-400 ml-1">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Days Plunged Badges */}
+              <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40 px-4 py-4">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-blue-400 text-[11px] uppercase tracking-widest">Days Plunged</div>
+                  <div className="text-blue-500 text-[11px]">{uniquePlungeDays} day{uniquePlungeDays !== 1 ? "s" : ""} total</div>
+                </div>
+                <div className="text-blue-500 text-[11px] mb-3">Reach milestone days to unlock each badge.</div>
+                <div className="flex flex-wrap gap-2">
+                  {DAYS_TIERS.map((tier) => {
+                    const earned = earnedDaysTierIds.has(tier.id);
+                    const isNext = !earned && DAYS_TIERS.filter((t) => !earnedDaysTierIds.has(t.id))[0]?.id === tier.id;
+                    const pct = isNext ? Math.min(100, Math.round((uniquePlungeDays / tier.days) * 100)) : 0;
+                    return (
+                      <button
+                        key={tier.id}
+                        data-testid={`achievement-days-${tier.id}`}
+                        onClick={() => setBadgeDetailModal({ type: "days", tierId: tier.id })}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 border ${
+                          earned
+                            ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300"
+                            : "bg-blue-800/40 border-blue-700/30 text-blue-600"
+                        }`}
+                      >
+                        <span className="text-base">{tier.emoji}</span>
+                        <div className="text-left">
+                          <div>{tier.label}</div>
+                          <div className="text-[10px] opacity-70">
+                            {tier.days === 365 ? "365+ days" : `${tier.days} days`}
+                            {isNext && ` · ${pct}%`}
+                          </div>
                         </div>
                         {earned && <span className="text-[10px] text-cyan-400 ml-1">✓</span>}
                       </button>
@@ -2122,6 +2167,76 @@ export default function Home() {
 
       {/* ─── BADGE DETAIL MODAL ─── */}
       {badgeDetailModal && (() => {
+        if (badgeDetailModal.type === "days") {
+          // ── Days-plunged badge detail ──
+          const tier = DAYS_TIERS.find((t) => t.id === badgeDetailModal.tierId)!;
+          const plungeList3 = plunges ?? [];
+          const uniqueDays3 = new Set(plungeList3.map((p) => new Date(p.createdAt).toLocaleDateString())).size;
+          const earned = uniqueDays3 >= tier.days;
+          const remaining = Math.max(0, tier.days - uniqueDays3);
+          const pct = Math.min(100, tier.days > 0 ? Math.round((uniqueDays3 / tier.days) * 100) : 100);
+
+          return (
+            <div className="fixed inset-0 z-40 flex items-end justify-center">
+              <div className="absolute inset-0 bg-black/70" onClick={() => setBadgeDetailModal(null)} />
+              <div
+                data-testid="sheet-badge-detail"
+                className="relative z-10 w-full max-w-lg bg-blue-950 border border-blue-700/60 rounded-t-3xl p-5 pb-8 shadow-2xl"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{tier.emoji}</span>
+                    <div>
+                      <h3 className="text-white font-bold text-base leading-tight">{tier.label}</h3>
+                      <p className="text-blue-400 text-xs">{tier.days === 365 ? "365+ days plunged" : `${tier.days} days plunged`}</p>
+                    </div>
+                  </div>
+                  <button
+                    data-testid="button-close-badge-detail"
+                    onClick={() => setBadgeDetailModal(null)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
+                  >✕</button>
+                </div>
+
+                {/* Status */}
+                <div className={`mb-4 flex items-center gap-2 px-3 py-2.5 rounded-xl border ${
+                  earned ? "bg-cyan-500/10 border-cyan-500/30" : "bg-blue-900/40 border-blue-800/40"
+                }`}>
+                  <span className="text-xl">{earned ? "✅" : "🔒"}</span>
+                  <div>
+                    <div className={`text-sm font-semibold ${earned ? "text-cyan-300" : "text-blue-400"}`}>
+                      {earned ? "Badge Unlocked!" : "Not yet earned"}
+                    </div>
+                    <div className="text-blue-500 text-[11px]">
+                      {earned
+                        ? `You've plunged on ${uniqueDays3} unique day${uniqueDays3 !== 1 ? "s" : ""}`
+                        : `${remaining} more day${remaining !== 1 ? "s" : ""} to go — you're at ${uniqueDays3}`}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                {!earned && (
+                  <div>
+                    <div className="flex justify-between text-[11px] text-blue-500 mb-1">
+                      <span>{uniqueDays3} days</span>
+                      <span>{tier.days === 365 ? "365+ days" : `${tier.days} days`}</span>
+                    </div>
+                    <div className="h-2 bg-blue-900/60 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <div className="text-center text-blue-500 text-[11px] mt-2">{pct}% there</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }
+
         const isTempTier = badgeDetailModal.type === "temp-tier";
 
         if (isTempTier) {

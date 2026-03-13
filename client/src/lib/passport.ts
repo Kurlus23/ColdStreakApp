@@ -307,6 +307,25 @@ export const TIER_MASTER_META: Record<Difficulty, { title: string; award: string
   "arctic":   { title: "Arctic Wolf",   award: "All Arctic spots completed" },
 };
 
+// Days-plunged milestone badges — earned by reaching a total unique days plunged count
+export interface DaysTier {
+  id: string;
+  label: string;
+  emoji: string;
+  days: number; // days required (365 means 365+)
+}
+
+export const DAYS_TIERS: DaysTier[] = [
+  { id: "first-frost",   label: "First Frost",   emoji: "❄️",  days: 7   },
+  { id: "cold-habit",    label: "Cold Habit",    emoji: "🧊",  days: 21  },
+  { id: "frost-seeker",  label: "Frost Seeker",  emoji: "🌊",  days: 45  },
+  { id: "cold-warrior",  label: "Cold Warrior",  emoji: "⚔️",  days: 75  },
+  { id: "polar-bear",    label: "Polar Bear",    emoji: "🐻‍❄️", days: 120 },
+  { id: "cryonaut",      label: "Cryonaut",      emoji: "🚀",  days: 180 },
+  { id: "ice-baron",     label: "Ice Baron",     emoji: "👑",  days: 270 },
+  { id: "arctic-legend", label: "Arctic Legend", emoji: "🏆",  days: 365 },
+];
+
 // Temperature-based tier badges — earned by logging a plunge in each temp range
 export interface TempTier {
   id: string;
