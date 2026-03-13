@@ -317,6 +317,11 @@ export default function Home() {
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
   const [badgesOpen, setBadgesOpen] = useState(true);
+  const [badgeDetailModal, setBadgeDetailModal] = useState<
+    | { type: "tier"; tier: Difficulty }
+    | { type: "state"; state: string }
+    | null
+  >(null);
   const [userOpen, setUserOpen] = useState(true);
   const [homeLabel, setHomeLabel] = useState(() => localStorage.getItem("coldstreak-home-label") || "Home");
   const [safetySeen] = useState(() => !!localStorage.getItem("coldstreak-safety-seen"));
@@ -1870,21 +1875,28 @@ export default function Home() {
                         const earned = earnedTiers.has(tier);
                         const meta = DIFFICULTY_META[tier];
                         const master = TIER_MASTER_META[tier];
+                        const tierLocs = PASSPORT_LOCATIONS.filter((l) => l.difficulty === tier);
+                        const earnedCount = tierLocs.filter((l) => badges.has(l.id)).length;
                         return (
-                          <div
+                          <button
                             key={tier}
                             data-testid={`achievement-tier-${tier}`}
-                            title={earned ? master.award : `Complete all ${meta.label} spots to earn "${master.title}"`}
-                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                            onClick={() => setBadgeDetailModal({ type: "tier", tier })}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
                               earned
                                 ? "bg-cyan-500/20 border border-cyan-500/50 text-cyan-300"
+                                : earnedCount > 0
+                                ? "bg-blue-800/60 border border-blue-600/50 text-blue-400"
                                 : "bg-blue-800/40 border border-blue-700/30 text-blue-600"
                             }`}
                           >
                             <span>{meta.emoji}</span>
                             <span>{earned ? master.title : meta.label}</span>
-                            {earned && <span className="text-[10px] text-cyan-400">✓</span>}
-                          </div>
+                            {earned
+                              ? <span className="text-[10px] text-cyan-400">✓</span>
+                              : <span className="text-[10px] opacity-60">{earnedCount}/{tierLocs.length}</span>
+                            }
+                          </button>
                         );
                       })}
                     </div>
@@ -1897,22 +1909,28 @@ export default function Home() {
                       {allStates.map((state) => {
                         const earned = earnedStates.has(state);
                         const emoji = STATE_EMOJI[state] ?? "🏆";
-                        const count = PASSPORT_LOCATIONS.filter((l) => l.state === state).length;
+                        const stateLocs = PASSPORT_LOCATIONS.filter((l) => l.state === state);
+                        const earnedCount = stateLocs.filter((l) => badges.has(l.id)).length;
                         return (
-                          <div
+                          <button
                             key={state}
                             data-testid={`achievement-state-${state.replace(/[\s/]/g, "-").toLowerCase()}`}
-                            title={earned ? `${state} — all ${count} spot${count > 1 ? "s" : ""} completed!` : `Complete all ${count} ${state} spot${count > 1 ? "s" : ""} to earn this badge`}
-                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                            onClick={() => setBadgeDetailModal({ type: "state", state })}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
                               earned
                                 ? "bg-yellow-500/20 border border-yellow-500/40 text-yellow-200"
+                                : earnedCount > 0
+                                ? "bg-blue-800/60 border border-blue-600/50 text-blue-400"
                                 : "bg-blue-800/40 border border-blue-700/30 text-blue-600"
                             }`}
                           >
                             <span>{emoji}</span>
                             <span>{state}</span>
-                            {earned && <span className="text-[10px] text-yellow-400">✓</span>}
-                          </div>
+                            {earned
+                              ? <span className="text-[10px] text-yellow-400">✓</span>
+                              : <span className="text-[10px] opacity-60">{earnedCount}/{stateLocs.length}</span>
+                            }
+                          </button>
                         );
                       })}
                     </div>
@@ -2061,6 +2079,123 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* ─── BADGE DETAIL MODAL ─── */}
+      {badgeDetailModal && (() => {
+        const isTier = badgeDetailModal.type === "tier";
+
+        // Build list of locations for this badge
+        const locs = isTier
+          ? PASSPORT_LOCATIONS.filter((l) => l.difficulty === (badgeDetailModal as { type: "tier"; tier: Difficulty }).tier)
+          : PASSPORT_LOCATIONS.filter((l) => l.state === (badgeDetailModal as { type: "state"; state: string }).state);
+
+        const earnedCount = locs.filter((l) => badges.has(l.id)).length;
+        const allEarned = earnedCount === locs.length;
+
+        const headerEmoji = isTier
+          ? DIFFICULTY_META[(badgeDetailModal as { type: "tier"; tier: Difficulty }).tier].emoji
+          : (STATE_EMOJI[(badgeDetailModal as { type: "state"; state: string }).state] ?? "🏆");
+
+        const headerTitle = isTier
+          ? TIER_MASTER_META[(badgeDetailModal as { type: "tier"; tier: Difficulty }).tier].title
+          : (badgeDetailModal as { type: "state"; state: string }).state;
+
+        const headerSub = isTier
+          ? `Complete all ${DIFFICULTY_META[(badgeDetailModal as { type: "tier"; tier: Difficulty }).tier].label} spots`
+          : `Complete all ${locs.length} ${(badgeDetailModal as { type: "state"; state: string }).state} spot${locs.length > 1 ? "s" : ""}`;
+
+        const progressPct = locs.length > 0 ? Math.round((earnedCount / locs.length) * 100) : 0;
+
+        return (
+          <div className="fixed inset-0 z-40 flex items-end justify-center">
+            <div className="absolute inset-0 bg-black/70" onClick={() => setBadgeDetailModal(null)} />
+            <div
+              data-testid="sheet-badge-detail"
+              className="relative z-10 w-full max-w-lg bg-blue-950 border border-blue-700/60 rounded-t-3xl p-5 pb-8 shadow-2xl max-h-[82vh] flex flex-col"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4 shrink-0">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">{headerEmoji}</span>
+                  <div>
+                    <h3 className="text-white font-bold text-base leading-tight">{headerTitle}</h3>
+                    <p className="text-blue-400 text-xs">{headerSub}</p>
+                  </div>
+                </div>
+                <button
+                  data-testid="button-close-badge-detail"
+                  onClick={() => setBadgeDetailModal(null)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
+                >✕</button>
+              </div>
+
+              {/* Progress bar */}
+              <div className="shrink-0 mb-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs text-blue-400">{earnedCount} of {locs.length} completed</span>
+                  {allEarned
+                    ? <span className="text-xs font-semibold text-cyan-300 bg-cyan-500/20 border border-cyan-500/40 px-2 py-0.5 rounded-full">Badge Unlocked!</span>
+                    : <span className="text-xs text-blue-400">{progressPct}%</span>
+                  }
+                </div>
+                <div className="h-2 bg-blue-900/60 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${allEarned ? "bg-cyan-400" : "bg-blue-500"}`}
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Location list */}
+              <div className="overflow-y-auto flex-1 space-y-2">
+                {locs.map((loc) => {
+                  const earned = badges.has(loc.id);
+                  const diffMeta = DIFFICULTY_META[loc.difficulty];
+                  return (
+                    <div
+                      key={loc.id}
+                      data-testid={`badge-detail-loc-${loc.id}`}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${
+                        earned
+                          ? "bg-cyan-500/10 border-cyan-500/30"
+                          : "bg-blue-900/40 border-blue-800/40 opacity-60"
+                      }`}
+                    >
+                      {/* Status icon */}
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
+                        earned ? "bg-cyan-500/30 text-cyan-300" : "bg-blue-800/60 text-blue-600"
+                      }`}>
+                        {earned ? "✓" : "○"}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white text-sm font-semibold leading-tight truncate">{loc.name}</div>
+                        <div className="text-blue-400 text-[11px] truncate">
+                          {!isTier && <span className="mr-1">{diffMeta.emoji} {diffMeta.label} · </span>}
+                          {loc.state} · {loc.tempRange}
+                        </div>
+                      </div>
+
+                      {/* Earned badge */}
+                      {earned && (
+                        <span className="text-[10px] text-cyan-400 font-semibold shrink-0">Plunged!</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer hint */}
+              {!allEarned && (
+                <div className="shrink-0 mt-4 text-center text-blue-500 text-[11px]">
+                  Log a plunge at an official Chill Place to earn credit
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ─── LEADERBOARD MODAL ─── */}
       {leaderboardLocationId && (() => {
