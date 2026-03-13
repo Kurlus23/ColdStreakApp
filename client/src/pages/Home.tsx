@@ -350,9 +350,16 @@ export default function Home() {
     | { type: "state"; state: string }
     | null
   >(null);
-  const [featuredBadgeIds, setFeaturedBadgeIds] = useState<string[]>(
-    () => JSON.parse(localStorage.getItem("coldstreak-featured-badges") ?? "[]")
+  const [showTempTier, setShowTempTier] = useState<boolean>(
+    () => localStorage.getItem("coldstreak-show-temp-tier") !== "false"
   );
+  const [showDaysBadge, setShowDaysBadge] = useState<boolean>(
+    () => localStorage.getItem("coldstreak-show-days-badge") !== "false"
+  );
+  const [featuredStateIds, setFeaturedStateIds] = useState<string[]>(() => {
+    const raw: string[] = JSON.parse(localStorage.getItem("coldstreak-featured-badges") ?? "[]");
+    return raw.filter((id: string) => !TEMP_TIERS.some(t => t.id === id) && !DAYS_TIERS.some(t => t.id === id));
+  });
   const [openSections, setOpenSections] = useState({ tier: true, days: true, states: true, featured: true });
   const [userOpen, setUserOpen] = useState(true);
   const [homeLabel, setHomeLabel] = useState(() => localStorage.getItem("coldstreak-home-label") || "Home");
@@ -388,6 +395,23 @@ export default function Home() {
   const leaderboard = useLeaderboard(leaderboardLocationId);
   const [confirmDeleteEntryId, setConfirmDeleteEntryId] = useState<number | null>(null);
 
+  // Compute featured badge IDs: highest earned temp tier + highest earned days tier + selected state badges
+  const _fbtOrd = [...TEMP_TIERS].sort((a, b) => a.minTemp - b.minTemp);
+  const _fbtEarned = new Set<string>();
+  let _fbtCas = false;
+  for (const _t of _fbtOrd) {
+    if (!_fbtCas) _fbtCas = plunges.some(p => p.temperature >= _t.minTemp && p.temperature <= _t.maxTemp);
+    if (_fbtCas) _fbtEarned.add(_t.id);
+  }
+  const highestEarnedTempTier = [..._fbtOrd].reverse().find(t => _fbtEarned.has(t.id)) ?? null;
+  const _fbtUniqueDays = new Set(plunges.map(p => new Date(p.createdAt).toLocaleDateString())).size;
+  const highestEarnedDaysTier = [...DAYS_TIERS].sort((a, b) => b.days - a.days).find(t => _fbtUniqueDays >= t.days) ?? null;
+  const featuredBadgeIds = [
+    ...(showTempTier && highestEarnedTempTier ? [highestEarnedTempTier.id] : []),
+    ...(showDaysBadge && highestEarnedDaysTier ? [highestEarnedDaysTier.id] : []),
+    ...featuredStateIds,
+  ];
+
   const navTo = (s: Screen) => {
     const next = screen === s ? "timer" : s;
     setScreen(next);
@@ -414,20 +438,34 @@ export default function Home() {
     if (!username) return;
     const uniqueDays = new Set(plunges.map((p) => new Date(p.createdAt).toLocaleDateString())).size;
     const coldestTemp = plunges.length > 0 ? Math.min(...plunges.map((p) => p.temperature)) : null;
+    const ordT = [...TEMP_TIERS].sort((a, b) => a.minTemp - b.minTemp);
+    const rnT = new Set<string>();
+    let cas = false;
+    for (const t of ordT) {
+      if (!cas) cas = plunges.some(p => p.temperature >= t.minTemp && p.temperature <= t.maxTemp);
+      if (cas) rnT.add(t.id);
+    }
+    const htT = [...ordT].reverse().find(t => rnT.has(t.id)) ?? null;
+    const htD = [...DAYS_TIERS].sort((a, b) => b.days - a.days).find(t => uniqueDays >= t.days) ?? null;
+    const syncFeatured = [
+      ...(showTempTier && htT ? [htT.id] : []),
+      ...(showDaysBadge && htD ? [htD.id] : []),
+      ...featuredStateIds,
+    ];
     try {
       await apiRequest("POST", "/api/badge-profile", {
         username,
-        featuredBadges: JSON.parse(localStorage.getItem("coldstreak-featured-badges") ?? "[]"),
+        featuredBadges: syncFeatured,
         plungeCount: plunges.length,
         uniqueDays,
         coldestTemp,
       });
     } catch {}
-  }, [username, plunges]);
+  }, [username, plunges, showTempTier, showDaysBadge, featuredStateIds]);
 
   useEffect(() => {
     syncBadgeProfile();
-  }, [featuredBadgeIds, plunges.length, username]);
+  }, [showTempTier, showDaysBadge, featuredStateIds, plunges.length, username]);
 
   // Daily sync on app open
   useEffect(() => {
@@ -1942,13 +1980,6 @@ export default function Home() {
         DAYS_TIERS.forEach(t => { badgeEmojiLookup[t.id] = t.emoji; });
         Object.entries(STATE_EMOJI).forEach(([s, e]) => { badgeEmojiLookup[s] = e as string; });
 
-        const toggleFeatured = (id: string) => {
-          const next = featuredBadgeIds.includes(id)
-            ? featuredBadgeIds.filter(x => x !== id)
-            : featuredBadgeIds.length < 6 ? [...featuredBadgeIds, id] : featuredBadgeIds;
-          localStorage.setItem("coldstreak-featured-badges", JSON.stringify(next));
-          setFeaturedBadgeIds(next);
-        };
 
         return (
           <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
@@ -2008,73 +2039,86 @@ export default function Home() {
                 >
                   <div>
                     <div className="text-blue-400 text-[11px] uppercase tracking-widest">Featured Badges</div>
-                    <div className="text-blue-600 text-[10px] mt-0.5">Shown next to your name on leaderboards · {featuredBadgeIds.length}/6 selected</div>
+                    <div className="text-blue-600 text-[10px] mt-0.5">Shown next to your name on leaderboards</div>
                   </div>
                   <span className={`text-blue-400 text-xs transition-transform duration-200 ml-3 shrink-0 ${openSections.featured ? "rotate-180" : ""}`}>▼</span>
                 </button>
                 {openSections.featured && (
-                  <div className="px-4 pb-4 border-t border-blue-700/30 pt-3">
-                    <div className="grid grid-cols-2 gap-x-3">
-                      {/* Left: Tier + Days badges */}
-                      <div className="space-y-1.5">
-                        <div className="text-blue-500 text-[10px] uppercase tracking-widest mb-2">Tier &amp; Days</div>
-                        {[
-                          ...TEMP_TIERS.map(t => ({ id: t.id, emoji: t.emoji, label: t.label, earned: earnedTempTierIds.has(t.id) })),
-                          ...DAYS_TIERS.map(t => ({ id: t.id, emoji: t.emoji, label: t.label, earned: earnedDaysTierIds.has(t.id) })),
-                        ].map(({ id, emoji, label, earned }) => {
-                          const featured = featuredBadgeIds.includes(id);
-                          const maxed = featuredBadgeIds.length >= 6 && !featured;
-                          return (
-                            <button
-                              key={id}
-                              data-testid={`button-feature-badge-${id}`}
-                              disabled={!earned || maxed}
-                              onClick={() => toggleFeatured(id)}
-                              className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border text-left ${
-                                featured
-                                  ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-200"
-                                  : earned && !maxed
-                                  ? "bg-blue-800/60 border-blue-600/40 text-blue-300 active:scale-95"
-                                  : "bg-blue-900/30 border-blue-800/20 text-blue-700 cursor-not-allowed"
-                              }`}
-                            >
-                              <span className="text-sm leading-none shrink-0">{emoji}</span>
-                              <span className="truncate">{label}</span>
-                              {featured && <span className="ml-auto text-yellow-400 shrink-0">★</span>}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {/* Right: State badges */}
-                      <div className="space-y-1.5">
-                        <div className="text-blue-500 text-[10px] uppercase tracking-widest mb-2">State Badges</div>
-                        {allStates.map(state => {
-                          const earned = earnedStates.has(state);
-                          const emoji = STATE_EMOJI[state] ?? "🏆";
-                          const featured = featuredBadgeIds.includes(state);
-                          const maxed = featuredBadgeIds.length >= 6 && !featured;
-                          return (
-                            <button
-                              key={state}
-                              data-testid={`button-feature-state-${state.replace(/[\s/]/g, "-").toLowerCase()}`}
-                              disabled={!earned || maxed}
-                              onClick={() => toggleFeatured(state)}
-                              className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border text-left ${
-                                featured
-                                  ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-200"
-                                  : earned && !maxed
-                                  ? "bg-blue-800/60 border-blue-600/40 text-blue-300 active:scale-95"
-                                  : "bg-blue-900/30 border-blue-800/20 text-blue-700 cursor-not-allowed"
-                              }`}
-                            >
-                              <span className="text-sm leading-none shrink-0">{emoji}</span>
-                              <span className="truncate">{state}</span>
-                              {featured && <span className="ml-auto text-yellow-400 shrink-0">★</span>}
-                            </button>
-                          );
-                        })}
-                      </div>
+                  <div className="px-4 pb-4 border-t border-blue-700/30 pt-3 space-y-3">
+                    {/* Temperature Tier — auto = highest earned */}
+                    <div>
+                      <div className="text-blue-500 text-[10px] uppercase tracking-widest mb-1.5">Temperature Tier</div>
+                      {highestEarnedTempTier ? (
+                        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-blue-600/40 bg-blue-800/40">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl leading-none">{highestEarnedTempTier.emoji}</span>
+                            <div>
+                              <div className="text-white text-xs font-semibold">{highestEarnedTempTier.label}</div>
+                              <div className="text-blue-400 text-[10px]">Highest earned · updates automatically</div>
+                            </div>
+                          </div>
+                          <button
+                            data-testid="button-toggle-temp-tier-badge"
+                            onClick={() => { const n = !showTempTier; localStorage.setItem("coldstreak-show-temp-tier", String(n)); setShowTempTier(n); }}
+                            className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors shrink-0 ${showTempTier ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/40" : "bg-blue-900/60 text-blue-500 border border-blue-700/40"}`}
+                          >{showTempTier ? "On ★" : "Off"}</button>
+                        </div>
+                      ) : (
+                        <div className="px-3 py-2 rounded-xl border border-blue-800/30 bg-blue-900/30 text-blue-600 text-xs">No temperature tier earned yet</div>
+                      )}
                     </div>
+                    {/* Days Badge — auto = highest earned */}
+                    <div>
+                      <div className="text-blue-500 text-[10px] uppercase tracking-widest mb-1.5">Days Plunged</div>
+                      {highestEarnedDaysTier ? (
+                        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-blue-600/40 bg-blue-800/40">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl leading-none">{highestEarnedDaysTier.emoji}</span>
+                            <div>
+                              <div className="text-white text-xs font-semibold">{highestEarnedDaysTier.label}</div>
+                              <div className="text-blue-400 text-[10px]">Highest earned · updates automatically</div>
+                            </div>
+                          </div>
+                          <button
+                            data-testid="button-toggle-days-badge"
+                            onClick={() => { const n = !showDaysBadge; localStorage.setItem("coldstreak-show-days-badge", String(n)); setShowDaysBadge(n); }}
+                            className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors shrink-0 ${showDaysBadge ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/40" : "bg-blue-900/60 text-blue-500 border border-blue-700/40"}`}
+                          >{showDaysBadge ? "On ★" : "Off"}</button>
+                        </div>
+                      ) : (
+                        <div className="px-3 py-2 rounded-xl border border-blue-800/30 bg-blue-900/30 text-blue-600 text-xs">No days badge earned yet</div>
+                      )}
+                    </div>
+                    {/* State Badges */}
+                    {earnedStates.size > 0 && (
+                      <div>
+                        <div className="text-blue-500 text-[10px] uppercase tracking-widest mb-1.5">State Badges</div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {[...earnedStates].sort().map(state => {
+                            const emoji = STATE_EMOJI[state] ?? "🏆";
+                            const featured = featuredStateIds.includes(state);
+                            return (
+                              <button
+                                key={state}
+                                data-testid={`button-feature-state-${state.replace(/[\s/]/g, "-").toLowerCase()}`}
+                                onClick={() => {
+                                  const next = featured ? featuredStateIds.filter(s => s !== state) : [...featuredStateIds, state];
+                                  localStorage.setItem("coldstreak-featured-badges", JSON.stringify(next));
+                                  setFeaturedStateIds(next);
+                                }}
+                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border text-left active:scale-95 ${
+                                  featured ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-200" : "bg-blue-800/60 border-blue-600/40 text-blue-300"
+                                }`}
+                              >
+                                <span className="text-sm leading-none shrink-0">{emoji}</span>
+                                <span className="truncate">{state}</span>
+                                {featured && <span className="ml-auto text-yellow-400 shrink-0">★</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
