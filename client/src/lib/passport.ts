@@ -316,14 +316,14 @@ export interface DaysTier {
 }
 
 export const DAYS_TIERS: DaysTier[] = [
-  { id: "first-frost",   label: "First Frost",   emoji: "❄️",  days: 7   },
-  { id: "cold-habit",    label: "Cold Habit",    emoji: "🧊",  days: 21  },
-  { id: "frost-seeker",  label: "Frost Seeker",  emoji: "🌊",  days: 45  },
-  { id: "cold-warrior",  label: "Cold Warrior",  emoji: "⚔️",  days: 75  },
+  { id: "first-frost",   label: "First Frost",   emoji: "🌬️",  days: 7   },
+  { id: "cold-habit",    label: "Cold Habit",    emoji: "💎",  days: 21  },
+  { id: "frost-seeker",  label: "Frost Seeker",  emoji: "🏔️",  days: 45  },
+  { id: "penguin",       label: "Penguin",       emoji: "🐧",  days: 75  },
   { id: "polar-bear",    label: "Polar Bear",    emoji: "🐻‍❄️", days: 120 },
-  { id: "cryonaut",      label: "Cryonaut",      emoji: "🚀",  days: 180 },
+  { id: "blue-yeti",     label: "Blue Yeti",     emoji: "🦣",  days: 180 },
   { id: "ice-baron",     label: "Ice Baron",     emoji: "👑",  days: 270 },
-  { id: "arctic-legend", label: "Arctic Legend", emoji: "🏆",  days: 365 },
+  { id: "shiva",         label: "Shiva",         emoji: "🔱",  days: 365 },
 ];
 
 // Temperature-based tier badges — earned by logging a plunge in each temp range
@@ -343,7 +343,7 @@ export const TEMP_TIERS: TempTier[] = [
     emoji: "🌊",
     minTemp: 50,
     maxTemp: 60,
-    description: "Log a plunge at 50–60°F",
+    description: "Log a plunge at 60–50°F",
   },
   {
     id: "cold-blooded",
@@ -351,15 +351,23 @@ export const TEMP_TIERS: TempTier[] = [
     emoji: "❄️",
     minTemp: 40,
     maxTemp: 49,
-    description: "Log a plunge at 40–49°F",
+    description: "Log a plunge at 49–40°F",
+  },
+  {
+    id: "frosty",
+    label: "Frosty",
+    emoji: "⛄",
+    minTemp: 33,
+    maxTemp: 39,
+    description: "Log a plunge at 39–33°F",
   },
   {
     id: "ice-breaker",
     label: "Ice Breaker",
     emoji: "🧊",
-    minTemp: 30,
-    maxTemp: 39,
-    description: "Log a plunge at 30–39°F",
+    minTemp: 0,
+    maxTemp: 32,
+    description: "Log a plunge at 32°F or below",
   },
 ];
 

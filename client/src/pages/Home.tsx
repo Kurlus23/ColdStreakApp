@@ -1955,7 +1955,7 @@ export default function Home() {
                         <span className="text-base">{tier.emoji}</span>
                         <div className="text-left">
                           <div>{tier.label}</div>
-                          <div className="text-[10px] opacity-70">{tier.minTemp}–{tier.maxTemp}°F</div>
+                          <div className="text-[10px] opacity-70">{tier.minTemp === 0 ? "≤32°F" : `${tier.maxTemp}–${tier.minTemp}°F`}</div>
                         </div>
                         {earned && <span className="text-[10px] text-cyan-400 ml-1">✓</span>}
                       </button>
@@ -2274,7 +2274,7 @@ export default function Home() {
                     <span className="text-3xl">{tier.emoji}</span>
                     <div>
                       <h3 className="text-white font-bold text-base leading-tight">{tier.label}</h3>
-                      <p className="text-blue-400 text-xs">{tier.minTemp}–{tier.maxTemp}°F · {tier.description}</p>
+                      <p className="text-blue-400 text-xs">{tier.minTemp === 0 ? "≤32°F" : `${tier.maxTemp}–${tier.minTemp}°F`} · {tier.description}</p>
                     </div>
                   </div>
                   <button
@@ -2300,14 +2300,14 @@ export default function Home() {
                         ? `Unlocked by achieving ${cascadeSource.emoji} ${cascadeSource.label}`
                         : earned
                         ? `${matchingPlunges.length} plunge${matchingPlunges.length > 1 ? "s" : ""} logged in this range`
-                        : `Log a plunge at ${tier.minTemp}–${tier.maxTemp}°F to unlock`}
+                        : `Log a plunge at ${tier.minTemp === 0 ? "32°F or below" : `${tier.maxTemp}–${tier.minTemp}°F`} to unlock`}
                     </div>
                   </div>
                 </div>
 
                 {!earned && (
                   <div className="shrink-0 text-center text-blue-500 text-[11px] mt-2">
-                    Log a plunge and enter a temperature of {tier.minTemp}–{tier.maxTemp}°F to earn this badge
+                    Log a plunge and enter a temperature of {tier.minTemp === 0 ? "32°F or below" : `${tier.maxTemp}–${tier.minTemp}°F`} to earn this badge
                   </div>
                 )}
               </div>
