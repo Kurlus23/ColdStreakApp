@@ -33,10 +33,10 @@ function saveNominated(s: Set<number>) {
 
 const DIFFICULTY_FILTERS: Array<{ value: Difficulty | "All"; label: string }> = [
   { value: "All",      label: "All" },
-  { value: "cold",     label: "🥶" },
-  { value: "ice-bath", label: "🧊" },
-  { value: "extreme",  label: "❄️" },
-  { value: "arctic",   label: "🧊🧊" },
+  { value: "cold",     label: DIFFICULTY_META["cold"].emoji },
+  { value: "ice-bath", label: DIFFICULTY_META["ice-bath"].emoji },
+  { value: "extreme",  label: DIFFICULTY_META["extreme"].emoji },
+  { value: "arctic",   label: DIFFICULTY_META["arctic"].emoji },
 ];
 
 interface GeoPos { lat: number; lng: number; }
