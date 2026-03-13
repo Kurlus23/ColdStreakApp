@@ -27,9 +27,9 @@ import { saveCustomAlarmUrl, loadCustomAlarmUrl, clearCustomAlarmUrl } from "@/l
 import { Explore } from "@/pages/Explore";
 import {
   PASSPORT_LOCATIONS, usePassportBadges, distanceMiles,
-  DIFFICULTY_META, TIER_MASTER_META, STATE_EMOJI,
-  computeStateBadges, computeTierBadges,
-  type Difficulty,
+  DIFFICULTY_META, STATE_EMOJI,
+  computeStateBadges,
+  TEMP_TIERS,
 } from "@/lib/passport";
 import { useMutation } from "@tanstack/react-query";
 
@@ -345,7 +345,7 @@ export default function Home() {
   const [promoLoading, setPromoLoading] = useState(false);
   const [badgesOpen, setBadgesOpen] = useState(true);
   const [badgeDetailModal, setBadgeDetailModal] = useState<
-    | { type: "tier"; tier: Difficulty }
+    | { type: "temp-tier"; tierId: string }
     | { type: "state"; state: string }
     | null
   >(null);
@@ -1874,10 +1874,15 @@ export default function Home() {
             {/* Achievements */}
             {(() => {
               const allStates = [...new Set(PASSPORT_LOCATIONS.map((l) => l.state))].sort();
-              const allTiers: Difficulty[] = ["cold","ice-bath","extreme","arctic"];
               const earnedStates = new Set(computeStateBadges(badges));
-              const earnedTiers = new Set(computeTierBadges(badges));
-              const totalAchievements = earnedStates.size + earnedTiers.size;
+              // Temperature-based tier badges — earned by logging plunges in each temp range
+              const plungeList = plunges ?? [];
+              const earnedTempTierIds = new Set(
+                TEMP_TIERS
+                  .filter((t) => plungeList.some((p) => p.temperature >= t.minTemp && p.temperature <= t.maxTemp))
+                  .map((t) => t.id)
+              );
+              const totalAchievements = earnedStates.size + earnedTempTierIds.size;
               return (
                 <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40">
                   <button
@@ -1892,36 +1897,33 @@ export default function Home() {
                     <span className={`text-blue-400 text-xs transition-transform duration-200 ${badgesOpen ? "rotate-180" : ""}`}>▼</span>
                   </button>
                   {badgesOpen && <div className="px-4 pb-4 space-y-4 border-t border-blue-700/30 pt-3">
-                  {/* Tier Master Badges */}
+                  {/* Temperature Tier Badges */}
                   <div>
                     <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">
                       Tier Badges
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {allTiers.map((tier) => {
-                        const earned = earnedTiers.has(tier);
-                        const meta = DIFFICULTY_META[tier];
-                        const master = TIER_MASTER_META[tier];
-                        const tierLocs = PASSPORT_LOCATIONS.filter((l) => l.difficulty === tier);
-                        const earnedCount = tierLocs.filter((l) => badges.has(l.id)).length;
+                      {TEMP_TIERS.map((tier) => {
+                        const earned = earnedTempTierIds.has(tier.id);
+                        const plungesInRange = plungeList.filter(
+                          (p) => p.temperature >= tier.minTemp && p.temperature <= tier.maxTemp
+                        ).length;
                         return (
                           <button
-                            key={tier}
-                            data-testid={`achievement-tier-${tier}`}
-                            onClick={() => setBadgeDetailModal({ type: "tier", tier })}
+                            key={tier.id}
+                            data-testid={`achievement-tier-${tier.id}`}
+                            onClick={() => setBadgeDetailModal({ type: "temp-tier", tierId: tier.id })}
                             className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
                               earned
                                 ? "bg-cyan-500/20 border border-cyan-500/50 text-cyan-300"
-                                : earnedCount > 0
-                                ? "bg-blue-800/60 border border-blue-600/50 text-blue-400"
                                 : "bg-blue-800/40 border border-blue-700/30 text-blue-600"
                             }`}
                           >
-                            <span>{meta.emoji}</span>
-                            <span>{earned ? master.title : meta.label}</span>
+                            <span>{tier.emoji}</span>
+                            <span>{tier.label}</span>
                             {earned
                               ? <span className="text-[10px] text-cyan-400">✓</span>
-                              : <span className="text-[10px] opacity-60">{earnedCount}/{tierLocs.length}</span>
+                              : <span className="text-[10px] opacity-60">{tier.minTemp}–{tier.maxTemp}°F</span>
                             }
                           </button>
                         );
@@ -2109,29 +2111,101 @@ export default function Home() {
 
       {/* ─── BADGE DETAIL MODAL ─── */}
       {badgeDetailModal && (() => {
-        const isTier = badgeDetailModal.type === "tier";
+        const isTempTier = badgeDetailModal.type === "temp-tier";
 
-        // Build list of locations for this badge
-        const locs = isTier
-          ? PASSPORT_LOCATIONS.filter((l) => l.difficulty === (badgeDetailModal as { type: "tier"; tier: Difficulty }).tier)
-          : PASSPORT_LOCATIONS.filter((l) => l.state === (badgeDetailModal as { type: "state"; state: string }).state);
+        if (isTempTier) {
+          // ── Temperature-tier badge detail ──
+          const tierId = (badgeDetailModal as { type: "temp-tier"; tierId: string }).tierId;
+          const tier = TEMP_TIERS.find((t) => t.id === tierId)!;
+          const matchingPlunges = (plunges ?? []).filter(
+            (p) => p.temperature >= tier.minTemp && p.temperature <= tier.maxTemp
+          );
+          const earned = matchingPlunges.length > 0;
 
+          return (
+            <div className="fixed inset-0 z-40 flex items-end justify-center">
+              <div className="absolute inset-0 bg-black/70" onClick={() => setBadgeDetailModal(null)} />
+              <div
+                data-testid="sheet-badge-detail"
+                className="relative z-10 w-full max-w-lg bg-blue-950 border border-blue-700/60 rounded-t-3xl p-5 pb-8 shadow-2xl max-h-[82vh] flex flex-col"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{tier.emoji}</span>
+                    <div>
+                      <h3 className="text-white font-bold text-base leading-tight">{tier.label}</h3>
+                      <p className="text-blue-400 text-xs">{tier.minTemp}–{tier.maxTemp}°F · {tier.description}</p>
+                    </div>
+                  </div>
+                  <button
+                    data-testid="button-close-badge-detail"
+                    onClick={() => setBadgeDetailModal(null)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
+                  >✕</button>
+                </div>
+
+                {/* Status */}
+                <div className={`shrink-0 mb-4 flex items-center gap-2 px-3 py-2.5 rounded-xl border ${
+                  earned
+                    ? "bg-cyan-500/10 border-cyan-500/30"
+                    : "bg-blue-900/40 border-blue-800/40"
+                }`}>
+                  <span className="text-xl">{earned ? "✅" : "🔒"}</span>
+                  <div>
+                    <div className={`text-sm font-semibold ${earned ? "text-cyan-300" : "text-blue-400"}`}>
+                      {earned ? "Badge Unlocked!" : "Not yet earned"}
+                    </div>
+                    <div className="text-blue-500 text-[11px]">
+                      {earned
+                        ? `${matchingPlunges.length} plunge${matchingPlunges.length > 1 ? "s" : ""} logged in this range`
+                        : `Log a plunge at ${tier.minTemp}–${tier.maxTemp}°F to unlock`}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Matching plunges list */}
+                {earned && (
+                  <div className="overflow-y-auto flex-1 space-y-2">
+                    <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">Your plunges in this range</div>
+                    {matchingPlunges.map((p, i) => (
+                      <div
+                        key={p.id}
+                        data-testid={`badge-detail-plunge-${p.id}`}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl border bg-cyan-500/10 border-cyan-500/30"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-cyan-500/30 flex items-center justify-center shrink-0 text-xs font-bold text-cyan-300">
+                          {i + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white text-sm font-semibold">{p.temperature}°F · {p.duration}s</div>
+                          <div className="text-blue-400 text-[11px] truncate">
+                            {p.location || "No location"} · {new Date(p.date).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-cyan-400 font-semibold shrink-0">✓</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {!earned && (
+                  <div className="shrink-0 text-center text-blue-500 text-[11px] mt-2">
+                    Log a plunge and enter a temperature of {tier.minTemp}–{tier.maxTemp}°F to earn this badge
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        // ── State badge detail ──
+        const state = (badgeDetailModal as { type: "state"; state: string }).state;
+        const locs = PASSPORT_LOCATIONS.filter((l) => l.state === state);
         const earnedCount = locs.filter((l) => badges.has(l.id)).length;
         const allEarned = earnedCount === locs.length;
-
-        const headerEmoji = isTier
-          ? DIFFICULTY_META[(badgeDetailModal as { type: "tier"; tier: Difficulty }).tier].emoji
-          : (STATE_EMOJI[(badgeDetailModal as { type: "state"; state: string }).state] ?? "🏆");
-
-        const headerTitle = isTier
-          ? TIER_MASTER_META[(badgeDetailModal as { type: "tier"; tier: Difficulty }).tier].title
-          : (badgeDetailModal as { type: "state"; state: string }).state;
-
-        const headerSub = isTier
-          ? `Complete all ${DIFFICULTY_META[(badgeDetailModal as { type: "tier"; tier: Difficulty }).tier].label} spots`
-          : `Complete all ${locs.length} ${(badgeDetailModal as { type: "state"; state: string }).state} spot${locs.length > 1 ? "s" : ""}`;
-
         const progressPct = locs.length > 0 ? Math.round((earnedCount / locs.length) * 100) : 0;
+        const stateEmoji = STATE_EMOJI[state] ?? "🏆";
 
         return (
           <div className="fixed inset-0 z-40 flex items-end justify-center">
@@ -2143,10 +2217,10 @@ export default function Home() {
               {/* Header */}
               <div className="flex items-center justify-between mb-4 shrink-0">
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl">{headerEmoji}</span>
+                  <span className="text-3xl">{stateEmoji}</span>
                   <div>
-                    <h3 className="text-white font-bold text-base leading-tight">{headerTitle}</h3>
-                    <p className="text-blue-400 text-xs">{headerSub}</p>
+                    <h3 className="text-white font-bold text-base leading-tight">{state}</h3>
+                    <p className="text-blue-400 text-xs">Complete all {locs.length} {state} spot{locs.length > 1 ? "s" : ""}</p>
                   </div>
                 </div>
                 <button
@@ -2176,36 +2250,30 @@ export default function Home() {
               {/* Location list */}
               <div className="overflow-y-auto flex-1 space-y-2">
                 {locs.map((loc) => {
-                  const earned = badges.has(loc.id);
+                  const locEarned = badges.has(loc.id);
                   const diffMeta = DIFFICULTY_META[loc.difficulty];
                   return (
                     <div
                       key={loc.id}
                       data-testid={`badge-detail-loc-${loc.id}`}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${
-                        earned
+                        locEarned
                           ? "bg-cyan-500/10 border-cyan-500/30"
                           : "bg-blue-900/40 border-blue-800/40 opacity-60"
                       }`}
                     >
-                      {/* Status icon */}
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
-                        earned ? "bg-cyan-500/30 text-cyan-300" : "bg-blue-800/60 text-blue-600"
+                        locEarned ? "bg-cyan-500/30 text-cyan-300" : "bg-blue-800/60 text-blue-600"
                       }`}>
-                        {earned ? "✓" : "○"}
+                        {locEarned ? "✓" : "○"}
                       </div>
-
-                      {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="text-white text-sm font-semibold leading-tight truncate">{loc.name}</div>
                         <div className="text-blue-400 text-[11px] truncate">
-                          {!isTier && <span className="mr-1">{diffMeta.emoji} {diffMeta.label} · </span>}
-                          {loc.state} · {loc.tempRange}
+                          {diffMeta.emoji} {diffMeta.label} · {loc.tempRange}
                         </div>
                       </div>
-
-                      {/* Earned badge */}
-                      {earned && (
+                      {locEarned && (
                         <span className="text-[10px] text-cyan-400 font-semibold shrink-0">Plunged!</span>
                       )}
                     </div>
@@ -2213,7 +2281,6 @@ export default function Home() {
                 })}
               </div>
 
-              {/* Footer hint */}
               {!allEarned && (
                 <div className="shrink-0 mt-4 text-center text-blue-500 text-[11px]">
                   Log a plunge at an official Chill Place to earn credit

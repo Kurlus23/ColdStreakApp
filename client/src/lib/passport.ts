@@ -299,13 +299,50 @@ export const STATE_EMOJI: Record<string, string> = {
   "Arizona":           "🌵",
 };
 
-// Tier mastery — completing all spots in a tier earns this award
+// Tier mastery — completing all spots in a tier earns this award (used by Explore/passport location UI)
 export const TIER_MASTER_META: Record<Difficulty, { title: string; award: string }> = {
   "cold":     { title: "Cold Seeker",   award: "All Cold spots completed" },
   "ice-bath": { title: "Ice Bather",    award: "All Ice Bath spots completed" },
   "extreme":  { title: "Extremist",     award: "All Extreme spots completed" },
   "arctic":   { title: "Arctic Wolf",   award: "All Arctic spots completed" },
 };
+
+// Temperature-based tier badges — earned by logging a plunge in each temp range
+export interface TempTier {
+  id: string;
+  label: string;
+  emoji: string;
+  minTemp: number;
+  maxTemp: number;
+  description: string;
+}
+
+export const TEMP_TIERS: TempTier[] = [
+  {
+    id: "initiate",
+    label: "Initiate",
+    emoji: "🌊",
+    minTemp: 50,
+    maxTemp: 60,
+    description: "Log a plunge at 50–60°F",
+  },
+  {
+    id: "cold-blooded",
+    label: "Cold Blooded",
+    emoji: "❄️",
+    minTemp: 40,
+    maxTemp: 49,
+    description: "Log a plunge at 40–49°F",
+  },
+  {
+    id: "ice-breaker",
+    label: "Ice Breaker",
+    emoji: "🧊",
+    minTemp: 30,
+    maxTemp: 39,
+    description: "Log a plunge at 30–39°F",
+  },
+];
 
 /** Returns state names where every passport location in that state has been earned. */
 export function computeStateBadges(earnedIds: Set<string>): string[] {
