@@ -188,7 +188,7 @@ export const PASSPORT_LOCATIONS: PassportLocation[] = [
   {
     id: "lake-tahoe-ca",
     name: "Lake Tahoe",
-    country: "USA", state: "California/Nevada",
+    country: "USA", state: "California",
     flag: "❄️", difficulty: "extreme",
     description: "One of North America's most stunning alpine lakes at 6,225 ft elevation. Startlingly clear and cold — a serious test even in summer.",
     tempRange: "41–55°F (summer surface), 39°F (winter)",
@@ -289,7 +289,7 @@ export const STATE_EMOJI: Record<string, string> = {
   "North Carolina":    "🏖️",
   "Tennessee":         "🎵",
   "Vermont":           "🍁",
-  "California/Nevada": "🏞️",
+
   "Wyoming":           "🦅",
   "Montana":           "🦌",
   "Washington":        "🌧️",
@@ -318,7 +318,7 @@ export interface DaysTier {
 export const DAYS_TIERS: DaysTier[] = [
   { id: "first-frost",   label: "First Frost",   emoji: "🌬️",  days: 7   },
   { id: "cold-habit",    label: "Cold Habit",    emoji: "💎",  days: 21  },
-  { id: "frost-seeker",  label: "Frost Seeker",  emoji: "🏔️",  days: 45  },
+  { id: "frost-seeker",  label: "Frost Seeker",  emoji: "🧭",  days: 45  },
   { id: "penguin",       label: "Penguin",       emoji: "🐧",  days: 75  },
   { id: "polar-bear",    label: "Polar Bear",    emoji: "🐻‍❄️", days: 120 },
   { id: "blue-yeti",     label: "Yeti",           emoji: "🧌",  days: 180 },
