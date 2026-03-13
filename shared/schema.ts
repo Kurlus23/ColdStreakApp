@@ -109,6 +109,17 @@ export const insertUserLocationSchema = createInsertSchema(userLocations).omit({
 export type UserLocation = typeof userLocations.$inferSelect;
 export type InsertUserLocation = z.infer<typeof insertUserLocationSchema>;
 
+export const badgeProfiles = pgTable("badge_profiles", {
+  username: text("username").primaryKey(),
+  featuredBadges: text("featured_badges").default("[]").notNull(),
+  plungeCount: integer("plunge_count").default(0).notNull(),
+  uniqueDays: integer("unique_days").default(0).notNull(),
+  coldestTemp: integer("coldest_temp"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type BadgeProfile = typeof badgeProfiles.$inferSelect;
+
 export type InsertPlunge = z.infer<typeof insertPlungeSchema>;
 export type UpdatePlunge = z.infer<typeof updatePlungeSchema>;
 export type Plunge = typeof plunges.$inferSelect;

@@ -1,9 +1,9 @@
 import { db } from "./db";
 import {
-  plunges, leaderboardEntries, proUsers, promoCodes, userLocations, users,
+  plunges, leaderboardEntries, proUsers, promoCodes, userLocations, users, badgeProfiles,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
-  type PromoCode, type UserLocation, type InsertUserLocation, type User,
+  type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile,
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and } from "drizzle-orm";
 
@@ -40,6 +40,9 @@ export interface IStorage {
   verifyEmailToken(token: string): Promise<User | null>;
   updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number }): Promise<User>;
   getUserCount(): Promise<number>;
+
+  upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null }): Promise<void>;
+  getBadgeProfile(username: string): Promise<BadgeProfile | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -232,6 +235,20 @@ export class DatabaseStorage implements IStorage {
   async getUserCount(): Promise<number> {
     const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(users);
     return count;
+  }
+
+  async upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null }): Promise<void> {
+    await db.insert(badgeProfiles)
+      .values({ username: data.username, featuredBadges: data.featuredBadges, plungeCount: data.plungeCount, uniqueDays: data.uniqueDays, coldestTemp: data.coldestTemp, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: badgeProfiles.username,
+        set: { featuredBadges: data.featuredBadges, plungeCount: data.plungeCount, uniqueDays: data.uniqueDays, coldestTemp: data.coldestTemp, updatedAt: new Date() },
+      });
+  }
+
+  async getBadgeProfile(username: string): Promise<BadgeProfile | null> {
+    const [profile] = await db.select().from(badgeProfiles).where(eq(badgeProfiles.username, username));
+    return profile ?? null;
   }
 }
 

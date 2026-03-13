@@ -389,5 +389,26 @@ export async function registerRoutes(
     res.json({ success: true, durationDays: promo.durationDays, expiresAt });
   });
 
+  app.post("/api/badge-profile", async (req, res) => {
+    const { username, featuredBadges, plungeCount, uniqueDays, coldestTemp } = req.body;
+    if (!username || typeof username !== "string") {
+      return res.status(400).json({ error: "Username required" });
+    }
+    await storage.upsertBadgeProfile({
+      username,
+      featuredBadges: JSON.stringify(Array.isArray(featuredBadges) ? featuredBadges : []),
+      plungeCount: typeof plungeCount === "number" ? plungeCount : 0,
+      uniqueDays: typeof uniqueDays === "number" ? uniqueDays : 0,
+      coldestTemp: typeof coldestTemp === "number" ? coldestTemp : null,
+    });
+    res.json({ ok: true });
+  });
+
+  app.get("/api/badge-profile/:username", async (req, res) => {
+    const profile = await storage.getBadgeProfile(req.params.username);
+    if (!profile) return res.status(404).json({ error: "Profile not found" });
+    res.json(profile);
+  });
+
   return httpServer;
 }

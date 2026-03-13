@@ -410,6 +410,25 @@ export default function Home() {
     }
   }, [auth]);
 
+  const syncBadgeProfile = useCallback(async () => {
+    if (!username) return;
+    const uniqueDays = new Set(plunges.map((p) => new Date(p.createdAt).toLocaleDateString())).size;
+    const coldestTemp = plunges.length > 0 ? Math.min(...plunges.map((p) => p.temperature)) : null;
+    try {
+      await apiRequest("POST", "/api/badge-profile", {
+        username,
+        featuredBadges: JSON.parse(localStorage.getItem("coldstreak-featured-badges") ?? "[]"),
+        plungeCount: plunges.length,
+        uniqueDays,
+        coldestTemp,
+      });
+    } catch {}
+  }, [username, plunges]);
+
+  useEffect(() => {
+    syncBadgeProfile();
+  }, [featuredBadgeIds, plunges.length, username]);
+
   // Daily sync on app open
   useEffect(() => {
     if (!auth.user) return;
@@ -1961,6 +1980,23 @@ export default function Home() {
                     style={{ width: `${totalPossible > 0 ? Math.round((totalEarned / totalPossible) * 100) : 0}%` }}
                   />
                 </div>
+                {username && (
+                  <button
+                    data-testid="button-share-badge-profile"
+                    onClick={async () => {
+                      const url = `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`;
+                      if (navigator.share) {
+                        try { await navigator.share({ title: `${username}'s Badge Profile`, url }); } catch {}
+                      } else {
+                        await navigator.clipboard.writeText(url);
+                        toast({ title: "Profile link copied!", description: "Share it with friends." });
+                      }
+                    }}
+                    className="mt-3 w-full flex items-center justify-center gap-2 bg-blue-800/60 border border-blue-600/40 text-blue-200 text-sm font-medium py-2 rounded-xl active:scale-95 transition-transform"
+                  >
+                    <Share2 className="w-3.5 h-3.5" /> Share My Badge Profile
+                  </button>
+                )}
               </div>
 
               {/* Featured Badges */}
@@ -2624,7 +2660,11 @@ export default function Home() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                              <span className="text-white font-semibold text-sm truncate">{entry.username}</span>
+                              <button
+                                data-testid={`link-profile-${entry.username}`}
+                                onClick={() => window.open(`/profile/${encodeURIComponent(entry.username)}`, "_blank")}
+                                className="text-white font-semibold text-sm truncate hover:text-cyan-300 transition-colors active:scale-95"
+                              >{entry.username}</button>
                               {isMyEntry && featuredBadgeIds.length > 0 && (() => {
                                 const lookup: Record<string, string> = {};
                                 TEMP_TIERS.forEach(t => { lookup[t.id] = t.emoji; });
