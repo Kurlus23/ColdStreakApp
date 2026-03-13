@@ -2996,7 +2996,14 @@ export default function Home() {
 
             <button
               data-testid="button-checkout"
-              onClick={() => { Analytics.proUpgradeStarted(); setShowUpgradeModal(false); startCheckout(); }}
+              onClick={async () => {
+                Analytics.proUpgradeStarted();
+                setShowUpgradeModal(false);
+                const result = await startCheckout();
+                if (!result.success) {
+                  toast({ title: "Checkout unavailable", description: result.error ?? "Please try again.", variant: "destructive" });
+                }
+              }}
               disabled={proLoading}
               className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-black text-lg shadow-lg shadow-cyan-500/30 transition-all active:scale-[0.98] disabled:opacity-50"
             >

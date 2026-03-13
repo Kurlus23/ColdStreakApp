@@ -77,7 +77,7 @@ export function useProStatus() {
       .catch(() => {});
   }, [markPro, clearPro]);
 
-  const startCheckout = useCallback(async () => {
+  const startCheckout = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     setLoading(true);
     try {
       const origin = window.location.origin;
@@ -92,9 +92,12 @@ export function useProStatus() {
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
+        return { success: true };
       }
+      return { success: false, error: data.message ?? "Could not start checkout. Please try again." };
     } catch (e) {
       console.error("Checkout failed", e);
+      return { success: false, error: "Network error. Please check your connection and try again." };
     } finally {
       setLoading(false);
     }
