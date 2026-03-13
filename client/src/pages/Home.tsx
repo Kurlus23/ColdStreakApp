@@ -4,7 +4,7 @@ import icebergBg from "@assets/image_1773152998246.png";
 import {
   Play, Pause, RotateCcw, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,
-  Settings, Bell, Upload, Volume2,
+  Settings, Bell, Upload, Volume2, FileText,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
   Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download
 } from "lucide-react";
@@ -81,7 +81,7 @@ function playAudio(url: string, gain: number, stopAfterMs?: number): HTMLAudioEl
   return audio;
 }
 
-type Screen = "timer" | "history" | "explore" | "settings";
+type Screen = "timer" | "history" | "explore" | "settings" | "legal";
 
 
 function plungeScore(durationSeconds: number, tempF: number): number {
@@ -321,6 +321,8 @@ export default function Home() {
   const [homeLabel, setHomeLabel] = useState(() => localStorage.getItem("coldstreak-home-label") || "Home");
   const [safetySeen] = useState(() => !!localStorage.getItem("coldstreak-safety-seen"));
   const [safetyOpen, setSafetyOpen] = useState(() => !localStorage.getItem("coldstreak-safety-seen"));
+  const [legalAgreed, setLegalAgreed] = useState(() => !!localStorage.getItem("coldstreak-legal-agreed"));
+  const [legalCheckbox, setLegalCheckbox] = useState(false);
   const [tosOpen, setTosOpen] = useState(false);
   const [communityDisclaimerOpen, setCommunityDisclaimerOpen] = useState(false);
 
@@ -1718,16 +1720,6 @@ export default function Home() {
                 <div className="text-blue-400 text-xs uppercase tracking-wide mb-1 flex items-center gap-1"><Zap className="w-3.5 h-3.5 text-cyan-400" /> Today</div>
                 <div className="text-white font-bold text-xl">{todayScore.toFixed(1)} <span className="text-sm font-normal text-blue-400">pts</span></div>
               </div>
-              <div className="col-span-2 bg-blue-900/60 rounded-2xl p-3 border border-blue-700/40">
-                <div className="flex justify-between items-center text-xs text-blue-400 uppercase tracking-wide mb-1.5">
-                  <div className="flex items-center gap-1"><Target className="w-3.5 h-3.5" /> Weekly</div>
-                  <span>{weeklyMinutes.toFixed(1)} / {weeklyGoalMinutes} min</span>
-                </div>
-                <div className="h-2 bg-blue-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full transition-all duration-700" style={{ width: `${weeklyPct}%` }} />
-                </div>
-              </div>
-
             </div>
 
             {/* Countdown timer mode */}
@@ -1930,11 +1922,39 @@ export default function Home() {
               );
             })()}
 
-            {/* Safety & Disclaimer */}
-            <div
-              data-testid="card-disclaimer"
-              className="bg-red-950/40 rounded-2xl border border-red-800/50"
+            {/* Legal & Safety */}
+            <button
+              data-testid="button-nav-legal"
+              onClick={() => navTo("legal")}
+              className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40 hover:border-cyan-500/50 transition-all active:scale-[0.99]"
             >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-cyan-400" />
+                <span className="text-white font-semibold text-sm">Legal &amp; Safety</span>
+              </div>
+              <span className="text-blue-400 text-xs">›</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── LEGAL SCREEN ─── */}
+      {screen === "legal" && (
+        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
+          <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-5 border border-blue-800/50 space-y-4 min-h-full">
+            <div className="flex items-center justify-between">
+              <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                <FileText className="w-5 h-5 text-cyan-400" /> Legal &amp; Safety
+              </h2>
+              <button
+                data-testid="button-close-legal"
+                onClick={() => navTo("timer")}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
+              >✕</button>
+            </div>
+
+            {/* Safety & Disclaimer */}
+            <div className="bg-red-950/40 rounded-2xl border border-red-800/50">
               <button
                 data-testid="button-toggle-safety"
                 onClick={() => setSafetyOpen((v) => !v)}
@@ -1943,7 +1963,6 @@ export default function Home() {
                 <div className="flex items-center gap-2">
                   <ShieldAlert className="w-4 h-4 text-red-400" />
                   <span className="text-white font-semibold text-sm">Safety &amp; Disclaimer</span>
-                  {!safetySeen && <span className="text-[10px] bg-red-500/30 text-red-300 px-1.5 py-0.5 rounded-full font-semibold">Please read</span>}
                 </div>
                 <span className={`text-red-400 text-xs transition-transform duration-200 ${safetyOpen ? "rotate-180" : ""}`}>▼</span>
               </button>
@@ -1956,35 +1975,20 @@ export default function Home() {
                     ColdStreak is a tracking tool only. It does not provide medical advice. Consult a physician before beginning cold exposure therapy, especially if you have heart conditions, high blood pressure, Raynaud's disease, or are pregnant.
                   </p>
                   <p className="text-red-200 text-xs leading-relaxed">
-                    <span className="font-bold text-red-300">Featured Locations:</span> USA locations listed in Chill Places are spring-fed or managed facilities selected for relative safety and year-round access. Sliding Rock (NC) is listed as seasonal — lifeguards are only present May–Labor Day. Conditions at all locations can change without notice due to weather, drought, flooding, or closures. Always check current local conditions before visiting. Never plunge alone.
+                    <span className="font-bold text-red-300">Featured Locations:</span> USA locations listed in Chill Places are spring-fed or managed facilities selected for relative safety and year-round access. Sliding Rock (NC) is listed as seasonal — lifeguards are only present May–Labor Day. Conditions at all locations can change without notice. Always check current local conditions before visiting. Never plunge alone.
                   </p>
                   <p className="text-red-200 text-xs leading-relaxed">
-                    <span className="font-bold text-red-300">Calorie Estimates:</span> The kcal figures shown on each plunge are rough estimates of <span className="italic">potential</span> additional calories burned via thermogenesis — the energy your body expends generating heat in cold water. They are calculated from duration, water temperature, and body weight using a simplified model and are <span className="font-bold text-red-300">not a precise measurement</span>. Actual calorie burn varies significantly based on individual physiology, acclimatization, movement, and other factors. Do not use these figures for nutritional or medical decisions.
+                    <span className="font-bold text-red-300">Calorie Estimates:</span> The kcal figures shown are rough estimates of <span className="italic">potential</span> additional calories burned via thermogenesis. They are calculated from duration, water temperature, and body weight using a simplified model and are <span className="font-bold text-red-300">not a precise measurement</span>. Do not use these figures for nutritional or medical decisions.
                   </p>
                   <p className="text-red-200/70 text-[10px] leading-relaxed">
                     ColdStreak and its developers accept no liability for injury, illness, or death resulting from cold plunge activities. Use this app at your own risk.
                   </p>
-                  {!safetySeen && (
-                    <button
-                      data-testid="button-acknowledge-safety"
-                      onClick={() => {
-                        localStorage.setItem("coldstreak-safety-seen", "true");
-                        setSafetyOpen(false);
-                      }}
-                      className="w-full py-2 rounded-xl bg-red-800/60 border border-red-600/50 text-red-200 text-xs font-semibold hover:bg-red-700/60 transition-all active:scale-95"
-                    >
-                      I understand — collapse
-                    </button>
-                  )}
                 </div>
               )}
             </div>
 
-            {/* Community Locations Disclaimer */}
-            <div
-              data-testid="card-community-disclaimer"
-              className="bg-indigo-950/40 rounded-2xl border border-indigo-700/40"
-            >
+            {/* Community Locations */}
+            <div className="bg-indigo-950/40 rounded-2xl border border-indigo-700/40">
               <button
                 data-testid="button-toggle-community-disclaimer"
                 onClick={() => setCommunityDisclaimerOpen((v) => !v)}
@@ -1999,13 +2003,10 @@ export default function Home() {
               {communityDisclaimerOpen && (
                 <div className="px-4 pb-4 space-y-3 border-t border-indigo-700/30 pt-3">
                   <p className="text-indigo-200 text-xs leading-relaxed">
-                    <span className="font-bold text-indigo-300">Unverified Content:</span> Community Spots are submitted by ColdStreak users and have not been verified for safety, accuracy, or accessibility by ColdStreak.
+                    <span className="font-bold text-indigo-300">Unverified Content:</span> Community Spots are submitted by users and have not been verified for safety, accuracy, or accessibility by ColdStreak.
                   </p>
                   <p className="text-indigo-200 text-xs leading-relaxed">
-                    Cold water immersion carries serious risks including hypothermia, cold shock, and cardiac events. Conditions at any location — water temperature, currents, accessibility — can change without notice.
-                  </p>
-                  <p className="text-indigo-200 text-xs leading-relaxed">
-                    Always assess conditions yourself before entering any body of water, never plunge alone, and consult a physician if you have any heart, respiratory, or circulatory conditions.
+                    Cold water immersion carries serious risks. Conditions at any location can change without notice. Always assess conditions yourself, never plunge alone, and consult a physician if you have any heart, respiratory, or circulatory conditions.
                   </p>
                   <p className="text-indigo-200/60 text-[10px] leading-relaxed">
                     ColdStreak is not liable for any injury, loss, or damages arising from use of community-submitted locations.
@@ -2014,68 +2015,46 @@ export default function Home() {
               )}
             </div>
 
-            {/* Terms of Service */}
-            <div
-              data-testid="card-tos"
-              className="bg-blue-900/40 rounded-2xl border border-blue-700/40"
-            >
+            {/* Terms & Legal */}
+            <div className="bg-blue-900/40 rounded-2xl border border-blue-700/40">
               <button
                 data-testid="button-toggle-tos"
                 onClick={() => setTosOpen((v) => !v)}
                 className="w-full flex items-center justify-between px-4 py-3 text-left"
               >
                 <div className="flex items-center gap-2">
-                  <Info className="w-4 h-4 text-blue-400" />
+                  <FileText className="w-4 h-4 text-blue-400" />
                   <span className="text-white font-semibold text-sm">Terms &amp; Legal</span>
                 </div>
                 <span className={`text-blue-400 text-xs transition-transform duration-200 ${tosOpen ? "rotate-180" : ""}`}>▼</span>
               </button>
               {tosOpen && (
                 <div className="px-4 pb-4 space-y-4 border-t border-blue-700/30 pt-3">
-
                   <div>
                     <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">Terms of Service</p>
-                    <p className="text-blue-200 text-xs leading-relaxed">
-                      By using ColdStreak you agree to these terms. ColdStreak is provided "as is" for personal health tracking purposes only. We reserve the right to modify or discontinue the service at any time without notice. Continued use of the app constitutes acceptance of any updated terms.
-                    </p>
+                    <p className="text-blue-200 text-xs leading-relaxed">By using ColdStreak, you agree to these terms. ColdStreak is provided "as is" for personal health tracking purposes only. We reserve the right to modify or discontinue the service at any time. Continued use constitutes acceptance of any updated terms.</p>
                   </div>
-
                   <div>
                     <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">Privacy Policy</p>
-                    <p className="text-blue-200 text-xs leading-relaxed">
-                      ColdStreak stores your plunge history and settings locally on your device. When you submit a leaderboard entry, your chosen display name and plunge score are stored on our servers. We do not sell or share your personal data with third parties. Your email address (used for Pro verification) is stored securely and used only to verify your purchase.
-                    </p>
+                    <p className="text-blue-200 text-xs leading-relaxed">ColdStreak stores your plunge history and settings locally on your device. Leaderboard entries store your display name and score on our servers. We do not sell or share your personal data with third parties.</p>
                   </div>
-
                   <div>
                     <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">No Medical Advice</p>
-                    <p className="text-blue-200 text-xs leading-relaxed">
-                      Nothing in ColdStreak constitutes medical advice, diagnosis, or treatment. Cold exposure scores, calorie estimates, and wellness metrics are approximations for informational purposes only. Always consult a qualified healthcare provider before starting any cold exposure regimen.
-                    </p>
+                    <p className="text-blue-200 text-xs leading-relaxed">Nothing in ColdStreak constitutes medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider before starting any cold exposure regimen.</p>
                   </div>
-
                   <div>
                     <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">Purchases &amp; Refunds</p>
-                    <p className="text-blue-200 text-xs leading-relaxed">
-                      ColdStreak Pro is a one-time purchase that unlocks additional features. All purchases are final and non-refundable except where required by applicable law.
-                    </p>
+                    <p className="text-blue-200 text-xs leading-relaxed">ColdStreak Pro is a one-time purchase. All purchases are final and non-refundable except where required by applicable law.</p>
                   </div>
-
                   <div>
                     <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">Limitation of Liability</p>
-                    <p className="text-blue-200 text-xs leading-relaxed">
-                      To the fullest extent permitted by law, ColdStreak and its developers shall not be liable for any indirect, incidental, special, or consequential damages arising from use of the app or from cold plunge activities undertaken in connection with it. Your sole remedy for dissatisfaction is to stop using the app.
-                    </p>
+                    <p className="text-blue-200 text-xs leading-relaxed">To the fullest extent permitted by law, ColdStreak and its developers shall not be liable for any indirect, incidental, special, or consequential damages arising from use of the app.</p>
                   </div>
-
                   <div>
                     <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">User-Submitted Content</p>
-                    <p className="text-blue-200 text-xs leading-relaxed">
-                      By submitting a community spot or leaderboard entry, you confirm the information is accurate to the best of your knowledge and that you grant ColdStreak a non-exclusive license to display it within the app. We reserve the right to remove any content that is inaccurate, inappropriate, or in violation of these terms.
-                    </p>
+                    <p className="text-blue-200 text-xs leading-relaxed">By submitting a community spot or leaderboard entry, you confirm the information is accurate and grant ColdStreak a non-exclusive license to display it within the app.</p>
                   </div>
-
-                  <p className="text-blue-500 text-[10px]">Last updated: March 2026. For questions, email <a href="mailto:ColdStreakApp17@gmail.com" className="underline">ColdStreakApp17@gmail.com</a> or contact us via the App Store listing.</p>
+                  <p className="text-blue-500 text-[10px]">Last updated: March 2026. Questions? Email <a href="mailto:ColdStreakApp17@gmail.com" className="underline">ColdStreakApp17@gmail.com</a></p>
                 </div>
               )}
             </div>
@@ -2593,6 +2572,53 @@ export default function Home() {
         </div>
       )}
 
+      {/* ─── FIRST-LAUNCH LIABILITY MODAL ─── */}
+      {!legalAgreed && (
+        <div className="fixed inset-0 z-[80] bg-blue-950/98 backdrop-blur-md flex flex-col items-center justify-center p-6">
+          <ShieldAlert className="w-10 h-10 text-red-400 mb-3 shrink-0" />
+          <h2 className="text-white font-bold text-xl mb-1 text-center">Safety Agreement</h2>
+          <p className="text-blue-400 text-xs mb-4 text-center">Please read and agree before using ColdStreak</p>
+          <div className="bg-red-950/50 rounded-2xl border border-red-800/50 p-4 space-y-3 w-full max-w-md max-h-[45vh] overflow-y-auto mb-5">
+            <p className="text-red-200 text-xs leading-relaxed">
+              <span className="font-bold text-red-300">ASSUMPTION OF RISK:</span> Cold water immersion carries serious health risks including cold water shock, cardiac arrest, hypothermia, loss of consciousness, and drowning. By using ColdStreak, you voluntarily assume all risks associated with cold plunge activities.
+            </p>
+            <p className="text-red-200 text-xs leading-relaxed">
+              ColdStreak is a <span className="font-bold">tracking tool only</span> — not medical advice. Consult a physician before beginning cold exposure therapy, especially if you have heart conditions, high blood pressure, Raynaud's disease, or are pregnant.
+            </p>
+            <p className="text-red-200 text-xs leading-relaxed">
+              Never plunge alone. Always assess water conditions before entering. Stop immediately if you experience pain, numbness, difficulty breathing, or loss of muscle control.
+            </p>
+            <p className="text-red-200/70 text-[10px] leading-relaxed">
+              ColdStreak and its developers accept no liability for injury, illness, or death resulting from cold plunge activities. Use this app at your own risk.
+            </p>
+          </div>
+          <label className="flex items-start gap-3 mb-5 cursor-pointer w-full max-w-md">
+            <input
+              data-testid="checkbox-legal-agree"
+              type="checkbox"
+              checked={legalCheckbox}
+              onChange={(e) => setLegalCheckbox(e.target.checked)}
+              className="mt-0.5 w-4 h-4 accent-cyan-400 shrink-0"
+            />
+            <span className="text-blue-200 text-sm leading-relaxed">
+              I understand that cold water immersion carries serious risks and I voluntarily assume all risks associated with using ColdStreak.
+            </span>
+          </label>
+          <button
+            data-testid="button-legal-agree"
+            disabled={!legalCheckbox}
+            onClick={() => {
+              localStorage.setItem("coldstreak-legal-agreed", "true");
+              localStorage.setItem("coldstreak-safety-seen", "true");
+              setLegalAgreed(true);
+            }}
+            className="w-full max-w-md py-3.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold text-base transition-all active:scale-[0.98]"
+          >
+            I Agree — Continue to ColdStreak
+          </button>
+        </div>
+      )}
+
       {/* ─── ACTIVE TIMER OVERLAY ─── */}
       {isActive && isPro && screen === "timer" && (
         <div
@@ -2662,6 +2688,16 @@ export default function Home() {
           >
             <Compass className="w-5 h-5" />
             <span className="text-[11px] font-semibold">Explore</span>
+          </button>
+
+          {/* Legal */}
+          <button
+            data-testid="nav-legal"
+            onClick={() => navTo("legal")}
+            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${screen === "legal" ? "text-white" : "text-blue-500 hover:text-blue-300"}`}
+          >
+            <FileText className="w-5 h-5" />
+            <span className="text-[11px] font-semibold">Legal</span>
           </button>
 
           {/* Settings */}
