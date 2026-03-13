@@ -160,8 +160,23 @@ Build when user base reaches scale where manual Stripe dashboard management beco
 - Siri Shortcuts require Apple Developer account capability enabled in Xcode
 
 ### Smartwatch Integration
-- Apple Watch: **watchOS companion app** — shows current timer, lets user stop from wrist
-- Wear OS (Android): Similar companion app via Wear OS SDK
+**Database already prepared** — `plunges` table has `hr_avg` (avg heart rate BPM) and `spo2_avg` (avg blood oxygen %) columns ready to receive data. Currently stored as `null` on every plunge.
+
+**Phase 1 — Health app sync (next after Android launch):**
+- Android: **Google Health Connect** — export plunge sessions (duration, calories, workout type) automatically. See `ANDROID_BUILD.md` for full implementation steps.
+- iOS: **Apple HealthKit** — same data exported to Apple Health app. Declared in App Store listing as: *"ColdStreak writes cold plunge workout sessions and estimated calorie burn to Apple Health."*
+
+**Phase 2 — Live biometric capture during plunge:**
+- Pull `hrAvg` and `spo2Avg` from a connected smartwatch/sensor in real time while the timer runs
+- Display live heart rate on the timer screen during the plunge
+- Auto-populate heart rate and SpO2 fields when the session is saved
+- Apple Watch: via HealthKit live queries during active workout session
+- Wear OS / Galaxy Watch: via Health Services API
+- Show post-plunge heart rate recovery curve in the history card
+
+**Phase 3 — Wrist controls:**
+- Apple Watch: **watchOS companion app** — start/stop timer from wrist without touching phone
+- Wear OS: Similar companion app via Wear OS SDK
 - Both require separate watch app targets in Xcode / Android Studio
 
 ### Digital Thermometer Integration
