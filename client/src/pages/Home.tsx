@@ -403,7 +403,7 @@ export default function Home() {
     if (!_fbtCas) _fbtCas = plunges.some(p => p.temperature >= _t.minTemp && p.temperature <= _t.maxTemp);
     if (_fbtCas) _fbtEarned.add(_t.id);
   }
-  const highestEarnedTempTier = [..._fbtOrd].reverse().find(t => _fbtEarned.has(t.id)) ?? null;
+  const highestEarnedTempTier = _fbtOrd.find(t => _fbtEarned.has(t.id)) ?? null;
   const _fbtUniqueDays = new Set(plunges.map(p => new Date(p.createdAt).toLocaleDateString())).size;
   const highestEarnedDaysTier = [...DAYS_TIERS].sort((a, b) => b.days - a.days).find(t => _fbtUniqueDays >= t.days) ?? null;
   const featuredBadgeIds = [
@@ -445,7 +445,7 @@ export default function Home() {
       if (!cas) cas = plunges.some(p => p.temperature >= t.minTemp && p.temperature <= t.maxTemp);
       if (cas) rnT.add(t.id);
     }
-    const htT = [...ordT].reverse().find(t => rnT.has(t.id)) ?? null;
+    const htT = ordT.find(t => rnT.has(t.id)) ?? null;
     const htD = [...DAYS_TIERS].sort((a, b) => b.days - a.days).find(t => uniqueDays >= t.days) ?? null;
     const syncFeatured = [
       ...(showTempTier && htT ? [htT.id] : []),
