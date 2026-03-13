@@ -259,7 +259,7 @@ export default function Home() {
   const photoInputRef = useRef<HTMLInputElement | null>(null);
 
   // Pro status
-  const { isPro, proEmail, loading: proLoading, startCheckout, verifySession, restorePurchase } = useProStatus();
+  const { isPro, proEmail, promoExpiresAt, loading: proLoading, startCheckout, verifySession, restorePurchase, redeemPromo } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showPostSessionAd, setShowPostSessionAd] = useState(false);
   const [showAchievements, setShowAchievements] = useState(() => {
@@ -314,6 +314,8 @@ export default function Home() {
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [settingsRestoreEmail, setSettingsRestoreEmail] = useState("");
   const [showSettingsRestore, setShowSettingsRestore] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
   const [badgesOpen, setBadgesOpen] = useState(true);
   const [userOpen, setUserOpen] = useState(true);
   const [homeLabel, setHomeLabel] = useState(() => localStorage.getItem("coldstreak-home-label") || "Home");
@@ -1337,6 +1339,45 @@ export default function Home() {
                     </div>
                   </div>
                 )}
+
+                {/* Promo code */}
+                <div className="border-t border-blue-700/30 pt-3">
+                  <button
+                    data-testid="button-toggle-promo"
+                    onClick={() => setPromoCode("")}
+                    className="w-full text-left text-blue-400 text-xs font-semibold hover:text-cyan-300 transition-colors flex items-center gap-1.5"
+                  >
+                    <Sparkles className="w-3 h-3" /> Have a promo code?
+                  </button>
+                  <div className="flex gap-2 mt-2">
+                    <input
+                      data-testid="input-promo-code"
+                      type="text"
+                      placeholder="Enter code"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400 uppercase tracking-widest"
+                    />
+                    <button
+                      data-testid="button-redeem-promo"
+                      disabled={promoLoading || !promoCode.trim()}
+                      onClick={async () => {
+                        setPromoLoading(true);
+                        const result = await redeemPromo(promoCode.trim());
+                        setPromoLoading(false);
+                        if (result.success) {
+                          toast({ title: `Pro activated for ${result.durationDays} days! ❄️`, description: "Enjoy all Pro features." });
+                          setPromoCode("");
+                        } else {
+                          toast({ title: "Invalid code", description: result.error, variant: "destructive" });
+                        }
+                      }}
+                      className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white text-sm font-bold transition-all active:scale-95"
+                    >
+                      {promoLoading ? "…" : "Redeem"}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 

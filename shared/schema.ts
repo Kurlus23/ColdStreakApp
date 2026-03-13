@@ -44,6 +44,17 @@ export const leaderboardEntries = pgTable("leaderboard_entries", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [uniqueIndex("leaderboard_location_user_idx").on(t.locationId, t.username)]);
 
+export const promoCodes = pgTable("promo_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  durationDays: integer("duration_days").notNull().default(7),
+  maxUses: integer("max_uses").notNull().default(10),
+  usedCount: integer("used_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PromoCode = typeof promoCodes.$inferSelect;
+
 export const proUsers = pgTable("pro_users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),

@@ -1,9 +1,9 @@
 import { db } from "./db";
 import {
-  plunges, leaderboardEntries, proUsers, userLocations, users,
+  plunges, leaderboardEntries, proUsers, promoCodes, userLocations, users,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
-  type UserLocation, type InsertUserLocation, type User,
+  type PromoCode, type UserLocation, type InsertUserLocation, type User,
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and } from "drizzle-orm";
 
@@ -21,6 +21,9 @@ export interface IStorage {
   // Pro users
   getProUser(email: string): Promise<ProUser | null>;
   createProUser(email: string, stripeSessionId: string): Promise<ProUser>;
+  // Promo codes
+  getPromoCode(code: string): Promise<PromoCode | null>;
+  redeemPromoCode(code: string): Promise<PromoCode | null>;
   // Community locations
   getUserLocations(country?: string): Promise<UserLocation[]>;
   createUserLocation(loc: InsertUserLocation): Promise<UserLocation>;
@@ -116,6 +119,24 @@ export class DatabaseStorage implements IStorage {
       .onConflictDoUpdate({ target: proUsers.email, set: { stripeSessionId, active: true } })
       .returning();
     return user;
+  }
+
+  async getPromoCode(code: string): Promise<PromoCode | null> {
+    const [row] = await db.select().from(promoCodes).where(eq(promoCodes.code, code.toUpperCase().trim()));
+    return row ?? null;
+  }
+
+  async redeemPromoCode(code: string): Promise<PromoCode | null> {
+    const normalized = code.toUpperCase().trim();
+    const [row] = await db.select().from(promoCodes).where(eq(promoCodes.code, normalized));
+    if (!row) return null;
+    if (row.usedCount >= row.maxUses) return null;
+    const [updated] = await db
+      .update(promoCodes)
+      .set({ usedCount: row.usedCount + 1 })
+      .where(eq(promoCodes.code, normalized))
+      .returning();
+    return updated;
   }
 
   async getUserLocations(country?: string): Promise<UserLocation[]> {

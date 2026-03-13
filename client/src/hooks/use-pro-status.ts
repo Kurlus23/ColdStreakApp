@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 
 const PRO_EMAIL_KEY = "coldstreak-pro-email";
 const PRO_STATUS_KEY = "coldstreak-is-pro";
+const PROMO_EXPIRES_KEY = "coldstreak-promo-expires";
 const AUTH_USER_KEY = "coldstreak-auth-user";
 
 function getLoggedInEmail(): string | null {
@@ -15,11 +16,17 @@ function getLoggedInEmail(): string | null {
   }
 }
 
+function isPromoActive(): boolean {
+  const expires = localStorage.getItem(PROMO_EXPIRES_KEY);
+  if (!expires) return false;
+  return new Date(expires) > new Date();
+}
+
 export function useProStatus() {
   const [isPro, setIsPro] = useState<boolean>(() => {
+    if (isPromoActive()) return true;
     const cached = localStorage.getItem(PRO_STATUS_KEY) === "true";
     if (!cached) return false;
-    // If a different user is logged in, don't inherit Pro from previous account
     const proEmail = localStorage.getItem(PRO_EMAIL_KEY);
     const loggedInEmail = getLoggedInEmail();
     if (loggedInEmail && proEmail && loggedInEmail !== proEmail) return false;
@@ -27,6 +34,9 @@ export function useProStatus() {
   });
   const [proEmail, setProEmail] = useState<string | null>(
     () => localStorage.getItem(PRO_EMAIL_KEY)
+  );
+  const [promoExpiresAt, setPromoExpiresAt] = useState<string | null>(
+    () => localStorage.getItem(PROMO_EXPIRES_KEY)
   );
   const [loading, setLoading] = useState(false);
 
@@ -40,7 +50,7 @@ export function useProStatus() {
   const clearPro = useCallback(() => {
     localStorage.removeItem(PRO_STATUS_KEY);
     localStorage.removeItem(PRO_EMAIL_KEY);
-    setIsPro(false);
+    if (!isPromoActive()) setIsPro(false);
     setProEmail(null);
   }, []);
 
@@ -49,7 +59,6 @@ export function useProStatus() {
     const cachedEmail = localStorage.getItem(PRO_EMAIL_KEY);
     if (!cachedEmail) return;
 
-    // If a different user is logged in, clear Pro immediately
     const loggedInEmail = getLoggedInEmail();
     if (loggedInEmail && loggedInEmail !== cachedEmail) {
       clearPro();
@@ -125,5 +134,26 @@ export function useProStatus() {
     return false;
   }, [markPro]);
 
-  return { isPro, proEmail, loading, startCheckout, verifySession, restorePurchase, clearPro };
+  const redeemPromo = useCallback(async (code: string): Promise<{ success: boolean; durationDays?: number; error?: string }> => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/promo/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { success: false, error: data.error ?? "Invalid code" };
+      localStorage.setItem(PROMO_EXPIRES_KEY, data.expiresAt);
+      setPromoExpiresAt(data.expiresAt);
+      setIsPro(true);
+      return { success: true, durationDays: data.durationDays };
+    } catch {
+      return { success: false, error: "Something went wrong" };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { isPro, proEmail, promoExpiresAt, loading, startCheckout, verifySession, restorePurchase, clearPro, redeemPromo };
 }
