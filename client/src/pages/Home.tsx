@@ -1995,6 +1995,9 @@ export default function Home() {
                         {username ? `${username}'s Badges` : "My Badges"}
                       </h2>
                       <p className="text-blue-400 text-xs">{totalEarned}/{totalPossible} earned</p>
+                      {streak > 0 && (
+                        <p className="text-orange-400 text-xs mt-0.5">🔥 {streak} day streak</p>
+                      )}
                     </div>
                   </div>
                   {featuredBadgeIds.length > 0 && (
@@ -2031,7 +2034,7 @@ export default function Home() {
               </div>
 
               {/* Featured Badges */}
-              <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40">
+              <div className="bg-blue-950/80 rounded-2xl border border-blue-700/50">
                 <button
                   data-testid="button-toggle-featured-badges"
                   onClick={() => setOpenSections(s => ({ ...s, featured: !s.featured }))}
@@ -2049,7 +2052,7 @@ export default function Home() {
                     <div>
                       <div className="text-blue-500 text-[10px] uppercase tracking-widest mb-1.5">Temperature Tier</div>
                       {highestEarnedTempTier ? (
-                        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-blue-600/40 bg-blue-800/40">
+                        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-blue-700/50 bg-blue-900/70">
                           <div className="flex items-center gap-2">
                             <span className="text-xl leading-none">{highestEarnedTempTier.emoji}</span>
                             <div>
@@ -2060,18 +2063,18 @@ export default function Home() {
                           <button
                             data-testid="button-toggle-temp-tier-badge"
                             onClick={() => { const n = !showTempTier; localStorage.setItem("coldstreak-show-temp-tier", String(n)); setShowTempTier(n); }}
-                            className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors shrink-0 ${showTempTier ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/40" : "bg-blue-900/60 text-blue-500 border border-blue-700/40"}`}
+                            className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors shrink-0 ${showTempTier ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/40" : "bg-blue-950/80 text-blue-500 border border-blue-700/50"}`}
                           >{showTempTier ? "On ★" : "Off"}</button>
                         </div>
                       ) : (
-                        <div className="px-3 py-2 rounded-xl border border-blue-800/30 bg-blue-900/30 text-blue-600 text-xs">No temperature tier earned yet</div>
+                        <div className="px-3 py-2 rounded-xl border border-blue-800/40 bg-blue-950/60 text-blue-600 text-xs">No temperature tier earned yet</div>
                       )}
                     </div>
                     {/* Days Badge — auto = highest earned */}
                     <div>
                       <div className="text-blue-500 text-[10px] uppercase tracking-widest mb-1.5">Days Plunged</div>
                       {highestEarnedDaysTier ? (
-                        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-blue-600/40 bg-blue-800/40">
+                        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-blue-700/50 bg-blue-900/70">
                           <div className="flex items-center gap-2">
                             <span className="text-xl leading-none">{highestEarnedDaysTier.emoji}</span>
                             <div>
@@ -2082,11 +2085,11 @@ export default function Home() {
                           <button
                             data-testid="button-toggle-days-badge"
                             onClick={() => { const n = !showDaysBadge; localStorage.setItem("coldstreak-show-days-badge", String(n)); setShowDaysBadge(n); }}
-                            className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors shrink-0 ${showDaysBadge ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/40" : "bg-blue-900/60 text-blue-500 border border-blue-700/40"}`}
+                            className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors shrink-0 ${showDaysBadge ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/40" : "bg-blue-950/80 text-blue-500 border border-blue-700/50"}`}
                           >{showDaysBadge ? "On ★" : "Off"}</button>
                         </div>
                       ) : (
-                        <div className="px-3 py-2 rounded-xl border border-blue-800/30 bg-blue-900/30 text-blue-600 text-xs">No days badge earned yet</div>
+                        <div className="px-3 py-2 rounded-xl border border-blue-800/40 bg-blue-950/60 text-blue-600 text-xs">No days badge earned yet</div>
                       )}
                     </div>
                     {/* State Badges */}
@@ -2107,7 +2110,7 @@ export default function Home() {
                                   setFeaturedStateIds(next);
                                 }}
                                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border text-left active:scale-95 ${
-                                  featured ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-200" : "bg-blue-800/60 border-blue-600/40 text-blue-300"
+                                  featured ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-200" : "bg-blue-900/70 border-blue-700/50 text-blue-300"
                                 }`}
                               >
                                 <span className="text-sm leading-none shrink-0">{emoji}</span>
@@ -2124,7 +2127,7 @@ export default function Home() {
               </div>
 
               {/* Tier Badges */}
-              <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40">
+              <div className="bg-blue-950/80 rounded-2xl border border-blue-700/50">
                 <button
                   data-testid="button-toggle-tier-badges"
                   onClick={() => setOpenSections(s => ({ ...s, tier: !s.tier }))}
@@ -2165,7 +2168,7 @@ export default function Home() {
               </div>
 
               {/* Days Plunged Badges */}
-              <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40">
+              <div className="bg-blue-950/80 rounded-2xl border border-blue-700/50">
                 <button
                   data-testid="button-toggle-days-badges"
                   onClick={() => setOpenSections(s => ({ ...s, days: !s.days }))}
@@ -2214,7 +2217,7 @@ export default function Home() {
               </div>
 
               {/* State Badges */}
-              <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40">
+              <div className="bg-blue-950/80 rounded-2xl border border-blue-700/50">
                 <button
                   data-testid="button-toggle-state-badges"
                   onClick={() => setOpenSections(s => ({ ...s, states: !s.states }))}
