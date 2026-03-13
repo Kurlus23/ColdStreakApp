@@ -21,7 +21,7 @@ export const DIFFICULTY_META: Record<Difficulty, { emoji: string; label: string;
   "cold":     { emoji: "❄️",  label: "Snow",      color: "text-blue-300",   tempLabel: "~60°F" },
   "ice-bath": { emoji: "🥶",  label: "Frozen",    color: "text-cyan-400",   tempLabel: "~50°F" },
   "extreme":  { emoji: "🧊",  label: "Ice Block", color: "text-blue-400",   tempLabel: "~40°F" },
-  "arctic":   { emoji: "🏔️", label: "Glacier",   color: "text-indigo-300", tempLabel: "~35°F" },
+  "arctic":   { emoji: "💎",  label: "Glacier",   color: "text-indigo-300", tempLabel: "~35°F" },
 };
 
 export const PASSPORT_LOCATIONS: PassportLocation[] = [
@@ -251,7 +251,7 @@ export const PASSPORT_LOCATIONS: PassportLocation[] = [
     id: "tamolitch-pool-or",
     name: "Tamolitch Blue Pool",
     country: "USA", state: "Oregon",
-    flag: "🏔️", difficulty: "arctic",
+    flag: "💎", difficulty: "arctic",
     description: "Oregon's most surreal natural pool — the McKenzie River reappears from underground in a perfect blue bowl. Glacial cold, jaw-dropping beauty.",
     tempRange: "34–38°F year-round",
     safetyNote: "4-mile round trip hike required. Water is near-freezing — serious cold shock and hypothermia risk. Expert level only.",
@@ -261,7 +261,7 @@ export const PASSPORT_LOCATIONS: PassportLocation[] = [
     id: "lake-superior-mn",
     name: "Lake Superior",
     country: "USA", state: "Minnesota",
-    flag: "🏔️", difficulty: "arctic",
+    flag: "💎", difficulty: "arctic",
     description: "The largest of the Great Lakes — its sheer size keeps it cold year-round. A beloved winter plunge tradition in Duluth and along the North Shore.",
     tempRange: "34–55°F (varies by season and location)",
     safetyNote: "Rip currents and waves possible. Never swim alone. Water is cold enough for hypothermia even in summer.",
@@ -271,7 +271,7 @@ export const PASSPORT_LOCATIONS: PassportLocation[] = [
     id: "emerald-pools-ca",
     name: "Emerald Pools",
     country: "USA", state: "California",
-    flag: "🏔️", difficulty: "arctic",
+    flag: "💎", difficulty: "arctic",
     description: "The emerald-colored pools along the Mist Trail in Yosemite Valley — fed by snowmelt off Half Dome. Stunning and brutally cold.",
     tempRange: "36–45°F",
     safetyNote: "Access requires Mist Trail hike. Water is fast-moving — stay in calm pools only. Drowning risk near falls.",
