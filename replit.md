@@ -147,3 +147,25 @@ Build when user base reaches scale where manual Stripe dashboard management beco
 - Stripe subscription cancellation can be added to the revoke action via `stripe.subscriptions.cancel()`
 
 **To check current user count at any time:** just ask — the database can be queried instantly.
+
+---
+
+## Future Feature Ideas
+
+### Voice Commands (Siri / Google Assistant)
+- "Hey Siri, start my ColdStreak timer" / "Hey Siri, stop my ColdStreak timer"
+- iOS: Implement via **Siri Shortcuts** + Capacitor App plugin (expose `startTimer` / `stopTimer` as Shortcut actions in `Info.plist`)
+- Android: Implement via **Google Assistant App Actions** (define intents in `shortcuts.xml`)
+- Both require native app builds (already in place via Capacitor)
+- Siri Shortcuts require Apple Developer account capability enabled in Xcode
+
+### Smartwatch Integration
+- Apple Watch: **watchOS companion app** — shows current timer, lets user stop from wrist
+- Wear OS (Android): Similar companion app via Wear OS SDK
+- Both require separate watch app targets in Xcode / Android Studio
+
+### Digital Thermometer Integration
+- Bluetooth thermometer support (e.g., Govee, SensorPush) via **Web Bluetooth API** (Chrome/Android) or Capacitor Bluetooth plugin
+- Auto-fill temperature field when timer starts
+- Could display live temp on timer screen during plunge
+- iOS Web Bluetooth not supported — would need native Capacitor plugin
