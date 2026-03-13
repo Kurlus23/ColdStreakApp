@@ -321,7 +321,7 @@ export const DAYS_TIERS: DaysTier[] = [
   { id: "frost-seeker",  label: "Frost Seeker",  emoji: "🧭",  days: 45  },
   { id: "penguin",       label: "Penguin",       emoji: "🐧",  days: 75  },
   { id: "polar-bear",    label: "Polar Bear",    emoji: "🐻‍❄️", days: 120 },
-  { id: "blue-yeti",     label: "Abominable Snowman", emoji: "🧌",  days: 180 },
+  { id: "blue-yeti",     label: "Abominable Snowman", emoji: "🐾",  days: 180 },
   { id: "ice-baron",     label: "Ice Baron",     emoji: "👑",  days: 270 },
   { id: "shiva",         label: "Shiva",         emoji: "🔱",  days: 365 },
 ];
