@@ -286,7 +286,7 @@ export const STATE_EMOJI: Record<string, string> = {
   "Massachusetts":     "🦞",
   "New York":          "🗽",
   "New Mexico":        "☀️",
-  "North Carolina":    "🌊",
+  "North Carolina":    "🏖️",
   "Tennessee":         "🎵",
   "Vermont":           "🍁",
   "California/Nevada": "🏞️",
@@ -294,7 +294,7 @@ export const STATE_EMOJI: Record<string, string> = {
   "Montana":           "🦌",
   "Washington":        "🌧️",
   "Oregon":            "🦫",
-  "Minnesota":         "❄️",
+  "Minnesota":         "🎣",
   "California":        "🌅",
   "Arizona":           "🌵",
 };
