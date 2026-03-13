@@ -82,7 +82,7 @@ function playAudio(url: string, gain: number, stopAfterMs?: number): HTMLAudioEl
   return audio;
 }
 
-type Screen = "timer" | "history" | "explore" | "settings" | "legal";
+type Screen = "timer" | "history" | "explore" | "settings" | "legal" | "achievements";
 
 
 function plungeScore(durationSeconds: number, tempF: number): number {
@@ -343,7 +343,6 @@ export default function Home() {
   const [showSettingsRestore, setShowSettingsRestore] = useState(false);
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
-  const [badgesOpen, setBadgesOpen] = useState(true);
   const [badgeDetailModal, setBadgeDetailModal] = useState<
     | { type: "temp-tier"; tierId: string }
     | { type: "state"; state: string }
@@ -1871,104 +1870,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* Achievements */}
-            {(() => {
-              const allStates = [...new Set(PASSPORT_LOCATIONS.map((l) => l.state))].sort();
-              const earnedStates = new Set(computeStateBadges(badges));
-              // Temperature-based tier badges — earned by logging plunges in each temp range
-              const plungeList = plunges ?? [];
-              const earnedTempTierIds = new Set(
-                TEMP_TIERS
-                  .filter((t) => plungeList.some((p) => p.temperature >= t.minTemp && p.temperature <= t.maxTemp))
-                  .map((t) => t.id)
-              );
-              const totalAchievements = earnedStates.size + earnedTempTierIds.size;
-              return (
-                <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40">
-                  <button
-                    data-testid="button-toggle-badges"
-                    onClick={() => setBadgesOpen((v) => !v)}
-                    className="w-full flex items-center justify-between px-4 py-3 text-left"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-semibold text-sm">Achievements</span>
-                      <span className="text-cyan-500 text-xs">({totalAchievements} earned)</span>
-                    </div>
-                    <span className={`text-blue-400 text-xs transition-transform duration-200 ${badgesOpen ? "rotate-180" : ""}`}>▼</span>
-                  </button>
-                  {badgesOpen && <div className="px-4 pb-4 space-y-4 border-t border-blue-700/30 pt-3">
-                  {/* Temperature Tier Badges */}
-                  <div>
-                    <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">
-                      Tier Badges
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {TEMP_TIERS.map((tier) => {
-                        const earned = earnedTempTierIds.has(tier.id);
-                        const plungesInRange = plungeList.filter(
-                          (p) => p.temperature >= tier.minTemp && p.temperature <= tier.maxTemp
-                        ).length;
-                        return (
-                          <button
-                            key={tier.id}
-                            data-testid={`achievement-tier-${tier.id}`}
-                            onClick={() => setBadgeDetailModal({ type: "temp-tier", tierId: tier.id })}
-                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
-                              earned
-                                ? "bg-cyan-500/20 border border-cyan-500/50 text-cyan-300"
-                                : "bg-blue-800/40 border border-blue-700/30 text-blue-600"
-                            }`}
-                          >
-                            <span>{tier.emoji}</span>
-                            <span>{tier.label}</span>
-                            {earned
-                              ? <span className="text-[10px] text-cyan-400">✓</span>
-                              : <span className="text-[10px] opacity-60">{tier.minTemp}–{tier.maxTemp}°F</span>
-                            }
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* State Badges */}
-                  <div>
-                    <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">State Badges</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {allStates.map((state) => {
-                        const earned = earnedStates.has(state);
-                        const emoji = STATE_EMOJI[state] ?? "🏆";
-                        const stateLocs = PASSPORT_LOCATIONS.filter((l) => l.state === state);
-                        const earnedCount = stateLocs.filter((l) => badges.has(l.id)).length;
-                        return (
-                          <button
-                            key={state}
-                            data-testid={`achievement-state-${state.replace(/[\s/]/g, "-").toLowerCase()}`}
-                            onClick={() => setBadgeDetailModal({ type: "state", state })}
-                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
-                              earned
-                                ? "bg-yellow-500/20 border border-yellow-500/40 text-yellow-200"
-                                : earnedCount > 0
-                                ? "bg-blue-800/60 border border-blue-600/50 text-blue-400"
-                                : "bg-blue-800/40 border border-blue-700/30 text-blue-600"
-                            }`}
-                          >
-                            <span>{emoji}</span>
-                            <span>{state}</span>
-                            {earned
-                              ? <span className="text-[10px] text-yellow-400">✓</span>
-                              : <span className="text-[10px] opacity-60">{earnedCount}/{stateLocs.length}</span>
-                            }
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  </div>}
-                </div>
-              );
-            })()}
-
             {/* Legal & Safety */}
             <button
               data-testid="button-nav-legal"
@@ -1984,6 +1885,116 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* ─── ACHIEVEMENTS SCREEN ─── */}
+      {screen === "achievements" && (() => {
+        const allStates = [...new Set(PASSPORT_LOCATIONS.map((l) => l.state))].sort();
+        const earnedStates = new Set(computeStateBadges(badges));
+        const plungeList = plunges ?? [];
+
+        // Cascade progression: earning a colder tier auto-unlocks all warmer tiers
+        // Order: ice-breaker (30-39) > cold-blooded (40-49) > initiate (50-60)
+        const orderedTiers = [...TEMP_TIERS].sort((a, b) => a.minTemp - b.minTemp);
+        const earnedTempTierIds = new Set<string>();
+        let cascade = false;
+        for (const t of orderedTiers) {
+          if (!cascade) cascade = plungeList.some((p) => p.temperature >= t.minTemp && p.temperature <= t.maxTemp);
+          if (cascade) earnedTempTierIds.add(t.id);
+        }
+
+        const totalTiers = earnedTempTierIds.size;
+        const totalStates = earnedStates.size;
+        const totalEarned = totalTiers + totalStates;
+        const totalPossible = TEMP_TIERS.length + allStates.length;
+
+        return (
+          <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
+            <div className="space-y-4">
+              {/* Header */}
+              <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl px-5 pt-5 pb-4 border border-blue-800/50">
+                <div className="flex items-center gap-3 mb-3">
+                  <Trophy className="w-6 h-6 text-yellow-400" />
+                  <div>
+                    <h2 className="text-white font-bold text-lg leading-tight">Badges</h2>
+                    <p className="text-blue-400 text-xs">{totalEarned} of {totalPossible} earned</p>
+                  </div>
+                </div>
+                <div className="h-2 bg-blue-900/60 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-cyan-500 to-yellow-400 rounded-full transition-all duration-500"
+                    style={{ width: `${totalPossible > 0 ? Math.round((totalEarned / totalPossible) * 100) : 0}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Tier Badges */}
+              <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40 px-4 py-4">
+                <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-3">Tier Badges</div>
+                <div className="text-blue-500 text-[11px] mb-3">Reaching a colder tier automatically unlocks all warmer ones.</div>
+                <div className="flex flex-wrap gap-2">
+                  {TEMP_TIERS.map((tier) => {
+                    const earned = earnedTempTierIds.has(tier.id);
+                    return (
+                      <button
+                        key={tier.id}
+                        data-testid={`achievement-tier-${tier.id}`}
+                        onClick={() => setBadgeDetailModal({ type: "temp-tier", tierId: tier.id })}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 border ${
+                          earned
+                            ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300"
+                            : "bg-blue-800/40 border-blue-700/30 text-blue-600"
+                        }`}
+                      >
+                        <span className="text-base">{tier.emoji}</span>
+                        <div className="text-left">
+                          <div>{tier.label}</div>
+                          <div className="text-[10px] opacity-70">{tier.minTemp}–{tier.maxTemp}°F</div>
+                        </div>
+                        {earned && <span className="text-[10px] text-cyan-400 ml-1">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* State Badges */}
+              <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40 px-4 py-4">
+                <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-3">State Badges</div>
+                <div className="text-blue-500 text-[11px] mb-3">Plunge at every Chill Place in a state to earn its badge.</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {allStates.map((state) => {
+                    const earned = earnedStates.has(state);
+                    const emoji = STATE_EMOJI[state] ?? "🏆";
+                    const stateLocs = PASSPORT_LOCATIONS.filter((l) => l.state === state);
+                    const earnedCount = stateLocs.filter((l) => badges.has(l.id)).length;
+                    return (
+                      <button
+                        key={state}
+                        data-testid={`achievement-state-${state.replace(/[\s/]/g, "-").toLowerCase()}`}
+                        onClick={() => setBadgeDetailModal({ type: "state", state })}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
+                          earned
+                            ? "bg-yellow-500/20 border border-yellow-500/40 text-yellow-200"
+                            : earnedCount > 0
+                            ? "bg-blue-800/60 border border-blue-600/50 text-blue-400"
+                            : "bg-blue-800/40 border border-blue-700/30 text-blue-600"
+                        }`}
+                      >
+                        <span>{emoji}</span>
+                        <span>{state}</span>
+                        {earned
+                          ? <span className="text-[10px] text-yellow-400">✓</span>
+                          : <span className="text-[10px] opacity-60">{earnedCount}/{stateLocs.length}</span>
+                        }
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ─── LEGAL SCREEN ─── */}
       {screen === "legal" && (
@@ -2117,10 +2128,23 @@ export default function Home() {
           // ── Temperature-tier badge detail ──
           const tierId = (badgeDetailModal as { type: "temp-tier"; tierId: string }).tierId;
           const tier = TEMP_TIERS.find((t) => t.id === tierId)!;
-          const matchingPlunges = (plunges ?? []).filter(
+          const plungeList2 = plunges ?? [];
+          // Recompute cascade: a harder (colder) tier unlocks all warmer tiers
+          const orderedTiers2 = [...TEMP_TIERS].sort((a, b) => a.minTemp - b.minTemp);
+          const earnedTempTierIds2 = new Set<string>();
+          let cascade2 = false;
+          for (const t of orderedTiers2) {
+            if (!cascade2) cascade2 = plungeList2.some((p) => p.temperature >= t.minTemp && p.temperature <= t.maxTemp);
+            if (cascade2) earnedTempTierIds2.add(t.id);
+          }
+          const earned = earnedTempTierIds2.has(tier.id);
+          // Find which harder tier triggered the cascade (if any)
+          const matchingPlunges = plungeList2.filter(
             (p) => p.temperature >= tier.minTemp && p.temperature <= tier.maxTemp
           );
-          const earned = matchingPlunges.length > 0;
+          const cascadeSource = earned && matchingPlunges.length === 0
+            ? orderedTiers2.find((t) => plungeList2.some((p) => p.temperature >= t.minTemp && p.temperature <= t.maxTemp))
+            : null;
 
           return (
             <div className="fixed inset-0 z-40 flex items-end justify-center">
@@ -2157,7 +2181,9 @@ export default function Home() {
                       {earned ? "Badge Unlocked!" : "Not yet earned"}
                     </div>
                     <div className="text-blue-500 text-[11px]">
-                      {earned
+                      {earned && cascadeSource
+                        ? `Unlocked by achieving ${cascadeSource.emoji} ${cascadeSource.label}`
+                        : earned
                         ? `${matchingPlunges.length} plunge${matchingPlunges.length > 1 ? "s" : ""} logged in this range`
                         : `Log a plunge at ${tier.minTemp}–${tier.maxTemp}°F to unlock`}
                     </div>
@@ -2919,14 +2945,14 @@ export default function Home() {
             <span className="text-[11px] font-semibold">Explore</span>
           </button>
 
-          {/* Legal */}
+          {/* Achievements */}
           <button
-            data-testid="nav-legal"
-            onClick={() => navTo("legal")}
-            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${screen === "legal" ? "text-white" : "text-blue-500 hover:text-blue-300"}`}
+            data-testid="nav-achievements"
+            onClick={() => navTo("achievements")}
+            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${screen === "achievements" ? "text-white" : "text-blue-500 hover:text-blue-300"}`}
           >
-            <FileText className="w-5 h-5" />
-            <span className="text-[11px] font-semibold">Legal</span>
+            <Trophy className="w-5 h-5" />
+            <span className="text-[11px] font-semibold">Badges</span>
           </button>
 
           {/* Settings */}
