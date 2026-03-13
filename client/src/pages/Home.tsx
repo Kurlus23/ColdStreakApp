@@ -2553,7 +2553,7 @@ export default function Home() {
       )}
 
       {/* ─── ACTIVE TIMER OVERLAY ─── */}
-      {isActive && screen === "timer" && (
+      {isActive && isPro && screen === "timer" && (
         <div
           className={`fixed z-[60] bg-blue-950/98 backdrop-blur-md flex flex-col items-center justify-center gap-8 transition-all duration-300 ${
             isLandscape
