@@ -23,6 +23,7 @@ import { Analytics } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
 import { getClientId } from "@/hooks/use-plunges";
 import { buildShareImage } from "@/lib/shareImage";
+import { saveCustomAlarmUrl, loadCustomAlarmUrl, clearCustomAlarmUrl } from "@/lib/alarm-storage";
 import { Explore } from "@/pages/Explore";
 import {
   PASSPORT_LOCATIONS, usePassportBadges, distanceMiles,
@@ -183,9 +184,12 @@ export default function Home() {
   }, []);
 
   // Alarm sound
-  const [alarmUrl, setAlarmUrl] = useState<string>(
-    () => localStorage.getItem("alarmUrl") ?? ALARM_PRESETS[0].url
-  );
+  const [alarmUrl, setAlarmUrl] = useState<string>(() => {
+    // Legacy: if a data URL was stored directly in localStorage, use it (will be migrated to IndexedDB below)
+    const stored = localStorage.getItem("alarmUrl");
+    if (stored && stored.startsWith("data:")) return stored;
+    return ALARM_PRESETS[0].url;
+  });
   const [alarmLabel, setAlarmLabel] = useState<string>(
     () => localStorage.getItem("alarmLabel") ?? ALARM_PRESETS[0].label
   );
@@ -200,6 +204,25 @@ export default function Home() {
   );
   const alarmUploadRef = useRef<HTMLInputElement | null>(null);
 
+  // On mount: load custom alarm from IndexedDB (or migrate from old localStorage format)
+  useEffect(() => {
+    const isCustom = localStorage.getItem("alarmIsCustom") === "true";
+    if (!isCustom) return;
+    const legacyUrl = localStorage.getItem("alarmUrl");
+    if (legacyUrl && legacyUrl.startsWith("data:")) {
+      // Migrate: move large data URL from localStorage into IndexedDB
+      saveCustomAlarmUrl(legacyUrl).then(() => {
+        localStorage.removeItem("alarmUrl");
+      });
+      // Already in state from init, nothing else to do
+      return;
+    }
+    // Normal load from IndexedDB
+    loadCustomAlarmUrl().then((url) => {
+      if (url) setAlarmUrl(url);
+    });
+  }, []);
+
   const selectPresetAlarm = (url: string, label: string, gain: number) => {
     setAlarmUrl(url);
     setAlarmLabel(label);
@@ -209,13 +232,14 @@ export default function Home() {
     localStorage.setItem("alarmLabel", label);
     localStorage.setItem("alarmGain", String(gain));
     localStorage.setItem("alarmIsCustom", "false");
+    clearCustomAlarmUrl();
   };
 
   const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const dataUrl = ev.target?.result as string;
       const defaultName = file.name.replace(/\.[^.]+$/, "");
       setAlarmUrl(dataUrl);
@@ -223,12 +247,15 @@ export default function Home() {
       setAlarmGain(1.0);
       setAlarmIsCustom(true);
       setAlarmCustomLabel(defaultName);
-      localStorage.setItem("alarmUrl", dataUrl);
+      // Save audio data to IndexedDB (no size limit), metadata to localStorage
+      await saveCustomAlarmUrl(dataUrl);
       localStorage.setItem("alarmLabel", defaultName);
       localStorage.setItem("alarmGain", "1");
       localStorage.setItem("alarmIsCustom", "true");
       localStorage.setItem("alarmCustomLabel", defaultName);
-      toast({ title: "Custom alarm uploaded", description: `Tap the label to rename it.` });
+      // Remove any stale data URL from localStorage to free space
+      localStorage.removeItem("alarmUrl");
+      toast({ title: "Custom alarm saved", description: `Tap the label to rename it.` });
     };
     reader.readAsDataURL(file);
   };
