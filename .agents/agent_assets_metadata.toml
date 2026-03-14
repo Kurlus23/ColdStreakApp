@@ -24,3 +24,9 @@ id = "qBbaf_4n6kMEU3IrU-8Dw"
 uri = "file://client/public/feature-option-c-1024x500.png"
 type = "image"
 title = "Option C — Overhead ice bath, spa/product photography"
+
+[[outputs]]
+id = "dqbBM0TPc6Qy_AuWHkmF-"
+uri = "file://client/public/feature-final-1024x500.png"
+type = "image"
+title = "Feature Graphic — Final (1024x500)"
