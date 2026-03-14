@@ -6,7 +6,7 @@ import {
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2, FileText,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -24,7 +24,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { getClientId } from "@/hooks/use-plunges";
 import { buildShareImage } from "@/lib/shareImage";
 import { saveCustomAlarmUrl, loadCustomAlarmUrl, clearCustomAlarmUrl } from "@/lib/alarm-storage";
-import { Explore } from "@/pages/Explore";
+import { Explore, GEAR_ITEMS } from "@/pages/Explore";
 import {
   PASSPORT_LOCATIONS, usePassportBadges, distanceMiles,
   DIFFICULTY_META, STATE_EMOJI,
@@ -83,7 +83,7 @@ function playAudio(url: string, gain: number, stopAfterMs?: number): HTMLAudioEl
   return audio;
 }
 
-type Screen = "timer" | "history" | "explore" | "settings" | "legal" | "achievements";
+type Screen = "timer" | "history" | "explore" | "gear" | "settings" | "legal" | "achievements";
 
 
 function plungeScore(durationSeconds: number, tempF: number): number {
@@ -2051,6 +2051,48 @@ export default function Home() {
         </div>
       )}
 
+      {/* ─── GEAR SCREEN ─── */}
+      {screen === "gear" && (
+        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-cyan-400" /> Cold Plunge Gear
+              </h2>
+              <span className="text-blue-500 text-xs">{GEAR_ITEMS.length} items</span>
+            </div>
+            {GEAR_ITEMS.map((item) => (
+              <div key={item.id} className="bg-blue-950/80 rounded-2xl overflow-hidden border border-blue-800/50">
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="w-full h-44 object-contain bg-white/5 px-4 pt-3"
+                />
+                <div className="px-4 pb-4 pt-2 space-y-1.5">
+                  <div className="text-white font-semibold text-sm leading-snug">{item.name}</div>
+                  <div className="text-blue-300 text-[11px] leading-relaxed">{item.description}</div>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-cyan-300 font-bold text-sm">{item.price}</span>
+                    <a
+                      data-testid={`link-gear-${item.id}`}
+                      href={item.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 active:scale-95 transition-all text-white font-bold text-xs px-3 py-1.5 rounded-lg"
+                    >
+                      View on Amazon
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ))}
+            <p className="text-blue-600 text-[10px] text-center pb-1">
+              As an Amazon Associate, ColdStreak earns from qualifying purchases.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ─── ACHIEVEMENTS SCREEN ─── */}
       {screen === "achievements" && (() => {
         const allStates = [...new Set(PASSPORT_LOCATIONS.map((l) => l.state))].sort();
@@ -3387,7 +3429,7 @@ export default function Home() {
 
       {/* ─── BOTTOM NAV ─── */}
       <div className="absolute bottom-0 left-0 right-0 h-20 bg-blue-950/90 backdrop-blur-md border-t border-blue-800/60">
-        <div className="flex items-center h-full max-w-xl mx-auto px-4">
+        <div className="flex items-center h-full max-w-xl mx-auto px-2">
           {/* History */}
           <button
             data-testid="nav-history"
@@ -3395,7 +3437,7 @@ export default function Home() {
             className={`flex-1 flex flex-col items-center gap-1 transition-colors ${screen === "history" ? "text-white" : "text-blue-500 hover:text-blue-300"}`}
           >
             <History className="w-5 h-5" />
-            <span className="text-[11px] font-semibold">History</span>
+            <span className="text-[10px] font-semibold">History</span>
           </button>
 
           {/* Explore */}
@@ -3405,7 +3447,17 @@ export default function Home() {
             className={`flex-1 flex flex-col items-center gap-1 transition-colors ${screen === "explore" ? "text-white" : "text-blue-500 hover:text-blue-300"}`}
           >
             <Compass className="w-5 h-5" />
-            <span className="text-[11px] font-semibold">Explore</span>
+            <span className="text-[10px] font-semibold">Explore</span>
+          </button>
+
+          {/* Gear — center */}
+          <button
+            data-testid="nav-gear"
+            onClick={() => navTo("gear")}
+            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${screen === "gear" ? "text-white" : "text-blue-500 hover:text-blue-300"}`}
+          >
+            <ShoppingCart className="w-5 h-5" />
+            <span className="text-[10px] font-semibold">Gear</span>
           </button>
 
           {/* Achievements */}
@@ -3415,7 +3467,7 @@ export default function Home() {
             className={`flex-1 flex flex-col items-center gap-1 transition-colors ${screen === "achievements" ? "text-white" : "text-blue-500 hover:text-blue-300"}`}
           >
             <Trophy className="w-5 h-5" />
-            <span className="text-[11px] font-semibold">Badges</span>
+            <span className="text-[10px] font-semibold">Badges</span>
           </button>
 
           {/* Settings */}
@@ -3425,7 +3477,7 @@ export default function Home() {
             className={`flex-1 flex flex-col items-center gap-1 transition-colors ${screen === "settings" ? "text-white" : "text-blue-500 hover:text-blue-300"}`}
           >
             <Settings className="w-5 h-5" />
-            <span className="text-[11px] font-semibold">Settings</span>
+            <span className="text-[10px] font-semibold">Settings</span>
           </button>
         </div>
       </div>
