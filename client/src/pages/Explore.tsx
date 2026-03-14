@@ -68,7 +68,7 @@ const GEAR_ITEMS = [
     id: "pod-chiller",
     name: "The Pod Chiller (Standard 0.33HP)",
     description: "Purpose-built cold plunge chiller with built-in filtration — cools down to 42°F and designed specifically for cold plunge tubs.",
-    price: "$995",
+    price: "$399",
     image: "/gear-pod-chiller.png",
     link: "https://amzn.to/4dlxt4c",
   },
