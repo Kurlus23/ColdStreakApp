@@ -92,7 +92,7 @@ const GEAR_ITEMS = [
     id: "lamudo-ozone",
     name: "Lamudo Ozone Generator for Cold Plunge Tubs",
     description: "Chemical-free water sanitizer with inline T-fitting for easy pump integration — 100mg/h ozone keeps your cold plunge water fresh.",
-    price: "$40",
+    price: "$72.99",
     image: "/gear-lamudo-ozone.png",
     link: "https://amzn.to/4saIXMJ",
   },
