@@ -2074,8 +2074,9 @@ export default function Home() {
         const totalTiers = earnedTempTierIds.size;
         const totalStates = earnedStates.size;
         const totalDays = earnedDaysTierIds.size;
-        const totalEarned = totalTiers + totalStates + totalDays;
-        const totalPossible = TEMP_TIERS.length + allStates.length + DAYS_TIERS.length;
+        const foundingPlungerCount = isFoundingPlunger ? 1 : 0;
+        const totalEarned = totalTiers + totalStates + totalDays + foundingPlungerCount;
+        const totalPossible = TEMP_TIERS.length + allStates.length + DAYS_TIERS.length + (isFoundingPlunger ? 1 : 0);
 
         const badgeEmojiLookup: Record<string, string> = {};
         TEMP_TIERS.forEach(t => { badgeEmojiLookup[t.id] = t.emoji; });
@@ -2140,6 +2141,22 @@ export default function Home() {
                   </button>
                 )}
               </div>
+
+              {/* Founding Plunger */}
+              {isFoundingPlunger && (
+                <div
+                  data-testid="achievement-founding-plunger"
+                  className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-gradient-to-r from-amber-900/40 to-yellow-900/20 border border-amber-500/40"
+                >
+                  <span className="text-4xl leading-none shrink-0">🎖️</span>
+                  <div className="min-w-0">
+                    <div className="text-amber-300 font-bold text-base leading-tight">Founding Plunger</div>
+                    <div className="text-amber-200/60 text-xs mt-0.5 leading-relaxed">
+                      One of the first 1,000 people to go Pro. This exclusive title appears on your profile and leaderboard entries.
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Featured Badges */}
               <div className="bg-blue-950/80 rounded-2xl border border-blue-700/50">
