@@ -6,3 +6,21 @@ id = "unpmrc8DDk2bB4ZkNmn5k"
 uri = "file://client/public/feature-graphic-1024x500.png"
 type = "image"
 title = "Play Store Feature Graphic (1024x500)"
+
+[[outputs]]
+id = "h_atAk0kpBETtdbDrCDxt"
+uri = "file://client/public/feature-option-a-1024x500.png"
+type = "image"
+title = "Option A — Outdoor ice bath, cinematic photography"
+
+[[outputs]]
+id = "1xs2WqqRT6-kgdd-v1Z1s"
+uri = "file://client/public/feature-option-b-1024x500.png"
+type = "image"
+title = "Option B — Abstract ice crystals, minimalist dark design"
+
+[[outputs]]
+id = "qBbaf_4n6kMEU3IrU-8Dw"
+uri = "file://client/public/feature-option-c-1024x500.png"
+type = "image"
+title = "Option C — Overhead ice bath, spa/product photography"
