@@ -72,6 +72,14 @@ const GEAR_ITEMS = [
     image: "/gear-pod-chiller.png",
     link: "https://amzn.to/4dlxt4c",
   },
+  {
+    id: "pod-tub",
+    name: "The Pod Company 110 Gallon Cold Plunge Tub",
+    description: "110-gallon insulated cold plunge tub — fits people up to 6'7\" and pairs perfectly with The Pod Chiller for a complete home setup.",
+    price: "$349",
+    image: "/gear-pod-tub.png",
+    link: "https://amzn.to/3P6V9iS",
+  },
 ];
 
 interface GeoPos { lat: number; lng: number; }
