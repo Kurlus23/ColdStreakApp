@@ -64,6 +64,14 @@ const GEAR_ITEMS = [
     image: "/gear-baoshishan-chiller.jpg",
     link: "https://amzn.to/40vlTfm",
   },
+  {
+    id: "pod-chiller",
+    name: "The Pod Chiller (Standard 0.33HP)",
+    description: "Purpose-built cold plunge chiller with built-in filtration — cools down to 42°F and designed specifically for cold plunge tubs.",
+    price: "$995",
+    image: "/gear-pod-chiller.png",
+    link: "https://amzn.to/4dlxt4c",
+  },
 ];
 
 interface GeoPos { lat: number; lng: number; }
