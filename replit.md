@@ -117,15 +117,15 @@ Plunges use a `clientId` (UUID stored in localStorage) for anonymous tracking. W
 - ✅ Step 2 — Privacy policy + Terms of Service pages
 - ✅ Step 3 — PostHog analytics
 - ✅ Step 4 — Sentry error monitoring
-- 🔧 Step 5 — Android build (Capacitor configured; run `ANDROID_BUILD.md` steps locally)
+- ✅ Step 5 — Android build (AAB generated via Capacitor + Android Studio, uploaded to Play Console)
 - ✅ Step 6 — First-launch onboarding flow
 - ✅ Step 7 — Account login + data sync (cross-device profile sync: displayName, bodyWeight)
 - ✅ Step 8 — Stripe live mode (STRIPE_SECRET_KEY, VITE_STRIPE_PUBLISHABLE_KEY, STRIPE_PRICE_ID, STRIPE_WEBHOOK_SECRET set)
 - ✅ Step 9 — Custom domain (coldstreakapp.com live, DNS via Cloudflare A record → Replit)
 - ✅ Step 10 — Milestone email alerts (100 / 500 / 1000 / 2500 / 5000 / 10000 users → ColdStreakApp17@gmail.com)
 - ⬜ Step 11 — RevenueCat / Google Play Billing (required before Android Pro purchases go live)
-- ⬜ Step 12 — Store listing assets (512×512 icon, 1024×500 feature graphic, screenshots)
-- ⬜ Step 13 — Google Play Console submission
+- ✅ Step 12 — Store listing assets (512×512 icon, 1024×500 feature graphic, screenshots)
+- 🔧 Step 13 — Google Play Console submission (AAB uploaded, closed test created; blocked on Google identity verification — awaiting email approval)
 
 ---
 
