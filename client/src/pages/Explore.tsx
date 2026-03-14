@@ -80,6 +80,14 @@ const GEAR_ITEMS = [
     image: "/gear-pod-tub.png",
     link: "https://amzn.to/3P6V9iS",
   },
+  {
+    id: "primaal-icebath",
+    name: "Primaal Health Smart Ice Bath with Chiller",
+    description: "All-in-one smart cold plunge — app-controlled chiller, insulated tub, and lid included. Set temp, timer, and schedule from your phone.",
+    price: "$1,299",
+    image: "/gear-primaal-icebath.png",
+    link: "https://amzn.to/4slE17u",
+  },
 ];
 
 interface GeoPos { lat: number; lng: number; }
