@@ -89,6 +89,14 @@ const GEAR_ITEMS = [
     link: "https://amzn.to/4slE17u",
   },
   {
+    id: "lamudo-ozone",
+    name: "Lamudo Ozone Generator for Cold Plunge Tubs",
+    description: "Chemical-free water sanitizer with inline T-fitting for easy pump integration — 100mg/h ozone keeps your cold plunge water fresh.",
+    price: "$40",
+    image: "/gear-lamudo-ozone.png",
+    link: "https://amzn.to/4saIXMJ",
+  },
+  {
     id: "ambohr-ozone",
     name: "Ambohr Ozone Generator for Cold Plunge Tubs",
     description: "Keep your cold plunge water clean and odor-free without harsh chemicals. Plugs directly into your tub's pump line — 100mg/h ozone output.",
