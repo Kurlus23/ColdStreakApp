@@ -5,6 +5,7 @@
   "description": "Track cold plunges, earn badges, climb leaderboards, and discover cold plunge spots near you.",
   "start_url": "/",
   "scope": "/",
+  "dir": "ltr",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "browser"],
   "orientation": "portrait",
@@ -12,6 +13,9 @@
   "theme_color": "#0f172a",
   "categories": ["health", "fitness", "lifestyle"],
   "lang": "en-US",
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
   "icons": [
     {
       "src": "/icons/icon-192.png",
