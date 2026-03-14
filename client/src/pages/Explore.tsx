@@ -48,6 +48,14 @@ const GEAR_ITEMS = [
     image: "/gear-danner-950.jpg",
     link: "https://amzn.to/413FdAx",
   },
+  {
+    id: "inkbird-wifi",
+    name: "Inkbird WiFi Temperature Controller",
+    description: "WiFi-enabled dual-outlet temperature controller with probe — automate your chiller or heater to hold your exact target temp.",
+    price: "$40",
+    image: "/gear-inkbird-wifi.jpg",
+    link: "https://amzn.to/4ruCoTK",
+  },
 ];
 
 interface GeoPos { lat: number; lng: number; }
