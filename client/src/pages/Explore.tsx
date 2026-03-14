@@ -89,6 +89,14 @@ const GEAR_ITEMS = [
     link: "https://amzn.to/4slE17u",
   },
   {
+    id: "ambohr-ozone",
+    name: "Ambohr Ozone Generator for Cold Plunge Tubs",
+    description: "Keep your cold plunge water clean and odor-free without harsh chemicals. Plugs directly into your tub's pump line — 100mg/h ozone output.",
+    price: "$35",
+    image: "/gear-ambohr-ozone.png",
+    link: "https://amzn.to/3PkkR3k",
+  },
+  {
     id: "oura-ring",
     name: "Oura Ring 4 — Smart Health Ring",
     description: "Track HRV, sleep, and recovery to see how cold plunges impact your body. Waterproof and wearable 24/7.",
