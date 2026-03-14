@@ -559,14 +559,16 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
               <label className="text-slate-400 text-[10px] uppercase tracking-wide flex items-center gap-1 mb-1">
                 <Thermometer className="w-3 h-3" /> Temperature (°F)
               </label>
-              <input
-                data-testid={`input-edit-temp-${plunge.id}`}
-                type="number" min={32} max={75}
+              <select
+                data-testid={`select-edit-temp-${plunge.id}`}
                 value={editTemp}
-                onChange={(e) => setEditTemp(Number(e.target.value) || 50)}
-                onBlur={(e) => setEditTemp(Math.min(75, Math.max(32, Number(e.target.value) || 50)))}
-                className="w-24 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:outline-none focus:border-cyan-400"
-              />
+                onChange={(e) => setEditTemp(Number(e.target.value))}
+                className="w-28 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-cyan-400 appearance-none"
+              >
+                {Array.from({ length: 44 }, (_, i) => 32 + i).map((t) => (
+                  <option key={t} value={t}>{t}°F</option>
+                ))}
+              </select>
             </div>
 
             {/* Location */}
