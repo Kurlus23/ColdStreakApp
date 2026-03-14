@@ -535,22 +535,26 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
                 <Clock className="w-3 h-3" /> Duration
               </label>
               <div className="flex items-center gap-2">
-                <input
-                  data-testid={`input-edit-mins-${plunge.id}`}
-                  type="number" min={0} max={59}
+                <select
+                  data-testid={`select-edit-mins-${plunge.id}`}
                   value={editMins}
-                  onChange={(e) => setEditMins(Math.max(0, Math.min(59, Number(e.target.value) || 0)))}
-                  className="w-16 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:outline-none focus:border-cyan-400"
-                />
-                <span className="text-slate-400 text-sm">m</span>
-                <input
-                  data-testid={`input-edit-secs-${plunge.id}`}
-                  type="number" min={0} max={59}
+                  onChange={(e) => setEditMins(Number(e.target.value))}
+                  className="bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-cyan-400 appearance-none"
+                >
+                  {Array.from({ length: 60 }, (_, i) => i).map((m) => (
+                    <option key={m} value={m}>{m} min</option>
+                  ))}
+                </select>
+                <select
+                  data-testid={`select-edit-secs-${plunge.id}`}
                   value={editSecs}
-                  onChange={(e) => setEditSecs(Math.max(0, Math.min(59, Number(e.target.value) || 0)))}
-                  className="w-16 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:outline-none focus:border-cyan-400"
-                />
-                <span className="text-slate-400 text-sm">s</span>
+                  onChange={(e) => setEditSecs(Number(e.target.value))}
+                  className="bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-cyan-400 appearance-none"
+                >
+                  {Array.from({ length: 60 }, (_, i) => i).map((s) => (
+                    <option key={s} value={s}>{s} sec</option>
+                  ))}
+                </select>
               </div>
             </div>
 
