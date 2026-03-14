@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "unpmrc8DDk2bB4ZkNmn5k"
+uri = "file://client/public/feature-graphic-1024x500.png"
+type = "image"
+title = "Play Store Feature Graphic (1024x500)"
