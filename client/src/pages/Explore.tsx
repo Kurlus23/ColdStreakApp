@@ -56,6 +56,14 @@ const GEAR_ITEMS = [
     image: "/gear-inkbird-wifi.jpg",
     link: "https://amzn.to/4ruCoTK",
   },
+  {
+    id: "baoshishan-chiller",
+    name: "Baoshishan Water Chiller",
+    description: "Compact water chiller with built-in digital temp display — keeps your cold plunge at a consistent target temperature without ice.",
+    price: "$270",
+    image: "/gear-baoshishan-chiller.jpg",
+    link: "https://amzn.to/40vlTfm",
+  },
 ];
 
 interface GeoPos { lat: number; lng: number; }
