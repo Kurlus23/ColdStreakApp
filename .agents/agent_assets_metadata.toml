@@ -30,3 +30,15 @@ id = "dqbBM0TPc6Qy_AuWHkmF-"
 uri = "file://client/public/feature-final-1024x500.png"
 type = "image"
 title = "Feature Graphic — Final with ColdStreak text (1024x500)"
+
+[[outputs]]
+id = "CaGb_q2l8T5k5-5b0DS4r"
+uri = "file://client/public/tablet-7inch-screenshot.png"
+type = "image"
+title = "7-inch Tablet Screenshot (1280x800)"
+
+[[outputs]]
+id = "hx5bjF1chXUYCQ9s_4q3I"
+uri = "file://client/public/tablet-10inch-screenshot.png"
+type = "image"
+title = "10-inch Tablet Screenshot (1920x1200)"
