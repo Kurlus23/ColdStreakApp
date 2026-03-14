@@ -84,7 +84,7 @@ const GEAR_ITEMS = [
     id: "primaal-icebath",
     name: "Primaal Health Smart Ice Bath with Chiller",
     description: "All-in-one smart cold plunge — app-controlled chiller, insulated tub, and lid included. Set temp, timer, and schedule from your phone.",
-    price: "$1,299",
+    price: "$1,099.99",
     image: "/gear-primaal-icebath.png",
     link: "https://amzn.to/4slE17u",
   },
