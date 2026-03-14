@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   MapPin, Compass, Search, X, ChevronDown, Lock,
-  Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert
+  Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, ShoppingCart
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useProStatus } from "@/hooks/use-pro-status";
@@ -37,6 +37,17 @@ const DIFFICULTY_FILTERS: Array<{ value: Difficulty | "All"; label: string }> = 
   { value: "ice-bath", label: DIFFICULTY_META["ice-bath"].emoji },
   { value: "extreme",  label: DIFFICULTY_META["extreme"].emoji },
   { value: "arctic",   label: DIFFICULTY_META["arctic"].emoji },
+];
+
+const GEAR_ITEMS = [
+  {
+    id: "danner-950",
+    name: "Danner Supreme Aqua-Mag 950 GPH Pump",
+    description: "Magnetic drive submersible pump — popular choice for circulating and chilling cold plunge tub water.",
+    price: "$158",
+    image: "/gear-danner-950.jpg",
+    link: "https://amzn.to/413FdAx",
+  },
 ];
 
 interface GeoPos { lat: number; lng: number; }
@@ -106,6 +117,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   // ── Tile open/close state ──
   const [passportOpen, setPassportOpen] = useState(true);
   const [communityOpen, setCommunityOpen] = useState(true);
+  const [gearOpen, setGearOpen] = useState(true);
 
   // ── Community disclaimer ──
   const DISCLAIMER_KEY = "coldstreak-community-disclaimer-ack";
@@ -803,6 +815,55 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             )}
           </div>
         )}
+
+        {/* ── Gear Section ── */}
+        <div className="rounded-2xl overflow-hidden border border-blue-800/50 bg-blue-950/60">
+          <button
+            data-testid="button-toggle-gear"
+            onClick={() => setGearOpen((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-3.5 text-left"
+          >
+            <div className="flex items-center gap-2.5">
+              <ShoppingCart className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span className="text-white font-bold text-sm">Cold Plunge Gear</span>
+              <span className="text-[10px] text-blue-400 bg-blue-800/60 px-2 py-0.5 rounded-full">{GEAR_ITEMS.length} item{GEAR_ITEMS.length !== 1 ? "s" : ""}</span>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform duration-300 ${gearOpen ? "rotate-180" : ""}`} />
+          </button>
+
+          {gearOpen && (
+            <div className="px-3 pb-3 space-y-3">
+              {GEAR_ITEMS.map((item) => (
+                <div key={item.id} className="bg-blue-900/50 rounded-xl overflow-hidden border border-blue-700/40">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="w-full h-40 object-contain bg-white/5 px-4 pt-3"
+                  />
+                  <div className="px-3 pb-3 pt-2 space-y-1.5">
+                    <div className="text-white font-semibold text-sm leading-snug">{item.name}</div>
+                    <div className="text-blue-300 text-[11px] leading-relaxed">{item.description}</div>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-cyan-300 font-bold text-sm">{item.price}</span>
+                      <a
+                        data-testid={`link-gear-${item.id}`}
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 active:scale-95 transition-all text-white font-bold text-xs px-3 py-1.5 rounded-lg"
+                      >
+                        View on Amazon
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <p className="text-blue-600 text-[10px] text-center pb-1">
+                As an Amazon Associate, ColdStreak earns from qualifying purchases.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
 
