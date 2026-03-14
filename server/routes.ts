@@ -123,6 +123,13 @@ export async function registerRoutes(
     res.json({ displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null });
   });
 
+  app.delete("/api/auth/account", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    await storage.deleteUser(payload.userId);
+    res.json({ ok: true });
+  });
+
   app.get("/api/auth/verify-email", async (req, res) => {
     const token = String(req.query.token || "");
     if (!token) return res.status(400).json({ message: "Missing token" });

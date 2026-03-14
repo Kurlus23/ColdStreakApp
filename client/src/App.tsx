@@ -10,6 +10,7 @@ import Terms from "@/pages/Terms";
 import ResetPassword from "@/pages/ResetPassword";
 import VerifyEmail from "@/pages/VerifyEmail";
 import BadgeProfile from "@/pages/BadgeProfile";
+import DeleteAccount from "@/pages/DeleteAccount";
 import { Sentry } from "@/lib/monitoring";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/profile/:username" component={BadgeProfile} />
+      <Route path="/delete-account" component={DeleteAccount} />
       <Route component={NotFound} />
     </Switch>
   );
