@@ -2050,14 +2050,13 @@ export default function Home() {
                 <div className="px-4 pb-4 pt-2 space-y-1.5">
                   <div className="text-white font-semibold text-sm leading-snug">{item.name}</div>
                   <div className="text-blue-300 text-[11px] leading-relaxed">{item.description}</div>
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-cyan-300 font-bold text-sm">{item.price}</span>
+                  <div className="pt-1">
                     <a
                       data-testid={`link-gear-${item.id}`}
                       href={item.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 active:scale-95 transition-all text-white font-bold text-xs px-3 py-1.5 rounded-lg"
+                      className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 active:scale-95 transition-all text-white font-bold text-xs px-3 py-1.5 rounded-lg w-fit"
                     >
                       View on Amazon
                     </a>

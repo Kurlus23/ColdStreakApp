@@ -10,7 +10,6 @@ const ADS = [
     bg: "from-cyan-900/60 to-slate-900/80",
     accent: "text-cyan-400",
     badge: "bg-cyan-500/20 border-cyan-500/40 text-cyan-300",
-    price: "$399",
   },
   {
     brand: "Primaal Health Smart Ice Bath",
@@ -20,7 +19,6 @@ const ADS = [
     bg: "from-blue-900/60 to-slate-900/80",
     accent: "text-blue-400",
     badge: "bg-blue-500/20 border-blue-500/40 text-blue-300",
-    price: "$1,099.99",
   },
   {
     brand: "Oura Ring 4",
@@ -30,7 +28,6 @@ const ADS = [
     bg: "from-violet-900/60 to-slate-900/80",
     accent: "text-violet-400",
     badge: "bg-violet-500/20 border-violet-500/40 text-violet-300",
-    price: "$349",
   },
   {
     brand: "Baoshishan Water Chiller",
@@ -40,7 +37,6 @@ const ADS = [
     bg: "from-teal-900/60 to-slate-900/80",
     accent: "text-teal-400",
     badge: "bg-teal-500/20 border-teal-500/40 text-teal-300",
-    price: "$270",
   },
   {
     brand: "The Pod Long — 126 Gallon",
@@ -50,7 +46,6 @@ const ADS = [
     bg: "from-indigo-900/60 to-slate-900/80",
     accent: "text-indigo-400",
     badge: "bg-indigo-500/20 border-indigo-500/40 text-indigo-300",
-    price: "$349",
   },
   {
     brand: "Inkbird WiFi Temp Controller",
@@ -60,7 +55,6 @@ const ADS = [
     bg: "from-orange-900/60 to-slate-900/80",
     accent: "text-orange-400",
     badge: "bg-orange-500/20 border-orange-500/40 text-orange-300",
-    price: "$49.96",
   },
 ];
 
@@ -139,7 +133,6 @@ export function FeedAd({ index = 0 }: { index?: number }) {
           {ad.cta}
           <ExternalLink className="w-3 h-3" />
         </a>
-        <span className={`text-xs font-bold ${ad.accent}`}>{ad.price}</span>
       </div>
     </div>
   );
@@ -190,8 +183,7 @@ export function InterstitialAd({
           <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full border font-semibold uppercase tracking-wide mb-3 ${ad.badge}`}>
             Sponsored
           </span>
-          <p className={`text-lg font-bold ${ad.accent} mb-0.5`}>{ad.brand}</p>
-          <p className={`text-sm font-bold ${ad.accent} mb-2`}>{ad.price}</p>
+          <p className={`text-lg font-bold ${ad.accent} mb-2`}>{ad.brand}</p>
           <p className="text-white text-sm leading-relaxed mb-4">{ad.tagline}</p>
           <div className="flex items-center gap-3">
             <a
