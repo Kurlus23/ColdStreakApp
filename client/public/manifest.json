@@ -6,6 +6,7 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
   "orientation": "portrait",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
@@ -43,10 +44,24 @@
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "ColdStreak timer and tracking"
+      "label": "ColdStreak — Cold plunge timer and tracking"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "ColdStreak — Cold plunge history and badges"
     }
   ],
   "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.coldstreak.app",
+      "id": "com.coldstreak.app"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Start Plunge",
