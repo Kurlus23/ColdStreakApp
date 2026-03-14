@@ -88,6 +88,14 @@ const GEAR_ITEMS = [
     image: "/gear-primaal-icebath.png",
     link: "https://amzn.to/4slE17u",
   },
+  {
+    id: "pod-long",
+    name: "The Pod Company Long Pod — 126 Gallon",
+    description: "Extra-long 126-gallon cold plunge tub for taller plungers up to 6'9\" — wide rectangular shape for full-body immersion.",
+    price: "$399",
+    image: "/gear-pod-long.png",
+    link: "https://amzn.to/4rA3VDA",
+  },
 ];
 
 interface GeoPos { lat: number; lng: number; }
