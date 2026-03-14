@@ -108,7 +108,7 @@ const GEAR_ITEMS = [
     id: "oura-ring",
     name: "Oura Ring 4 — Smart Health Ring",
     description: "Track HRV, sleep, and recovery to see how cold plunges impact your body. Waterproof and wearable 24/7.",
-    price: "$349",
+    price: "$499.00",
     image: "/gear-oura-ring.png",
     link: "https://amzn.to/4sHxJip",
   },
