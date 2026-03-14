@@ -89,6 +89,14 @@ const GEAR_ITEMS = [
     link: "https://amzn.to/4slE17u",
   },
   {
+    id: "oura-ring",
+    name: "Oura Ring 4 — Smart Health Ring",
+    description: "Track HRV, sleep, and recovery to see how cold plunges impact your body. Waterproof and wearable 24/7.",
+    price: "$349",
+    image: "/gear-oura-ring.png",
+    link: "https://amzn.to/4sHxJip",
+  },
+  {
     id: "pod-long",
     name: "The Pod Company Long Pod — 126 Gallon",
     description: "Extra-long 126-gallon cold plunge tub for taller plungers up to 6'9\" — wide rectangular shape for full-body immersion.",
