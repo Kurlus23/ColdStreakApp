@@ -92,7 +92,7 @@ const GEAR_ITEMS = [
     id: "ambohr-ozone",
     name: "Ambohr Ozone Generator for Cold Plunge Tubs",
     description: "Keep your cold plunge water clean and odor-free without harsh chemicals. Plugs directly into your tub's pump line — 100mg/h ozone output.",
-    price: "$35",
+    price: "$76.99",
     image: "/gear-ambohr-ozone.png",
     link: "https://amzn.to/3PkkR3k",
   },
