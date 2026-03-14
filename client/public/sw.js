@@ -76,3 +76,33 @@ self.addEventListener("fetch", (e) => {
     })
   );
 });
+
+// Push — show streak reminder notification
+self.addEventListener("push", (e) => {
+  let data = { title: "ColdStreak 🧊", body: "Don't let your streak expire!", url: "/" };
+  try { if (e.data) data = { ...data, ...e.data.json() }; } catch {}
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-72.png",
+      tag: "streak-reminder",
+      renotify: true,
+      data: { url: data.url },
+    })
+  );
+});
+
+// Notification click — open or focus the app
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const targetUrl = (e.notification.data && e.notification.data.url) || "/";
+  e.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === targetUrl && "focus" in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+    })
+  );
+});

@@ -1,9 +1,9 @@
 import { db } from "./db";
 import {
-  plunges, leaderboardEntries, proUsers, promoCodes, userLocations, users, badgeProfiles,
+  plunges, leaderboardEntries, proUsers, promoCodes, userLocations, users, badgeProfiles, pushSubscriptions,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
-  type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile,
+  type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile, type PushSubscription,
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and } from "drizzle-orm";
 
@@ -44,6 +44,14 @@ export interface IStorage {
 
   upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null }): Promise<void>;
   getBadgeProfile(username: string): Promise<BadgeProfile | null>;
+
+  // Push notifications
+  upsertPushSubscription(data: { userId?: number; clientId?: string; endpoint: string; p256dh: string; auth: string }): Promise<PushSubscription>;
+  getPushSubscription(endpoint: string): Promise<PushSubscription | null>;
+  getPushSubscriptionsByUser(userId: number): Promise<PushSubscription[]>;
+  getPushSubscriptionsByClient(clientId: string): Promise<PushSubscription[]>;
+  updatePushSubscriptionSentAt(endpoint: string): Promise<void>;
+  deletePushSubscription(endpoint: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -254,6 +262,38 @@ export class DatabaseStorage implements IStorage {
   async getBadgeProfile(username: string): Promise<BadgeProfile | null> {
     const [profile] = await db.select().from(badgeProfiles).where(eq(badgeProfiles.username, username));
     return profile ?? null;
+  }
+
+  async upsertPushSubscription(data: { userId?: number; clientId?: string; endpoint: string; p256dh: string; auth: string }): Promise<PushSubscription> {
+    const [sub] = await db.insert(pushSubscriptions)
+      .values({ userId: data.userId ?? null, clientId: data.clientId ?? null, endpoint: data.endpoint, p256dh: data.p256dh, auth: data.auth })
+      .onConflictDoUpdate({
+        target: pushSubscriptions.endpoint,
+        set: { userId: data.userId ?? null, clientId: data.clientId ?? null, p256dh: data.p256dh, auth: data.auth },
+      })
+      .returning();
+    return sub;
+  }
+
+  async getPushSubscription(endpoint: string): Promise<PushSubscription | null> {
+    const [sub] = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+    return sub ?? null;
+  }
+
+  async getPushSubscriptionsByUser(userId: number): Promise<PushSubscription[]> {
+    return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+  }
+
+  async getPushSubscriptionsByClient(clientId: string): Promise<PushSubscription[]> {
+    return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.clientId, clientId));
+  }
+
+  async updatePushSubscriptionSentAt(endpoint: string): Promise<void> {
+    await db.update(pushSubscriptions).set({ lastSentAt: new Date() }).where(eq(pushSubscriptions.endpoint, endpoint));
+  }
+
+  async deletePushSubscription(endpoint: string): Promise<void> {
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
   }
 }
 

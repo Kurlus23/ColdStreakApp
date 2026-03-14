@@ -126,6 +126,13 @@ function getStreak(plunges: Plunge[]): number {
   return streak;
 }
 
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
 export default function Home() {
   const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
   const auth = useAuth();
@@ -369,6 +376,13 @@ export default function Home() {
   const [legalCheckbox, setLegalCheckbox] = useState(false);
   const [tosOpen, setTosOpen] = useState(false);
   const [communityDisclaimerOpen, setCommunityDisclaimerOpen] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<string>(() =>
+    typeof Notification !== "undefined" ? Notification.permission : "unsupported"
+  );
+  const [notifDismissed, setNotifDismissed] = useState(() =>
+    !!localStorage.getItem("coldstreak-notif-dismissed")
+  );
+  const pushEndpointRef = useRef<string | null>(null);
 
   // Leaderboard
   const [leaderboardLocationId, setLeaderboardLocationId] = useState<string | null>(null);
@@ -510,6 +524,30 @@ export default function Home() {
       })
       .catch(() => {});
   }, [auth.user]);
+
+  // Subscribe to push notifications when permission is already granted
+  useEffect(() => {
+    if (typeof Notification === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    if (Notification.permission !== "granted") return;
+    navigator.serviceWorker.ready.then(async (reg) => {
+      try {
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY || ""),
+          });
+        }
+        const json = sub.toJSON() as { endpoint: string; keys?: { p256dh: string; auth: string } };
+        pushEndpointRef.current = json.endpoint;
+        fetch("/api/notifications/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint: json.endpoint, p256dh: json.keys?.p256dh, auth: json.keys?.auth, clientId: getClientId() }),
+        }).catch(() => {});
+      } catch {}
+    });
+  }, [notifPermission]);
 
   const handleAuthSubmit = async () => {
     const ok = authMode === "login"
@@ -698,6 +736,27 @@ export default function Home() {
     if (alarmRef.current) { alarmRef.current.pause(); alarmRef.current.currentTime = 0; }
   };
 
+  const enableNotifications = async () => {
+    if (typeof Notification === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    const permission = await Notification.requestPermission();
+    setNotifPermission(permission);
+    if (permission !== "granted") return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY || ""),
+      });
+      const json = sub.toJSON() as { endpoint: string; keys?: { p256dh: string; auth: string } };
+      pushEndpointRef.current = json.endpoint;
+      await fetch("/api/notifications/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: json.endpoint, p256dh: json.keys?.p256dh, auth: json.keys?.auth, clientId: getClientId() }),
+      });
+    } catch {}
+  };
+
   // Stats
   const todayString = new Date().toLocaleDateString();
   const todayPlunges = plunges.filter((p) => new Date(p.createdAt).toLocaleDateString() === todayString);
@@ -712,6 +771,22 @@ export default function Home() {
   const allTimeCalories = plunges.reduce((sum, p) => sum + estimateCalories(p.duration, p.temperature, bodyWeightLbs), 0);
   const weeklyPct = Math.min(100, (weeklyMinutes / weeklyGoalMinutes) * 100);
   const streak = getStreak(plunges);
+
+  // Send streak-at-risk push notification once per day when user hasn't plunged today
+  useEffect(() => {
+    if (!pushEndpointRef.current || streak === 0 || isLoading) return;
+    const today = new Date().toLocaleDateString();
+    const plungedToday = plunges.some((p) => new Date(p.createdAt).toLocaleDateString() === today);
+    if (plungedToday) return;
+    const reminderKey = "coldstreak-reminder-" + today;
+    if (localStorage.getItem(reminderKey)) return;
+    localStorage.setItem(reminderKey, "1");
+    fetch("/api/notifications/streak-reminder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint: pushEndpointRef.current, streak }),
+    }).catch(() => {});
+  }, [streak, plunges, isLoading]);
 
   // Total unique days plunged in the current calendar year
   const thisYear = new Date().getFullYear();
@@ -775,6 +850,27 @@ export default function Home() {
       {/* ─── TIMER SCREEN ─── */}
       {screen === "timer" && (
         <div className="absolute bottom-20 left-0 right-0 px-3 pb-2">
+
+          {/* Notification prompt — shown when streak is active and permission not yet decided */}
+          {streak > 0 && notifPermission === "default" && !notifDismissed && (
+            <div className="flex items-center gap-2 bg-yellow-900/40 border border-yellow-600/30 rounded-xl px-3 py-2.5 mb-3">
+              <Bell className="w-4 h-4 text-yellow-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-yellow-200 text-xs font-semibold">Protect your {streak}-day streak 🔥</p>
+                <p className="text-yellow-500/80 text-[10px]">Get a daily reminder if you forget to plunge</p>
+              </div>
+              <button
+                data-testid="button-enable-notifications"
+                onClick={enableNotifications}
+                className="text-yellow-300 text-xs font-semibold px-2.5 py-1 bg-yellow-700/40 rounded-lg border border-yellow-600/30 shrink-0"
+              >Enable</button>
+              <button
+                data-testid="button-dismiss-notifications"
+                onClick={() => { setNotifDismissed(true); localStorage.setItem("coldstreak-notif-dismissed", "1"); }}
+                className="text-yellow-600 text-xs px-1 shrink-0"
+              >✕</button>
+            </div>
+          )}
 
           {/* 3-column cards */}
           <div className="grid grid-cols-3 gap-2.5 mb-3">

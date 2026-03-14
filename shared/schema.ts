@@ -120,6 +120,19 @@ export const badgeProfiles = pgTable("badge_profiles", {
 
 export type BadgeProfile = typeof badgeProfiles.$inferSelect;
 
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),
+  clientId: text("client_id"),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  lastSentAt: timestamp("last_sent_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+
 export type InsertPlunge = z.infer<typeof insertPlungeSchema>;
 export type UpdatePlunge = z.infer<typeof updatePlungeSchema>;
 export type Plunge = typeof plunges.$inferSelect;

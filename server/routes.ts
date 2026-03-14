@@ -8,6 +8,13 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail } from "./email";
+import webpush from "web-push";
+
+webpush.setVapidDetails(
+  "mailto:ColdStreakApp17@gmail.com",
+  process.env.VAPID_PUBLIC_KEY!,
+  process.env.VAPID_PRIVATE_KEY!
+);
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-02-24.acacia" });
 const PRICE_ID = process.env.STRIPE_PRICE_ID!;
@@ -415,6 +422,65 @@ export async function registerRoutes(
     const profile = await storage.getBadgeProfile(req.params.username);
     if (!profile) return res.status(404).json({ error: "Profile not found" });
     res.json(profile);
+  });
+
+  // ── Push Notifications ──────────────────────────────────────────
+  app.post("/api/notifications/subscribe", async (req, res) => {
+    const { endpoint, p256dh, auth, clientId } = req.body;
+    if (!endpoint || !p256dh || !auth) {
+      return res.status(400).json({ error: "Missing subscription fields" });
+    }
+    const user = extractUser(req);
+    await storage.upsertPushSubscription({
+      userId: user?.userId,
+      clientId: clientId ?? undefined,
+      endpoint,
+      p256dh,
+      auth,
+    });
+    res.json({ ok: true });
+  });
+
+  app.delete("/api/notifications/unsubscribe", async (req, res) => {
+    const { endpoint } = req.body;
+    if (!endpoint) return res.status(400).json({ error: "Missing endpoint" });
+    await storage.deletePushSubscription(endpoint);
+    res.json({ ok: true });
+  });
+
+  app.post("/api/notifications/streak-reminder", async (req, res) => {
+    const { endpoint, streak } = req.body;
+    if (!endpoint || typeof streak !== "number") {
+      return res.status(400).json({ error: "Missing endpoint or streak" });
+    }
+    const sub = await storage.getPushSubscription(endpoint);
+    if (!sub) return res.status(404).json({ error: "Subscription not found" });
+
+    // Rate-limit: only send once per ~20 hours per subscription
+    if (sub.lastSentAt) {
+      const hoursSinceLast = (Date.now() - new Date(sub.lastSentAt).getTime()) / 3600000;
+      if (hoursSinceLast < 20) {
+        return res.json({ ok: true, skipped: true });
+      }
+    }
+
+    const streakText = streak === 1 ? "1-day streak" : `${streak}-day streak`;
+    const payload = JSON.stringify({
+      title: "Don't let your streak expire! 🧊",
+      body: `Your ${streakText} is at risk — time to take the plunge!`,
+      url: "/",
+    });
+
+    try {
+      await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload);
+      await storage.updatePushSubscriptionSentAt(endpoint);
+      res.json({ ok: true });
+    } catch (err: any) {
+      if (err.statusCode === 410 || err.statusCode === 404) {
+        await storage.deletePushSubscription(endpoint);
+      }
+      res.status(500).json({ error: "Failed to send notification" });
+    }
   });
 
   return httpServer;
