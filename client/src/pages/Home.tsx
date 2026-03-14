@@ -857,27 +857,6 @@ export default function Home() {
       {screen === "timer" && (
         <div className="absolute bottom-20 left-0 right-0 px-3 pb-2">
 
-          {/* Notification prompt — shown when streak is active and permission not yet decided */}
-          {streak > 0 && notifPermission === "default" && !notifDismissed && (
-            <div className="flex items-center gap-2 bg-yellow-900/40 border border-yellow-600/30 rounded-xl px-3 py-2.5 mb-3">
-              <Bell className="w-4 h-4 text-yellow-400 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-yellow-200 text-xs font-semibold">Protect your {streak}-day streak 🔥</p>
-                <p className="text-yellow-500/80 text-[10px]">Get a daily reminder if you forget to plunge</p>
-              </div>
-              <button
-                data-testid="button-enable-notifications"
-                onClick={enableNotifications}
-                className="text-yellow-300 text-xs font-semibold px-2.5 py-1 bg-yellow-700/40 rounded-lg border border-yellow-600/30 shrink-0"
-              >Enable</button>
-              <button
-                data-testid="button-dismiss-notifications"
-                onClick={() => { setNotifDismissed(true); localStorage.setItem("coldstreak-notif-dismissed", "1"); }}
-                className="text-yellow-600 text-xs px-1 shrink-0"
-              >✕</button>
-            </div>
-          )}
-
           {/* 3-column cards */}
           <div className="grid grid-cols-3 gap-2.5 mb-3">
 
@@ -3481,6 +3460,32 @@ export default function Home() {
           </button>
         </div>
       </div>
+
+      {/* ─── STREAK NOTIFICATION BANNER ─── */}
+      {screen === "timer" && streak > 0 && notifPermission === "default" && !notifDismissed && (
+        <div
+          className="fixed left-0 right-0 px-3"
+          style={{ bottom: !isPro && !showPostSessionAd ? "296px" : "248px", zIndex: 31 }}
+        >
+          <div className="flex items-center gap-2 bg-yellow-900/40 border border-yellow-600/30 rounded-xl px-3 py-2.5">
+            <Bell className="w-4 h-4 text-yellow-400 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-yellow-200 text-xs font-semibold">Protect your {streak}-day streak 🔥</p>
+              <p className="text-yellow-500/80 text-[10px]">Get a daily reminder if you forget to plunge</p>
+            </div>
+            <button
+              data-testid="button-enable-notifications"
+              onClick={enableNotifications}
+              className="text-yellow-300 text-xs font-semibold px-2.5 py-1 bg-yellow-700/40 rounded-lg border border-yellow-600/30 shrink-0"
+            >Enable</button>
+            <button
+              data-testid="button-dismiss-notifications"
+              onClick={() => { setNotifDismissed(true); localStorage.setItem("coldstreak-notif-dismissed", "1"); }}
+              className="text-yellow-600 text-xs px-1 shrink-0"
+            >✕</button>
+          </div>
+        </div>
+      )}
 
       {/* ─── STICKY BANNER AD ─── */}
       {!isPro && !showPostSessionAd && screen === "timer" && (
