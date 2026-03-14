@@ -63,6 +63,22 @@ export default function Terms() {
           </section>
 
           <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">Content Standards</h2>
+            <p className="text-slate-600 mb-2">When using any sharing, photo, or community features within ColdStreak, you agree not to share, upload, or transmit content that:</p>
+            <ul className="list-disc pl-5 space-y-2 text-slate-600">
+              <li>Contains nudity, sexually explicit material, or pornographic content of any kind.</li>
+              <li>Depicts or promotes violence, self-harm, or abuse.</li>
+              <li>Harasses, threatens, or demeans other users.</li>
+              <li>Is defamatory, hateful, or discriminatory based on race, gender, religion, sexual orientation, or any other protected characteristic.</li>
+              <li>Violates the privacy or intellectual property rights of any person.</li>
+              <li>Is spam, deceptive, or contains malicious links or software.</li>
+            </ul>
+            <p className="text-slate-600 mt-2">
+              ColdStreak reserves the right to remove any content that violates these standards and to suspend or terminate accounts that repeatedly violate this policy, without notice.
+            </p>
+          </section>
+
+          <section>
             <h2 className="text-base font-bold text-slate-900 mb-2">ColdStreak Pro — Purchases and Refunds</h2>
             <p className="text-slate-600">
               ColdStreak Pro is a one-time in-app purchase that unlocks additional features. All purchases are final and non-refundable except where required by applicable law or the policies of the platform through which you purchased (Apple App Store, Google Play). Pro status is tied to your account and can be restored on a new device by logging in with the same credentials.
