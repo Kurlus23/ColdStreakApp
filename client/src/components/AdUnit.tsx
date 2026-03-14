@@ -1,61 +1,86 @@
 import { useState, useEffect } from "react";
 import { X, ExternalLink } from "lucide-react";
 
-// ---------------------------------------------------------------------------
-// Placeholder ad data — swap these with real ad-network creatives / scripts
-// ---------------------------------------------------------------------------
-const FEED_ADS = [
+const ADS = [
   {
-    brand: "The Plunge",
-    tagline: "Cold plunge tubs built for daily use",
-    cta: "Shop Now",
-    href: "https://plunge.com",
+    brand: "The Pod Chiller",
+    tagline: "Purpose-built cold plunge chiller — cools to 42°F with built-in filtration",
+    cta: "Shop on Amazon",
+    href: "https://amzn.to/4dlxt4c",
     bg: "from-cyan-900/60 to-slate-900/80",
     accent: "text-cyan-400",
     badge: "bg-cyan-500/20 border-cyan-500/40 text-cyan-300",
+    price: "$399",
   },
   {
-    brand: "Momentous",
-    tagline: "Elite supplements trusted by pro athletes",
-    cta: "Explore",
-    href: "https://www.livemomentous.com",
-    bg: "from-violet-900/60 to-slate-900/80",
-    accent: "text-violet-400",
-    badge: "bg-violet-500/20 border-violet-500/40 text-violet-300",
-  },
-  {
-    brand: "Morozko Forge",
-    tagline: "The original ice bath. Built to last a lifetime.",
-    cta: "Learn More",
-    href: "https://morozkoforge.com",
+    brand: "Primaal Health Smart Ice Bath",
+    tagline: "All-in-one smart cold plunge — app-controlled chiller, tub & lid included",
+    cta: "Shop on Amazon",
+    href: "https://amzn.to/4slE17u",
     bg: "from-blue-900/60 to-slate-900/80",
     accent: "text-blue-400",
     badge: "bg-blue-500/20 border-blue-500/40 text-blue-300",
+    price: "$1,099.99",
+  },
+  {
+    brand: "Oura Ring 4",
+    tagline: "Track HRV & recovery to measure exactly how cold plunges help you",
+    cta: "Shop on Amazon",
+    href: "https://amzn.to/4sHxJip",
+    bg: "from-violet-900/60 to-slate-900/80",
+    accent: "text-violet-400",
+    badge: "bg-violet-500/20 border-violet-500/40 text-violet-300",
+    price: "$499",
+  },
+  {
+    brand: "Baoshishan Water Chiller",
+    tagline: "Affordable 1/4HP chiller — cools any tub down to 39°F for serious plungers",
+    cta: "Shop on Amazon",
+    href: "https://amzn.to/40vlTfm",
+    bg: "from-teal-900/60 to-slate-900/80",
+    accent: "text-teal-400",
+    badge: "bg-teal-500/20 border-teal-500/40 text-teal-300",
+    price: "$270",
+  },
+  {
+    brand: "The Pod Long — 126 Gallon",
+    tagline: "Extra-long cold plunge tub — fits up to 6'9\" for full-body immersion",
+    cta: "Shop on Amazon",
+    href: "https://amzn.to/4rA3VDA",
+    bg: "from-indigo-900/60 to-slate-900/80",
+    accent: "text-indigo-400",
+    badge: "bg-indigo-500/20 border-indigo-500/40 text-indigo-300",
+    price: "$399",
+  },
+  {
+    brand: "Inkbird WiFi Temp Controller",
+    tagline: "Set your exact plunge temp — WiFi-controlled with real-time alerts",
+    cta: "Shop on Amazon",
+    href: "https://amzn.to/4ruCoTK",
+    bg: "from-orange-900/60 to-slate-900/80",
+    accent: "text-orange-400",
+    badge: "bg-orange-500/20 border-orange-500/40 text-orange-300",
+    price: "$40",
   },
 ];
 
-const INTERSTITIAL_ADS = FEED_ADS;
-
 // ---------------------------------------------------------------------------
-// Banner Ad — slim sticky strip above the nav bar, rotates every 8s
+// Banner Ad — slim strip above the nav bar, rotates every 8s
 // ---------------------------------------------------------------------------
 export function BannerAd() {
-  const [idx, setIdx] = useState(() => Math.floor(Math.random() * FEED_ADS.length));
+  const [idx, setIdx] = useState(() => Math.floor(Math.random() * ADS.length));
   const [visible, setVisible] = useState(true);
-  const ad = FEED_ADS[idx % FEED_ADS.length];
+  const ad = ADS[idx % ADS.length];
 
   useEffect(() => {
-    const t = setInterval(() => setIdx((i) => (i + 1) % FEED_ADS.length), 8000);
+    const t = setInterval(() => setIdx((i) => (i + 1) % ADS.length), 8000);
     return () => clearInterval(t);
   }, []);
 
   if (!visible) return null;
 
   return (
-    <div
-      data-testid="banner-ad"
-      className="mb-2.5"
-    >
+    <div data-testid="banner-ad" className="mb-2.5">
       <div className={`relative flex items-center gap-2 bg-gradient-to-r ${ad.bg} border border-slate-700/60 rounded-xl px-3 py-2 shadow-lg`}>
         <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 shrink-0">Ad</span>
         <p className={`text-xs font-bold ${ad.accent} shrink-0`}>{ad.brand}</p>
@@ -63,7 +88,7 @@ export function BannerAd() {
         <a
           href={ad.href}
           target="_blank"
-          rel="noopener noreferrer"
+          rel="noopener noreferrer sponsored"
           data-testid="link-banner-ad-cta"
           className={`shrink-0 text-xs font-semibold ${ad.accent} flex items-center gap-0.5 hover:underline`}
         >
@@ -87,11 +112,9 @@ export function BannerAd() {
 // Feed Ad — drops into the plunge history list
 // ---------------------------------------------------------------------------
 export function FeedAd({ index = 0 }: { index?: number }) {
-  const ad = FEED_ADS[index % FEED_ADS.length];
+  const ad = ADS[index % ADS.length];
   return (
-    <div
-      className={`relative overflow-hidden bg-gradient-to-r ${ad.bg} border border-slate-700/50 rounded-2xl p-5`}
-    >
+    <div className={`relative overflow-hidden bg-gradient-to-r ${ad.bg} border border-slate-700/50 rounded-2xl p-5`}>
       <span
         className={`absolute top-3 right-3 text-[10px] px-1.5 py-0.5 rounded-full border font-semibold uppercase tracking-wide ${ad.badge}`}
         data-testid="label-sponsored"
@@ -105,16 +128,19 @@ export function FeedAd({ index = 0 }: { index?: number }) {
       <p className="text-white text-sm font-medium leading-snug pr-16">
         {ad.tagline}
       </p>
-      <a
-        href={ad.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        data-testid="link-ad-cta"
-        className={`inline-flex items-center gap-1 mt-3 text-xs font-semibold ${ad.accent} hover:underline`}
-      >
-        {ad.cta}
-        <ExternalLink className="w-3 h-3" />
-      </a>
+      <div className="flex items-center gap-3 mt-3">
+        <a
+          href={ad.href}
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          data-testid="link-ad-cta"
+          className={`inline-flex items-center gap-1 text-xs font-semibold ${ad.accent} hover:underline`}
+        >
+          {ad.cta}
+          <ExternalLink className="w-3 h-3" />
+        </a>
+        <span className={`text-xs font-bold ${ad.accent}`}>{ad.price}</span>
+      </div>
     </div>
   );
 }
@@ -134,7 +160,7 @@ export function InterstitialAd({
   adIndex = 0,
 }: InterstitialAdProps) {
   const [remaining, setRemaining] = useState(countdownSeconds);
-  const ad = INTERSTITIAL_ADS[adIndex % INTERSTITIAL_ADS.length];
+  const ad = ADS[adIndex % ADS.length];
 
   useEffect(() => {
     if (remaining <= 0) return;
@@ -160,21 +186,18 @@ export function InterstitialAd({
           {remaining === 0 ? <X className="w-4 h-4" /> : remaining}
         </button>
 
-        <div
-          className={`overflow-hidden bg-gradient-to-br ${ad.bg} border border-slate-600/60 rounded-2xl p-6`}
-        >
-          <span
-            className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full border font-semibold uppercase tracking-wide mb-3 ${ad.badge}`}
-          >
+        <div className={`overflow-hidden bg-gradient-to-br ${ad.bg} border border-slate-600/60 rounded-2xl p-6`}>
+          <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full border font-semibold uppercase tracking-wide mb-3 ${ad.badge}`}>
             Sponsored
           </span>
-          <p className={`text-lg font-bold ${ad.accent} mb-1`}>{ad.brand}</p>
+          <p className={`text-lg font-bold ${ad.accent} mb-0.5`}>{ad.brand}</p>
+          <p className={`text-sm font-bold ${ad.accent} mb-2`}>{ad.price}</p>
           <p className="text-white text-sm leading-relaxed mb-4">{ad.tagline}</p>
           <div className="flex items-center gap-3">
             <a
               href={ad.href}
               target="_blank"
-              rel="noopener noreferrer"
+              rel="noopener noreferrer sponsored"
               data-testid="link-interstitial-ad-cta"
               className={`flex-1 text-center py-2 rounded-xl text-sm font-semibold border ${ad.badge} hover:opacity-80 transition-opacity`}
             >
