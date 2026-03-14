@@ -1,9 +1,11 @@
-const CACHE_NAME = "coldstreak-v2";
+const CACHE_NAME = "coldstreak-v3";
 
 const STATIC_ASSETS = [
   "/",
+  "/offline.html",
   "/manifest.json",
   "/favicon.png",
+  "/icons/icon-192.png",
   "/icons/icon-512.png",
 ];
 
@@ -30,7 +32,7 @@ self.addEventListener("fetch", (e) => {
 
   const url = new URL(e.request.url);
 
-  // Always go network-first for API calls
+  // Always network-first for API — fallback to empty response offline
   if (url.pathname.startsWith("/api/")) {
     e.respondWith(
       fetch(e.request).catch(() =>
@@ -42,7 +44,7 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Network-first for HTML (ensures fresh app shell)
+  // Network-first for HTML navigation — fallback to offline page
   if (e.request.mode === "navigate") {
     e.respondWith(
       fetch(e.request)
@@ -51,12 +53,15 @@ self.addEventListener("fetch", (e) => {
           caches.open(CACHE_NAME).then((c) => c.put(e.request, clone));
           return res;
         })
-        .catch(() => caches.match("/"))
+        .catch(async () => {
+          const cached = await caches.match(e.request);
+          return cached || caches.match("/offline.html");
+        })
     );
     return;
   }
 
-  // Cache-first for static assets (JS, CSS, images, fonts)
+  // Cache-first for static assets
   e.respondWith(
     caches.match(e.request).then((cached) => {
       if (cached) return cached;
@@ -66,7 +71,7 @@ self.addEventListener("fetch", (e) => {
           caches.open(CACHE_NAME).then((c) => c.put(e.request, clone));
         }
         return res;
-      });
+      }).catch(() => caches.match("/offline.html"));
     })
   );
 });
