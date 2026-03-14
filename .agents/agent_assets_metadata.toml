@@ -42,3 +42,63 @@ id = "hx5bjF1chXUYCQ9s_4q3I"
 uri = "file://client/public/tablet-10inch-screenshot.png"
 type = "image"
 title = "10-inch Tablet Screenshot (1920x1200)"
+
+[[outputs]]
+id = "jmBeIgtGqH951b-mpNvuD"
+uri = "file://client/public/tablet-7-home.png"
+type = "image"
+title = "7\" — Home/Timer"
+
+[[outputs]]
+id = "W7mnR7Pmp6M2GuUzPlsvK"
+uri = "file://client/public/tablet-7-badges.png"
+type = "image"
+title = "7\" — Badges"
+
+[[outputs]]
+id = "j6awlHvqHMHs0oun2WVV1"
+uri = "file://client/public/tablet-7-history.png"
+type = "image"
+title = "7\" — History"
+
+[[outputs]]
+id = "T-rvmxRIhhfm7lIOkl2zH"
+uri = "file://client/public/tablet-7-settings.png"
+type = "image"
+title = "7\" — Settings"
+
+[[outputs]]
+id = "ecLXnMlFTtIOKc6-BenG3"
+uri = "file://client/public/tablet-7-profile.png"
+type = "image"
+title = "7\" — Profile"
+
+[[outputs]]
+id = "cOskEPQob8Ut0B11nNxQY"
+uri = "file://client/public/tablet-10-home.png"
+type = "image"
+title = "10\" — Home/Timer"
+
+[[outputs]]
+id = "6FTuk5OKiluR2d-Yd6NON"
+uri = "file://client/public/tablet-10-badges.png"
+type = "image"
+title = "10\" — Badges"
+
+[[outputs]]
+id = "VEGhLqGO0T_r9DHk5k_cc"
+uri = "file://client/public/tablet-10-history.png"
+type = "image"
+title = "10\" — History"
+
+[[outputs]]
+id = "UE_RvMK0Mdc362Xxabrk6"
+uri = "file://client/public/tablet-10-settings.png"
+type = "image"
+title = "10\" — Settings"
+
+[[outputs]]
+id = "v4efCPE04woLVjvlJ7h1w"
+uri = "file://client/public/tablet-10-profile.png"
+type = "image"
+title = "10\" — Profile"
