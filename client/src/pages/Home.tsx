@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { usePlunges, useCreatePlunge, useUpdatePlunge, useDeletePlunge } from "@/hooks/use-plunges";
-import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry } from "@/hooks/use-leaderboard";
+import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry, type LeaderboardEntryWithBadge } from "@/hooks/use-leaderboard";
 import { useProStatus } from "@/hooks/use-pro-status";
 import { PlungeCard, buildShareText } from "@/components/PlungeCard";
 import { BannerAd, FeedAd, InterstitialAd } from "@/components/AdUnit";
@@ -294,8 +294,13 @@ export default function Home() {
   const photoInputRef = useRef<HTMLInputElement | null>(null);
 
   // Pro status
-  const { isPro, proEmail, promoExpiresAt, loading: proLoading, startCheckout, verifySession, restorePurchase, redeemPromo } = useProStatus();
+  const { isPro, proEmail, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const { data: fpCountData } = useQuery<{ count: number; remaining: number; limit: number }>({
+    queryKey: ["/api/founding-plunger-count"],
+    enabled: showUpgradeModal,
+    staleTime: 30_000,
+  });
   const [showPostSessionAd, setShowPostSessionAd] = useState(false);
   const [showAchievements, setShowAchievements] = useState(() => {
     return localStorage.getItem("coldstreak-achievements-open") !== "false";
@@ -473,13 +478,14 @@ export default function Home() {
         plungeCount: plunges.length,
         uniqueDays,
         coldestTemp,
+        foundingPlunger: isFoundingPlunger,
       });
     } catch {}
-  }, [username, plunges, showTempTier, showDaysBadge, featuredStateIds]);
+  }, [username, plunges, showTempTier, showDaysBadge, featuredStateIds, isFoundingPlunger]);
 
   useEffect(() => {
     syncBadgeProfile();
-  }, [showTempTier, showDaysBadge, featuredStateIds, plunges.length, username]);
+  }, [showTempTier, showDaysBadge, featuredStateIds, plunges.length, username, isFoundingPlunger]);
 
   // Daily sync on app open
   useEffect(() => {
@@ -2814,6 +2820,13 @@ export default function Home() {
                                 onClick={() => window.open(`/profile/${encodeURIComponent(entry.username)}`, "_blank")}
                                 className="text-white font-semibold text-sm truncate hover:text-cyan-300 transition-colors active:scale-95"
                               >{entry.username}</button>
+                              {(entry as LeaderboardEntryWithBadge).foundingPlunger && (
+                                <span
+                                  data-testid={`badge-founding-${entry.username}`}
+                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] font-bold leading-none shrink-0"
+                                  title="Founding Plunger"
+                                >🎖️ Founder</span>
+                              )}
                               {isMyEntry && featuredBadgeIds.length > 0 && (() => {
                                 const lookup: Record<string, string> = {};
                                 TEMP_TIERS.forEach(t => { lookup[t.id] = t.emoji; });
@@ -3436,6 +3449,21 @@ export default function Home() {
               <div className="text-blue-400 text-sm">One-time payment · No subscription</div>
             </div>
 
+            {fpCountData && fpCountData.remaining > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-400/30">
+                <span className="text-xl">🎖️</span>
+                <div>
+                  <div className="text-amber-300 font-bold text-sm leading-tight">Become a Founding Plunger</div>
+                  <div className="text-amber-200/70 text-xs">
+                    {fpCountData.remaining < 50
+                      ? `Only ${fpCountData.remaining} spots remaining!`
+                      : `${fpCountData.remaining} of ${fpCountData.limit} spots remaining`}
+                    {" "}· Exclusive badge on your profile & leaderboard
+                  </div>
+                </div>
+              </div>
+            )}
+
             <ul className="space-y-2.5">
               {[
                 { icon: "📅", text: "Unlimited plunge history" },
@@ -3444,6 +3472,9 @@ export default function Home() {
                 { icon: "📈", text: "Advanced stats & personal bests" },
                 { icon: "📤", text: "CSV & Apple Health export" },
                 { icon: "🚫", text: "No ads, ever" },
+                ...(fpCountData && fpCountData.remaining > 0
+                  ? [{ icon: "🎖️", text: "Founding Plunger badge — exclusive to first 1,000 buyers" }]
+                  : []),
               ].map(({ icon, text }) => (
                 <li key={text} className="flex items-center gap-3 text-white text-sm">
                   <span className="text-lg w-7 shrink-0 text-center">{icon}</span>
@@ -3465,7 +3496,7 @@ export default function Home() {
               disabled={proLoading}
               className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-black text-lg shadow-lg shadow-cyan-500/30 transition-all active:scale-[0.98] disabled:opacity-50"
             >
-              {proLoading ? "Loading…" : "Upgrade Now — $7.99"}
+              {proLoading ? "Loading…" : fpCountData && fpCountData.remaining > 0 ? "Get Lifetime Access — $7.99" : "Upgrade Now — $7.99"}
             </button>
 
             <div className="space-y-2">

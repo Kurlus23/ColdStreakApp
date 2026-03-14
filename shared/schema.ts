@@ -60,6 +60,7 @@ export const proUsers = pgTable("pro_users", {
   email: text("email").notNull().unique(),
   stripeSessionId: text("stripe_session_id").notNull(),
   active: boolean("active").default(true).notNull(),
+  foundingPlunger: boolean("founding_plunger").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -115,6 +116,7 @@ export const badgeProfiles = pgTable("badge_profiles", {
   plungeCount: integer("plunge_count").default(0).notNull(),
   uniqueDays: integer("unique_days").default(0).notNull(),
   coldestTemp: integer("coldest_temp"),
+  foundingPlunger: boolean("founding_plunger").default(false).notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 

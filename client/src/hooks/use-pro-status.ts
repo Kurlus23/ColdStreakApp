@@ -4,6 +4,7 @@ const PRO_EMAIL_KEY = "coldstreak-pro-email";
 const PRO_STATUS_KEY = "coldstreak-is-pro";
 const PROMO_EXPIRES_KEY = "coldstreak-promo-expires";
 const AUTH_USER_KEY = "coldstreak-auth-user";
+const FOUNDING_PLUNGER_KEY = "coldstreak-founding-plunger";
 
 function getLoggedInEmail(): string | null {
   try {
@@ -39,12 +40,17 @@ export function useProStatus() {
     () => localStorage.getItem(PROMO_EXPIRES_KEY)
   );
   const [loading, setLoading] = useState(false);
+  const [isFoundingPlunger, setIsFoundingPlunger] = useState<boolean>(
+    () => localStorage.getItem(FOUNDING_PLUNGER_KEY) === "true"
+  );
 
-  const markPro = useCallback((email: string) => {
+  const markPro = useCallback((email: string, foundingPlunger = false) => {
     localStorage.setItem(PRO_STATUS_KEY, "true");
     localStorage.setItem(PRO_EMAIL_KEY, email);
+    localStorage.setItem(FOUNDING_PLUNGER_KEY, String(foundingPlunger));
     setIsPro(true);
     setProEmail(email);
+    setIsFoundingPlunger(foundingPlunger);
   }, []);
 
   const clearPro = useCallback(() => {
@@ -69,7 +75,7 @@ export function useProStatus() {
       .then((r) => r.json())
       .then((data) => {
         if (data.isPro) {
-          markPro(data.email);
+          markPro(data.email, data.foundingPlunger ?? false);
         } else {
           clearPro();
         }
@@ -109,7 +115,7 @@ export function useProStatus() {
       const res = await fetch(`/api/stripe/verify?session_id=${sessionId}`);
       const data = await res.json();
       if (data.isPro && data.email) {
-        markPro(data.email);
+        markPro(data.email, data.foundingPlunger ?? false);
         return true;
       }
     } catch (e) {
@@ -126,7 +132,7 @@ export function useProStatus() {
       const res = await fetch(`/api/pro-status/${encodeURIComponent(email)}`);
       const data = await res.json();
       if (data.isPro) {
-        markPro(data.email);
+        markPro(data.email, data.foundingPlunger ?? false);
         return true;
       }
     } catch (e) {
@@ -158,5 +164,5 @@ export function useProStatus() {
     }
   }, []);
 
-  return { isPro, proEmail, promoExpiresAt, loading, startCheckout, verifySession, restorePurchase, clearPro, redeemPromo };
+  return { isPro, proEmail, promoExpiresAt, loading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, clearPro, redeemPromo };
 }

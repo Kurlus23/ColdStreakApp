@@ -15,11 +15,12 @@ export interface IStorage {
   deletePlunge(id: number): Promise<void>;
   claimPlunges(clientId: string, userId: number): Promise<void>;
   // Leaderboard
-  getLeaderboard(locationId: string, limit?: number): Promise<LeaderboardEntry[]>;
+  getLeaderboard(locationId: string, limit?: number): Promise<(LeaderboardEntry & { foundingPlunger: boolean })[]>;
   addLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry>;
   deleteLeaderboardEntry(id: number): Promise<void>;
   // Pro users
   getProUser(email: string): Promise<ProUser | null>;
+  getProUserCount(): Promise<number>;
   createProUser(email: string, stripeSessionId: string): Promise<ProUser>;
   // Promo codes
   getPromoCode(code: string): Promise<PromoCode | null>;
@@ -42,7 +43,7 @@ export interface IStorage {
   updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number }): Promise<User>;
   getUserCount(): Promise<number>;
 
-  upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null }): Promise<void>;
+  upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null; foundingPlunger?: boolean }): Promise<void>;
   getBadgeProfile(username: string): Promise<BadgeProfile | null>;
 
   // Push notifications
@@ -89,13 +90,24 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(plunges.clientId, clientId), isNull(plunges.userId)));
   }
 
-  async getLeaderboard(locationId: string, limit = 10): Promise<LeaderboardEntry[]> {
-    return await db
-      .select()
+  async getLeaderboard(locationId: string, limit = 10): Promise<(LeaderboardEntry & { foundingPlunger: boolean })[]> {
+    const rows = await db
+      .select({
+        id: leaderboardEntries.id,
+        locationId: leaderboardEntries.locationId,
+        username: leaderboardEntries.username,
+        score: leaderboardEntries.score,
+        duration: leaderboardEntries.duration,
+        temperature: leaderboardEntries.temperature,
+        createdAt: leaderboardEntries.createdAt,
+        foundingPlunger: badgeProfiles.foundingPlunger,
+      })
       .from(leaderboardEntries)
+      .leftJoin(badgeProfiles, eq(leaderboardEntries.username, badgeProfiles.username))
       .where(eq(leaderboardEntries.locationId, locationId))
       .orderBy(desc(leaderboardEntries.score))
       .limit(limit);
+    return rows.map((r) => ({ ...r, foundingPlunger: r.foundingPlunger ?? false }));
   }
 
   async addLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry> {
@@ -124,10 +136,17 @@ export class DatabaseStorage implements IStorage {
     return user ?? null;
   }
 
+  async getProUserCount(): Promise<number> {
+    const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(proUsers).where(eq(proUsers.active, true));
+    return count;
+  }
+
   async createProUser(email: string, stripeSessionId: string): Promise<ProUser> {
+    const count = await this.getProUserCount();
+    const isFounder = count < 1000;
     const [user] = await db
       .insert(proUsers)
-      .values({ email: email.toLowerCase(), stripeSessionId })
+      .values({ email: email.toLowerCase(), stripeSessionId, foundingPlunger: isFounder })
       .onConflictDoUpdate({ target: proUsers.email, set: { stripeSessionId, active: true } })
       .returning();
     return user;
@@ -250,12 +269,13 @@ export class DatabaseStorage implements IStorage {
     return count;
   }
 
-  async upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null }): Promise<void> {
+  async upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null; foundingPlunger?: boolean }): Promise<void> {
+    const fp = data.foundingPlunger ?? false;
     await db.insert(badgeProfiles)
-      .values({ username: data.username, featuredBadges: data.featuredBadges, plungeCount: data.plungeCount, uniqueDays: data.uniqueDays, coldestTemp: data.coldestTemp, updatedAt: new Date() })
+      .values({ username: data.username, featuredBadges: data.featuredBadges, plungeCount: data.plungeCount, uniqueDays: data.uniqueDays, coldestTemp: data.coldestTemp, foundingPlunger: fp, updatedAt: new Date() })
       .onConflictDoUpdate({
         target: badgeProfiles.username,
-        set: { featuredBadges: data.featuredBadges, plungeCount: data.plungeCount, uniqueDays: data.uniqueDays, coldestTemp: data.coldestTemp, updatedAt: new Date() },
+        set: { featuredBadges: data.featuredBadges, plungeCount: data.plungeCount, uniqueDays: data.uniqueDays, coldestTemp: data.coldestTemp, foundingPlunger: fp, updatedAt: new Date() },
       });
   }
 

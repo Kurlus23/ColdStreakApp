@@ -2,8 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { type LeaderboardEntry } from "@shared/schema";
 
+export type LeaderboardEntryWithBadge = LeaderboardEntry & { foundingPlunger: boolean };
+
 export function useLeaderboard(locationId: string | null) {
-  return useQuery<LeaderboardEntry[]>({
+  return useQuery<LeaderboardEntryWithBadge[]>({
     queryKey: ["/api/leaderboard", locationId],
     enabled: !!locationId,
     queryFn: async () => {

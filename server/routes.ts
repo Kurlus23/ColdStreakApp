@@ -373,7 +373,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "No email on session" });
       }
       const proUser = await storage.createProUser(email, session_id);
-      res.json({ email: proUser.email, isPro: true });
+      res.json({ email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger });
     } catch (err) {
       console.error("Stripe verify error:", err);
       res.status(500).json({ message: "Failed to verify session" });
@@ -384,9 +384,9 @@ export async function registerRoutes(
     const email = decodeURIComponent(req.params.email).toLowerCase();
     const user = await storage.getProUser(email);
     if (user && user.active) {
-      res.json({ email: user.email, isPro: true });
+      res.json({ email: user.email, isPro: true, foundingPlunger: user.foundingPlunger });
     } else {
-      res.json({ email, isPro: false });
+      res.json({ email, isPro: false, foundingPlunger: false });
     }
   });
 
@@ -404,7 +404,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/badge-profile", async (req, res) => {
-    const { username, featuredBadges, plungeCount, uniqueDays, coldestTemp } = req.body;
+    const { username, featuredBadges, plungeCount, uniqueDays, coldestTemp, foundingPlunger } = req.body;
     if (!username || typeof username !== "string") {
       return res.status(400).json({ error: "Username required" });
     }
@@ -414,6 +414,7 @@ export async function registerRoutes(
       plungeCount: typeof plungeCount === "number" ? plungeCount : 0,
       uniqueDays: typeof uniqueDays === "number" ? uniqueDays : 0,
       coldestTemp: typeof coldestTemp === "number" ? coldestTemp : null,
+      foundingPlunger: foundingPlunger === true,
     });
     res.json({ ok: true });
   });
@@ -422,6 +423,12 @@ export async function registerRoutes(
     const profile = await storage.getBadgeProfile(req.params.username);
     if (!profile) return res.status(404).json({ error: "Profile not found" });
     res.json(profile);
+  });
+
+  app.get("/api/founding-plunger-count", async (_req, res) => {
+    const count = await storage.getProUserCount();
+    const remaining = Math.max(0, 1000 - count);
+    res.json({ count, remaining, limit: 1000 });
   });
 
   // ── Push Notifications ──────────────────────────────────────────

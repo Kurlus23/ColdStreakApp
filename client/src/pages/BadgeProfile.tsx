@@ -11,6 +11,7 @@ interface BadgeProfile {
   uniqueDays: number;
   coldestTemp: number | null;
   updatedAt: string;
+  foundingPlunger: boolean;
 }
 
 function computeEarnedTempTiers(coldestTemp: number | null): Set<string> {
@@ -110,6 +111,14 @@ export default function BadgeProfile() {
         {/* Profile Header */}
         <div className="bg-blue-900/70 rounded-3xl px-5 pt-5 pb-4 border border-blue-700/50 text-center">
           <h1 data-testid="text-profile-username" className="text-white font-bold text-2xl mb-0.5">{profile.username}</h1>
+          {profile.foundingPlunger && (
+            <div className="flex justify-center mb-2">
+              <span
+                data-testid="badge-founding-plunger"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-bold"
+              >🎖️ Founding Plunger</span>
+            </div>
+          )}
           <p className="text-blue-400 text-xs mb-4">Badge Profile · Updated {updatedStr}</p>
 
           {featuredIds.length > 0 && (
