@@ -30,7 +30,7 @@ const ADS = [
     bg: "from-violet-900/60 to-slate-900/80",
     accent: "text-violet-400",
     badge: "bg-violet-500/20 border-violet-500/40 text-violet-300",
-    price: "$499",
+    price: "$349",
   },
   {
     brand: "Baoshishan Water Chiller",
@@ -50,7 +50,7 @@ const ADS = [
     bg: "from-indigo-900/60 to-slate-900/80",
     accent: "text-indigo-400",
     badge: "bg-indigo-500/20 border-indigo-500/40 text-indigo-300",
-    price: "$399",
+    price: "$349",
   },
   {
     brand: "Inkbird WiFi Temp Controller",
@@ -60,7 +60,7 @@ const ADS = [
     bg: "from-orange-900/60 to-slate-900/80",
     accent: "text-orange-400",
     badge: "bg-orange-500/20 border-orange-500/40 text-orange-300",
-    price: "$40",
+    price: "$49.96",
   },
 ];
 
