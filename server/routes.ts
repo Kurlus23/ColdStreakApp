@@ -47,10 +47,32 @@ function extractUser(req: Request): JwtPayload | null {
   return verifyToken(auth.slice(7));
 }
 
+async function seedPromoCodes() {
+  try {
+    const { db } = await import("./db");
+    const { promoCodes } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    const seeds = [
+      { code: "TESTINGPRO", durationDays: 30, maxUses: 15 },
+    ];
+    for (const seed of seeds) {
+      const [existing] = await db.select().from(promoCodes).where(eq(promoCodes.code, seed.code));
+      if (!existing) {
+        await db.insert(promoCodes).values(seed);
+        console.log(`[seed] Created promo code: ${seed.code}`);
+      }
+    }
+  } catch (err) {
+    console.error("[seed] Failed to seed promo codes:", err);
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  await seedPromoCodes();
 
   // ── Auth ──────────────────────────────────────────────────────────────
 
