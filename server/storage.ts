@@ -21,7 +21,9 @@ export interface IStorage {
   // Pro users
   getProUser(email: string): Promise<ProUser | null>;
   getProUserCount(): Promise<number>;
-  createProUser(email: string, stripeSessionId: string): Promise<ProUser>;
+  createProUser(email: string, stripeSessionId: string, opts?: { planType?: string; stripeSubscriptionId?: string; expiresAt?: Date }): Promise<ProUser>;
+  updateProUserSubscription(subscriptionId: string, expiresAt: Date): Promise<void>;
+  deactivateProUserBySubscriptionId(subscriptionId: string): Promise<void>;
   // Promo codes
   getPromoCode(code: string): Promise<PromoCode | null>;
   redeemPromoCode(code: string): Promise<PromoCode | null>;
@@ -142,15 +144,43 @@ export class DatabaseStorage implements IStorage {
     return count;
   }
 
-  async createProUser(email: string, stripeSessionId: string): Promise<ProUser> {
+  async createProUser(email: string, stripeSessionId: string, opts?: { planType?: string; stripeSubscriptionId?: string; expiresAt?: Date }): Promise<ProUser> {
     const count = await this.getProUserCount();
     const isFounder = count < 1000;
     const [user] = await db
       .insert(proUsers)
-      .values({ email: email.toLowerCase(), stripeSessionId, foundingPlunger: isFounder })
-      .onConflictDoUpdate({ target: proUsers.email, set: { stripeSessionId, active: true } })
+      .values({
+        email: email.toLowerCase(),
+        stripeSessionId,
+        foundingPlunger: isFounder,
+        planType: opts?.planType ?? "lifetime",
+        stripeSubscriptionId: opts?.stripeSubscriptionId ?? null,
+        expiresAt: opts?.expiresAt ?? null,
+      })
+      .onConflictDoUpdate({
+        target: proUsers.email,
+        set: {
+          stripeSessionId,
+          active: true,
+          planType: opts?.planType ?? "lifetime",
+          stripeSubscriptionId: opts?.stripeSubscriptionId ?? null,
+          expiresAt: opts?.expiresAt ?? null,
+        },
+      })
       .returning();
     return user;
+  }
+
+  async updateProUserSubscription(subscriptionId: string, expiresAt: Date): Promise<void> {
+    await db.update(proUsers)
+      .set({ expiresAt, active: true })
+      .where(eq(proUsers.stripeSubscriptionId, subscriptionId));
+  }
+
+  async deactivateProUserBySubscriptionId(subscriptionId: string): Promise<void> {
+    await db.update(proUsers)
+      .set({ active: false })
+      .where(eq(proUsers.stripeSubscriptionId, subscriptionId));
   }
 
   async getPromoCode(code: string): Promise<PromoCode | null> {

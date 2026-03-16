@@ -95,7 +95,8 @@ Plunges use a `clientId` (UUID stored in localStorage) for anonymous tracking. W
 | `DATABASE_URL` | Secret | PostgreSQL connection string |
 | `SESSION_SECRET` | Secret | JWT signing key |
 | `STRIPE_SECRET_KEY` | Secret | Stripe server-side key |
-| `STRIPE_PRICE_ID` | Secret | Stripe price ID for Pro |
+| `STRIPE_PRICE_ID` | Secret | Stripe price ID — $19.99 lifetime (price_1TBb4nK8VT5F0tqBBF57jj2V) |
+| `STRIPE_ANNUAL_PRICE_ID` | Secret | Stripe price ID — $9.99/year (price_1TBb4oK8VT5F0tqBIywsZxeO) |
 | `VITE_STRIPE_PUBLISHABLE_KEY` | Shared | Stripe client-side key |
 | `VITE_PUBLIC_POSTHOG_KEY` | Secret | PostHog project API key |
 | `VITE_SENTRY_DSN` | Secret | Sentry DSN for error tracking |

@@ -1445,7 +1445,7 @@ export default function Home() {
               <div className="bg-gradient-to-r from-cyan-900/60 to-blue-900/60 rounded-2xl p-4 border border-cyan-700/50 space-y-3">
                 <div className="flex items-center gap-2 text-white font-bold">
                   <Crown className="w-4 h-4 text-yellow-400" /> ColdStreak Pro
-                  <span className="ml-auto text-yellow-400 text-sm font-bold">$7.99</span>
+                  <span className="ml-auto text-yellow-400 text-sm font-bold">from $9.99</span>
                 </div>
                 <ul className="space-y-1 text-blue-300 text-xs">
                   {["Unlimited plunge history", "Chill Places + leaderboards", "Advanced stats & personal bests", "CSV / Apple Health export", "No ads"].map((f) => (
@@ -1457,7 +1457,7 @@ export default function Home() {
                   onClick={() => setShowUpgradeModal(true)}
                   className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white font-bold text-sm transition-all active:scale-[0.98]"
                 >
-                  Upgrade to Pro — One-Time $7.99
+                  Upgrade to Pro — from $9.99/yr
                 </button>
                 {!showSettingsRestore ? (
                   <button
@@ -3510,16 +3510,11 @@ export default function Home() {
               >✕</button>
             </div>
 
-            <div className="text-center">
-              <div className="text-3xl font-black text-white">$7.99</div>
-              <div className="text-blue-400 text-sm">One-time payment · No subscription</div>
-            </div>
-
             {fpCountData && fpCountData.remaining > 0 && (
               <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-400/30">
                 <span className="text-xl">🎖️</span>
                 <div>
-                  <div className="text-amber-300 font-bold text-sm leading-tight">Become a Founding Plunger</div>
+                  <div className="text-amber-300 font-bold text-sm leading-tight">Early Adopter Special — Founding Plunger</div>
                   <div className="text-amber-200/70 text-xs">
                     {fpCountData.remaining < 50
                       ? `Only ${fpCountData.remaining} spots remaining!`
@@ -3530,7 +3525,7 @@ export default function Home() {
               </div>
             )}
 
-            <ul className="space-y-2.5">
+            <ul className="space-y-2 mb-1">
               {[
                 { icon: "📅", text: "Unlimited plunge history" },
                 { icon: "🗺️", text: "Chill Places — earn badges at iconic locations" },
@@ -3549,21 +3544,55 @@ export default function Home() {
               ))}
             </ul>
 
-            <button
-              data-testid="button-checkout"
-              onClick={async () => {
-                Analytics.proUpgradeStarted();
-                setShowUpgradeModal(false);
-                const result = await startCheckout();
-                if (!result.success) {
-                  toast({ title: "Checkout unavailable", description: result.error ?? "Please try again.", variant: "destructive" });
-                }
-              }}
-              disabled={proLoading}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-black text-lg shadow-lg shadow-cyan-500/30 transition-all active:scale-[0.98] disabled:opacity-50"
-            >
-              {proLoading ? "Loading…" : fpCountData && fpCountData.remaining > 0 ? "Get Lifetime Access — $7.99" : "Upgrade Now — $7.99"}
-            </button>
+            {/* Pricing options */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-cyan-500/60 bg-cyan-900/20 p-3 text-center space-y-1">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Annual</div>
+                <div className="text-2xl font-black text-white">$9.99</div>
+                <div className="text-cyan-300 text-xs">per year</div>
+                <div className="text-slate-400 text-[10px]">~$0.83/mo</div>
+              </div>
+              <div className="rounded-2xl border border-yellow-500/60 bg-yellow-900/20 p-3 text-center space-y-1 relative">
+                <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-yellow-500 text-black text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">Early Adopter</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-yellow-400">Lifetime</div>
+                <div className="text-2xl font-black text-white">$19.99</div>
+                <div className="text-yellow-300 text-xs">pay once, keep forever</div>
+                <div className="text-slate-400 text-[10px]">price goes up soon</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                data-testid="button-checkout-annual"
+                onClick={async () => {
+                  Analytics.proUpgradeStarted();
+                  setShowUpgradeModal(false);
+                  const result = await startCheckout("annual");
+                  if (!result.success) {
+                    toast({ title: "Checkout unavailable", description: result.error ?? "Please try again.", variant: "destructive" });
+                  }
+                }}
+                disabled={proLoading}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white font-bold text-sm shadow-lg shadow-cyan-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                {proLoading ? "…" : "Get Annual — $9.99"}
+              </button>
+              <button
+                data-testid="button-checkout"
+                onClick={async () => {
+                  Analytics.proUpgradeStarted();
+                  setShowUpgradeModal(false);
+                  const result = await startCheckout("lifetime");
+                  if (!result.success) {
+                    toast({ title: "Checkout unavailable", description: result.error ?? "Please try again.", variant: "destructive" });
+                  }
+                }}
+                disabled={proLoading}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-black font-bold text-sm shadow-lg shadow-yellow-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                {proLoading ? "…" : "Get Lifetime — $19.99"}
+              </button>
+            </div>
 
             <div className="space-y-2">
               <div className="relative flex items-center">

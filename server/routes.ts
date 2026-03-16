@@ -18,6 +18,7 @@ webpush.setVapidDetails(
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-02-24.acacia" });
 const PRICE_ID = process.env.STRIPE_PRICE_ID!;
+const ANNUAL_PRICE_ID = process.env.STRIPE_ANNUAL_PRICE_ID!;
 const JWT_SECRET = process.env.SESSION_SECRET || "coldstreak-dev-secret";
 
 interface JwtPayload { userId: number; email: string; }
@@ -336,18 +337,19 @@ export async function registerRoutes(
 
   app.post("/api/stripe/checkout", async (req, res) => {
     try {
-      const { successUrl, cancelUrl } = z.object({
+      const { successUrl, cancelUrl, plan } = z.object({
         successUrl: z.string().url(),
         cancelUrl: z.string().url(),
+        plan: z.enum(["lifetime", "annual"]).default("lifetime"),
       }).parse(req.body);
 
+      const isAnnual = plan === "annual";
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
-        line_items: [{ price: PRICE_ID, quantity: 1 }],
-        mode: "payment",
+        line_items: [{ price: isAnnual ? ANNUAL_PRICE_ID : PRICE_ID, quantity: 1 }],
+        mode: isAnnual ? "subscription" : "payment",
         success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: cancelUrl,
-        customer_email: undefined,
         allow_promotion_codes: true,
       });
 
@@ -364,7 +366,9 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Missing session_id" });
     }
     try {
-      const session = await stripe.checkout.sessions.retrieve(session_id);
+      const session = await stripe.checkout.sessions.retrieve(session_id, {
+        expand: ["subscription"],
+      });
       if (session.payment_status !== "paid") {
         return res.status(402).json({ message: "Payment not completed" });
       }
@@ -372,19 +376,62 @@ export async function registerRoutes(
       if (!email) {
         return res.status(400).json({ message: "No email on session" });
       }
-      const proUser = await storage.createProUser(email, session_id);
-      res.json({ email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger });
+
+      const isAnnual = session.mode === "subscription";
+      let subscriptionId: string | undefined;
+      let expiresAt: Date | undefined;
+
+      if (isAnnual && session.subscription) {
+        const sub = session.subscription as Stripe.Subscription;
+        subscriptionId = sub.id;
+        expiresAt = new Date(sub.current_period_end * 1000);
+      }
+
+      const proUser = await storage.createProUser(email, session_id, {
+        planType: isAnnual ? "annual" : "lifetime",
+        stripeSubscriptionId: subscriptionId,
+        expiresAt,
+      });
+      res.json({ email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType });
     } catch (err) {
       console.error("Stripe verify error:", err);
       res.status(500).json({ message: "Failed to verify session" });
     }
   });
 
+  // Stripe webhook — handles subscription lifecycle
+  app.post("/api/stripe/webhook", async (req, res) => {
+    const sig = req.headers["stripe-signature"] as string;
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(req.rawBody as Buffer, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    } catch (err) {
+      return res.status(400).json({ message: "Webhook signature invalid" });
+    }
+
+    if (event.type === "invoice.payment_succeeded") {
+      const invoice = event.data.object as Stripe.Invoice;
+      const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+      if (subscriptionId && invoice.lines?.data[0]?.period?.end) {
+        const expiresAt = new Date(invoice.lines.data[0].period.end * 1000);
+        await storage.updateProUserSubscription(subscriptionId, expiresAt);
+      }
+    }
+
+    if (event.type === "customer.subscription.deleted") {
+      const sub = event.data.object as Stripe.Subscription;
+      await storage.deactivateProUserBySubscriptionId(sub.id);
+    }
+
+    res.json({ received: true });
+  });
+
   app.get("/api/pro-status/:email", async (req, res) => {
     const email = decodeURIComponent(req.params.email).toLowerCase();
     const user = await storage.getProUser(email);
-    if (user && user.active) {
-      res.json({ email: user.email, isPro: true, foundingPlunger: user.foundingPlunger });
+    const isExpired = user?.expiresAt ? new Date(user.expiresAt) < new Date() : false;
+    if (user && user.active && !isExpired) {
+      res.json({ email: user.email, isPro: true, foundingPlunger: user.foundingPlunger, planType: user.planType });
     } else {
       res.json({ email, isPro: false, foundingPlunger: false });
     }

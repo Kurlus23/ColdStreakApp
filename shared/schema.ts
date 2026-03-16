@@ -59,6 +59,9 @@ export const proUsers = pgTable("pro_users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   stripeSessionId: text("stripe_session_id").notNull(),
+  planType: text("plan_type").notNull().default("lifetime"), // 'lifetime' | 'annual'
+  stripeSubscriptionId: text("stripe_subscription_id"), // null for lifetime
+  expiresAt: timestamp("expires_at"), // null = lifetime; set for annual
   active: boolean("active").default(true).notNull(),
   foundingPlunger: boolean("founding_plunger").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

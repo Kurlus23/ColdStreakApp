@@ -83,7 +83,7 @@ export function useProStatus() {
       .catch(() => {});
   }, [markPro, clearPro]);
 
-  const startCheckout = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+  const startCheckout = useCallback(async (plan: "lifetime" | "annual" = "lifetime"): Promise<{ success: boolean; error?: string }> => {
     setLoading(true);
     try {
       const origin = window.location.origin;
@@ -93,6 +93,7 @@ export function useProStatus() {
         body: JSON.stringify({
           successUrl: `${origin}/`,
           cancelUrl: `${origin}/`,
+          plan,
         }),
       });
       const data = await res.json();
