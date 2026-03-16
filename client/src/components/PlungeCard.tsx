@@ -331,24 +331,57 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
       {/* Expanded photo overlay */}
       {photoExpanded && photoSrc && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4 gap-4"
           onClick={() => setPhotoExpanded(false)}
           data-testid="overlay-photo-expanded"
         >
-          <img
-            src={photoSrc}
-            alt="Plunge photo"
-            className="max-w-full max-h-full rounded-2xl object-contain"
-          />
-          <button
-            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 border border-white/20 text-white text-lg font-bold"
-            onClick={() => setPhotoExpanded(false)}
-          >✕</button>
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
+          {/* Photo with live stat overlay */}
+          <div
+            className="relative max-w-full"
+            style={{ maxHeight: "70vh" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={photoSrc}
+              alt="Plunge photo"
+              className="max-w-full rounded-2xl object-contain"
+              style={{ maxHeight: "70vh" }}
+            />
+            {(!isPro || withOverlay) && (
+              <>
+                {/* Score badge — top left */}
+                {plunge.score && (
+                  <div className="absolute top-3 left-3 bg-cyan-500/90 backdrop-blur-sm rounded-full px-3 py-1 text-white text-sm font-bold shadow-lg">
+                    Score {Number(plunge.score).toFixed(1)}
+                  </div>
+                )}
+                {/* Bottom scrim + stat line + logo */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent rounded-b-2xl px-4 pt-8 pb-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-white text-xs font-semibold drop-shadow leading-snug">
+                      {[
+                        plunge.locationId === "home" ? "📍 Home" : plunge.locationName ? `📍 ${plunge.locationName}` : null,
+                        streak && streak > 0 ? `${streak}d 🔥` : null,
+                        formatTime(plunge.duration),
+                        `${plunge.temperature}°F`,
+                      ].filter(Boolean).join("  ·  ")}
+                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <img src="/icons/icon-192.png" alt="ColdStreak" className="w-5 h-5 rounded-full" />
+                      <span className="text-white/75 text-xs font-semibold">ColdStreak</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Controls row */}
+          <div className="flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
             {isPro && (
               <button
                 data-testid={`toggle-overlay-${plunge.id}`}
-                onClick={(e) => { e.stopPropagation(); setWithOverlay((v) => !v); }}
+                onClick={() => setWithOverlay((v) => !v)}
                 className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${
                   withOverlay
                     ? "bg-cyan-500/30 border-cyan-400/50 text-cyan-200"
@@ -362,20 +395,25 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
             <div className="flex items-center gap-3">
               <button
                 data-testid={`button-save-to-device-${plunge.id}`}
-                onClick={(e) => { e.stopPropagation(); withAdGate(handleSaveWithOverlay); }}
+                onClick={() => withAdGate(handleSaveWithOverlay)}
                 className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-semibold px-4 py-2 rounded-full transition-all active:scale-95"
               >
                 <Download className="w-4 h-4" /> Save
               </button>
               <button
                 data-testid={`button-share-photo-${plunge.id}`}
-                onClick={(e) => { e.stopPropagation(); withAdGate(handleShare); }}
+                onClick={() => withAdGate(handleShare)}
                 className="flex items-center gap-2 bg-cyan-500/30 hover:bg-cyan-500/50 border border-cyan-400/40 text-cyan-200 text-sm font-semibold px-4 py-2 rounded-full transition-all active:scale-95"
               >
                 <Share2 className="w-4 h-4" /> Share
               </button>
             </div>
           </div>
+
+          <button
+            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 border border-white/20 text-white text-lg font-bold"
+            onClick={() => setPhotoExpanded(false)}
+          >✕</button>
         </div>
       )}
 
@@ -493,6 +531,16 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
             </div>
           </div>
 
+          {/* Photo thumbnail — right side */}
+          {photoSrc && (
+            <button
+              data-testid={`button-photo-${plunge.id}`}
+              onClick={() => setPhotoExpanded(true)}
+              className="shrink-0 w-14 h-14 rounded-xl overflow-hidden border border-slate-600/50 hover:border-cyan-400/60 transition-all active:scale-95"
+            >
+              <img src={photoSrc} alt="Plunge" className="w-full h-full object-cover" />
+            </button>
+          )}
         </div>
 
         {/* Vitals row */}
@@ -513,18 +561,6 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
               </div>
             )}
           </div>
-        )}
-
-        {/* Full-width photo strip */}
-        {photoSrc && !editing && (
-          <button
-            data-testid={`button-photo-${plunge.id}`}
-            onClick={() => setPhotoExpanded(true)}
-            className="relative z-10 mt-3 -mx-5 -mb-5 block w-[calc(100%+40px)] h-44 overflow-hidden rounded-b-2xl hover:brightness-110 transition-all active:scale-[0.99]"
-          >
-            <img src={photoSrc} alt="Plunge" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
-          </button>
         )}
 
         {/* Inline full editor */}
