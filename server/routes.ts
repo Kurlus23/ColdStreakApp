@@ -490,5 +490,82 @@ export async function registerRoutes(
     }
   });
 
+  // Daily streak-at-risk push notifications — server-side scheduler
+  let lastDailyReminderDate = "";
+
+  async function sendDailyStreakReminders() {
+    try {
+      const allSubs = await storage.getAllPushSubscriptions();
+      const todayStr = new Date().toLocaleDateString("en-US");
+      const yesterdayDate = new Date();
+      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+      const yesterdayStr = yesterdayDate.toLocaleDateString("en-US");
+
+      for (const sub of allSubs) {
+        try {
+          // Rate-limit: skip if already notified in last 20 hours
+          if (sub.lastSentAt) {
+            const hoursSince = (Date.now() - new Date(sub.lastSentAt).getTime()) / 3600000;
+            if (hoursSince < 20) continue;
+          }
+
+          const userPlunges = await storage.getPlunges(sub.clientId ?? undefined, sub.userId ?? undefined);
+          if (userPlunges.length === 0) continue;
+
+          const plungedToday = userPlunges.some(
+            (p) => new Date(p.createdAt).toLocaleDateString("en-US") === todayStr
+          );
+          if (plungedToday) continue;
+
+          // Must have plunged yesterday for streak to be at risk
+          const plungedYesterday = userPlunges.some(
+            (p) => new Date(p.createdAt).toLocaleDateString("en-US") === yesterdayStr
+          );
+          if (!plungedYesterday) continue;
+
+          // Count consecutive streak days going back from yesterday
+          const dateSet = new Set(userPlunges.map((p) => new Date(p.createdAt).toLocaleDateString("en-US")));
+          let streak = 0;
+          const checkDate = new Date();
+          checkDate.setDate(checkDate.getDate() - 1);
+          while (dateSet.has(checkDate.toLocaleDateString("en-US"))) {
+            streak++;
+            checkDate.setDate(checkDate.getDate() - 1);
+          }
+          if (streak === 0) continue;
+
+          const streakText = streak === 1 ? "1-day streak" : `${streak}-day streak`;
+          const payload = JSON.stringify({
+            title: "Don't let your streak expire! 🧊",
+            body: `Your ${streakText} is at risk — time to take the plunge!`,
+            url: "/",
+          });
+
+          await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            payload
+          );
+          await storage.updatePushSubscriptionSentAt(sub.endpoint);
+        } catch (err: any) {
+          if (err.statusCode === 410 || err.statusCode === 404) {
+            await storage.deletePushSubscription(sub.endpoint);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Daily streak reminder error:", err);
+    }
+  }
+
+  // Check every minute — fire at 18:00 UTC once per day
+  setInterval(() => {
+    const now = new Date();
+    const dateStr = now.toISOString().split("T")[0];
+    if (now.getUTCHours() === 18 && now.getUTCMinutes() === 0 && dateStr !== lastDailyReminderDate) {
+      lastDailyReminderDate = dateStr;
+      sendDailyStreakReminders();
+    }
+  }, 60 * 1000);
+
   return httpServer;
 }

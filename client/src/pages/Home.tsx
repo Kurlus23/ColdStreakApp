@@ -778,22 +778,6 @@ export default function Home() {
   const weeklyPct = Math.min(100, (weeklyMinutes / weeklyGoalMinutes) * 100);
   const streak = getStreak(plunges);
 
-  // Send streak-at-risk push notification once per day when user hasn't plunged today
-  useEffect(() => {
-    if (!pushEndpointRef.current || streak === 0 || isLoading) return;
-    const today = new Date().toLocaleDateString();
-    const plungedToday = plunges.some((p) => new Date(p.createdAt).toLocaleDateString() === today);
-    if (plungedToday) return;
-    const reminderKey = "coldstreak-reminder-" + today;
-    if (localStorage.getItem(reminderKey)) return;
-    localStorage.setItem(reminderKey, "1");
-    fetch("/api/notifications/streak-reminder", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ endpoint: pushEndpointRef.current, streak }),
-    }).catch(() => {});
-  }, [streak, plunges, isLoading]);
-
   // Total unique days plunged in the current calendar year
   const thisYear = new Date().getFullYear();
   const totalPlungeDaysThisYear = new Set(
