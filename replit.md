@@ -184,3 +184,15 @@ Build when user base reaches scale where manual Stripe dashboard management beco
 - Auto-fill temperature field when timer starts
 - Could display live temp on timer screen during plunge
 - iOS Web Bluetooth not supported — would need native Capacitor plugin
+
+---
+
+## Monetization Reminders
+
+### Google AdSense — Do this at 1,000 users
+Current ads are Amazon Associates affiliate links (commission-only, no impression revenue).
+Once the app reaches **1,000 registered users**, apply for Google AdSense to add impression-based banner revenue:
+1. Apply at https://adsense.google.com — site must be coldstreakapp.com
+2. Replace the `BannerAd` component in `client/src/components/AdUnit.tsx` with AdSense ad units
+3. Keep affiliate ads for Pro users who are also shown gear (or remove ads entirely for Pro — current behavior)
+4. AdSense pays per 1,000 impressions (CPM), typically $1–$5 CPM for fitness/health apps
