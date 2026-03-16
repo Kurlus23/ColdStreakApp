@@ -12,6 +12,32 @@ declare module "http" {
   }
 }
 
+const ALLOWED_ORIGINS = [
+  "https://coldstreakapp.com",
+  "capacitor://localhost",
+  "http://localhost",
+  "https://localhost",
+  /^http:\/\/localhost:\d+$/,
+];
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin || "";
+  const allowed = ALLOWED_ORIGINS.some((o) =>
+    typeof o === "string" ? o === origin : o.test(origin)
+  );
+  if (allowed) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+  }
+  if (req.method === "OPTIONS") {
+    res.sendStatus(200);
+    return;
+  }
+  next();
+});
+
 app.use(
   express.json({
     limit: "10mb",
