@@ -1,4 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { Geolocation } from "@capacitor/geolocation";
+import { Capacitor } from "@capacitor/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   MapPin, Compass, Search, X, ChevronDown, Lock,
@@ -216,70 +218,71 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     "united kingdom": "UK", "germany": "Germany", "japan": "Japan",
   };
 
-  const requestFormGeo = useCallback(() => {
-    if (!navigator.geolocation) {
-      toast({ title: "GPS not available", description: "Your device doesn't support location.", variant: "destructive" });
-      return;
+  async function getPosition(): Promise<{ lat: number; lng: number }> {
+    if (Capacitor.isNativePlatform()) {
+      await Geolocation.requestPermissions();
+      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+      return { lat: pos.coords.latitude, lng: pos.coords.longitude };
     }
-    setFormGeoLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        // Resolve GPS immediately — don't block on reverse geocode
-        setFormGeoPos({ lat, lng });
-        setFormGeoLoading(false);
-        toast({ title: "GPS attached", description: `${lat.toFixed(5)}, ${lng.toFixed(5)}` });
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) { reject(new Error("GPS not available")); return; }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => reject(err),
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+  }
 
-        // Reverse geocode in background (best-effort, 5 s timeout)
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 5000);
-        fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`,
-          { headers: { "Accept-Language": "en" }, signal: controller.signal }
-        )
-          .then((r) => r.json())
-          .then((data) => {
-            clearTimeout(timer);
-            const addr = data.address ?? {};
-            const city = addr.city ?? addr.town ?? addr.village ?? addr.hamlet ?? "";
-            const state = addr.state ?? addr.county ?? "";
-            const countryRaw = (addr.country ?? "").toLowerCase();
-            const country = COUNTRY_MAP[countryRaw] ?? addr.country ?? "";
-            setForm((f) => ({
-              ...f,
-              city: city || f.city,
-              state: state || f.state,
-              country: country || f.country,
-            }));
-          })
-          .catch(() => clearTimeout(timer));
-      },
-      (err) => {
-        setFormGeoLoading(false);
-        toast({ title: "Location denied", description: err.message, variant: "destructive" });
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+  const requestFormGeo = useCallback(async () => {
+    setFormGeoLoading(true);
+    try {
+      const { lat, lng } = await getPosition();
+      setFormGeoPos({ lat, lng });
+      setFormGeoLoading(false);
+      toast({ title: "GPS attached", description: `${lat.toFixed(5)}, ${lng.toFixed(5)}` });
+
+      // Reverse geocode in background (best-effort, 5 s timeout)
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`,
+        { headers: { "Accept-Language": "en" }, signal: controller.signal }
+      )
+        .then((r) => r.json())
+        .then((data) => {
+          clearTimeout(timer);
+          const addr = data.address ?? {};
+          const city = addr.city ?? addr.town ?? addr.village ?? addr.hamlet ?? "";
+          const state = addr.state ?? addr.county ?? "";
+          const countryRaw = (addr.country ?? "").toLowerCase();
+          const country = COUNTRY_MAP[countryRaw] ?? addr.country ?? "";
+          setForm((f) => ({
+            ...f,
+            city: city || f.city,
+            state: state || f.state,
+            country: country || f.country,
+          }));
+        })
+        .catch(() => clearTimeout(timer));
+    } catch (err: any) {
+      setFormGeoLoading(false);
+      toast({ title: "Location denied", description: "Please allow location access in your device settings.", variant: "destructive" });
+    }
   }, [toast]);
 
   // ── GPS ──
-  const requestGeo = useCallback((miles: number) => {
-    if (!navigator.geolocation) {
-      toast({ title: "GPS not available", description: "Your device doesn't support location.", variant: "destructive" });
-      return;
-    }
+  const requestGeo = useCallback(async (miles: number) => {
     setGeoLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setGeoPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setGeoLoading(false);
-        toast({ title: "Location found", description: `Sorting by distance within ${miles} miles.` });
-      },
-      (err) => {
-        setGeoLoading(false);
-        toast({ title: "Location denied", description: err.message, variant: "destructive" });
-      }
-    );
+    try {
+      const { lat, lng } = await getPosition();
+      setGeoPos({ lat, lng });
+      setGeoLoading(false);
+      toast({ title: "Location found", description: `Sorting by distance within ${miles} miles.` });
+    } catch {
+      setGeoLoading(false);
+      toast({ title: "Location denied", description: "Please allow location access in your device settings.", variant: "destructive" });
+    }
   }, [toast]);
 
   const handleRadiusChange = useCallback((miles: number) => {
