@@ -69,45 +69,7 @@ export async function buildShareImage({
   ctx.fillStyle = scrim;
   ctx.fillRect(0, h * 0.55, w, h * 0.45);
 
-  // Score badge — top-left corner
-  if (score !== undefined) {
-    const scoreText = `Score ${score.toFixed(1)}`;
-    const badgePad = 20 * sc;
-    const badgeH = 44 * sc;
-    ctx.font = `bold ${22 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-    const textW = ctx.measureText(scoreText).width;
-    const badgeW = textW + badgePad * 2;
-    const badgeX = pad;
-    const badgeY = pad;
-
-    ctx.save();
-    ctx.globalAlpha = 0.82;
-    ctx.fillStyle = "#06b6d4";
-    const r = badgeH / 2;
-    ctx.beginPath();
-    ctx.moveTo(badgeX + r, badgeY);
-    ctx.lineTo(badgeX + badgeW - r, badgeY);
-    ctx.quadraticCurveTo(badgeX + badgeW, badgeY, badgeX + badgeW, badgeY + r);
-    ctx.lineTo(badgeX + badgeW, badgeY + badgeH - r);
-    ctx.quadraticCurveTo(badgeX + badgeW, badgeY + badgeH, badgeX + badgeW - r, badgeY + badgeH);
-    ctx.lineTo(badgeX + r, badgeY + badgeH);
-    ctx.quadraticCurveTo(badgeX, badgeY + badgeH, badgeX, badgeY + badgeH - r);
-    ctx.lineTo(badgeX, badgeY + r);
-    ctx.quadraticCurveTo(badgeX, badgeY, badgeX + r, badgeY);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-
-    setShadow(ctx, 6 * sc, 0.5);
-    ctx.font = `bold ${22 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-    ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText(scoreText, badgeX + badgePad, badgeY + badgeH / 2);
-    clearShadow(ctx);
-  }
-
-  // Stat line — bottom left
+  // Stat line — bottom left: location · streak · time · temp · score
   const parts: string[] = [];
   const loc =
     locationId === "home" ? "📍 Home" : locationName ? `📍 ${locationName}` : null;
@@ -115,6 +77,7 @@ export async function buildShareImage({
   if (streak && streak > 0) parts.push(`${streak}d 🔥`);
   parts.push(formatTime(duration));
   parts.push(`${temperature}°F`);
+  if (score !== undefined) parts.push(`Score ${score.toFixed(1)}`);
   const line = parts.join("  ·  ");
 
   setShadow(ctx, 14 * sc);

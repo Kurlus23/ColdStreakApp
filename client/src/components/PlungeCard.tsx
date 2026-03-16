@@ -349,12 +349,6 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
             />
             {(!isPro || withOverlay) && (
               <>
-                {/* Score badge — top left */}
-                {plunge.score && (
-                  <div className="absolute top-3 left-3 bg-cyan-500/90 backdrop-blur-sm rounded-full px-3 py-1 text-white text-sm font-bold shadow-lg">
-                    Score {Number(plunge.score).toFixed(1)}
-                  </div>
-                )}
                 {/* Bottom scrim + stat line + logo */}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent rounded-b-2xl px-4 pt-8 pb-3">
                   <div className="flex items-center justify-between gap-2">
@@ -364,6 +358,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
                         streak && streak > 0 ? `${streak}d 🔥` : null,
                         formatTime(plunge.duration),
                         `${plunge.temperature}°F`,
+                        plunge.score ? `Score ${Number(plunge.score).toFixed(1)}` : null,
                       ].filter(Boolean).join("  ·  ")}
                     </span>
                     <div className="flex items-center gap-1.5 shrink-0">
