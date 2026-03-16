@@ -769,11 +769,20 @@ export default function Home() {
   const todayTotalSec = todayPlunges.reduce((sum, p) => sum + p.duration, 0);
   const todayScore = todayPlunges.reduce((sum, p) => sum + Number(p.score), 0);
   const personalBest = plunges.length > 0 ? Math.max(...plunges.map((p) => Number(p.score))) : 0;
-  const last7Days = plunges.filter((p) => (Date.now() - new Date(p.createdAt).getTime()) / (1000 * 60 * 60 * 24) <= 7);
-  const weeklyMinutes = last7Days.reduce((sum, p) => sum + p.duration, 0) / 60;
-  const weeklyScore = last7Days.reduce((sum, p) => sum + Number(p.score), 0);
+  // Current week = Monday 00:00:00 through Sunday 23:59:59 — resets each Monday
+  const weekStart = (() => {
+    const d = new Date();
+    const day = d.getDay(); // 0=Sun, 1=Mon, …
+    const daysFromMonday = day === 0 ? 6 : day - 1;
+    d.setDate(d.getDate() - daysFromMonday);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  })();
+  const thisWeek = plunges.filter((p) => new Date(p.createdAt) >= weekStart);
+  const weeklyMinutes = thisWeek.reduce((sum, p) => sum + p.duration, 0) / 60;
+  const weeklyScore = thisWeek.reduce((sum, p) => sum + Number(p.score), 0);
   const todayCalories = todayPlunges.reduce((sum, p) => sum + estimateCalories(p.duration, p.temperature, bodyWeightLbs), 0);
-  const weeklyCalories = last7Days.reduce((sum, p) => sum + estimateCalories(p.duration, p.temperature, bodyWeightLbs), 0);
+  const weeklyCalories = thisWeek.reduce((sum, p) => sum + estimateCalories(p.duration, p.temperature, bodyWeightLbs), 0);
   const allTimeCalories = plunges.reduce((sum, p) => sum + estimateCalories(p.duration, p.temperature, bodyWeightLbs), 0);
   const weeklyPct = Math.min(100, (weeklyMinutes / weeklyGoalMinutes) * 100);
   const streak = getStreak(plunges);
