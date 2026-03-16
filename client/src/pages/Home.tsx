@@ -167,6 +167,7 @@ export default function Home() {
   const [minutesInput, setMinutesInput] = useState(3);
   const [secondsInput, setSecondsInput] = useState(0);
   const alarmRef = useRef<HTMLAudioElement | null>(null);
+  const startTimeRef = useRef<number | null>(null);
 
   const [weeklyGoalMinutes, setWeeklyGoalMinutes] = useState<number>(
     () => Number(localStorage.getItem("weeklyGoalMinutes") ?? 11)
@@ -706,6 +707,7 @@ export default function Home() {
       setCountdown(total);
       setCountdownRunning(true);
     } else {
+      startTimeRef.current = Date.now();
       setIsRunning(true);
     }
   };
@@ -726,14 +728,24 @@ export default function Home() {
       }
       if (countdown > 0) { resetCountdown(); return; }
     } else {
-      if (isRunning && seconds > 0) { setIsRunning(false); doLogPlunge(seconds); setSeconds(0); }
-      else { setIsRunning(false); }
+      const elapsed = startTimeRef.current
+        ? Math.floor((Date.now() - startTimeRef.current) / 1000)
+        : seconds;
+      if (isRunning && elapsed > 0) {
+        setIsRunning(false);
+        doLogPlunge(elapsed);
+        setSeconds(0);
+        startTimeRef.current = null;
+      } else {
+        setIsRunning(false);
+        startTimeRef.current = null;
+      }
     }
   };
 
   const handleReset = () => {
     if (countdownMode) { resetCountdown(); }
-    else { setSeconds(0); setIsRunning(false); }
+    else { setSeconds(0); setIsRunning(false); startTimeRef.current = null; }
   };
 
   const resetCountdown = () => {
@@ -908,6 +920,7 @@ export default function Home() {
                   setIsRunning(false);
                   setCountdown(0);
                   setCountdownRunning(false);
+                  startTimeRef.current = null;
                 }}
                 className="flex flex-col items-center group focus:outline-none"
                 title="Tap to switch mode"
