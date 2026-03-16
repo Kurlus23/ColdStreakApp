@@ -1597,17 +1597,33 @@ export default function Home() {
                           <div className="bg-amber-900/30 border border-amber-600/30 rounded-xl px-3 py-2.5 space-y-2">
                             <p className="text-amber-300 text-xs">Check your inbox to verify your email address.</p>
                             {resendSent ? (
-                              <p className="text-green-400 text-xs flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3" /> Verification email resent
-                              </p>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-green-400 text-xs flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3" /> Verification email sent
+                                </p>
+                                <button
+                                  data-testid="button-resend-verification-again"
+                                  onClick={async () => {
+                                    setResendSent(false);
+                                    await auth.resendVerification();
+                                    setResendSent(true);
+                                  }}
+                                  className="text-amber-400 text-xs underline hover:text-amber-300 transition-colors"
+                                >
+                                  Send again
+                                </button>
+                              </div>
                             ) : (
                               <button
                                 data-testid="button-resend-verification"
-                                onClick={async () => {
+                                onClick={async (e) => {
+                                  const btn = e.currentTarget;
+                                  btn.disabled = true;
+                                  btn.textContent = "Sending…";
                                   await auth.resendVerification();
                                   setResendSent(true);
                                 }}
-                                className="text-amber-400 text-xs underline hover:text-amber-300 transition-colors"
+                                className="text-amber-400 text-xs underline hover:text-amber-300 transition-colors disabled:opacity-50"
                               >
                                 Resend verification email
                               </button>
