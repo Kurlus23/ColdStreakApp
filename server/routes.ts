@@ -18,6 +18,12 @@ webpush.setVapidDetails(
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-02-24.acacia" });
 const PRICE_ID = process.env.STRIPE_PRICE_ID!;
+
+function getSiteOrigin(req: Request): string {
+  const origin = req.headers.origin || "";
+  if (origin && origin.startsWith("http") && !origin.includes("localhost")) return origin;
+  return process.env.SITE_URL || "https://coldstreakapp.com";
+}
 const ANNUAL_PRICE_ID = process.env.STRIPE_ANNUAL_PRICE_ID!;
 const JWT_SECRET = process.env.SESSION_SECRET || "coldstreak-dev-secret";
 
@@ -65,7 +71,7 @@ export async function registerRoutes(
       // Send verification email (fire and forget — don't block signup)
       const verifyToken = crypto.randomBytes(32).toString("hex");
       await storage.setVerifyToken(user.id, verifyToken);
-      const origin = req.headers.origin || `${req.protocol}://${req.headers.host}`;
+      const origin = getSiteOrigin(req);
       sendVerificationEmail(email, `${origin}/verify-email?token=${verifyToken}`).catch(console.error);
 
       // Milestone notification — fire and forget
@@ -154,7 +160,7 @@ export async function registerRoutes(
     if (user.emailVerified) return res.json({ ok: true, already: true });
     const verifyToken = crypto.randomBytes(32).toString("hex");
     await storage.setVerifyToken(user.id, verifyToken);
-    const origin = req.headers.origin || `${req.protocol}://${req.headers.host}`;
+    const origin = getSiteOrigin(req);
     sendVerificationEmail(user.email, `${origin}/verify-email?token=${verifyToken}`).catch(console.error);
     res.json({ ok: true });
   });
@@ -180,7 +186,7 @@ export async function registerRoutes(
       const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
       const found = await storage.setResetToken(email, token, expiry);
       if (found) {
-        const origin = req.headers.origin || `${req.protocol}://${req.headers.host}`;
+        const origin = getSiteOrigin(req);
         const resetUrl = `${origin}/reset-password?token=${token}`;
         await sendPasswordResetEmail(email, resetUrl);
       }
