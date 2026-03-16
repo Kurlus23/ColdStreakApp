@@ -1797,27 +1797,25 @@ export default function Home() {
                       <Flame className="w-3 h-3 text-orange-400" /> Body Weight
                     </label>
                     <div className="flex items-center gap-2">
-                      <input
+                      <select
                         data-testid="input-body-weight"
-                        type="number"
-                        placeholder="154"
-                        value={bodyWeightLbs === 0 ? "" : bodyWeightLbs}
+                        value={(() => {
+                          const nearest = Math.round(bodyWeightLbs / 5) * 5;
+                          return Math.min(400, Math.max(80, nearest));
+                        })()}
                         onChange={(e) => {
-                          const raw = e.target.value;
-                          if (raw === "" || raw === "-") return;
-                          const val = Number(raw);
-                          if (!isNaN(val)) setBodyWeightLbs(val);
-                        }}
-                        onBlur={(e) => {
-                          const clamped = Math.min(500, Math.max(50, Number(e.target.value) || 154));
-                          setBodyWeightLbs(clamped);
-                          localStorage.setItem("coldstreak-body-weight", String(clamped));
+                          const val = Number(e.target.value);
+                          setBodyWeightLbs(val);
+                          localStorage.setItem("coldstreak-body-weight", String(val));
                           const token = localStorage.getItem("coldstreak-auth-token");
-                          if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: clamped }) }).catch(() => {});
+                          if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: val }) }).catch(() => {});
                         }}
-                        className="w-24 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 text-center font-bold"
-                      />
-                      <span className="text-blue-400 text-sm">lbs</span>
+                        className="bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 font-bold appearance-none text-center"
+                      >
+                        {Array.from({ length: 65 }, (_, i) => 80 + i * 5).map((w) => (
+                          <option key={w} value={w}>{w} lbs</option>
+                        ))}
+                      </select>
                       <span className="text-blue-500 text-xs">({Math.round(bodyWeightLbs / 2.205)} kg)</span>
                     </div>
                     <p className="text-blue-500 text-xs mt-1">Used to estimate calories burned per plunge.</p>
