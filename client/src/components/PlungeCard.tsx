@@ -100,6 +100,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
   const [confirming, setConfirming] = useState(false);
   const [photoExpanded, setPhotoExpanded] = useState(false);
   const [localPhoto, setLocalPhoto] = useState<string | null>(null);
+  const [withOverlay, setWithOverlay] = useState(true);
 
   // Edit state
   const [editing, setEditing] = useState(false);
@@ -179,16 +180,21 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
     if (!photoSrc) return;
     setSaving(true);
     try {
-      const composited = await buildShareImage({
-        photoDataUrl: photoSrc,
-        temperature: plunge.temperature,
-        duration: plunge.duration,
-        streak,
-        locationName: plunge.locationName,
-        locationId: plunge.locationId,
-        score: plunge.score ? Number(plunge.score) : undefined,
-      });
-      await downloadBlob(composited);
+      const useOverlay = !isPro || withOverlay;
+      if (useOverlay) {
+        const composited = await buildShareImage({
+          photoDataUrl: photoSrc,
+          temperature: plunge.temperature,
+          duration: plunge.duration,
+          streak,
+          locationName: plunge.locationName,
+          locationId: plunge.locationId,
+          score: plunge.score ? Number(plunge.score) : undefined,
+        });
+        await downloadBlob(composited);
+      } else {
+        await downloadBlob(photoSrc);
+      }
     } catch {
       toast({ title: "Could not save photo", variant: "destructive" });
     } finally {
@@ -209,16 +215,19 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
     if (navigator.share) {
       if (photoSrc) {
         try {
-          const composited = await buildShareImage({
-            photoDataUrl: photoSrc,
-            temperature: plunge.temperature,
-            duration: plunge.duration,
-            streak,
-            locationName: plunge.locationName,
-            locationId: plunge.locationId,
-            score: plunge.score ? Number(plunge.score) : undefined,
-          });
-          const file = await dataUrlToFile(composited, `coldstreak-plunge.jpg`);
+          const useOverlay = !isPro || withOverlay;
+          const imageData = useOverlay
+            ? await buildShareImage({
+                photoDataUrl: photoSrc,
+                temperature: plunge.temperature,
+                duration: plunge.duration,
+                streak,
+                locationName: plunge.locationName,
+                locationId: plunge.locationId,
+                score: plunge.score ? Number(plunge.score) : undefined,
+              })
+            : photoSrc;
+          const file = await dataUrlToFile(imageData, `coldstreak-plunge.jpg`);
           if (navigator.canShare?.({ files: [file] })) {
             await navigator.share({ files: [file], text });
             return;
@@ -335,21 +344,37 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
             className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 border border-white/20 text-white text-lg font-bold"
             onClick={() => setPhotoExpanded(false)}
           >✕</button>
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
-            <button
-              data-testid={`button-save-to-device-${plunge.id}`}
-              onClick={(e) => { e.stopPropagation(); withAdGate(handleSaveWithOverlay); }}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-semibold px-4 py-2 rounded-full transition-all active:scale-95"
-            >
-              <Download className="w-4 h-4" /> Save
-            </button>
-            <button
-              data-testid={`button-share-photo-${plunge.id}`}
-              onClick={(e) => { e.stopPropagation(); withAdGate(handleShare); }}
-              className="flex items-center gap-2 bg-cyan-500/30 hover:bg-cyan-500/50 border border-cyan-400/40 text-cyan-200 text-sm font-semibold px-4 py-2 rounded-full transition-all active:scale-95"
-            >
-              <Share2 className="w-4 h-4" /> Share
-            </button>
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
+            {isPro && (
+              <button
+                data-testid={`toggle-overlay-${plunge.id}`}
+                onClick={(e) => { e.stopPropagation(); setWithOverlay((v) => !v); }}
+                className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${
+                  withOverlay
+                    ? "bg-cyan-500/30 border-cyan-400/50 text-cyan-200"
+                    : "bg-white/10 border-white/20 text-white/60"
+                }`}
+              >
+                <span className={`w-3 h-3 rounded-full border-2 transition-all ${withOverlay ? "bg-cyan-400 border-cyan-400" : "bg-transparent border-white/40"}`} />
+                Stats overlay {withOverlay ? "on" : "off"}
+              </button>
+            )}
+            <div className="flex items-center gap-3">
+              <button
+                data-testid={`button-save-to-device-${plunge.id}`}
+                onClick={(e) => { e.stopPropagation(); withAdGate(handleSaveWithOverlay); }}
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-semibold px-4 py-2 rounded-full transition-all active:scale-95"
+              >
+                <Download className="w-4 h-4" /> Save
+              </button>
+              <button
+                data-testid={`button-share-photo-${plunge.id}`}
+                onClick={(e) => { e.stopPropagation(); withAdGate(handleShare); }}
+                className="flex items-center gap-2 bg-cyan-500/30 hover:bg-cyan-500/50 border border-cyan-400/40 text-cyan-200 text-sm font-semibold px-4 py-2 rounded-full transition-all active:scale-95"
+              >
+                <Share2 className="w-4 h-4" /> Share
+              </button>
+            </div>
           </div>
         </div>
       )}
