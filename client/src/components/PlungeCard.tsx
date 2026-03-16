@@ -356,8 +356,8 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
                       {[
                         plunge.locationId === "home" ? "📍 Home" : plunge.locationName ? `📍 ${plunge.locationName}` : null,
                         streak && streak > 0 ? `${streak}d 🔥` : null,
-                        formatTime(plunge.duration),
                         `${plunge.temperature}°F`,
+                        formatTime(plunge.duration),
                         plunge.score ? `Score ${Number(plunge.score).toFixed(1)}` : null,
                       ].filter(Boolean).join("  ·  ")}
                     </span>

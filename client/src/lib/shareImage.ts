@@ -75,8 +75,8 @@ export async function buildShareImage({
     locationId === "home" ? "📍 Home" : locationName ? `📍 ${locationName}` : null;
   if (loc) parts.push(loc);
   if (streak && streak > 0) parts.push(`${streak}d 🔥`);
-  parts.push(formatTime(duration));
   parts.push(`${temperature}°F`);
+  parts.push(formatTime(duration));
   if (score !== undefined) parts.push(`Score ${score.toFixed(1)}`);
   const line = parts.join("  ·  ");
 
