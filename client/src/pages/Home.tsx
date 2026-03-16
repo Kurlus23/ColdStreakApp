@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
+import { Camera as CapCamera, CameraResultType, CameraSource } from "@capacitor/camera";
+import { Capacitor } from "@capacitor/core";
 import { savePhoto } from "@/lib/photoStore";
 import icebergBg from "@assets/image_1773152998246.png";
 import {
@@ -6,7 +8,7 @@ import {
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2, FileText,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, ImageIcon
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -293,7 +295,6 @@ export default function Home() {
   const [promptSaving, setPromptSaving] = useState(false);
   const [promptSubmitLeaderboard, setPromptSubmitLeaderboard] = useState(true);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
-  const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
   // Pro status
   const { isPro, proEmail, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo } = useProStatus();
@@ -2990,29 +2991,12 @@ export default function Home() {
               </div>
             )}
 
-            {/* Hidden inputs */}
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              data-testid="input-camera-capture"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                try {
-                  const data = await resizeImageToBase64(file);
-                  setPromptPhotoData(data);
-                } catch {
-                  toast({ title: "Could not load photo", variant: "destructive" });
-                }
-              }}
-            />
+            {/* Hidden web fallback input */}
             <input
               ref={photoInputRef}
               type="file"
               accept="image/*"
+              capture="environment"
               className="hidden"
               data-testid="input-photo-upload"
               onChange={async (e) => {
@@ -3027,7 +3011,7 @@ export default function Home() {
               }}
             />
 
-            {/* Photo preview */}
+            {/* Photo preview or take-photo button */}
             {promptPhotoData ? (
               <div className="relative w-full rounded-2xl overflow-hidden border-2 border-cyan-500/60">
                 <img src={promptPhotoData} alt="Preview" className="w-full h-40 object-cover" />
@@ -3037,24 +3021,34 @@ export default function Home() {
                 >Remove</button>
               </div>
             ) : (
-              <div className="flex gap-3">
-                <button
-                  data-testid="button-take-photo"
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="flex-1 flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-blue-600/50 hover:border-cyan-500/50 py-6 transition-all"
-                >
-                  <Camera className="w-7 h-7 text-cyan-400" />
-                  <span className="text-blue-300 text-sm font-semibold">Take Photo</span>
-                </button>
-                <button
-                  data-testid="button-pick-photo"
-                  onClick={() => photoInputRef.current?.click()}
-                  className="flex-1 flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-blue-600/50 hover:border-cyan-500/50 py-6 transition-all"
-                >
-                  <ImageIcon className="w-7 h-7 text-blue-400" />
-                  <span className="text-blue-300 text-sm font-semibold">From Gallery</span>
-                </button>
-              </div>
+              <button
+                data-testid="button-take-photo"
+                onClick={async () => {
+                  if (Capacitor.isNativePlatform()) {
+                    try {
+                      const photo = await CapCamera.getPhoto({
+                        resultType: CameraResultType.Base64,
+                        source: CameraSource.Camera,
+                        quality: 80,
+                        width: 1200,
+                      });
+                      if (photo.base64String) {
+                        setPromptPhotoData(`data:image/jpeg;base64,${photo.base64String}`);
+                      }
+                    } catch (err: any) {
+                      if (!String(err).includes("cancelled") && !String(err).includes("canceled")) {
+                        toast({ title: "Could not open camera", variant: "destructive" });
+                      }
+                    }
+                  } else {
+                    photoInputRef.current?.click();
+                  }
+                }}
+                className="w-full flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-blue-600/50 hover:border-cyan-500/50 py-8 transition-all"
+              >
+                <Camera className="w-8 h-8 text-cyan-400" />
+                <span className="text-blue-300 text-sm font-semibold">Take Photo</span>
+              </button>
             )}
 
             {/* Location picker */}
