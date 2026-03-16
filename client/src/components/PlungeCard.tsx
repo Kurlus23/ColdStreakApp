@@ -186,6 +186,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
         streak,
         locationName: plunge.locationName,
         locationId: plunge.locationId,
+        score: plunge.score ? Number(plunge.score) : undefined,
       });
       await downloadBlob(composited);
     } catch {
@@ -215,6 +216,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
             streak,
             locationName: plunge.locationName,
             locationId: plunge.locationId,
+            score: plunge.score ? Number(plunge.score) : undefined,
           });
           const file = await dataUrlToFile(composited, `coldstreak-plunge.jpg`);
           if (navigator.canShare?.({ files: [file] })) {
@@ -336,7 +338,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
             <button
               data-testid={`button-save-to-device-${plunge.id}`}
-              onClick={(e) => { e.stopPropagation(); withAdGate(handleSaveToDevice); }}
+              onClick={(e) => { e.stopPropagation(); withAdGate(handleSaveWithOverlay); }}
               className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-semibold px-4 py-2 rounded-full transition-all active:scale-95"
             >
               <Download className="w-4 h-4" /> Save
@@ -466,16 +468,6 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
             </div>
           </div>
 
-          {/* Photo thumbnail — right side, only when available */}
-          {photoSrc && (
-            <button
-              data-testid={`button-photo-${plunge.id}`}
-              onClick={() => setPhotoExpanded(true)}
-              className="shrink-0 w-14 h-14 rounded-xl overflow-hidden border border-slate-600/50 hover:border-cyan-400/60 transition-all active:scale-95"
-            >
-              <img src={photoSrc} alt="Plunge" className="w-full h-full object-cover" />
-            </button>
-          )}
         </div>
 
         {/* Vitals row */}
@@ -496,6 +488,18 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
               </div>
             )}
           </div>
+        )}
+
+        {/* Full-width photo strip */}
+        {photoSrc && !editing && (
+          <button
+            data-testid={`button-photo-${plunge.id}`}
+            onClick={() => setPhotoExpanded(true)}
+            className="relative z-10 mt-3 -mx-5 -mb-5 block w-[calc(100%+40px)] h-44 overflow-hidden rounded-b-2xl hover:brightness-110 transition-all active:scale-[0.99]"
+          >
+            <img src={photoSrc} alt="Plunge" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+          </button>
         )}
 
         {/* Inline full editor */}
