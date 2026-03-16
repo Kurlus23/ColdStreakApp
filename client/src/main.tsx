@@ -7,6 +7,16 @@ import { initMonitoring } from "./lib/monitoring";
 
 initMonitoring();
 
+if ((window as any).Capacitor?.isNativePlatform?.()) {
+  const _fetch = window.fetch.bind(window);
+  window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+    if (typeof input === "string" && input.startsWith("/")) {
+      return _fetch(`https://coldstreakapp.com${input}`, init);
+    }
+    return _fetch(input, init);
+  };
+}
+
 const POSTHOG_KEY = import.meta.env.VITE_PUBLIC_POSTHOG_KEY as string | undefined;
 
 
