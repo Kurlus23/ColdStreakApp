@@ -18,6 +18,16 @@ function clearShadow(ctx: CanvasRenderingContext2D) {
   ctx.shadowOffsetY = 0;
 }
 
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
 export async function buildShareImage({
   photoDataUrl,
   temperature,
@@ -35,99 +45,121 @@ export async function buildShareImage({
   locationId?: string | null;
   score?: number;
 }): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d")!;
+  const [photo, logo] = await Promise.all([
+    loadImage(photoDataUrl),
+    loadImage("/icons/icon-192.png").catch(() => null),
+  ]);
 
-      ctx.drawImage(img, 0, 0);
+  const canvas = document.createElement("canvas");
+  canvas.width = photo.width;
+  canvas.height = photo.height;
+  const ctx = canvas.getContext("2d")!;
 
-      const w = canvas.width;
-      const h = canvas.height;
-      const sc = w / 1080;
-      const pad = 44 * sc;
+  ctx.drawImage(photo, 0, 0);
 
-      // Bottom gradient scrim so text is always readable
-      const scrim = ctx.createLinearGradient(0, h * 0.6, 0, h);
-      scrim.addColorStop(0, "rgba(0,0,0,0)");
-      scrim.addColorStop(1, "rgba(0,0,0,0.65)");
-      ctx.fillStyle = scrim;
-      ctx.fillRect(0, h * 0.6, w, h * 0.4);
+  const w = canvas.width;
+  const h = canvas.height;
+  const sc = w / 1080;
+  const pad = 44 * sc;
 
-      // Build stat line: 📍 Location · 5d 🔥 · 6:30 · 43°F
-      const parts: string[] = [];
-      const loc =
-        locationId === "home" ? "📍 Home" : locationName ? `📍 ${locationName}` : null;
-      if (loc) parts.push(loc);
-      if (streak && streak > 0) parts.push(`${streak}d 🔥`);
-      parts.push(formatTime(duration));
-      parts.push(`${temperature}°F`);
+  // Bottom gradient scrim so text is always readable
+  const scrim = ctx.createLinearGradient(0, h * 0.55, 0, h);
+  scrim.addColorStop(0, "rgba(0,0,0,0)");
+  scrim.addColorStop(1, "rgba(0,0,0,0.70)");
+  ctx.fillStyle = scrim;
+  ctx.fillRect(0, h * 0.55, w, h * 0.45);
 
-      const line = parts.join("  ·  ");
+  // Score badge — top-left corner
+  if (score !== undefined) {
+    const scoreText = `Score ${score.toFixed(1)}`;
+    const badgePad = 20 * sc;
+    const badgeH = 44 * sc;
+    ctx.font = `bold ${22 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+    const textW = ctx.measureText(scoreText).width;
+    const badgeW = textW + badgePad * 2;
+    const badgeX = pad;
+    const badgeY = pad;
 
-      // Score badge — top-left corner
-      if (score !== undefined) {
-        const scoreText = `Score ${score.toFixed(1)}`;
-        const badgePad = 20 * sc;
-        const badgeH = 44 * sc;
-        ctx.font = `bold ${22 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-        const textW = ctx.measureText(scoreText).width;
-        const badgeW = textW + badgePad * 2;
-        const badgeX = pad;
-        const badgeY = pad;
+    ctx.save();
+    ctx.globalAlpha = 0.82;
+    ctx.fillStyle = "#06b6d4";
+    const r = badgeH / 2;
+    ctx.beginPath();
+    ctx.moveTo(badgeX + r, badgeY);
+    ctx.lineTo(badgeX + badgeW - r, badgeY);
+    ctx.quadraticCurveTo(badgeX + badgeW, badgeY, badgeX + badgeW, badgeY + r);
+    ctx.lineTo(badgeX + badgeW, badgeY + badgeH - r);
+    ctx.quadraticCurveTo(badgeX + badgeW, badgeY + badgeH, badgeX + badgeW - r, badgeY + badgeH);
+    ctx.lineTo(badgeX + r, badgeY + badgeH);
+    ctx.quadraticCurveTo(badgeX, badgeY + badgeH, badgeX, badgeY + badgeH - r);
+    ctx.lineTo(badgeX, badgeY + r);
+    ctx.quadraticCurveTo(badgeX, badgeY, badgeX + r, badgeY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
 
-        // Badge background
-        ctx.save();
-        ctx.globalAlpha = 0.82;
-        ctx.fillStyle = "#06b6d4";
-        const r = badgeH / 2;
-        ctx.beginPath();
-        ctx.moveTo(badgeX + r, badgeY);
-        ctx.lineTo(badgeX + badgeW - r, badgeY);
-        ctx.quadraticCurveTo(badgeX + badgeW, badgeY, badgeX + badgeW, badgeY + r);
-        ctx.lineTo(badgeX + badgeW, badgeY + badgeH - r);
-        ctx.quadraticCurveTo(badgeX + badgeW, badgeY + badgeH, badgeX + badgeW - r, badgeY + badgeH);
-        ctx.lineTo(badgeX + r, badgeY + badgeH);
-        ctx.quadraticCurveTo(badgeX, badgeY + badgeH, badgeX, badgeY + badgeH - r);
-        ctx.lineTo(badgeX, badgeY + r);
-        ctx.quadraticCurveTo(badgeX, badgeY, badgeX + r, badgeY);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
+    setShadow(ctx, 6 * sc, 0.5);
+    ctx.font = `bold ${22 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(scoreText, badgeX + badgePad, badgeY + badgeH / 2);
+    clearShadow(ctx);
+  }
 
-        // Score text
-        setShadow(ctx, 6 * sc, 0.5);
-        ctx.font = `bold ${22 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-        ctx.fillStyle = "#ffffff";
-        ctx.textAlign = "left";
-        ctx.textBaseline = "middle";
-        ctx.fillText(scoreText, badgeX + badgePad, badgeY + badgeH / 2);
-        clearShadow(ctx);
-      }
+  // Stat line — bottom left
+  const parts: string[] = [];
+  const loc =
+    locationId === "home" ? "📍 Home" : locationName ? `📍 ${locationName}` : null;
+  if (loc) parts.push(loc);
+  if (streak && streak > 0) parts.push(`${streak}d 🔥`);
+  parts.push(formatTime(duration));
+  parts.push(`${temperature}°F`);
+  const line = parts.join("  ·  ");
 
-      // Stat line — bottom left
-      setShadow(ctx, 14 * sc);
-      ctx.font = `bold ${20 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-      ctx.fillStyle = "#ffffff";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.fillText(line, pad, h - 36 * sc);
+  setShadow(ctx, 14 * sc);
+  ctx.font = `bold ${20 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(line, pad, h - 36 * sc);
 
-      // Watermark — bottom right
-      setShadow(ctx, 8 * sc, 0.6);
-      ctx.font = `bold ${12 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-      ctx.fillStyle = "rgba(255,255,255,0.45)";
-      ctx.textAlign = "right";
-      ctx.fillText("ColdStreak ❄️", w - pad, h - 36 * sc);
+  // Logo + wordmark — bottom right
+  const logoSize = 48 * sc;
+  const wordmark = "ColdStreak";
+  setShadow(ctx, 8 * sc, 0.6);
+  ctx.font = `bold ${18 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  const wordmarkY = h - 36 * sc;
 
-      clearShadow(ctx);
+  if (logo) {
+    const wordmarkW = ctx.measureText(wordmark).width;
+    const gap = 10 * sc;
+    const logoX = w - pad - wordmarkW - gap - logoSize;
+    const logoY = wordmarkY - logoSize / 2;
 
-      resolve(canvas.toDataURL("image/jpeg", 0.93));
-    };
-    img.onerror = reject;
-    img.src = photoDataUrl;
-  });
+    // Circular clip for logo
+    ctx.save();
+    clearShadow(ctx);
+    ctx.beginPath();
+    ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+    ctx.restore();
+
+    setShadow(ctx, 8 * sc, 0.6);
+    ctx.font = `bold ${18 * sc}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillText(wordmark, w - pad, wordmarkY);
+  } else {
+    ctx.fillText(`ColdStreak ❄️`, w - pad, wordmarkY);
+  }
+
+  clearShadow(ctx);
+
+  return canvas.toDataURL("image/jpeg", 0.93);
 }
