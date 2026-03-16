@@ -6,7 +6,7 @@ import {
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2, FileText,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, ImageIcon
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -293,6 +293,7 @@ export default function Home() {
   const [promptSaving, setPromptSaving] = useState(false);
   const [promptSubmitLeaderboard, setPromptSubmitLeaderboard] = useState(true);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
   // Pro status
   const { isPro, proEmail, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo } = useProStatus();
@@ -2989,7 +2990,25 @@ export default function Home() {
               </div>
             )}
 
-            {/* Photo picker */}
+            {/* Hidden inputs */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              data-testid="input-camera-capture"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  const data = await resizeImageToBase64(file);
+                  setPromptPhotoData(data);
+                } catch {
+                  toast({ title: "Could not load photo", variant: "destructive" });
+                }
+              }}
+            />
             <input
               ref={photoInputRef}
               type="file"
@@ -3007,34 +3026,35 @@ export default function Home() {
                 }
               }}
             />
-            <button
-              data-testid="button-pick-photo"
-              onClick={() => photoInputRef.current?.click()}
-              className={`w-full rounded-2xl border-2 border-dashed transition-all overflow-hidden ${
-                promptPhotoData
-                  ? "border-cyan-500/60 p-0"
-                  : "border-blue-600/50 hover:border-cyan-500/50 py-8 flex flex-col items-center gap-2"
-              }`}
-            >
-              {promptPhotoData ? (
-                <img
-                  src={promptPhotoData}
-                  alt="Preview"
-                  className="w-full h-40 object-cover"
-                />
-              ) : (
-                <>
-                  <Camera className="w-8 h-8 text-blue-500" />
-                  <span className="text-blue-400 text-sm font-semibold">Tap to add a photo</span>
-                  <span className="text-blue-600 text-xs">From camera roll or take a photo</span>
-                </>
-              )}
-            </button>
-            {promptPhotoData && (
-              <button
-                onClick={() => setPromptPhotoData(null)}
-                className="text-xs text-blue-500 hover:text-red-400 transition-colors -mt-2"
-              >Remove photo</button>
+
+            {/* Photo preview */}
+            {promptPhotoData ? (
+              <div className="relative w-full rounded-2xl overflow-hidden border-2 border-cyan-500/60">
+                <img src={promptPhotoData} alt="Preview" className="w-full h-40 object-cover" />
+                <button
+                  onClick={() => setPromptPhotoData(null)}
+                  className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-lg hover:bg-red-600/80 transition-colors"
+                >Remove</button>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <button
+                  data-testid="button-take-photo"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="flex-1 flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-blue-600/50 hover:border-cyan-500/50 py-6 transition-all"
+                >
+                  <Camera className="w-7 h-7 text-cyan-400" />
+                  <span className="text-blue-300 text-sm font-semibold">Take Photo</span>
+                </button>
+                <button
+                  data-testid="button-pick-photo"
+                  onClick={() => photoInputRef.current?.click()}
+                  className="flex-1 flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-blue-600/50 hover:border-cyan-500/50 py-6 transition-all"
+                >
+                  <ImageIcon className="w-7 h-7 text-blue-400" />
+                  <span className="text-blue-300 text-sm font-semibold">From Gallery</span>
+                </button>
+              </div>
             )}
 
             {/* Location picker */}
