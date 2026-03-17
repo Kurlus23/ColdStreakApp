@@ -293,6 +293,7 @@ export default function Home() {
   const [promptLocationId, setPromptLocationId] = useState<string>("");
   const [promptCustomLocation, setPromptCustomLocation] = useState<string>("");
   const [promptSaving, setPromptSaving] = useState(false);
+  const [promptSharing, setPromptSharing] = useState(false);
   const [promptSubmitLeaderboard, setPromptSubmitLeaderboard] = useState(true);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const [showWebCamera, setShowWebCamera] = useState(false);
@@ -3298,8 +3299,10 @@ export default function Home() {
             {promptPlungeRef.current && (
               <button
                 data-testid="button-share-after-plunge"
+                disabled={promptSharing}
                 onClick={async () => {
-                  if (!promptPlungeRef.current) return;
+                  if (!promptPlungeRef.current || promptSharing) return;
+                  setPromptSharing(true);
                   let locationName: string | undefined;
                   if (promptLocationId === "custom") {
                     locationName = promptCustomLocation.trim() || undefined;
@@ -3333,17 +3336,17 @@ export default function Home() {
                         const file = new File([blob], "coldstreak-plunge.jpg", { type: "image/jpeg" });
                         if (navigator.canShare?.({ files: [file] })) {
                           await navigator.share({ files: [file], text });
-                          return;
+                          setPromptSharing(false); return;
                         }
                       } catch (e: any) {
-                        if (e?.name === "AbortError") return;
+                        if (e?.name === "AbortError") { setPromptSharing(false); return; }
                       }
                     }
                     try {
                       await navigator.share({ title: "ColdStreak Plunge", text });
-                      return;
+                      setPromptSharing(false); return;
                     } catch (e: any) {
-                      if (e?.name === "AbortError") return;
+                      if (e?.name === "AbortError") { setPromptSharing(false); return; }
                     }
                   }
                   try {
@@ -3352,10 +3355,11 @@ export default function Home() {
                   } catch {
                     toast({ title: "Could not copy", variant: "destructive" });
                   }
+                  setPromptSharing(false);
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-blue-600/60 text-blue-300 text-sm font-semibold hover:border-cyan-500/60 hover:text-cyan-300 transition-all active:scale-95"
+                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-blue-600/60 text-sm font-semibold transition-all active:scale-95 ${promptSharing ? "opacity-50 cursor-not-allowed text-blue-500" : "text-blue-300 hover:border-cyan-500/60 hover:text-cyan-300"}`}
               >
-                <Share2 className="w-4 h-4" /> Share with friends
+                <Share2 className="w-4 h-4" /> {promptSharing ? "Sharing…" : "Share with friends"}
               </button>
             )}
 
