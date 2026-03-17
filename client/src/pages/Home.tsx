@@ -3347,10 +3347,12 @@ export default function Home() {
                     locationId: promptLocationId,
                   });
                   if (navigator.share) {
-                    if (promptPhotoData && preloadedPhotoRef.current) {
+                    let sharedWithPhoto = false;
+                    if (promptPhotoData && navigator.canShare) {
                       try {
+                        const photoImg = preloadedPhotoRef.current ?? await loadImage(promptPhotoData);
                         const blob = await buildShareBlobFromPreloaded({
-                          photoImg: preloadedPhotoRef.current,
+                          photoImg,
                           logoImg: preloadedLogoRef.current,
                           temperature: promptPlungeRef.current.temperature,
                           duration: promptPlungeRef.current.duration,
@@ -3359,25 +3361,19 @@ export default function Home() {
                           locationId: promptLocationId,
                         });
                         const file = new File([blob], "coldstreak-plunge.jpg", { type: "image/jpeg" });
-                        try {
+                        if (navigator.canShare({ files: [file] })) {
+                          sharedWithPhoto = true;
                           await navigator.share({ files: [file], text });
                           setPromptSharing(false); return;
-                        } catch (e: any) {
-                          if (e?.name === "AbortError") { setPromptSharing(false); return; }
                         }
                       } catch (e: any) {
                         if (e?.name === "AbortError") { setPromptSharing(false); return; }
-                      }
-                    } else if (promptPhotoData) {
-                      try {
-                        const blob = dataUrlToBlob(promptPhotoData);
-                        const file = new File([blob], "coldstreak-plunge.jpg", { type: "image/jpeg" });
-                        await navigator.share({ files: [file], text });
-                        setPromptSharing(false); return;
-                      } catch (e: any) {
-                        if (e?.name === "AbortError") { setPromptSharing(false); return; }
+                        // If we already opened the share sheet (sharedWithPhoto=true),
+                        // stop here — don't send text again and cause a duplicate
+                        if (sharedWithPhoto) { setPromptSharing(false); return; }
                       }
                     }
+                    // Text-only share — only reached when there is no photo or file sharing is unsupported
                     try {
                       await navigator.share({ title: "ColdStreak Plunge", text });
                       setPromptSharing(false); return;
