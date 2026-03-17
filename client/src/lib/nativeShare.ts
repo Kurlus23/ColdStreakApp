@@ -34,7 +34,7 @@ export async function nativeShare({
     if (photoBlob) {
       const uri = await writeTempImage(photoBlob, photoFilename);
       if (uri) {
-        await Share.share({ title, files: [uri], dialogTitle: title });
+        await Share.share({ title, text, files: [uri], dialogTitle: title });
         return "shared";
       }
     }
