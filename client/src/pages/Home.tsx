@@ -24,7 +24,7 @@ import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
 import { Analytics } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
 import { getClientId } from "@/hooks/use-plunges";
-import { buildShareImage } from "@/lib/shareImage";
+import { buildShareImage, dataUrlToBlob } from "@/lib/shareImage";
 import { saveCustomAlarmUrl, loadCustomAlarmUrl, clearCustomAlarmUrl } from "@/lib/alarm-storage";
 import { Explore, GEAR_ITEMS } from "@/pages/Explore";
 import {
@@ -3344,8 +3344,7 @@ export default function Home() {
                           locationName,
                           locationId: promptLocationId,
                         });
-                        const res = await fetch(composited);
-                        const blob = await res.blob();
+                        const blob = dataUrlToBlob(composited);
                         const file = new File([blob], "coldstreak-plunge.jpg", { type: "image/jpeg" });
                         try {
                           await navigator.share({ files: [file], text });
