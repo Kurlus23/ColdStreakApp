@@ -1,4 +1,4 @@
-const CACHE_NAME = "coldstreak-v4";
+const CACHE_NAME = "coldstreak-v5";
 const OFFLINE_URL = "/offline.html";
 
 // Install — only cache the offline page (keeps install from failing)
