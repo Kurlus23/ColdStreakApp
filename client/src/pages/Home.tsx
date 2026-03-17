@@ -295,6 +295,37 @@ export default function Home() {
   const [promptSaving, setPromptSaving] = useState(false);
   const [promptSubmitLeaderboard, setPromptSubmitLeaderboard] = useState(true);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const [showWebCamera, setShowWebCamera] = useState(false);
+  const webVideoRef = useRef<HTMLVideoElement | null>(null);
+  const webStreamRef = useRef<MediaStream | null>(null);
+
+  const startWebCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+      webStreamRef.current = stream;
+      setShowWebCamera(true);
+      setTimeout(() => { if (webVideoRef.current) webVideoRef.current.srcObject = stream; }, 50);
+    } catch {
+      photoInputRef.current?.click();
+    }
+  }, []);
+
+  const stopWebCamera = useCallback(() => {
+    webStreamRef.current?.getTracks().forEach(t => t.stop());
+    webStreamRef.current = null;
+    setShowWebCamera(false);
+  }, []);
+
+  const captureWebPhoto = useCallback(() => {
+    if (!webVideoRef.current) return;
+    const v = webVideoRef.current;
+    const canvas = document.createElement("canvas");
+    canvas.width = v.videoWidth;
+    canvas.height = v.videoHeight;
+    canvas.getContext("2d")?.drawImage(v, 0, 0);
+    setPromptPhotoData(canvas.toDataURL("image/jpeg", 0.8));
+    stopWebCamera();
+  }, [stopWebCamera]);
 
   // Pro status
   const { isPro, proEmail, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo } = useProStatus();
@@ -3045,7 +3076,7 @@ export default function Home() {
                       }
                     }
                   } else {
-                    photoInputRef.current?.click();
+                    await startWebCamera();
                   }
                 }}
                 className="w-full flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-blue-600/50 hover:border-cyan-500/50 py-8 transition-all"
@@ -3344,6 +3375,30 @@ export default function Home() {
             >
               Discard plunge
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── WEB CAMERA OVERLAY ─── */}
+      {showWebCamera && (
+        <div className="fixed inset-0 z-[60] bg-black flex flex-col">
+          <video
+            ref={webVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="flex-1 w-full object-cover"
+          />
+          <div className="flex items-center justify-around p-6 bg-black">
+            <button
+              onClick={stopWebCamera}
+              className="text-white/70 text-sm font-semibold px-6 py-3"
+            >Cancel</button>
+            <button
+              onClick={captureWebPhoto}
+              className="w-16 h-16 rounded-full bg-white border-4 border-cyan-400 shadow-lg shadow-cyan-400/40 active:scale-95 transition-transform"
+            />
+            <div className="w-20" />
           </div>
         </div>
       )}
