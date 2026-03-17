@@ -3026,18 +3026,22 @@ export default function Home() {
                 onClick={async () => {
                   if (Capacitor.isNativePlatform()) {
                     try {
+                      await CapCamera.requestPermissions({ permissions: ["camera"] });
                       const photo = await CapCamera.getPhoto({
                         resultType: CameraResultType.Base64,
                         source: CameraSource.Camera,
-                        quality: 80,
-                        width: 1200,
+                        quality: 70,
+                        width: 1000,
+                        correctOrientation: true,
                       });
                       if (photo.base64String) {
-                        setPromptPhotoData(`data:image/jpeg;base64,${photo.base64String}`);
+                        const mime = photo.format === "png" ? "image/png" : "image/jpeg";
+                        setPromptPhotoData(`data:${mime};base64,${photo.base64String}`);
                       }
                     } catch (err: any) {
-                      if (!String(err).includes("cancelled") && !String(err).includes("canceled")) {
-                        toast({ title: "Could not open camera", variant: "destructive" });
+                      const msg = String(err ?? "");
+                      if (!msg.includes("cancel") && !msg.includes("dismiss") && !msg.includes("User cancelled")) {
+                        toast({ title: "Camera error", description: msg || "Could not open camera", variant: "destructive" });
                       }
                     }
                   } else {
