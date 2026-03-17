@@ -3246,8 +3246,21 @@ export default function Home() {
                   },
                   {
                     onSuccess: async () => {
-                      if (promptPhotoData && photoPromptId) {
-                        await savePhoto(photoPromptId, promptPhotoData).catch(() => {});
+                      if (promptPhotoData && photoPromptId && promptPlungeRef.current) {
+                        try {
+                          const composited = await buildShareImage({
+                            photoDataUrl: promptPhotoData,
+                            temperature: promptPlungeRef.current.temperature,
+                            duration: promptPlungeRef.current.duration,
+                            streak,
+                            locationName: finalLocationName,
+                            locationId: finalLocationId,
+                            score: promptPlungeRef.current.score ?? undefined,
+                          });
+                          await savePhoto(photoPromptId, composited).catch(() => {});
+                        } catch {
+                          await savePhoto(photoPromptId, promptPhotoData).catch(() => {});
+                        }
                       }
                       // Passport badge — only for official Chill Places
                       if (finalLocationId && !isCommunityPick) {
@@ -3334,9 +3347,12 @@ export default function Home() {
                         const res = await fetch(composited);
                         const blob = await res.blob();
                         const file = new File([blob], "coldstreak-plunge.jpg", { type: "image/jpeg" });
-                        if (navigator.canShare?.({ files: [file] })) {
+                        try {
                           await navigator.share({ files: [file], text });
                           setPromptSharing(false); return;
+                        } catch (e: any) {
+                          if (e?.name === "AbortError") { setPromptSharing(false); return; }
+                          // fall through to text-only share
                         }
                       } catch (e: any) {
                         if (e?.name === "AbortError") { setPromptSharing(false); return; }
