@@ -18,7 +18,7 @@ function clearShadow(ctx: CanvasRenderingContext2D) {
   ctx.shadowOffsetY = 0;
 }
 
-function loadImage(src: string): Promise<HTMLImageElement> {
+export function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     if (!src.startsWith("data:")) {
@@ -39,48 +39,38 @@ export function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: mime });
 }
 
-export async function buildShareImage({
-  photoDataUrl,
+function drawOverlay({
+  ctx,
+  w,
+  h,
   temperature,
   duration,
   streak,
   locationName,
   locationId,
   score,
+  logo,
 }: {
-  photoDataUrl: string;
+  ctx: CanvasRenderingContext2D;
+  w: number;
+  h: number;
   temperature: number;
   duration: number;
   streak?: number;
   locationName?: string | null;
   locationId?: string | null;
   score?: number;
-}): Promise<string> {
-  const [photo, logo] = await Promise.all([
-    loadImage(photoDataUrl),
-    loadImage("/icons/icon-192.png").catch(() => null),
-  ]);
-
-  const canvas = document.createElement("canvas");
-  canvas.width = photo.width;
-  canvas.height = photo.height;
-  const ctx = canvas.getContext("2d")!;
-
-  ctx.drawImage(photo, 0, 0);
-
-  const w = canvas.width;
-  const h = canvas.height;
+  logo: HTMLImageElement | null;
+}) {
   const sc = w / 1080;
   const pad = 44 * sc;
 
-  // Bottom gradient scrim so text is always readable
   const scrim = ctx.createLinearGradient(0, h * 0.55, 0, h);
   scrim.addColorStop(0, "rgba(0,0,0,0)");
   scrim.addColorStop(1, "rgba(0,0,0,0.70)");
   ctx.fillStyle = scrim;
   ctx.fillRect(0, h * 0.55, w, h * 0.45);
 
-  // Stat line — bottom left: location · streak · time · temp · score
   const parts: string[] = [];
   const loc =
     locationId === "home" ? "📍 Home" : locationName ? `📍 ${locationName}` : null;
@@ -98,7 +88,6 @@ export async function buildShareImage({
   ctx.textBaseline = "middle";
   ctx.fillText(line, pad, h - 36 * sc);
 
-  // Logo + wordmark — bottom right
   const logoSize = 48 * sc;
   const wordmark = "ColdStreak";
   setShadow(ctx, 8 * sc, 0.6);
@@ -114,7 +103,6 @@ export async function buildShareImage({
     const logoX = w - pad - wordmarkW - gap - logoSize;
     const logoY = wordmarkY - logoSize / 2;
 
-    // Circular clip for logo
     ctx.save();
     clearShadow(ctx);
     ctx.beginPath();
@@ -134,6 +122,56 @@ export async function buildShareImage({
   }
 
   clearShadow(ctx);
+}
+
+export async function buildShareImage(params: {
+  photoDataUrl: string;
+  temperature: number;
+  duration: number;
+  streak?: number;
+  locationName?: string | null;
+  locationId?: string | null;
+  score?: number;
+}): Promise<string> {
+  const [photo, logo] = await Promise.all([
+    loadImage(params.photoDataUrl),
+    loadImage("/icons/icon-192.png").catch(() => null),
+  ]);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = photo.width || photo.naturalWidth;
+  canvas.height = photo.height || photo.naturalHeight;
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(photo, 0, 0);
+
+  drawOverlay({ ctx, w: canvas.width, h: canvas.height, logo, ...params });
 
   return canvas.toDataURL("image/jpeg", 0.93);
+}
+
+export function buildShareBlobFromPreloaded(params: {
+  photoImg: HTMLImageElement;
+  logoImg: HTMLImageElement | null;
+  temperature: number;
+  duration: number;
+  streak?: number;
+  locationName?: string | null;
+  locationId?: string | null;
+  score?: number;
+}): Promise<Blob> {
+  const { photoImg, logoImg, ...rest } = params;
+  const canvas = document.createElement("canvas");
+  canvas.width = photoImg.naturalWidth || photoImg.width;
+  canvas.height = photoImg.naturalHeight || photoImg.height;
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(photoImg, 0, 0);
+  drawOverlay({ ctx, w: canvas.width, h: canvas.height, logo: logoImg, ...rest });
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("toBlob failed"))),
+      "image/jpeg",
+      0.93,
+    );
+  });
 }

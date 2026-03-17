@@ -24,7 +24,7 @@ import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
 import { Analytics } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
 import { getClientId } from "@/hooks/use-plunges";
-import { buildShareImage, dataUrlToBlob } from "@/lib/shareImage";
+import { buildShareImage, dataUrlToBlob, loadImage, buildShareBlobFromPreloaded } from "@/lib/shareImage";
 import { saveCustomAlarmUrl, loadCustomAlarmUrl, clearCustomAlarmUrl } from "@/lib/alarm-storage";
 import { Explore, GEAR_ITEMS } from "@/pages/Explore";
 import {
@@ -299,6 +299,8 @@ export default function Home() {
   const [showWebCamera, setShowWebCamera] = useState(false);
   const webVideoRef = useRef<HTMLVideoElement | null>(null);
   const webStreamRef = useRef<MediaStream | null>(null);
+  const preloadedPhotoRef = useRef<HTMLImageElement | null>(null);
+  const preloadedLogoRef = useRef<HTMLImageElement | null>(null);
 
   const startWebCamera = useCallback(async () => {
     try {
@@ -531,6 +533,17 @@ export default function Home() {
       backgroundSync();
     }
   }, [auth.user]);
+
+  // Pre-load logo once so it's ready for instant compositing at share time
+  useEffect(() => {
+    loadImage("/icons/icon-192.png").then((img) => { preloadedLogoRef.current = img; }).catch(() => {});
+  }, []);
+
+  // Pre-load photo the instant it's captured so share handler has zero async work
+  useEffect(() => {
+    if (!promptPhotoData) { preloadedPhotoRef.current = null; return; }
+    loadImage(promptPhotoData).then((img) => { preloadedPhotoRef.current = img; }).catch(() => {});
+  }, [promptPhotoData]);
 
   // Restore profile settings (displayName, bodyWeight) from server on login
   // If server has no value yet, push local values up so they're saved
@@ -3334,25 +3347,33 @@ export default function Home() {
                     locationId: promptLocationId,
                   });
                   if (navigator.share) {
-                    if (promptPhotoData) {
+                    if (promptPhotoData && preloadedPhotoRef.current) {
                       try {
-                        const composited = await buildShareImage({
-                          photoDataUrl: promptPhotoData,
+                        const blob = await buildShareBlobFromPreloaded({
+                          photoImg: preloadedPhotoRef.current,
+                          logoImg: preloadedLogoRef.current,
                           temperature: promptPlungeRef.current.temperature,
                           duration: promptPlungeRef.current.duration,
                           streak,
                           locationName,
                           locationId: promptLocationId,
                         });
-                        const blob = dataUrlToBlob(composited);
                         const file = new File([blob], "coldstreak-plunge.jpg", { type: "image/jpeg" });
                         try {
                           await navigator.share({ files: [file], text });
                           setPromptSharing(false); return;
                         } catch (e: any) {
                           if (e?.name === "AbortError") { setPromptSharing(false); return; }
-                          // fall through to text-only share
                         }
+                      } catch (e: any) {
+                        if (e?.name === "AbortError") { setPromptSharing(false); return; }
+                      }
+                    } else if (promptPhotoData) {
+                      try {
+                        const blob = dataUrlToBlob(promptPhotoData);
+                        const file = new File([blob], "coldstreak-plunge.jpg", { type: "image/jpeg" });
+                        await navigator.share({ files: [file], text });
+                        setPromptSharing(false); return;
                       } catch (e: any) {
                         if (e?.name === "AbortError") { setPromptSharing(false); return; }
                       }
