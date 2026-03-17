@@ -25,6 +25,7 @@ import { Analytics } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
 import { getClientId } from "@/hooks/use-plunges";
 import { buildShareImage, dataUrlToBlob, loadImage, buildShareBlobFromPreloaded } from "@/lib/shareImage";
+import { isNative, nativeShare } from "@/lib/nativeShare";
 import { saveCustomAlarmUrl, loadCustomAlarmUrl, clearCustomAlarmUrl } from "@/lib/alarm-storage";
 import { Explore, GEAR_ITEMS } from "@/pages/Explore";
 import {
@@ -3352,10 +3353,29 @@ export default function Home() {
                     locationId: promptLocationId,
                   });
 
+                  // ── Native Android/iOS: use Capacitor Share (avoids WebView doubling bug)
+                  if (isNative()) {
+                    let photoBlob: Blob | null = null;
+                    if (promptPhotoData && promptPlungeRef.current) {
+                      try {
+                        const photoImg = preloadedPhotoRef.current ?? await loadImage(promptPhotoData);
+                        photoBlob = await buildShareBlobFromPreloaded({
+                          photoImg,
+                          logoImg: preloadedLogoRef.current,
+                          temperature: promptPlungeRef.current.temperature,
+                          duration: promptPlungeRef.current.duration,
+                          streak,
+                          locationName,
+                          locationId: promptLocationId,
+                        });
+                      } catch { /* fall back to text-only */ }
+                    }
+                    await nativeShare({ title: "ColdStreak Plunge", text, photoBlob });
+                    done(); return;
+                  }
+
+                  // ── Web browser: use navigator.share
                   if (navigator.share) {
-                    // ── Photo path: share just the image file (no text body).
-                    // Stats are burned into the overlay. Passing text + file causes
-                    // Messenger to double-print the text.
                     if (promptPhotoData && navigator.canShare) {
                       try {
                         const photoImg = preloadedPhotoRef.current ?? await loadImage(promptPhotoData);
@@ -3370,16 +3390,13 @@ export default function Home() {
                         });
                         const file = new File([blob], "coldstreak-plunge.jpg", { type: "image/jpeg" });
                         if (navigator.canShare({ files: [file] })) {
-                          // Share file only — no text body to prevent doubling
                           await navigator.share({ files: [file], title: "ColdStreak Plunge" });
                           done(); return;
                         }
                       } catch (e: any) {
                         if (e?.name === "AbortError") { done(); return; }
-                        // Photo share failed — fall through to text-only below
                       }
                     }
-                    // ── Text-only path: no photo, or file sharing unsupported
                     try {
                       await navigator.share({ title: "ColdStreak Plunge", text });
                       done(); return;

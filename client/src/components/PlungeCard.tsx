@@ -6,7 +6,8 @@ import { useDeletePlunge, useUpdatePlunge } from "@/hooks/use-plunges";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { getPhoto, deletePhoto } from "@/lib/photoStore";
-import { buildShareImage } from "@/lib/shareImage";
+import { buildShareImage, dataUrlToBlob } from "@/lib/shareImage";
+import { isNative, nativeShare } from "@/lib/nativeShare";
 import { InterstitialAd } from "@/components/AdUnit";
 
 function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
@@ -212,8 +213,32 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
       locationId: plunge.locationId,
     });
 
+    // ── Native Android/iOS: use Capacitor Share plugin
+    if (isNative()) {
+      let photoBlob: Blob | null = null;
+      if (photoSrc) {
+        try {
+          const useOverlay = !isPro || withOverlay;
+          const imageData = useOverlay
+            ? await buildShareImage({
+                photoDataUrl: photoSrc,
+                temperature: plunge.temperature,
+                duration: plunge.duration,
+                streak,
+                locationName: plunge.locationName,
+                locationId: plunge.locationId,
+                score: plunge.score ? Number(plunge.score) : undefined,
+              })
+            : photoSrc;
+          photoBlob = dataUrlToBlob(imageData);
+        } catch { /* fall back to text-only */ }
+      }
+      await nativeShare({ title: "ColdStreak Plunge", text, photoBlob });
+      return;
+    }
+
+    // ── Web browser: use navigator.share
     if (navigator.share) {
-      // Photo path — share file only (no text body) to prevent Messenger doubling
       if (photoSrc && navigator.canShare) {
         try {
           const useOverlay = !isPro || withOverlay;
@@ -230,16 +255,13 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
             : photoSrc;
           const file = await dataUrlToFile(imageData, `coldstreak-plunge.jpg`);
           if (navigator.canShare({ files: [file] })) {
-            // No text body — stats are on the overlay; text causes Messenger to double-print
             await navigator.share({ files: [file], title: "ColdStreak Plunge" });
             return;
           }
         } catch (e: any) {
           if (e?.name === "AbortError") return;
-          // Photo share failed — fall through to text-only (once)
         }
       }
-      // Text-only path — only reached when no photo or file sharing unsupported
       try {
         await navigator.share({ title: "ColdStreak Plunge", text });
         return;
