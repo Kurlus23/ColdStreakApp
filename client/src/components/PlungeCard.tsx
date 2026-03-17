@@ -213,7 +213,8 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
     });
 
     if (navigator.share) {
-      if (photoSrc) {
+      // Photo path — share file only (no text body) to prevent Messenger doubling
+      if (photoSrc && navigator.canShare) {
         try {
           const useOverlay = !isPro || withOverlay;
           const imageData = useOverlay
@@ -228,14 +229,17 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
               })
             : photoSrc;
           const file = await dataUrlToFile(imageData, `coldstreak-plunge.jpg`);
-          if (navigator.canShare?.({ files: [file] })) {
-            await navigator.share({ files: [file], text });
+          if (navigator.canShare({ files: [file] })) {
+            // No text body — stats are on the overlay; text causes Messenger to double-print
+            await navigator.share({ files: [file], title: "ColdStreak Plunge" });
             return;
           }
         } catch (e: any) {
           if (e?.name === "AbortError") return;
+          // Photo share failed — fall through to text-only (once)
         }
       }
+      // Text-only path — only reached when no photo or file sharing unsupported
       try {
         await navigator.share({ title: "ColdStreak Plunge", text });
         return;
