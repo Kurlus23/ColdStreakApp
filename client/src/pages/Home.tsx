@@ -294,6 +294,7 @@ export default function Home() {
   const [promptCustomLocation, setPromptCustomLocation] = useState<string>("");
   const [promptSaving, setPromptSaving] = useState(false);
   const [promptSharing, setPromptSharing] = useState(false);
+  const sharingLockRef = useRef(false);
   const [promptSubmitLeaderboard, setPromptSubmitLeaderboard] = useState(true);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const [showWebCamera, setShowWebCamera] = useState(false);
@@ -3327,8 +3328,12 @@ export default function Home() {
                 data-testid="button-share-after-plunge"
                 disabled={promptSharing}
                 onClick={async () => {
-                  if (!promptPlungeRef.current || promptSharing) return;
+                  // Synchronous ref lock — prevents double-fire before React re-renders
+                  if (!promptPlungeRef.current || sharingLockRef.current) return;
+                  sharingLockRef.current = true;
                   setPromptSharing(true);
+                  const done = () => { sharingLockRef.current = false; setPromptSharing(false); };
+
                   let locationName: string | undefined;
                   if (promptLocationId === "custom") {
                     locationName = promptCustomLocation.trim() || undefined;
@@ -3346,8 +3351,11 @@ export default function Home() {
                     locationName,
                     locationId: promptLocationId,
                   });
+
                   if (navigator.share) {
-                    let sharedWithPhoto = false;
+                    // ── Photo path: share just the image file (no text body).
+                    // Stats are burned into the overlay. Passing text + file causes
+                    // Messenger to double-print the text.
                     if (promptPhotoData && navigator.canShare) {
                       try {
                         const photoImg = preloadedPhotoRef.current ?? await loadImage(promptPhotoData);
@@ -3362,32 +3370,32 @@ export default function Home() {
                         });
                         const file = new File([blob], "coldstreak-plunge.jpg", { type: "image/jpeg" });
                         if (navigator.canShare({ files: [file] })) {
-                          sharedWithPhoto = true;
-                          await navigator.share({ files: [file], text });
-                          setPromptSharing(false); return;
+                          // Share file only — no text body to prevent doubling
+                          await navigator.share({ files: [file], title: "ColdStreak Plunge" });
+                          done(); return;
                         }
                       } catch (e: any) {
-                        if (e?.name === "AbortError") { setPromptSharing(false); return; }
-                        // If we already opened the share sheet (sharedWithPhoto=true),
-                        // stop here — don't send text again and cause a duplicate
-                        if (sharedWithPhoto) { setPromptSharing(false); return; }
+                        if (e?.name === "AbortError") { done(); return; }
+                        // Photo share failed — fall through to text-only below
                       }
                     }
-                    // Text-only share — only reached when there is no photo or file sharing is unsupported
+                    // ── Text-only path: no photo, or file sharing unsupported
                     try {
                       await navigator.share({ title: "ColdStreak Plunge", text });
-                      setPromptSharing(false); return;
+                      done(); return;
                     } catch (e: any) {
-                      if (e?.name === "AbortError") { setPromptSharing(false); return; }
+                      if (e?.name === "AbortError") { done(); return; }
                     }
                   }
+
+                  // ── Clipboard fallback
                   try {
                     await navigator.clipboard.writeText(text);
                     toast({ title: "Copied!", description: "Paste to share with friends." });
                   } catch {
                     toast({ title: "Could not copy", variant: "destructive" });
                   }
-                  setPromptSharing(false);
+                  done();
                 }}
                 className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-blue-600/60 text-sm font-semibold transition-all active:scale-95 ${promptSharing ? "opacity-50 cursor-not-allowed text-blue-500" : "text-blue-300 hover:border-cyan-500/60 hover:text-cyan-300"}`}
               >
