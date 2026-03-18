@@ -2888,7 +2888,7 @@ export default function Home() {
                 <span className="inline-flex items-center gap-1 text-[10px] text-blue-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-blue-500/20 border border-blue-400/40 text-blue-300 font-bold">⏱ Timer</span> App-recorded duration</span>
                 <span className="inline-flex items-center gap-1 text-[10px] text-cyan-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-bold">📸 Photo</span> Photo taken during session</span>
                 <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold">✓</span> Timer + photo</span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-violet-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-500/20 border border-violet-400/40 text-violet-300 font-bold">✓ Verified</span> Plunged within 5 mi</span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-violet-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-500/20 border border-violet-400/40 text-violet-300 font-bold">✓ Verified</span> GPS + timer + photo</span>
               </div>
 
               {/* Leaderboard entries */}
@@ -2959,9 +2959,9 @@ export default function Home() {
                               {(() => {
                                 const vl = entry.verificationLevel ?? 0;
                                 const gps = entry.locationVerified;
-                                if (vl === 0 && !gps) return null;
-                                // GPS-verified → purple "✓ Verified" (highest trust)
-                                if (gps) {
+                                if (vl === 0) return null;
+                                // GPS + timer + photo → purple "✓ Verified" (gold standard)
+                                if (gps && vl === 3) {
                                   return (
                                     <span
                                       data-testid={`badge-verified-${entry.id}`}
