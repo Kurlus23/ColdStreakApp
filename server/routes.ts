@@ -53,13 +53,16 @@ async function seedPromoCodes() {
     const { promoCodes } = await import("@shared/schema");
     const { eq } = await import("drizzle-orm");
     const seeds = [
-      { code: "TESTINGPRO", durationDays: 30, maxUses: 15 },
+      { code: "TESTINGPRO", durationDays: 30, maxUses: 20 },
     ];
     for (const seed of seeds) {
       const [existing] = await db.select().from(promoCodes).where(eq(promoCodes.code, seed.code));
       if (!existing) {
         await db.insert(promoCodes).values(seed);
         console.log(`[seed] Created promo code: ${seed.code}`);
+      } else if (existing.maxUses !== seed.maxUses) {
+        await db.update(promoCodes).set({ maxUses: seed.maxUses }).where(eq(promoCodes.code, seed.code));
+        console.log(`[seed] Updated promo code ${seed.code} maxUses to ${seed.maxUses}`);
       }
     }
   } catch (err) {
