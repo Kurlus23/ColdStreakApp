@@ -215,59 +215,12 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
 
     // ── Native Android/iOS: use Capacitor Share plugin
     if (isNative()) {
-      let photoBlob: Blob | null = null;
-      if (photoSrc) {
-        try {
-          const useOverlay = !isPro || withOverlay;
-          const imageData = useOverlay
-            ? await buildShareImage({
-                photoDataUrl: photoSrc,
-                temperature: plunge.temperature,
-                duration: plunge.duration,
-                streak,
-                locationName: plunge.locationName,
-                locationId: plunge.locationId,
-                score: plunge.score ? Number(plunge.score) : undefined,
-              })
-            : photoSrc;
-          photoBlob = dataUrlToBlob(imageData);
-        } catch { /* fall back to text-only */ }
-      }
-      await nativeShare({
-        title: "ColdStreak Plunge",
-        text,
-        photoBlob,
-        onCaptionCopied: () =>
-          toast({ title: "Caption copied!", description: "Paste it into your message after sharing the photo." }),
-      });
+      await nativeShare({ title: "ColdStreak Plunge", text });
       return;
     }
 
     // ── Web browser: use navigator.share
     if (navigator.share) {
-      if (photoSrc && navigator.canShare) {
-        try {
-          const useOverlay = !isPro || withOverlay;
-          const imageData = useOverlay
-            ? await buildShareImage({
-                photoDataUrl: photoSrc,
-                temperature: plunge.temperature,
-                duration: plunge.duration,
-                streak,
-                locationName: plunge.locationName,
-                locationId: plunge.locationId,
-                score: plunge.score ? Number(plunge.score) : undefined,
-              })
-            : photoSrc;
-          const file = await dataUrlToFile(imageData, `coldstreak-plunge.jpg`);
-          if (navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: "ColdStreak Plunge" });
-            return;
-          }
-        } catch (e: any) {
-          if (e?.name === "AbortError") return;
-        }
-      }
       try {
         await navigator.share({ title: "ColdStreak Plunge", text });
         return;

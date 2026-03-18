@@ -3604,54 +3604,12 @@ export default function Home() {
 
                   // ── Native Android/iOS: use Capacitor Share (avoids WebView doubling bug)
                   if (isNative()) {
-                    let photoBlob: Blob | null = null;
-                    if (promptPhotoData && promptPlungeRef.current) {
-                      try {
-                        const photoImg = preloadedPhotoRef.current ?? await loadImage(promptPhotoData);
-                        photoBlob = await buildShareBlobFromPreloaded({
-                          photoImg,
-                          logoImg: preloadedLogoRef.current,
-                          temperature: promptPlungeRef.current.temperature,
-                          duration: promptPlungeRef.current.duration,
-                          streak,
-                          locationName,
-                          locationId: promptLocationId,
-                        });
-                      } catch { /* fall back to text-only */ }
-                    }
-                    await nativeShare({
-                      title: "ColdStreak Plunge",
-                      text,
-                      photoBlob,
-                      onCaptionCopied: () =>
-                        toast({ title: "Caption copied!", description: "Paste it into your message after sharing the photo." }),
-                    });
+                    await nativeShare({ title: "ColdStreak Plunge", text });
                     done(); return;
                   }
 
                   // ── Web browser: use navigator.share
                   if (navigator.share) {
-                    if (promptPhotoData && navigator.canShare) {
-                      try {
-                        const photoImg = preloadedPhotoRef.current ?? await loadImage(promptPhotoData);
-                        const blob = await buildShareBlobFromPreloaded({
-                          photoImg,
-                          logoImg: preloadedLogoRef.current,
-                          temperature: promptPlungeRef.current.temperature,
-                          duration: promptPlungeRef.current.duration,
-                          streak,
-                          locationName,
-                          locationId: promptLocationId,
-                        });
-                        const file = new File([blob], "coldstreak-plunge.jpg", { type: "image/jpeg" });
-                        if (navigator.canShare({ files: [file] })) {
-                          await navigator.share({ files: [file], title: "ColdStreak Plunge" });
-                          done(); return;
-                        }
-                      } catch (e: any) {
-                        if (e?.name === "AbortError") { done(); return; }
-                      }
-                    }
                     try {
                       await navigator.share({ title: "ColdStreak Plunge", text });
                       done(); return;
