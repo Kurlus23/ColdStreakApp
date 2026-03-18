@@ -51,6 +51,9 @@ async function dataUrlToFile(dataUrl: string, filename: string): Promise<File> {
   return new File([blob], filename, { type: blob.type || "image/jpeg" });
 }
 
+export const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.coldstreak.app";
+export const WEB_URL = "https://coldstreakapp.com";
+
 export function buildShareText({
   username,
   temperature,
@@ -58,6 +61,7 @@ export function buildShareText({
   streak,
   locationName,
   locationId,
+  storeLink = WEB_URL,
 }: {
   username?: string;
   temperature: number;
@@ -65,6 +69,7 @@ export function buildShareText({
   streak?: number;
   locationName?: string | null;
   locationId?: string | null;
+  storeLink?: string;
 }): string {
   const name = username?.trim() || "I";
   const verb = name === "I" ? "just completed" : "just completed";
@@ -75,7 +80,7 @@ export function buildShareText({
   if (streak && streak > 0) lines.push(`🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}`);
   if (locationId === "home") lines.push(`📍 Home`);
   else if (locationName) lines.push(`📍 ${locationName}`);
-  lines.push(`Tracked with ColdStreak\nhttps://play.google.com/store/apps/details?id=com.coldstreak.app`);
+  lines.push(`Tracked with ColdStreak\n${storeLink}`);
   return lines.join("\n");
 }
 
@@ -211,6 +216,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
       streak,
       locationName: plunge.locationName,
       locationId: plunge.locationId,
+      storeLink: isNative() ? PLAY_STORE_URL : WEB_URL,
     });
 
     // ── Native Android/iOS: use Capacitor Share plugin
