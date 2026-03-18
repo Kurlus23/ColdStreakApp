@@ -1,8 +1,7 @@
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
-import { useToast } from "@/hooks/use-toast";
-import { Share2, IceCream2 } from "lucide-react";
+import { X } from "lucide-react";
 
 interface BadgeProfile {
   username: string;
@@ -28,7 +27,6 @@ function computeEarnedTempTiers(coldestTemp: number | null): Set<string> {
 
 export default function BadgeProfile() {
   const { username } = useParams<{ username: string }>();
-  const { toast } = useToast();
 
   const { data: profile, isLoading, isError } = useQuery<BadgeProfile>({
     queryKey: ["/api/badge-profile", username],
@@ -40,18 +38,6 @@ export default function BadgeProfile() {
     enabled: !!username,
     retry: false,
   });
-
-  const handleShare = async () => {
-    const url = `https://coldstreakapp.com/profile/${encodeURIComponent(username!)}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `${username}'s Badge Profile`, url });
-      } catch {}
-    } else {
-      await navigator.clipboard.writeText(url);
-      toast({ title: "Link copied!", description: "Share this link with friends." });
-    }
-  };
 
   if (isLoading) {
     return (
@@ -99,13 +85,21 @@ export default function BadgeProfile() {
 
   return (
     <div className="min-h-screen bg-blue-950 px-4 py-8 flex flex-col items-center">
+      {/* Close button */}
+      <button
+        data-testid="button-close-profile"
+        onClick={() => window.close()}
+        className="fixed top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-blue-800/80 border border-blue-600/60 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-90 z-50"
+        title="Close"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
       <div className="w-full max-w-sm space-y-4">
 
         {/* Branding */}
         <div className="text-center mb-1">
-          <Link href="/" className="text-cyan-400 font-bold text-lg tracking-wide">
-            🧊 ColdStreak
-          </Link>
+          <span className="text-cyan-400 font-bold text-lg tracking-wide">🧊 ColdStreak</span>
         </div>
 
         {/* Profile Header */}
@@ -201,23 +195,6 @@ export default function BadgeProfile() {
             <p className="text-blue-400 text-sm">No badges earned yet — stay cold!</p>
           </div>
         )}
-
-        {/* Actions */}
-        <div className="flex gap-3">
-          <button
-            data-testid="button-share-profile"
-            onClick={handleShare}
-            className="flex-1 flex items-center justify-center gap-2 bg-blue-800/70 border border-blue-600/50 text-white font-semibold py-3 rounded-2xl text-sm active:scale-95 transition-transform"
-          >
-            <Share2 className="w-4 h-4" /> Share Profile
-          </button>
-          <Link
-            href="/"
-            className="flex-1 flex items-center justify-center gap-2 bg-cyan-500 text-blue-950 font-bold py-3 rounded-2xl text-sm active:scale-95 transition-transform"
-          >
-            <IceCream2 className="w-4 h-4" /> Try ColdStreak
-          </Link>
-        </div>
 
       </div>
     </div>
