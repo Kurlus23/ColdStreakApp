@@ -2878,12 +2878,20 @@ export default function Home() {
               </div>
 
               {/* Title */}
-              <div className="flex items-center gap-2 mb-3 shrink-0">
+              <div className="flex items-center gap-2 mb-2 shrink-0">
                 <Trophy className="w-4 h-4 text-yellow-400" />
                 <span className="text-white font-semibold text-sm">Top Plungers</span>
                 {!isCommunity && hasBadge(leaderboardLocationId) && (
                   <span className="text-[10px] bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 px-2 py-0.5 rounded-full font-semibold">You've been here!</span>
                 )}
+              </div>
+
+              {/* Verification legend */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3 px-1 shrink-0">
+                <span className="text-blue-500 text-[10px] font-medium uppercase tracking-wide">Verification:</span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-blue-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-blue-500/20 border border-blue-400/40 text-blue-300 font-bold">⏱ Timer</span> App-recorded duration</span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-cyan-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-bold">📸 Photo</span> Photo taken during session</span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold">✓ Verified</span> Timer + photo</span>
               </div>
 
               {/* Leaderboard entries */}
