@@ -24,16 +24,24 @@ export async function nativeShare({
   text,
   photoBlob,
   photoFilename = "coldstreak-plunge.jpg",
+  onCaptionCopied,
 }: {
   title: string;
   text: string;
   photoBlob?: Blob | null;
   photoFilename?: string;
+  onCaptionCopied?: () => void;
 }): Promise<"shared" | "cancelled" | "error"> {
   try {
     if (photoBlob) {
       const uri = await writeTempImage(photoBlob, photoFilename);
       if (uri) {
+        // Copy caption to clipboard before opening share sheet so the user
+        // can paste it in apps like Messenger that drop text on image intents.
+        try {
+          await navigator.clipboard.writeText(text);
+          onCaptionCopied?.();
+        } catch { /* clipboard not available — proceed silently */ }
         await Share.share({ title, text, files: [uri], dialogTitle: title });
         return "shared";
       }

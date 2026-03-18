@@ -233,7 +233,13 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
           photoBlob = dataUrlToBlob(imageData);
         } catch { /* fall back to text-only */ }
       }
-      await nativeShare({ title: "ColdStreak Plunge", text, photoBlob });
+      await nativeShare({
+        title: "ColdStreak Plunge",
+        text,
+        photoBlob,
+        onCaptionCopied: () =>
+          toast({ title: "Caption copied!", description: "Paste it into your message after sharing the photo." }),
+      });
       return;
     }
 

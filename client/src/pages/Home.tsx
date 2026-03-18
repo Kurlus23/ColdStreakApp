@@ -3370,7 +3370,13 @@ export default function Home() {
                         });
                       } catch { /* fall back to text-only */ }
                     }
-                    await nativeShare({ title: "ColdStreak Plunge", text, photoBlob });
+                    await nativeShare({
+                      title: "ColdStreak Plunge",
+                      text,
+                      photoBlob,
+                      onCaptionCopied: () =>
+                        toast({ title: "Caption copied!", description: "Paste it into your message after sharing the photo." }),
+                    });
                     done(); return;
                   }
 
