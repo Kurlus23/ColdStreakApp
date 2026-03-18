@@ -13,6 +13,11 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { UserLocation } from "@shared/schema";
 
 const NOMINATIONS_KEY = "coldstreak-nominations";
+
+function openDirections(lat: number | string, lng: number | string) {
+  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank", "noopener,noreferrer");
+}
+
 const RADIUS_KEY = "coldstreak-explore-radius";
 const RADIUS_OPTIONS = [
   { label: "Any distance", value: 0 },
@@ -764,6 +769,16 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                               <span className="text-[9px] bg-amber-500/20 border border-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0">Business</span>
                             )}
                             {isReview && <Flame className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />}
+                            {lat !== null && lng !== null && (
+                              <button
+                                data-testid={`button-directions-community-${loc.id}`}
+                                onClick={() => openDirections(lat, lng)}
+                                title="Get directions"
+                                className="w-6 h-6 flex items-center justify-center rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 hover:text-cyan-300 transition-all active:scale-95 flex-shrink-0"
+                              >
+                                <Navigation className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             <span className="text-[11px] text-blue-400">
@@ -881,27 +896,39 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                       data-testid={`card-passport-${loc.id}`}
                       className={`rounded-xl border transition-all ${earned ? "bg-cyan-500/10 border-cyan-500/40" : "bg-blue-900/40 border-blue-700/40"}`}
                     >
-                      <button
-                        onClick={() => setLocationIdDetail(isOpen ? null : loc.id)}
-                        className="w-full flex items-center gap-3 p-3 text-left"
-                      >
-                        <div className="text-2xl">{loc.flag}</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-sm font-semibold truncate ${earned ? "text-cyan-200" : "text-white"}`}>{loc.name}</span>
-                            {earned && <span className="text-xs text-cyan-400 font-bold">✓</span>}
-                          </div>
-                          <div className={`text-[11px] font-semibold ${DIFFICULTY_META[loc.difficulty].color}`}>
-                            {DIFFICULTY_META[loc.difficulty].label}
-                            {loc.state ? ` · ${loc.state}` : ""}
+                      <div className="flex items-center gap-3 p-3">
+                        <div
+                          onClick={() => setLocationIdDetail(isOpen ? null : loc.id)}
+                          className="flex-1 flex items-center gap-3 cursor-pointer text-left min-w-0"
+                        >
+                          <div className="text-2xl shrink-0">{loc.flag}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className={`text-sm font-semibold truncate ${earned ? "text-cyan-200" : "text-white"}`}>{loc.name}</span>
+                              {earned && <span className="text-xs text-cyan-400 font-bold">✓</span>}
+                            </div>
+                            <div className={`text-[11px] font-semibold ${DIFFICULTY_META[loc.difficulty].color}`}>
+                              {DIFFICULTY_META[loc.difficulty].label}
+                              {loc.state ? ` · ${loc.state}` : ""}
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          {dist && <div className="text-[11px] text-cyan-400 font-semibold">{dist}</div>}
-                          <div className="text-[10px] text-blue-500">{loc.tempRange}</div>
-                          {loc.seasonal && <div className="text-[10px] text-amber-400">Seasonal</div>}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="text-right">
+                            {dist && <div className="text-[11px] text-cyan-400 font-semibold">{dist}</div>}
+                            <div className="text-[10px] text-blue-500">{loc.tempRange}</div>
+                            {loc.seasonal && <div className="text-[10px] text-amber-400">Seasonal</div>}
+                          </div>
+                          <button
+                            data-testid={`button-directions-passport-${loc.id}`}
+                            onClick={() => openDirections(loc.lat, loc.lng)}
+                            title="Get directions"
+                            className="w-8 h-8 flex items-center justify-center rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 hover:text-cyan-300 transition-all active:scale-95 shrink-0"
+                          >
+                            <Navigation className="w-3.5 h-3.5" />
+                          </button>
                         </div>
-                      </button>
+                      </div>
                       {isOpen && (
                         <div className="px-3 pb-3 border-t border-blue-700/30 pt-2 space-y-2">
                           <p className="text-blue-200 text-xs leading-relaxed">{loc.description}</p>
