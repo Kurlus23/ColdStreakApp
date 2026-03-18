@@ -3014,6 +3014,8 @@ export default function Home() {
                                 onClick={() => window.open(`/profile/${encodeURIComponent(entry.username)}`, "_blank")}
                                 className="text-white font-semibold text-sm truncate hover:text-cyan-300 transition-colors active:scale-95"
                               >{entry.username}</button>
+                              {isMyEntry && StreakBadge}
+                              {isMyEntry && !streak && DaysBadge}
                               {(entry as LeaderboardEntryWithBadge).foundingPlunger && (
                                 <span
                                   data-testid={`badge-founding-${entry.username}`}
@@ -3032,8 +3034,6 @@ export default function Home() {
                                   </span>
                                 );
                               })()}
-                              {isMyEntry && StreakBadge}
-                              {isMyEntry && !streak && DaysBadge}
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-blue-400 text-xs">
