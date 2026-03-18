@@ -1053,7 +1053,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             </div>
             <div>
               <p className="text-white font-bold text-sm">Verified Business Listing</p>
-              <p className="text-slate-400 text-[11px]">$9.99 / month — cancel anytime</p>
+              <p className="text-slate-400 text-[11px]">$29.99 / month — cancel anytime</p>
             </div>
             <button
               onClick={() => setVerifyDialogLocId(null)}
@@ -1091,7 +1091,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               disabled={businessCheckoutMutation.isPending}
               className="w-full py-3 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold text-sm transition-all active:scale-95 disabled:opacity-60"
             >
-              {businessCheckoutMutation.isPending ? "Redirecting…" : "Subscribe for $9.99/mo"}
+              {businessCheckoutMutation.isPending ? "Redirecting…" : "Subscribe for $29.99/mo"}
             </button>
             <button
               onClick={() => setVerifyDialogLocId(null)}

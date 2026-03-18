@@ -461,9 +461,9 @@ export async function registerRoutes(
             currency: "usd",
             product_data: {
               name: "ColdStreak Verified Business Listing",
-              description: "✓ Verified badge on ColdStreak community boards — $9.99/month",
+              description: "✓ Verified badge on ColdStreak community boards — $29.99/month",
             },
-            unit_amount: 999,
+            unit_amount: 2999,
             recurring: { interval: "month" },
           },
           quantity: 1,
