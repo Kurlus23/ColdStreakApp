@@ -27,6 +27,9 @@ export function useSubmitLeaderboard() {
       score: number | string;
       duration: number;
       temperature: number;
+      verificationLevel?: number;
+      hasPhoto?: boolean;
+      locationVerified?: boolean;
     }) => {
       const res = await fetch(api.leaderboard.submit.path, {
         method: "POST",

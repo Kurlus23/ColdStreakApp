@@ -127,9 +127,9 @@ export class DatabaseStorage implements IStorage {
           duration: sql`CASE WHEN excluded.score::numeric > leaderboard_entries.score::numeric THEN excluded.duration ELSE leaderboard_entries.duration END`,
           temperature: sql`CASE WHEN excluded.score::numeric > leaderboard_entries.score::numeric THEN excluded.temperature ELSE leaderboard_entries.temperature END`,
           createdAt: sql`CASE WHEN excluded.score::numeric > leaderboard_entries.score::numeric THEN now() ELSE leaderboard_entries.created_at END`,
-          verificationLevel: sql`CASE WHEN excluded.score::numeric > leaderboard_entries.score::numeric THEN excluded.verification_level ELSE leaderboard_entries.verification_level END`,
-          hasPhoto: sql`CASE WHEN excluded.score::numeric > leaderboard_entries.score::numeric THEN excluded.has_photo ELSE leaderboard_entries.has_photo END`,
-          locationVerified: sql`CASE WHEN excluded.score::numeric > leaderboard_entries.score::numeric THEN excluded.location_verified ELSE leaderboard_entries.location_verified END`,
+          verificationLevel: sql`GREATEST(excluded.verification_level, leaderboard_entries.verification_level)`,
+          hasPhoto: sql`excluded.has_photo OR leaderboard_entries.has_photo`,
+          locationVerified: sql`excluded.location_verified OR leaderboard_entries.location_verified`,
         },
       })
       .returning();
