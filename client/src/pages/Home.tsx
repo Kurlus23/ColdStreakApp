@@ -431,6 +431,7 @@ export default function Home() {
   // Leaderboard
   const [leaderboardLocationId, setLeaderboardLocationId] = useState<string | null>(null);
   const [leaderboardLocName, setLeaderboardLocName] = useState<string>("");
+  const [legendTip, setLegendTip] = useState<string | null>(null);
   const { data: communityLocs = [] } = useQuery<UserLocation[]>({ queryKey: ["/api/community-locations"] });
   const [username, setUsername] = useState<string>(() => {
     return localStorage.getItem("coldstreak-username") ?? "";
@@ -2883,12 +2884,27 @@ export default function Home() {
               </div>
 
               {/* Verification legend */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3 px-1 shrink-0">
-                <span className="text-blue-500 text-[10px] font-medium uppercase tracking-wide">Verification:</span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-blue-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-blue-500/20 border border-blue-400/40 text-blue-300 font-bold">⏱ Timer</span> App-recorded duration</span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-cyan-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-bold">📸 Photo</span> Photo taken during session</span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold">✓</span> Any 2 of: timer, photo, GPS</span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-violet-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-500/20 border border-violet-400/40 text-violet-300 font-bold">✓ Verified</span> All 3: timer + photo + GPS</span>
+              <div className="mb-3 px-1 shrink-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-blue-500 text-[10px] font-medium uppercase tracking-wide">Verification:</span>
+                  {[
+                    { key: "timer",    label: "⏱ Timer",    cls: "bg-blue-500/20 border-blue-400/40 text-blue-300",    desc: "App-recorded duration" },
+                    { key: "photo",    label: "📸 Photo",    cls: "bg-cyan-500/20 border-cyan-400/40 text-cyan-300",    desc: "Photo taken during session" },
+                    { key: "two",      label: "✓ Verified",  cls: "bg-emerald-500/20 border-emerald-400/40 text-emerald-300", desc: "Any 2 of: timer, photo, GPS" },
+                    { key: "verified", label: "✓ Verified",  cls: "bg-violet-500/20 border-violet-400/40 text-violet-200", desc: "All 3: timer + photo + GPS" },
+                  ].map(({ key, label, cls, desc }) => (
+                    <button
+                      key={key}
+                      onClick={() => setLegendTip(legendTip === key ? null : key)}
+                      className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none border transition-opacity ${cls} ${legendTip && legendTip !== key ? "opacity-40" : "opacity-100"}`}
+                    >{label}</button>
+                  ))}
+                </div>
+                {legendTip && (
+                  <p className="text-[10px] mt-1.5 text-blue-300 pl-1">
+                    {{ timer: "⏱ Timer — App-recorded duration", photo: "📸 Photo — Photo taken during session", two: "✓ Verified (green) — Any 2 of: timer, photo, GPS", verified: "✓ Verified (purple) — All 3: timer + photo + GPS" }[legendTip]}
+                  </p>
+                )}
               </div>
 
               {/* Leaderboard entries */}
@@ -2970,7 +2986,7 @@ export default function Home() {
                                     >✓ Verified</span>
                                   );
                                 }
-                                // Any two tiers → green "✓"
+                                // Any two tiers → green "✓ Verified"
                                 const twoTiers = vl === 3 || (gps && vl >= 1);
                                 if (twoTiers) {
                                   const title = vl === 3 ? "Timer + Photo" : gps && vl === 2 ? "Photo + GPS" : "Timer + GPS";
@@ -2979,7 +2995,7 @@ export default function Home() {
                                       data-testid={`badge-verified-${entry.id}`}
                                       title={title}
                                       className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none border bg-emerald-500/20 border-emerald-400/40 text-emerald-300 shrink-0"
-                                    >✓</span>
+                                    >✓ Verified</span>
                                   );
                                 }
                                 // Photo only → cyan "📸"
