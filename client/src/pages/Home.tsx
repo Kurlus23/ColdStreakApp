@@ -2960,34 +2960,32 @@ export default function Home() {
                               <span className="text-blue-400 text-xs">
                                 {Math.floor(entry.duration / 60)}:{String(entry.duration % 60).padStart(2, "0")} · {entry.temperature}°F
                               </span>
-                              {(entry.verificationLevel ?? 0) >= 1 && (
-                                <span
-                                  data-testid={`badge-verified-${entry.id}`}
-                                  title={
-                                    entry.verificationLevel === 3 ? "Timer + Photo Verified" :
-                                    entry.verificationLevel === 2 ? "Photo Verified" :
-                                    "Timer Verified"
-                                  }
-                                  className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none border shrink-0 ${
-                                    entry.verificationLevel === 3
-                                      ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-300"
-                                      : entry.verificationLevel === 2
-                                      ? "bg-cyan-500/20 border-cyan-400/40 text-cyan-300"
-                                      : "bg-blue-500/20 border-blue-400/40 text-blue-300"
-                                  }`}
-                                >
-                                  {entry.verificationLevel === 3 ? "✓ Verified" :
-                                   entry.verificationLevel === 2 ? "📸 Photo" :
-                                   "⏱ Timer"}
-                                </span>
-                              )}
-                              {entry.locationVerified && (
-                                <span
-                                  data-testid={`badge-gps-${entry.id}`}
-                                  title="GPS Verified — plunged within 5 miles of this location"
-                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none border shrink-0 bg-violet-500/20 border-violet-400/40 text-violet-300"
-                                >📍 GPS</span>
-                              )}
+                              {(() => {
+                                const vl = entry.verificationLevel ?? 0;
+                                const gps = entry.locationVerified;
+                                if (vl === 0 && !gps) return null;
+                                const timerOn = vl === 1 || vl === 3;
+                                const photoOn = vl === 2 || vl === 3;
+                                const icons = [timerOn && "⏱", photoOn && "📸", gps && "📍"].filter(Boolean).join("");
+                                const label = vl === 3 && gps ? "✓ " + icons : icons;
+                                const titleText = [timerOn && "Timer", photoOn && "Photo", gps && "GPS"].filter(Boolean).join(" + ") + " Verified";
+                                const colorClass = gps && vl === 3
+                                  ? "bg-violet-500/20 border-violet-400/40 text-violet-200"
+                                  : gps
+                                  ? "bg-violet-500/20 border-violet-400/40 text-violet-300"
+                                  : vl === 3
+                                  ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-300"
+                                  : vl === 2
+                                  ? "bg-cyan-500/20 border-cyan-400/40 text-cyan-300"
+                                  : "bg-blue-500/20 border-blue-400/40 text-blue-300";
+                                return (
+                                  <span
+                                    data-testid={`badge-verified-${entry.id}`}
+                                    title={titleText}
+                                    className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none border shrink-0 ${colorClass}`}
+                                  >{label}</span>
+                                );
+                              })()}
                             </div>
                           </div>
                           {isMyEntry && (
