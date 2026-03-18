@@ -68,15 +68,11 @@ export function buildShareText({
 }): string {
   const name = username?.trim() || "I";
   const verb = name === "I" ? "just completed" : "just completed";
-  const lines: string[] = [
-    `${name} ${verb} a ${temperature}°F plunge! 🧊`,
-    `⏱️ Duration: ${formatTime(duration)}`,
-  ];
-  if (streak && streak > 0) lines.push(`🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}`);
-  if (locationId === "home") lines.push(`📍 Home`);
-  else if (locationName) lines.push(`📍 ${locationName}`);
-  lines.push(`\nTracked with ColdStreak`);
-  return lines.join("\n");
+  const stats: string[] = [`⏱️ ${formatTime(duration)}`];
+  if (streak && streak > 0) stats.push(`🔥 ${streak} day${streak === 1 ? "" : "s"}`);
+  if (locationId === "home") stats.push(`📍 Home`);
+  else if (locationName) stats.push(`📍 ${locationName}`);
+  return `${name} ${verb} a ${temperature}°F plunge! 🧊\n${stats.join(" · ")}\n\ncoldstreakapp.com`;
 }
 
 function resolveLocationDisplay(locId: string | null | undefined, locName: string | null | undefined, communityLocs: UserLocation[], homeLabel?: string) {
