@@ -4,7 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   MapPin, Compass, Search, X, ChevronDown, Lock,
-  Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert
+  Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, Building2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useProStatus } from "@/hooks/use-pro-status";
@@ -206,7 +206,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [locationIdDetail, setLocationIdDetail] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    name: "", country: "USA", state: "", city: "", description: "", difficulty: "",
+    name: "", country: "USA", state: "", city: "", description: "", difficulty: "", isBusiness: false, websiteUrl: "",
   });
   const [formGeoPos, setFormGeoPos] = useState<GeoPos | null>(null);
   const [formGeoLoading, setFormGeoLoading] = useState(false);
@@ -304,7 +304,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
       setShowForm(false);
-      setForm({ name: "", country: "USA", state: "", city: "", description: "" });
+      setForm({ name: "", country: "USA", state: "", city: "", description: "", difficulty: "", isBusiness: false, websiteUrl: "" });
       setFormGeoPos(null);
       toast({ title: "Location submitted!", description: "Thanks — your spot is now visible to the community." });
     },
@@ -398,6 +398,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     submitMutation.mutate({
       ...form,
       difficulty: form.difficulty || undefined,
+      isBusiness: form.isBusiness || undefined,
+      websiteUrl: form.websiteUrl.trim() || undefined,
       submittedBy: username,
       ...(formGeoPos ? { latitude: formGeoPos.lat, longitude: formGeoPos.lng } : {}),
     });
@@ -690,6 +692,29 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     })}
                   </div>
                 </div>
+                <button
+                  data-testid="button-form-toggle-business"
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, isBusiness: !f.isBusiness }))}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all ${
+                    form.isBusiness
+                      ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                      : "bg-blue-900/40 border-blue-700/40 text-blue-400"
+                  }`}
+                >
+                  <Building2 className="w-3.5 h-3.5 shrink-0" />
+                  {form.isBusiness ? "Business / Commercial ✓" : "Mark as a business or commercial location"}
+                </button>
+                {form.isBusiness && (
+                  <input
+                    data-testid="input-form-business-website"
+                    type="url"
+                    placeholder="Website URL (optional)"
+                    value={form.websiteUrl}
+                    onChange={(e) => setForm((f) => ({ ...f, websiteUrl: e.target.value }))}
+                    className="w-full bg-blue-900/60 border border-amber-500/30 text-white text-xs rounded-xl px-3 py-2 focus:outline-none placeholder-blue-500 focus:border-amber-400"
+                  />
+                )}
                 <div className="flex gap-2">
                   <button
                     data-testid="button-submit-location"
@@ -701,7 +726,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     {submitMutation.isPending ? "Saving…" : "Submit"}
                   </button>
                   <button
-                    onClick={() => { setShowForm(false); setFormGeoPos(null); setForm({ name: "", country: "USA", state: "", city: "", description: "", difficulty: "" }); }}
+                    onClick={() => { setShowForm(false); setFormGeoPos(null); setForm({ name: "", country: "USA", state: "", city: "", description: "", difficulty: "", isBusiness: false, websiteUrl: "" }); }}
                     className="px-3 py-2 rounded-xl bg-blue-800/60 text-blue-400 text-xs hover:text-white transition-all"
                   >
                     Cancel
@@ -728,12 +753,16 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     <div
                       key={loc.id}
                       data-testid={`card-community-${loc.id}`}
-                      className="bg-blue-900/40 border border-blue-700/30 rounded-xl p-3"
+                      className={`rounded-xl p-3 ${loc.isBusiness ? "bg-amber-900/10 border border-amber-600/25" : "bg-blue-900/40 border border-blue-700/30"}`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
+                            {loc.isBusiness && <Building2 className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />}
                             <span className="text-white text-sm font-semibold truncate">{loc.name}</span>
+                            {loc.isBusiness && (
+                              <span className="text-[9px] bg-amber-500/20 border border-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0">Business</span>
+                            )}
                             {isReview && <Flame className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />}
                           </div>
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
@@ -749,6 +778,18 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                           </div>
                           {loc.description && (
                             <p className="text-blue-300 text-[11px] mt-1 leading-relaxed line-clamp-2">{loc.description}</p>
+                          )}
+                          {loc.isBusiness && loc.websiteUrl && (
+                            <a
+                              href={loc.websiteUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              data-testid={`link-website-${loc.id}`}
+                              className="inline-flex items-center gap-1 text-[11px] text-amber-400 hover:text-amber-300 font-semibold mt-1 transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              🌐 Visit website
+                            </a>
                           )}
                         </div>
                         <div className="flex flex-col items-end gap-1 flex-shrink-0">

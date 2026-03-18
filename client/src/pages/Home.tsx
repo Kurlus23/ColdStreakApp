@@ -8,7 +8,7 @@ import {
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2, FileText,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -367,9 +367,11 @@ export default function Home() {
   const [manualNewCountry, setManualNewCountry] = useState("USA");
   const [manualNewState, setManualNewState] = useState("");
   const [manualNewCity, setManualNewCity] = useState("");
+  const [manualNewIsBusiness, setManualNewIsBusiness] = useState(false);
+  const [manualNewWebsite, setManualNewWebsite] = useState("");
 
   const createCommunitySpot = useMutation({
-    mutationFn: async (loc: { name: string; country: string; state?: string; city?: string }) => {
+    mutationFn: async (loc: { name: string; country: string; state?: string; city?: string; isBusiness?: boolean; websiteUrl?: string }) => {
       const res = await fetch("/api/community-locations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -383,6 +385,7 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
       setManualLocSel(`community-${newLoc.id}`);
       setManualNewName(""); setManualNewCountry("USA"); setManualNewState(""); setManualNewCity("");
+      setManualNewIsBusiness(false); setManualNewWebsite("");
       toast({ title: "Spot created!", description: `${newLoc.name} added to community spots.` });
     },
   });
@@ -1284,7 +1287,7 @@ export default function Home() {
                             : "";
                           return (
                             <option key={l.id} value={`community-${l.id}`}>
-                              📍 {l.name}{l.city ? `, ${l.city}` : ""}{dist}
+                              {l.isBusiness ? "🏢" : "📍"} {l.name}{l.city ? `, ${l.city}` : ""}{dist}
                             </option>
                           );
                         })}
@@ -1355,6 +1358,29 @@ export default function Home() {
                         className="w-full bg-blue-900/60 border border-blue-700 rounded-lg px-3 py-1.5 text-white text-xs placeholder:text-blue-500 focus:outline-none"
                       />
                       <button
+                        data-testid="button-manual-toggle-business"
+                        type="button"
+                        onClick={() => setManualNewIsBusiness((v) => !v)}
+                        className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                          manualNewIsBusiness
+                            ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                            : "bg-blue-900/40 border-blue-700/60 text-blue-400"
+                        }`}
+                      >
+                        <Building2 className="w-3.5 h-3.5 shrink-0" />
+                        {manualNewIsBusiness ? "Business / Commercial ✓" : "Mark as a business or commercial location"}
+                      </button>
+                      {manualNewIsBusiness && (
+                        <input
+                          data-testid="input-manual-new-website"
+                          type="url"
+                          placeholder="Website URL (optional)"
+                          value={manualNewWebsite}
+                          onChange={(e) => setManualNewWebsite(e.target.value)}
+                          className="w-full bg-blue-900/60 border border-amber-500/30 rounded-lg px-3 py-1.5 text-white text-xs placeholder:text-blue-500 focus:outline-none focus:border-amber-400"
+                        />
+                      )}
+                      <button
                         data-testid="button-manual-create-spot"
                         disabled={!manualNewName.trim() || createCommunitySpot.isPending}
                         onClick={() => createCommunitySpot.mutate({
@@ -1362,6 +1388,8 @@ export default function Home() {
                           country: manualNewCountry,
                           state: manualNewState.trim() || undefined,
                           city: manualNewCity.trim() || undefined,
+                          isBusiness: manualNewIsBusiness || undefined,
+                          websiteUrl: manualNewWebsite.trim() || undefined,
                         })}
                         className="w-full py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-bold transition-all active:scale-95"
                       >
@@ -2871,6 +2899,7 @@ export default function Home() {
           : null;
         const dirLat = passportLoc?.lat ?? (communityLocEntry?.latitude ? Number(communityLocEntry.latitude) : null);
         const dirLng = passportLoc?.lng ?? (communityLocEntry?.longitude ? Number(communityLocEntry.longitude) : null);
+        const resolvedFlag = communityLocEntry?.isBusiness ? "🏢" : (passportLoc?.flag ?? "📍");
         return (
           <div className="fixed inset-0 z-40 flex items-end justify-center">
             <div className="absolute inset-0 bg-black/70" onClick={() => setLeaderboardLocationId(null)} />
@@ -2881,10 +2910,15 @@ export default function Home() {
               {/* Header */}
               <div className="flex items-center justify-between mb-4 shrink-0">
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl">{displayFlag}</span>
+                  <span className="text-3xl">{resolvedFlag}</span>
                   <div>
-                    <h3 className="text-white font-bold text-base leading-tight">{displayName}</h3>
-                    <p className="text-blue-400 text-xs">{displaySub}</p>
+                    <h3 className="text-white font-bold text-base leading-tight">
+                      {displayName}
+                      {communityLocEntry?.isBusiness && (
+                        <Building2 className="inline w-3.5 h-3.5 ml-1.5 text-amber-400 align-middle" />
+                      )}
+                    </h3>
+                    <p className="text-blue-400 text-xs">{communityLocEntry?.isBusiness ? "Business · Cold Plunge Spot" : displaySub}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -3222,7 +3256,7 @@ export default function Home() {
                 {communityLocs.length > 0 && (
                   <optgroup label="Community Spots">
                     {communityLocs.map((l) => (
-                      <option key={`community-${l.id}`} value={`community-${l.id}`}>📍 {l.name}{l.city ? `, ${l.city}` : ""}{l.state ? `, ${l.state}` : ""}</option>
+                      <option key={`community-${l.id}`} value={`community-${l.id}`}>{l.isBusiness ? "🏢" : "📍"} {l.name}{l.city ? `, ${l.city}` : ""}{l.state ? `, ${l.state}` : ""}</option>
                     ))}
                   </optgroup>
                 )}
@@ -3269,20 +3303,38 @@ export default function Home() {
                       const cLng = cloc?.longitude ? Number(cloc.longitude) : null;
                       return (
                         <div className="space-y-1.5">
-                          <div className="text-xs text-blue-300 leading-relaxed">
-                            <span className="font-semibold text-cyan-300">📍 {cloc?.name ?? "Community Spot"}</span>
-                            {cloc?.description ? ` — ${cloc.description}` : ""}
+                          <div className="text-xs text-blue-300 leading-relaxed flex items-center gap-1.5 flex-wrap">
+                            {cloc?.isBusiness
+                              ? <Building2 className="w-3 h-3 text-amber-400 shrink-0" />
+                              : <span>📍</span>
+                            }
+                            <span className="font-semibold text-cyan-300">{cloc?.name ?? "Community Spot"}</span>
+                            {cloc?.isBusiness && <span className="text-[10px] bg-amber-500/20 border border-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded-full font-semibold">Business</span>}
+                            {cloc?.description ? <span>— {cloc.description}</span> : ""}
                           </div>
-                          {cLat !== null && cLng !== null && (
-                            <button
-                              data-testid="button-directions-popup-community"
-                              onClick={() => openDirections(cLat, cLng)}
-                              className="flex items-center gap-1.5 text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
-                            >
-                              <Navigation className="w-3 h-3" />
-                              Get Directions
-                            </button>
-                          )}
+                          <div className="flex items-center gap-3">
+                            {cLat !== null && cLng !== null && (
+                              <button
+                                data-testid="button-directions-popup-community"
+                                onClick={() => openDirections(cLat, cLng)}
+                                className="flex items-center gap-1.5 text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
+                              >
+                                <Navigation className="w-3 h-3" />
+                                Get Directions
+                              </button>
+                            )}
+                            {cloc?.isBusiness && cloc.websiteUrl && (
+                              <a
+                                href={cloc.websiteUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                data-testid="link-business-website"
+                                className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+                              >
+                                🌐 Website
+                              </a>
+                            )}
+                          </div>
                         </div>
                       );
                     }

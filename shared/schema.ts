@@ -105,6 +105,8 @@ export const userLocations = pgTable("user_locations", {
   submittedBy: text("submitted_by"),
   latitude: numeric("latitude", { precision: 9, scale: 6 }),
   longitude: numeric("longitude", { precision: 9, scale: 6 }),
+  isBusiness: boolean("is_business").default(false).notNull(),
+  websiteUrl: text("website_url"),
   nominationCount: integer("nomination_count").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

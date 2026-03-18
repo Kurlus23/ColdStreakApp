@@ -360,6 +360,8 @@ export async function registerRoutes(
         submittedBy: z.string().max(50).optional(),
         latitude: z.number().min(-90).max(90).optional(),
         longitude: z.number().min(-180).max(180).optional(),
+        isBusiness: z.boolean().optional(),
+        websiteUrl: z.string().url().max(300).optional().or(z.literal("")),
       }).parse(req.body);
       const loc = await storage.createUserLocation(input);
       res.status(201).json(loc);
