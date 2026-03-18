@@ -3048,8 +3048,6 @@ export default function Home() {
                                 onClick={() => window.open(`/profile/${encodeURIComponent(entry.username)}`, "_blank")}
                                 className="text-white font-semibold text-sm truncate hover:text-cyan-300 transition-colors active:scale-95"
                               >{entry.username}</button>
-                              {isMyEntry && StreakBadge}
-                              {isMyEntry && !streak && DaysBadge}
                               {(entry as LeaderboardEntryWithBadge).foundingPlunger && (
                                 <span
                                   data-testid={`badge-founding-${entry.username}`}
@@ -3057,6 +3055,8 @@ export default function Home() {
                                   title="Founding Plunger"
                                 >🎖️ Founder</span>
                               )}
+                              {isMyEntry && StreakBadge}
+                              {isMyEntry && !streak && DaysBadge}
                               {isMyEntry && featuredBadgeIds.length > 0 && (() => {
                                 const lookup: Record<string, string> = {};
                                 TEMP_TIERS.forEach(t => { lookup[t.id] = t.emoji; });
