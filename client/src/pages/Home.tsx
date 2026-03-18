@@ -2887,8 +2887,8 @@ export default function Home() {
                 <span className="text-blue-500 text-[10px] font-medium uppercase tracking-wide">Verification:</span>
                 <span className="inline-flex items-center gap-1 text-[10px] text-blue-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-blue-500/20 border border-blue-400/40 text-blue-300 font-bold">⏱ Timer</span> App-recorded duration</span>
                 <span className="inline-flex items-center gap-1 text-[10px] text-cyan-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-bold">📸 Photo</span> Photo taken during session</span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold">✓</span> Timer + photo</span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-violet-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-500/20 border border-violet-400/40 text-violet-300 font-bold">✓ Verified</span> GPS + timer + photo</span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold">✓</span> Any 2 of: timer, photo, GPS</span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-violet-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-500/20 border border-violet-400/40 text-violet-300 font-bold">✓ Verified</span> All 3: timer + photo + GPS</span>
               </div>
 
               {/* Leaderboard entries */}
@@ -2960,22 +2960,24 @@ export default function Home() {
                                 const vl = entry.verificationLevel ?? 0;
                                 const gps = entry.locationVerified;
                                 if (vl === 0) return null;
-                                // GPS + timer + photo → purple "✓ Verified" (gold standard)
+                                // All three: GPS + timer + photo → purple "✓ Verified"
                                 if (gps && vl === 3) {
                                   return (
                                     <span
                                       data-testid={`badge-verified-${entry.id}`}
-                                      title="GPS Verified — plunged within 5 mi"
+                                      title="GPS + Timer + Photo Verified"
                                       className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none border bg-violet-500/20 border-violet-400/40 text-violet-200 shrink-0"
                                     >✓ Verified</span>
                                   );
                                 }
-                                // Timer + photo → green "✓"
-                                if (vl === 3) {
+                                // Any two tiers → green "✓"
+                                const twoTiers = vl === 3 || (gps && vl >= 1);
+                                if (twoTiers) {
+                                  const title = vl === 3 ? "Timer + Photo" : gps && vl === 2 ? "Photo + GPS" : "Timer + GPS";
                                   return (
                                     <span
                                       data-testid={`badge-verified-${entry.id}`}
-                                      title="Timer + Photo Verified"
+                                      title={title}
                                       className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none border bg-emerald-500/20 border-emerald-400/40 text-emerald-300 shrink-0"
                                     >✓</span>
                                   );
@@ -2985,7 +2987,7 @@ export default function Home() {
                                   return (
                                     <span
                                       data-testid={`badge-verified-${entry.id}`}
-                                      title="Photo Verified"
+                                      title="Photo"
                                       className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none border bg-cyan-500/20 border-cyan-400/40 text-cyan-300 shrink-0"
                                     >📸</span>
                                   );
@@ -2994,7 +2996,7 @@ export default function Home() {
                                 return (
                                   <span
                                     data-testid={`badge-verified-${entry.id}`}
-                                    title="Timer Verified"
+                                    title="Timer"
                                     className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none border bg-blue-500/20 border-blue-400/40 text-blue-300 shrink-0"
                                   >⏱</span>
                                 );
