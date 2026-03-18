@@ -69,6 +69,8 @@ export const api = {
       path: "/api/leaderboard" as const,
       input: insertLeaderboardEntrySchema.extend({
         score: z.string().or(z.number()),
+        verificationLevel: z.number().int().min(0).max(3).optional(),
+        hasPhoto: z.boolean().optional(),
       }),
       responses: {
         201: z.custom<typeof leaderboardEntries.$inferSelect>(),

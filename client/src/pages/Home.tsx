@@ -440,7 +440,7 @@ export default function Home() {
     return localStorage.getItem("coldstreak-username") ?? "";
   });
   // Plunge data stored for leaderboard submission after save
-  const promptPlungeRef = useRef<{ score: string; duration: number; temperature: number } | null>(null);
+  const promptPlungeRef = useRef<{ score: string; duration: number; temperature: number; timerUsed: boolean } | null>(null);
 
   const { toast } = useToast();
   const { data: plunges = [], isLoading } = usePlunges();
@@ -670,13 +670,13 @@ export default function Home() {
   const doLogPlunge = useCallback((durationSec: number) => {
     const score = plungeScore(durationSec, temperature);
     createPlunge.mutate(
-      { duration: durationSec, temperature, score: String(score), hrAvg: null, spo2Avg: null },
+      { duration: durationSec, temperature, score: String(score), hrAvg: null, spo2Avg: null, timerUsed: true },
       {
         onSuccess: (newPlunge) => {
           Analytics.plungeLogged(durationSec, temperature, score);
           confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
           toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${temperature}°F` });
-          promptPlungeRef.current = { score: String(score), duration: durationSec, temperature };
+          promptPlungeRef.current = { score: String(score), duration: durationSec, temperature, timerUsed: true };
           setPhotoPromptId(newPlunge.id);
           setPromptPhotoData(null);
           setPromptLocationId("");
@@ -2947,8 +2947,31 @@ export default function Home() {
                               {isMyEntry && StreakBadge}
                               {isMyEntry && !streak && DaysBadge}
                             </div>
-                            <div className="text-blue-400 text-xs">
-                              {Math.floor(entry.duration / 60)}:{String(entry.duration % 60).padStart(2, "0")} · {entry.temperature}°F
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-blue-400 text-xs">
+                                {Math.floor(entry.duration / 60)}:{String(entry.duration % 60).padStart(2, "0")} · {entry.temperature}°F
+                              </span>
+                              {(entry.verificationLevel ?? 0) >= 1 && (
+                                <span
+                                  data-testid={`badge-verified-${entry.id}`}
+                                  title={
+                                    entry.verificationLevel === 3 ? "Timer + Photo Verified" :
+                                    entry.verificationLevel === 2 ? "Photo Verified" :
+                                    "Timer Verified"
+                                  }
+                                  className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none border shrink-0 ${
+                                    entry.verificationLevel === 3
+                                      ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-300"
+                                      : entry.verificationLevel === 2
+                                      ? "bg-cyan-500/20 border-cyan-400/40 text-cyan-300"
+                                      : "bg-blue-500/20 border-blue-400/40 text-blue-300"
+                                  }`}
+                                >
+                                  {entry.verificationLevel === 3 ? "✓ Verified" :
+                                   entry.verificationLevel === 2 ? "📸 Photo" :
+                                   "⏱ Timer"}
+                                </span>
+                              )}
                             </div>
                           </div>
                           {isMyEntry && (
@@ -3298,13 +3321,20 @@ export default function Home() {
 
                       // Submit to leaderboard if opted in (works for both passport and community)
                       if (finalLocationId && promptSubmitLeaderboard && username.trim() && promptPlungeRef.current) {
-                        const { score, duration, temperature: temp } = promptPlungeRef.current;
+                        const { score, duration, temperature: temp, timerUsed } = promptPlungeRef.current;
+                        const hasPhoto = !!promptPhotoData;
+                        const verificationLevel =
+                          timerUsed && hasPhoto ? 3 :
+                          hasPhoto ? 2 :
+                          timerUsed ? 1 : 0;
                         submitLeaderboard.mutate({
                           locationId: finalLocationId,
                           username: username.trim(),
                           score,
                           duration,
                           temperature: temp,
+                          verificationLevel,
+                          hasPhoto,
                         });
                       }
 

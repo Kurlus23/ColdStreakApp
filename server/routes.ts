@@ -311,6 +311,19 @@ export async function registerRoutes(
   app.post("/api/leaderboard", async (req, res) => {
     try {
       const input = api.leaderboard.submit.input.parse(req.body);
+
+      // ── Range validation: reject entries outside realistic bounds ──
+      const TEMP_MIN = 33; // °F — water freezes at 32°F; 33 is the realistic floor
+      const TEMP_MAX = 65; // °F — above this it's not cold exposure
+      const DURATION_MIN = 5;    // seconds
+      const DURATION_MAX = 1800; // 30 minutes
+      if (input.temperature < TEMP_MIN || input.temperature > TEMP_MAX) {
+        return res.status(400).json({ message: `Temperature must be between ${TEMP_MIN}°F and ${TEMP_MAX}°F for leaderboard submission.` });
+      }
+      if (input.duration < DURATION_MIN || input.duration > DURATION_MAX) {
+        return res.status(400).json({ message: `Duration must be between ${DURATION_MIN}s and ${DURATION_MAX}s for leaderboard submission.` });
+      }
+
       const entry = await storage.addLeaderboardEntry({ ...input, score: String(input.score) });
       res.status(201).json(entry);
     } catch (err) {

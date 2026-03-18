@@ -31,6 +31,7 @@ export const plunges = pgTable("plunges", {
   photoData: text("photo_data"), // base64 data URL of photo (nullable)
   locationName: text("location_name"), // display name of location (nullable)
   locationId: text("location_id"), // passport location id (nullable)
+  timerUsed: boolean("timer_used").default(false).notNull(), // true = in-app timer; false = manually entered
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -41,6 +42,9 @@ export const leaderboardEntries = pgTable("leaderboard_entries", {
   score: numeric("score", { precision: 10, scale: 2 }).notNull(),
   duration: integer("duration").notNull(), // in seconds
   temperature: integer("temperature").notNull(), // in fahrenheit
+  // 0=none, 1=timer verified, 2=photo verified, 3=timer+photo verified
+  verificationLevel: integer("verification_level").default(0).notNull(),
+  hasPhoto: boolean("has_photo").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [uniqueIndex("leaderboard_location_user_idx").on(t.locationId, t.username)]);
 
