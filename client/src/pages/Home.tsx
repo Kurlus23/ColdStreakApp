@@ -175,6 +175,7 @@ export default function Home() {
   const [secondsInput, setSecondsInput] = useState(0);
   const alarmRef = useRef<HTMLAudioElement | null>(null);
   const startTimeRef = useRef<number | null>(null);
+  const countdownTotalRef = useRef<number>(0);
 
   const [weeklyGoalMinutes, setWeeklyGoalMinutes] = useState<number>(
     () => Number(localStorage.getItem("weeklyGoalMinutes") ?? 11)
@@ -778,6 +779,7 @@ export default function Home() {
     if (countdownMode) {
       const total = minutesInput * 60 + secondsInput;
       if (total <= 0) { toast({ title: "Set a duration first", variant: "destructive" }); return; }
+      countdownTotalRef.current = total;
       setCountdown(total);
       setCountdownRunning(true);
     } else {
@@ -900,7 +902,7 @@ export default function Home() {
 
   const displaySeconds = countdownMode ? countdown : seconds;
   const isActive = countdownMode ? countdownRunning : isRunning;
-  const elapsedSeconds = countdownMode ? (minutesInput * 60 + secondsInput) - countdown : seconds;
+  const elapsedSeconds = countdownMode ? countdownTotalRef.current - countdown : seconds;
   const displayScore = isActive && displaySeconds > 0 ? plungeScore(elapsedSeconds, temperature) : todayScore;
 
   const tempDisplay = useCelsius
@@ -2037,12 +2039,14 @@ export default function Home() {
               {countdownMode && (
                 <div className="flex items-center gap-2">
                   <select data-testid="select-countdown-minutes" value={minutesInput} onChange={(e) => setMinutesInput(Number(e.target.value))}
-                    className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white font-semibold appearance-none text-center focus:outline-none focus:border-cyan-400">
+                    disabled={countdownRunning}
+                    className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white font-semibold appearance-none text-center focus:outline-none focus:border-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed">
                     {Array.from({ length: 61 }, (_, i) => <option key={i} value={i}>{i} min</option>)}
                   </select>
                   <span className="text-blue-400 font-bold">:</span>
                   <select data-testid="select-countdown-seconds" value={secondsInput} onChange={(e) => setSecondsInput(Number(e.target.value))}
-                    className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white font-semibold appearance-none text-center focus:outline-none focus:border-cyan-400">
+                    disabled={countdownRunning}
+                    className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white font-semibold appearance-none text-center focus:outline-none focus:border-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed">
                     {Array.from({ length: 60 }, (_, i) => <option key={i} value={i}>{i} sec</option>)}
                   </select>
                 </div>

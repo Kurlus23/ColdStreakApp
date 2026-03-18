@@ -461,7 +461,7 @@ export async function registerRoutes(
             currency: "usd",
             product_data: {
               name: "ColdStreak Verified Business Listing",
-              description: "✓ Verified badge on ColdStreak community boards — $29.99/month",
+              description: "✓ Verified badge on ColdStreak community boards — $29.99/month (first month free)",
             },
             unit_amount: 2999,
             recurring: { interval: "month" },
@@ -469,6 +469,7 @@ export async function registerRoutes(
           quantity: 1,
         }],
         mode: "subscription",
+        subscription_data: { trial_period_days: 30 },
         metadata: { type: "business_listing", locationId: locationId.toString() },
         success_url: `${successUrl}?business_session_id={CHECKOUT_SESSION_ID}&business_location_id=${locationId}`,
         cancel_url: cancelUrl,
@@ -492,7 +493,7 @@ export async function registerRoutes(
 
     try {
       const session = await stripe.checkout.sessions.retrieve(session_id, { expand: ["subscription"] });
-      if (session.payment_status !== "paid") {
+      if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
         return res.status(402).json({ message: "Payment not completed" });
       }
       const email = session.customer_details?.email;
