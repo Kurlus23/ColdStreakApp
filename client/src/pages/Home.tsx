@@ -433,10 +433,6 @@ export default function Home() {
   const [leaderboardLocName, setLeaderboardLocName] = useState<string>("");
   const { data: communityLocs = [] } = useQuery<UserLocation[]>({ queryKey: ["/api/community-locations"] });
   const [username, setUsername] = useState<string>(() => {
-    if (!localStorage.getItem("coldstreak-auth-token")) {
-      localStorage.removeItem("coldstreak-username");
-      return "";
-    }
     return localStorage.getItem("coldstreak-username") ?? "";
   });
   // Plunge data stored for leaderboard submission after save
