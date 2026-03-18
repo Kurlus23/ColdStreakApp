@@ -8,7 +8,7 @@ import {
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2, FileText,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -134,6 +134,10 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = atob(base64);
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+function openDirections(lat: number | string, lng: number | string) {
+  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank", "noopener,noreferrer");
 }
 
 export default function Home() {
@@ -2827,9 +2831,19 @@ export default function Home() {
                           {diffMeta.emoji} {diffMeta.label} · {loc.tempRange}
                         </div>
                       </div>
-                      {locEarned && (
-                        <span className="text-[10px] text-cyan-400 font-semibold shrink-0">Plunged!</span>
-                      )}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {locEarned && (
+                          <span className="text-[10px] text-cyan-400 font-semibold">Plunged!</span>
+                        )}
+                        <button
+                          data-testid={`button-directions-${loc.id}`}
+                          onClick={(e) => { e.stopPropagation(); openDirections(loc.lat, loc.lng); }}
+                          title="Get directions"
+                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 hover:text-cyan-300 transition-all active:scale-95"
+                        >
+                          <Navigation className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -2852,6 +2866,11 @@ export default function Home() {
         const displayFlag = passportLoc?.flag ?? "📍";
         const displayName = leaderboardLocName || passportLoc?.name || leaderboardLocationId;
         const displaySub = passportLoc?.tempRange ?? (isCommunity ? "Community spot" : "");
+        const communityLocEntry = isCommunity
+          ? communityLocs.find((l) => l.id === Number(leaderboardLocationId.replace("community-", "")))
+          : null;
+        const dirLat = passportLoc?.lat ?? (communityLocEntry?.latitude ? Number(communityLocEntry.latitude) : null);
+        const dirLng = passportLoc?.lng ?? (communityLocEntry?.longitude ? Number(communityLocEntry.longitude) : null);
         return (
           <div className="fixed inset-0 z-40 flex items-end justify-center">
             <div className="absolute inset-0 bg-black/70" onClick={() => setLeaderboardLocationId(null)} />
@@ -2868,11 +2887,24 @@ export default function Home() {
                     <p className="text-blue-400 text-xs">{displaySub}</p>
                   </div>
                 </div>
-                <button
-                  data-testid="button-close-leaderboard"
-                  onClick={() => setLeaderboardLocationId(null)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
-                >✕</button>
+                <div className="flex items-center gap-2">
+                  {dirLat !== null && dirLng !== null && (
+                    <button
+                      data-testid="button-directions-leaderboard"
+                      onClick={() => openDirections(dirLat!, dirLng!)}
+                      title="Get directions"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25 hover:text-cyan-200 transition-all active:scale-95 text-xs font-semibold"
+                    >
+                      <Navigation className="w-3.5 h-3.5" />
+                      Directions
+                    </button>
+                  )}
+                  <button
+                    data-testid="button-close-leaderboard"
+                    onClick={() => setLeaderboardLocationId(null)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
+                  >✕</button>
+                </div>
               </div>
 
               {/* Title */}
@@ -3233,19 +3265,43 @@ export default function Home() {
                     if (promptLocationId.startsWith("community-")) {
                       const cid = Number(promptLocationId.replace("community-", ""));
                       const cloc = communityLocs.find((l) => l.id === cid);
+                      const cLat = cloc?.latitude ? Number(cloc.latitude) : null;
+                      const cLng = cloc?.longitude ? Number(cloc.longitude) : null;
                       return (
-                        <div className="text-xs text-blue-300 leading-relaxed">
-                          <span className="font-semibold text-cyan-300">📍 {cloc?.name ?? "Community Spot"}</span>
-                          {cloc?.description ? ` — ${cloc.description}` : ""}
+                        <div className="space-y-1.5">
+                          <div className="text-xs text-blue-300 leading-relaxed">
+                            <span className="font-semibold text-cyan-300">📍 {cloc?.name ?? "Community Spot"}</span>
+                            {cloc?.description ? ` — ${cloc.description}` : ""}
+                          </div>
+                          {cLat !== null && cLng !== null && (
+                            <button
+                              data-testid="button-directions-popup-community"
+                              onClick={() => openDirections(cLat, cLng)}
+                              className="flex items-center gap-1.5 text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
+                            >
+                              <Navigation className="w-3 h-3" />
+                              Get Directions
+                            </button>
+                          )}
                         </div>
                       );
                     }
                     const loc = PASSPORT_LOCATIONS.find((l) => l.id === promptLocationId);
                     if (!loc) return null;
                     return (
-                      <div className="text-xs text-blue-300 leading-relaxed">
-                        <span className="font-semibold text-cyan-300">{loc.flag} {loc.name}</span>
-                        {" — "}{loc.safetyNote}
+                      <div className="space-y-1.5">
+                        <div className="text-xs text-blue-300 leading-relaxed">
+                          <span className="font-semibold text-cyan-300">{loc.flag} {loc.name}</span>
+                          {" — "}{loc.safetyNote}
+                        </div>
+                        <button
+                          data-testid="button-directions-popup-passport"
+                          onClick={() => openDirections(loc.lat, loc.lng)}
+                          className="flex items-center gap-1.5 text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
+                        >
+                          <Navigation className="w-3 h-3" />
+                          Get Directions
+                        </button>
                       </div>
                     );
                   })()}
