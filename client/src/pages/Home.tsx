@@ -18,7 +18,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { usePlunges, useCreatePlunge, useUpdatePlunge, useDeletePlunge } from "@/hooks/use-plunges";
 import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry, type LeaderboardEntryWithBadge } from "@/hooks/use-leaderboard";
 import { useProStatus } from "@/hooks/use-pro-status";
-import { PlungeCard, buildShareText, SHARE_URL } from "@/components/PlungeCard";
+import { PlungeCard, buildShareText } from "@/components/PlungeCard";
 import { BannerAd, FeedAd, InterstitialAd } from "@/components/AdUnit";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
 import { Analytics } from "@/lib/analytics";
@@ -3622,7 +3622,6 @@ export default function Home() {
                     await nativeShare({
                       title: "ColdStreak Plunge",
                       text,
-                      url: SHARE_URL,
                       photoBlob,
                       onCaptionCopied: () =>
                         toast({ title: "Caption copied!", description: "Paste it into your message after sharing the photo." }),
@@ -3654,7 +3653,7 @@ export default function Home() {
                       }
                     }
                     try {
-                      await navigator.share({ title: "ColdStreak Plunge", text, url: SHARE_URL });
+                      await navigator.share({ title: "ColdStreak Plunge", text });
                       done(); return;
                     } catch (e: any) {
                       if (e?.name === "AbortError") { done(); return; }

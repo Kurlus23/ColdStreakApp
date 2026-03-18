@@ -51,8 +51,6 @@ async function dataUrlToFile(dataUrl: string, filename: string): Promise<File> {
   return new File([blob], filename, { type: blob.type || "image/jpeg" });
 }
 
-export const SHARE_URL = "https://coldstreakapp.com";
-
 export function buildShareText({
   username,
   temperature,
@@ -238,7 +236,6 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
       await nativeShare({
         title: "ColdStreak Plunge",
         text,
-        url: SHARE_URL,
         photoBlob,
         onCaptionCopied: () =>
           toast({ title: "Caption copied!", description: "Paste it into your message after sharing the photo." }),
@@ -272,7 +269,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
         }
       }
       try {
-        await navigator.share({ title: "ColdStreak Plunge", text, url: SHARE_URL });
+        await navigator.share({ title: "ColdStreak Plunge", text });
         return;
       } catch (e: any) {
         if (e?.name !== "AbortError") {
