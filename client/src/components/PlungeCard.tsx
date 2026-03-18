@@ -69,13 +69,13 @@ export function buildShareText({
   const name = username?.trim() || "I";
   const verb = name === "I" ? "just completed" : "just completed";
   const lines: string[] = [
-    `${name} ${verb} a ${temperature}°F plunge! 🧊`,
+    `🧊 ${name} ${verb} a ${temperature}°F plunge!`,
     `⏱️ Duration: ${formatTime(duration)}`,
   ];
   if (streak && streak > 0) lines.push(`🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}`);
   if (locationId === "home") lines.push(`📍 Home`);
   else if (locationName) lines.push(`📍 ${locationName}`);
-  lines.push(`Tracked with ColdStreak\ncoldstreakapp.com`);
+  lines.push(`Tracked with ColdStreak\nhttps://play.google.com/store/apps/details?id=com.coldstreak.app`);
   return lines.join("\n");
 }
 
