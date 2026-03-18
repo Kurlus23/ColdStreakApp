@@ -22,12 +22,14 @@ async function writeTempImage(blob: Blob, filename: string): Promise<string | nu
 export async function nativeShare({
   title,
   text,
+  url,
   photoBlob,
   photoFilename = "coldstreak-plunge.jpg",
   onCaptionCopied,
 }: {
   title: string;
   text: string;
+  url?: string;
   photoBlob?: Blob | null;
   photoFilename?: string;
   onCaptionCopied?: () => void;
@@ -42,11 +44,11 @@ export async function nativeShare({
           await navigator.clipboard.writeText(text);
           onCaptionCopied?.();
         } catch { /* clipboard not available — proceed silently */ }
-        await Share.share({ title, text, files: [uri], dialogTitle: title });
+        await Share.share({ title, text, url, files: [uri], dialogTitle: title });
         return "shared";
       }
     }
-    await Share.share({ title, text, dialogTitle: title });
+    await Share.share({ title, text, url, dialogTitle: title });
     return "shared";
   } catch (e: any) {
     if (e?.message?.includes("cancel") || e?.errorMessage?.includes("cancel")) {
