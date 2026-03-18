@@ -168,6 +168,7 @@ export default function Home() {
   const [countdownMode, setCountdownMode] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [countdownRunning, setCountdownRunning] = useState(false);
+  const [countdownElapsed, setCountdownElapsed] = useState(0);
   const [isLandscape, setIsLandscape] = useState(() =>
     typeof window !== "undefined" && window.matchMedia("(orientation: landscape)").matches
   );
@@ -632,12 +633,15 @@ export default function Home() {
   }, [notifPermission]);
 
   const handleAuthSubmit = async () => {
+    const email = authEmail;
     const ok = authMode === "login"
-      ? await auth.login(authEmail, authPassword)
-      : await auth.register(authEmail, authPassword);
+      ? await auth.login(email, authPassword)
+      : await auth.register(email, authPassword);
     if (ok) {
       setAuthEmail("");
       setAuthPassword("");
+      // Auto-restore Pro on login (handles fresh installs with no localStorage)
+      restorePurchase(email);
       // Auto-sync local plunges immediately on login/register
       backgroundSync();
     }
@@ -726,7 +730,10 @@ export default function Home() {
   // Countdown
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (countdownRunning && countdown > 0) interval = setInterval(() => setCountdown((c) => c - 1), 1000);
+    if (countdownRunning && countdown > 0) interval = setInterval(() => {
+      setCountdown((c) => c - 1);
+      setCountdownElapsed((e) => e + 1);
+    }, 1000);
     if (countdownRunning && countdown === 0) {
       setCountdownRunning(false);
       const targetDuration = minutesInput * 60 + secondsInput;
@@ -780,6 +787,7 @@ export default function Home() {
       const total = minutesInput * 60 + secondsInput;
       if (total <= 0) { toast({ title: "Set a duration first", variant: "destructive" }); return; }
       countdownTotalRef.current = total;
+      setCountdownElapsed(0);
       setCountdown(total);
       setCountdownRunning(true);
     } else {
@@ -827,6 +835,7 @@ export default function Home() {
   const resetCountdown = () => {
     setCountdownRunning(false);
     setCountdown(0);
+    setCountdownElapsed(0);
     if (alarmRef.current) { alarmRef.current.pause(); alarmRef.current.currentTime = 0; }
   };
 
@@ -902,7 +911,7 @@ export default function Home() {
 
   const displaySeconds = countdownMode ? countdown : seconds;
   const isActive = countdownMode ? countdownRunning : isRunning;
-  const elapsedSeconds = countdownMode ? countdownTotalRef.current - countdown : seconds;
+  const elapsedSeconds = countdownMode ? countdownElapsed : seconds;
   const displayScore = isActive && displaySeconds > 0 ? plungeScore(elapsedSeconds, temperature) : todayScore;
 
   const tempDisplay = useCelsius
