@@ -201,6 +201,14 @@ export class DatabaseStorage implements IStorage {
     return row ?? null;
   }
 
+  async seedPromoCode(code: string, durationDays: number, maxUses: number): Promise<void> {
+    const normalized = code.toUpperCase().trim();
+    const existing = await db.select().from(promoCodes).where(eq(promoCodes.code, normalized));
+    if (existing.length === 0) {
+      await db.insert(promoCodes).values({ code: normalized, durationDays, maxUses, usedCount: 0 });
+    }
+  }
+
   async redeemPromoCode(code: string): Promise<PromoCode | null> {
     const normalized = code.toUpperCase().trim();
     const [row] = await db.select().from(promoCodes).where(eq(promoCodes.code, normalized));

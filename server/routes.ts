@@ -558,23 +558,6 @@ export async function registerRoutes(
     }
   });
 
-  // Admin: manually grant/restore pro status (protected by Stripe secret key)
-  app.post("/api/admin/grant-pro", async (req, res) => {
-    const adminToken = req.headers["x-admin-token"];
-    if (!adminToken || adminToken !== process.env.STRIPE_SECRET_KEY) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const { email, planType = "lifetime", foundingPlunger = false } = req.body;
-    if (!email) return res.status(400).json({ error: "email required" });
-    const normalizedEmail = email.toLowerCase().trim();
-    const existing = await storage.getProUser(normalizedEmail);
-    if (existing) {
-      return res.json({ message: "Already exists", user: existing });
-    }
-    const user = await storage.createProUser(normalizedEmail, "admin-grant", { planType });
-    res.json({ message: "Pro user created", user });
-  });
-
   app.post("/api/promo/redeem", async (req, res) => {
     const { code } = req.body;
     if (!code || typeof code !== "string") {
