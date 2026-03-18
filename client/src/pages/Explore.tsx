@@ -4,7 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   MapPin, Compass, Search, X, ChevronDown, Lock,
-  Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, Building2
+  Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, Building2, CheckCircle2, BadgeCheck
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useProStatus } from "@/hooks/use-pro-status";
@@ -326,6 +326,21 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
       toast({ title: "Vote counted!" });
     },
+  });
+
+  const [verifyDialogLocId, setVerifyDialogLocId] = useState<number | null>(null);
+
+  const businessCheckoutMutation = useMutation({
+    mutationFn: (locationId: number) =>
+      apiRequest("POST", "/api/stripe/business-checkout", {
+        locationId,
+        successUrl: window.location.origin + "/",
+        cancelUrl: window.location.origin + "/",
+      }).then((r) => r.json()),
+    onSuccess: (data: { url: string }) => {
+      if (data.url) window.location.href = data.url;
+    },
+    onError: () => toast({ title: "Checkout failed", description: "Please try again.", variant: "destructive" }),
   });
 
   // ── Effective geo: zip geocode overrides GPS when searching by zip ──
@@ -758,16 +773,29 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     <div
                       key={loc.id}
                       data-testid={`card-community-${loc.id}`}
-                      className={`rounded-xl p-3 ${loc.isBusiness ? "bg-amber-900/10 border border-amber-600/25" : "bg-blue-900/40 border border-blue-700/30"}`}
+                      className={`rounded-xl p-3 ${
+                        loc.businessVerified
+                          ? "bg-yellow-900/10 border border-yellow-500/40"
+                          : loc.isBusiness
+                          ? "bg-amber-900/10 border border-amber-600/25"
+                          : "bg-blue-900/40 border border-blue-700/30"
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            {loc.isBusiness && <Building2 className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />}
+                            {loc.isBusiness && <Building2 className={`w-3.5 h-3.5 flex-shrink-0 ${loc.businessVerified ? "text-yellow-400" : "text-amber-400"}`} />}
                             <span className="text-white text-sm font-semibold truncate">{loc.name}</span>
-                            {loc.isBusiness && (
+                            {loc.businessVerified ? (
+                              <span
+                                data-testid={`badge-verified-business-${loc.id}`}
+                                className="inline-flex items-center gap-1 text-[9px] bg-yellow-500/20 border border-yellow-400/40 text-yellow-300 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0"
+                              >
+                                <BadgeCheck className="w-2.5 h-2.5" />Verified Business
+                              </span>
+                            ) : loc.isBusiness ? (
                               <span className="text-[9px] bg-amber-500/20 border border-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0">Business</span>
-                            )}
+                            ) : null}
                             {isReview && <Flame className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />}
                             {lat !== null && lng !== null && (
                               <button
@@ -830,6 +858,16 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                             >
                               <Trophy className="w-3 h-3" />
                               Board
+                            </button>
+                          )}
+                          {loc.isBusiness && !loc.businessVerified && (
+                            <button
+                              data-testid={`button-verify-business-${loc.id}`}
+                              onClick={() => setVerifyDialogLocId(loc.id)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20 transition-all active:scale-95"
+                            >
+                              <BadgeCheck className="w-3 h-3" />
+                              Verify
                             </button>
                           )}
                         </div>
@@ -1000,6 +1038,67 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 Not now
               </button>
             )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ── Business Verify Dialog ── */}
+    {verifyDialogLocId !== null && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
+        <div className="w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-yellow-600/40 rounded-2xl shadow-2xl overflow-hidden">
+          <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-slate-800">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-yellow-500/15 border border-yellow-500/40 shrink-0">
+              <BadgeCheck className="w-5 h-5 text-yellow-400" />
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm">Verified Business Listing</p>
+              <p className="text-slate-400 text-[11px]">$9.99 / month — cancel anytime</p>
+            </div>
+            <button
+              onClick={() => setVerifyDialogLocId(null)}
+              className="ml-auto text-slate-500 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="px-5 py-4 space-y-3">
+            <p className="text-slate-300 text-xs leading-relaxed">
+              Stand out on ColdStreak's community boards and show customers you're a trusted cold plunge destination.
+            </p>
+            <ul className="space-y-2">
+              {[
+                "Gold ✓ Verified Business badge on your listing",
+                "Gold card highlight — easy to spot in the list",
+                "Increased trust and credibility with app users",
+                "Subscription renews monthly — cancel any time",
+              ].map((benefit) => (
+                <li key={benefit} className="flex items-start gap-2 text-[11px] text-slate-300">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-yellow-400 shrink-0 mt-0.5" />
+                  {benefit}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="px-5 pb-5 flex flex-col gap-2">
+            <button
+              data-testid="button-subscribe-business"
+              onClick={() => {
+                const id = verifyDialogLocId;
+                setVerifyDialogLocId(null);
+                businessCheckoutMutation.mutate(id);
+              }}
+              disabled={businessCheckoutMutation.isPending}
+              className="w-full py-3 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold text-sm transition-all active:scale-95 disabled:opacity-60"
+            >
+              {businessCheckoutMutation.isPending ? "Redirecting…" : "Subscribe for $9.99/mo"}
+            </button>
+            <button
+              onClick={() => setVerifyDialogLocId(null)}
+              className="w-full py-2 text-slate-500 text-xs hover:text-slate-400 transition-colors"
+            >
+              Not now
+            </button>
           </div>
         </div>
       </div>

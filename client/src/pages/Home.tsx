@@ -199,6 +199,27 @@ export default function Home() {
     });
   }, []);
 
+  // Handle business listing verification return
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const businessSessionId = params.get("business_session_id");
+    const businessLocationId = params.get("business_location_id");
+    if (!businessSessionId || !businessLocationId) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    fetch(`/api/stripe/business-verify?session_id=${businessSessionId}&location_id=${businessLocationId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.verified) {
+          queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
+          navTo("explore");
+          toast({ title: "✓ Business Verified!", description: "Your listing now shows a Verified Business badge." });
+        }
+      })
+      .catch(() => {
+        toast({ title: "Verification issue", description: "Could not confirm your listing. Please contact support.", variant: "destructive" });
+      });
+  }, []);
+
   // Alarm sound
   const [alarmUrl, setAlarmUrl] = useState<string>(() => {
     // Legacy: if a data URL was stored directly in localStorage, use it (will be migrated to IndexedDB below)

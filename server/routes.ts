@@ -445,6 +445,73 @@ export async function registerRoutes(
     }
   });
 
+  // Business listing checkout
+  app.post("/api/stripe/business-checkout", async (req, res) => {
+    try {
+      const { successUrl, cancelUrl, locationId } = z.object({
+        successUrl: z.string().url(),
+        cancelUrl: z.string().url(),
+        locationId: z.number().int().positive(),
+      }).parse(req.body);
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items: [{
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "ColdStreak Verified Business Listing",
+              description: "✓ Verified badge on ColdStreak community boards — $9.99/month",
+            },
+            unit_amount: 999,
+            recurring: { interval: "month" },
+          },
+          quantity: 1,
+        }],
+        mode: "subscription",
+        metadata: { type: "business_listing", locationId: locationId.toString() },
+        success_url: `${successUrl}?business_session_id={CHECKOUT_SESSION_ID}&business_location_id=${locationId}`,
+        cancel_url: cancelUrl,
+      });
+
+      res.json({ url: session.url });
+    } catch (err) {
+      console.error("Stripe business checkout error:", err);
+      res.status(500).json({ message: "Failed to create business checkout session" });
+    }
+  });
+
+  // Business listing verify
+  app.get("/api/stripe/business-verify", async (req, res) => {
+    const { session_id, location_id } = req.query;
+    if (!session_id || typeof session_id !== "string" || !location_id) {
+      return res.status(400).json({ message: "Missing params" });
+    }
+    const locationId = parseInt(location_id as string);
+    if (isNaN(locationId)) return res.status(400).json({ message: "Invalid location_id" });
+
+    try {
+      const session = await stripe.checkout.sessions.retrieve(session_id, { expand: ["subscription"] });
+      if (session.payment_status !== "paid") {
+        return res.status(402).json({ message: "Payment not completed" });
+      }
+      const email = session.customer_details?.email;
+      if (!email) return res.status(400).json({ message: "No email on session" });
+
+      const sub = session.subscription as Stripe.Subscription | null;
+      const subscriptionId = sub?.id;
+      const expiresAt = sub ? new Date(sub.current_period_end * 1000) : undefined;
+
+      await storage.createBusinessListing({ locationId, email, stripeSessionId: session_id, stripeSubscriptionId: subscriptionId, expiresAt });
+      await storage.markLocationBusinessVerified(locationId, true);
+
+      res.json({ verified: true, locationId });
+    } catch (err) {
+      console.error("Stripe business verify error:", err);
+      res.status(500).json({ message: "Failed to verify business session" });
+    }
+  });
+
   // Stripe webhook — handles subscription lifecycle
   app.post("/api/stripe/webhook", async (req, res) => {
     const sig = req.headers["stripe-signature"] as string;
@@ -460,13 +527,20 @@ export async function registerRoutes(
       const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
       if (subscriptionId && invoice.lines?.data[0]?.period?.end) {
         const expiresAt = new Date(invoice.lines.data[0].period.end * 1000);
-        await storage.updateProUserSubscription(subscriptionId, expiresAt);
+        // Try both Pro and Business listing — only the matching one will have a record
+        await Promise.allSettled([
+          storage.updateProUserSubscription(subscriptionId, expiresAt),
+          storage.updateBusinessListingSubscription(subscriptionId, expiresAt),
+        ]);
       }
     }
 
     if (event.type === "customer.subscription.deleted") {
       const sub = event.data.object as Stripe.Subscription;
-      await storage.deactivateProUserBySubscriptionId(sub.id);
+      await Promise.allSettled([
+        storage.deactivateProUserBySubscriptionId(sub.id),
+        storage.deactivateBusinessListingBySubscriptionId(sub.id),
+      ]);
     }
 
     res.json({ received: true });

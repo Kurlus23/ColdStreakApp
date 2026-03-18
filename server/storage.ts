@@ -1,9 +1,10 @@
 import { db } from "./db";
 import {
-  plunges, leaderboardEntries, proUsers, promoCodes, userLocations, users, badgeProfiles, pushSubscriptions,
+  plunges, leaderboardEntries, proUsers, promoCodes, userLocations, businessListings, users, badgeProfiles, pushSubscriptions,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
   type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile, type PushSubscription,
+  type BusinessListing,
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and } from "drizzle-orm";
 
@@ -48,6 +49,12 @@ export interface IStorage {
   upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null; foundingPlunger?: boolean }): Promise<void>;
   getBadgeProfile(username: string): Promise<BadgeProfile | null>;
 
+  // Business listings
+  createBusinessListing(data: { locationId: number; email: string; stripeSessionId?: string; stripeSubscriptionId?: string; expiresAt?: Date }): Promise<BusinessListing>;
+  getBusinessListingBySubscriptionId(subscriptionId: string): Promise<BusinessListing | null>;
+  markLocationBusinessVerified(locationId: number, verified: boolean): Promise<void>;
+  updateBusinessListingSubscription(subscriptionId: string, expiresAt: Date): Promise<void>;
+  deactivateBusinessListingBySubscriptionId(subscriptionId: string): Promise<void>;
   // Push notifications
   upsertPushSubscription(data: { userId?: number; clientId?: string; endpoint: string; p256dh: string; auth: string }): Promise<PushSubscription>;
   getPushSubscription(endpoint: string): Promise<PushSubscription | null>;
@@ -319,6 +326,41 @@ export class DatabaseStorage implements IStorage {
   async getBadgeProfile(username: string): Promise<BadgeProfile | null> {
     const [profile] = await db.select().from(badgeProfiles).where(eq(badgeProfiles.username, username));
     return profile ?? null;
+  }
+
+  async createBusinessListing(data: { locationId: number; email: string; stripeSessionId?: string; stripeSubscriptionId?: string; expiresAt?: Date }): Promise<BusinessListing> {
+    const [listing] = await db.insert(businessListings).values({
+      locationId: data.locationId,
+      email: data.email,
+      stripeSessionId: data.stripeSessionId ?? null,
+      stripeSubscriptionId: data.stripeSubscriptionId ?? null,
+      expiresAt: data.expiresAt ?? null,
+      active: true,
+    }).returning();
+    return listing;
+  }
+
+  async getBusinessListingBySubscriptionId(subscriptionId: string): Promise<BusinessListing | null> {
+    const [listing] = await db.select().from(businessListings).where(eq(businessListings.stripeSubscriptionId, subscriptionId));
+    return listing ?? null;
+  }
+
+  async markLocationBusinessVerified(locationId: number, verified: boolean): Promise<void> {
+    await db.update(userLocations).set({ businessVerified: verified }).where(eq(userLocations.id, locationId));
+  }
+
+  async updateBusinessListingSubscription(subscriptionId: string, expiresAt: Date): Promise<void> {
+    await db.update(businessListings).set({ expiresAt, active: true }).where(eq(businessListings.stripeSubscriptionId, subscriptionId));
+  }
+
+  async deactivateBusinessListingBySubscriptionId(subscriptionId: string): Promise<void> {
+    const [listing] = await db.update(businessListings)
+      .set({ active: false })
+      .where(eq(businessListings.stripeSubscriptionId, subscriptionId))
+      .returning();
+    if (listing) {
+      await db.update(userLocations).set({ businessVerified: false }).where(eq(userLocations.id, listing.locationId));
+    }
   }
 
   async upsertPushSubscription(data: { userId?: number; clientId?: string; endpoint: string; p256dh: string; auth: string }): Promise<PushSubscription> {

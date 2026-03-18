@@ -106,10 +106,24 @@ export const userLocations = pgTable("user_locations", {
   latitude: numeric("latitude", { precision: 9, scale: 6 }),
   longitude: numeric("longitude", { precision: 9, scale: 6 }),
   isBusiness: boolean("is_business").default(false).notNull(),
+  businessVerified: boolean("business_verified").default(false).notNull(),
   websiteUrl: text("website_url"),
   nominationCount: integer("nomination_count").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const businessListings = pgTable("business_listings", {
+  id: serial("id").primaryKey(),
+  locationId: integer("location_id").notNull().references(() => userLocations.id),
+  email: text("email").notNull(),
+  stripeSessionId: text("stripe_session_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  active: boolean("active").default(true).notNull(),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type BusinessListing = typeof businessListings.$inferSelect;
 
 export const insertUserLocationSchema = createInsertSchema(userLocations).omit({
   id: true,
