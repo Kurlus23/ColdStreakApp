@@ -872,7 +872,8 @@ export default function Home() {
 
   const displaySeconds = countdownMode ? countdown : seconds;
   const isActive = countdownMode ? countdownRunning : isRunning;
-  const displayScore = isActive && displaySeconds > 0 ? plungeScore(displaySeconds, temperature) : todayScore;
+  const elapsedSeconds = countdownMode ? (minutesInput * 60 + secondsInput) - countdown : seconds;
+  const displayScore = isActive && displaySeconds > 0 ? plungeScore(elapsedSeconds, temperature) : todayScore;
 
   const tempDisplay = useCelsius
     ? `${Math.round((temperature - 32) * 5 / 9)}°C`
