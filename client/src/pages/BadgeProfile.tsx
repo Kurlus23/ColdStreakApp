@@ -1,4 +1,4 @@
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
 import { X } from "lucide-react";
@@ -27,6 +27,7 @@ function computeEarnedTempTiers(coldestTemp: number | null): Set<string> {
 
 export default function BadgeProfile() {
   const { username } = useParams<{ username: string }>();
+  const [, navigate] = useLocation();
 
   const { data: profile, isLoading, isError } = useQuery<BadgeProfile>({
     queryKey: ["/api/badge-profile", username],
@@ -88,7 +89,7 @@ export default function BadgeProfile() {
       {/* Close button */}
       <button
         data-testid="button-close-profile"
-        onClick={() => window.close()}
+        onClick={() => { if (window.history.length > 1) { window.history.back(); } else { navigate("/"); } }}
         className="fixed top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-blue-800/80 border border-blue-600/60 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-90 z-50"
         title="Close"
       >
