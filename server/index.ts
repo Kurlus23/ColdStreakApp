@@ -91,7 +91,7 @@ app.use((req, res, next) => {
   await registerRoutes(httpServer, app);
 
   // Seed restore promo code on every boot (no-op if already exists)
-  await storage.seedPromoCode("COLDSTREAKPRO", 3650, 100);
+  await storage.seedPromoCode("TESTINGPRO", 30, 20);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
