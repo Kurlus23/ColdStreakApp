@@ -45,6 +45,7 @@ export const leaderboardEntries = pgTable("leaderboard_entries", {
   // 0=none, 1=timer verified, 2=photo verified, 3=timer+photo verified
   verificationLevel: integer("verification_level").default(0).notNull(),
   hasPhoto: boolean("has_photo").default(false).notNull(),
+  locationVerified: boolean("location_verified").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [uniqueIndex("leaderboard_location_user_idx").on(t.locationId, t.username)]);
 

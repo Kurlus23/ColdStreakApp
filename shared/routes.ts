@@ -71,6 +71,7 @@ export const api = {
         score: z.string().or(z.number()),
         verificationLevel: z.number().int().min(0).max(3).optional(),
         hasPhoto: z.boolean().optional(),
+        locationVerified: z.boolean().optional(),
       }),
       responses: {
         201: z.custom<typeof leaderboardEntries.$inferSelect>(),

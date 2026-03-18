@@ -2892,6 +2892,7 @@ export default function Home() {
                 <span className="inline-flex items-center gap-1 text-[10px] text-blue-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-blue-500/20 border border-blue-400/40 text-blue-300 font-bold">⏱ Timer</span> App-recorded duration</span>
                 <span className="inline-flex items-center gap-1 text-[10px] text-cyan-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-bold">📸 Photo</span> Photo taken during session</span>
                 <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold">✓ Verified</span> Timer + photo</span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-violet-300"><span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-500/20 border border-violet-400/40 text-violet-300 font-bold">📍 GPS</span> Plunged within 5 mi</span>
               </div>
 
               {/* Leaderboard entries */}
@@ -2979,6 +2980,13 @@ export default function Home() {
                                    entry.verificationLevel === 2 ? "📸 Photo" :
                                    "⏱ Timer"}
                                 </span>
+                              )}
+                              {entry.locationVerified && (
+                                <span
+                                  data-testid={`badge-gps-${entry.id}`}
+                                  title="GPS Verified — plunged within 5 miles of this location"
+                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none border shrink-0 bg-violet-500/20 border-violet-400/40 text-violet-300"
+                                >📍 GPS</span>
                               )}
                             </div>
                           </div>
@@ -3335,6 +3343,36 @@ export default function Home() {
                           timerUsed && hasPhoto ? 3 :
                           hasPhoto ? 2 :
                           timerUsed ? 1 : 0;
+
+                        // ── GPS location check (non-blocking, 5s timeout, 5-mile radius) ──
+                        let locationVerified = false;
+                        if (finalLocationId !== "home") {
+                          // Resolve target lat/lng from passport or community location
+                          const passportMatch = PASSPORT_LOCATIONS.find((l) => l.id === finalLocationId);
+                          let targetLat: number | null = passportMatch?.lat ?? null;
+                          let targetLng: number | null = passportMatch?.lng ?? null;
+                          if (!targetLat && finalLocationId.startsWith("community-")) {
+                            const cid = Number(finalLocationId.replace("community-", ""));
+                            const cl = communityLocs.find((l) => l.id === cid);
+                            targetLat = cl?.latitude ? Number(cl.latitude) : null;
+                            targetLng = cl?.longitude ? Number(cl.longitude) : null;
+                          }
+                          if (targetLat !== null && targetLng !== null) {
+                            try {
+                              const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                                const tid = setTimeout(() => reject(new Error("timeout")), 5000);
+                                navigator.geolocation?.getCurrentPosition(
+                                  (p) => { clearTimeout(tid); resolve(p); },
+                                  (e) => { clearTimeout(tid); reject(e); },
+                                  { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+                                );
+                              });
+                              const miles = distanceMiles(pos.coords.latitude, pos.coords.longitude, targetLat, targetLng);
+                              locationVerified = miles <= 5;
+                            } catch { /* GPS unavailable or timed out — skip silently */ }
+                          }
+                        }
+
                         submitLeaderboard.mutate({
                           locationId: finalLocationId,
                           username: username.trim(),
@@ -3343,6 +3381,7 @@ export default function Home() {
                           temperature: temp,
                           verificationLevel,
                           hasPhoto,
+                          locationVerified,
                         });
                       }
 
