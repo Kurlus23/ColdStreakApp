@@ -18,7 +18,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { usePlunges, useCreatePlunge, useUpdatePlunge, useDeletePlunge } from "@/hooks/use-plunges";
 import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry, type LeaderboardEntryWithBadge } from "@/hooks/use-leaderboard";
 import { useProStatus } from "@/hooks/use-pro-status";
-import { PlungeCard, buildShareText, PLAY_STORE_URL, WEB_URL } from "@/components/PlungeCard";
+import { PlungeCard, buildShareText } from "@/components/PlungeCard";
 import { BannerAd, FeedAd, InterstitialAd } from "@/components/AdUnit";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
 import { Analytics } from "@/lib/analytics";
@@ -3600,7 +3600,6 @@ export default function Home() {
                     streak,
                     locationName,
                     locationId: promptLocationId,
-                    storeLink: isNative() ? PLAY_STORE_URL : WEB_URL,
                   });
 
                   // ── Native Android/iOS: use Capacitor Share (avoids WebView doubling bug)
