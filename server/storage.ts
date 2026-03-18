@@ -102,6 +102,9 @@ export class DatabaseStorage implements IStorage {
         score: leaderboardEntries.score,
         duration: leaderboardEntries.duration,
         temperature: leaderboardEntries.temperature,
+        verificationLevel: leaderboardEntries.verificationLevel,
+        hasPhoto: leaderboardEntries.hasPhoto,
+        locationVerified: leaderboardEntries.locationVerified,
         createdAt: leaderboardEntries.createdAt,
         foundingPlunger: badgeProfiles.foundingPlunger,
       })
@@ -124,6 +127,9 @@ export class DatabaseStorage implements IStorage {
           duration: sql`CASE WHEN excluded.score::numeric > leaderboard_entries.score::numeric THEN excluded.duration ELSE leaderboard_entries.duration END`,
           temperature: sql`CASE WHEN excluded.score::numeric > leaderboard_entries.score::numeric THEN excluded.temperature ELSE leaderboard_entries.temperature END`,
           createdAt: sql`CASE WHEN excluded.score::numeric > leaderboard_entries.score::numeric THEN now() ELSE leaderboard_entries.created_at END`,
+          verificationLevel: sql`GREATEST(excluded.verification_level, leaderboard_entries.verification_level)`,
+          hasPhoto: sql`excluded.has_photo OR leaderboard_entries.has_photo`,
+          locationVerified: sql`excluded.location_verified OR leaderboard_entries.location_verified`,
         },
       })
       .returning();
