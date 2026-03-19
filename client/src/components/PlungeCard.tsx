@@ -52,7 +52,6 @@ async function dataUrlToFile(dataUrl: string, filename: string): Promise<File> {
 }
 
 export function buildShareText({
-  username,
   temperature,
   duration,
   streak,
@@ -66,10 +65,8 @@ export function buildShareText({
   locationName?: string | null;
   locationId?: string | null;
 }): string {
-  const name = username?.trim() || "I";
-  const verb = name === "I" ? "just completed" : "just completed";
   const lines: string[] = [
-    `🧊 ${name} ${verb} a ${temperature}°F plunge!`,
+    `I just completed a ${temperature}°F plunge!`,
     `⏱️ Duration: ${formatTime(duration)}`,
   ];
   if (streak && streak > 0) lines.push(`🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}`);
