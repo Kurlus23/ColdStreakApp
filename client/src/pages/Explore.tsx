@@ -184,7 +184,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   }, [searchText]);
 
   // ── Tile open/close state ──
-  const [passportOpen, setPassportOpen] = useState(true);
+  const [passportOpen, setPassportOpen] = useState(false);
   const [communityOpen, setCommunityOpen] = useState(true);
 
   // ── Community disclaimer ──
