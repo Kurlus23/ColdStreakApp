@@ -1950,21 +1950,10 @@ export default function Home() {
                         className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400"
                       >−</button>
                       {/* Display + direct input */}
-                      <input
+                      <div
                         data-testid="input-body-weight"
-                        type="number"
-                        min={80}
-                        max={400}
-                        value={bodyWeightLbs}
-                        onChange={(e) => {
-                          const val = Math.min(400, Math.max(80, Number(e.target.value) || 80));
-                          setBodyWeightLbs(val);
-                          localStorage.setItem("coldstreak-body-weight", String(val));
-                          const token = localStorage.getItem("coldstreak-auth-token");
-                          if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: val }) }).catch(() => {});
-                        }}
-                        className="w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm focus:outline-none focus:border-cyan-400 font-bold text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                      />
+                        className="w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none pointer-events-none"
+                      >{bodyWeightLbs}</div>
                       {/* + button */}
                       <button
                         data-testid="button-weight-increase"
