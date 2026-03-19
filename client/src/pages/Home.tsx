@@ -67,23 +67,51 @@ const ALARM_PRESETS = [
 ];
 const CUSTOM_ALARM_DURATION_MS = 5000;
 
-function playAudio(url: string, gain: number, stopAfterMs?: number): HTMLAudioElement {
+interface AlarmHandle { stop: () => void }
+
+// Synthesised digital-watch beep — no network request, no CORS issues, works in all WebViews
+function playDigitalWatchSynth(durationMs: number): AlarmHandle {
+  const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  if (!AC) return { stop: () => {} };
+  let ctx: AudioContext | null;
+  try { ctx = new AC(); } catch { return { stop: () => {} }; }
+
+  const start = ctx.currentTime;
+  const end = start + durationMs / 1000;
+  const beepDur = 0.08; const beepGap = 0.06; const groupPause = 0.35; const freq = 1760;
+  let t = start;
+  while (t < end) {
+    for (let i = 0; i < 4 && t < end; i++) {
+      const osc = ctx.createOscillator();
+      const gn = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(freq, t);
+      gn.gain.setValueAtTime(0, t);
+      gn.gain.linearRampToValueAtTime(0.4, t + 0.005);
+      gn.gain.setValueAtTime(0.4, t + beepDur - 0.01);
+      gn.gain.linearRampToValueAtTime(0, t + beepDur);
+      osc.connect(gn); gn.connect(ctx.destination);
+      osc.start(t); osc.stop(t + beepDur);
+      t += beepDur + beepGap;
+    }
+    t += groupPause;
+  }
+  const stop = () => { try { ctx?.close(); ctx = null; } catch {} };
+  setTimeout(stop, durationMs + 200);
+  return { stop };
+}
+
+function playAlarm(url: string, label: string, isCustom: boolean, stopAfterMs?: number): AlarmHandle {
+  // Digital watch: always synthesise — Google Sound URLs block via CORS when run through AudioContext
+  if (!isCustom && label === "Digital Watch") {
+    return playDigitalWatchSynth(stopAfterMs ?? 5000);
+  }
   const audio = new Audio(url);
   audio.volume = 1;
-  if (gain > 1) {
-    try {
-      const AC = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
-      const ctx = new AC();
-      const source = ctx.createMediaElementSource(audio);
-      const gainNode = ctx.createGain();
-      gainNode.gain.value = gain;
-      source.connect(gainNode);
-      gainNode.connect(ctx.destination);
-    } catch {}
-  }
   audio.play().catch(() => {});
-  if (stopAfterMs) setTimeout(() => { audio.pause(); audio.currentTime = 0; }, stopAfterMs);
-  return audio;
+  const handle: AlarmHandle = { stop: () => { audio.pause(); audio.currentTime = 0; } };
+  if (stopAfterMs) setTimeout(() => handle.stop(), stopAfterMs);
+  return handle;
 }
 
 type Screen = "timer" | "history" | "explore" | "gear" | "settings" | "legal" | "achievements";
@@ -174,7 +202,7 @@ export default function Home() {
   );
   const [minutesInput, setMinutesInput] = useState(3);
   const [secondsInput, setSecondsInput] = useState(0);
-  const alarmRef = useRef<HTMLAudioElement | null>(null);
+  const alarmRef = useRef<AlarmHandle | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const countdownTotalRef = useRef<number>(0);
 
@@ -309,7 +337,7 @@ export default function Home() {
 
   const previewAlarm = () => {
     try {
-      playAudio(alarmUrl, alarmGain, alarmIsCustom ? CUSTOM_ALARM_DURATION_MS : 3000);
+      playAlarm(alarmUrl, alarmLabel, alarmIsCustom, alarmIsCustom ? CUSTOM_ALARM_DURATION_MS : 3000);
     } catch {
       toast({ title: "Preview failed", description: "Tap the screen first to allow audio playback.", variant: "destructive" });
     }
@@ -742,7 +770,7 @@ export default function Home() {
       setCountdownRunning(false);
       const targetDuration = minutesInput * 60 + secondsInput;
       doLogPlunge(targetDuration);
-      alarmRef.current = playAudio(alarmUrl, alarmGain, alarmIsCustom ? CUSTOM_ALARM_DURATION_MS : undefined);
+      alarmRef.current = playAlarm(alarmUrl, alarmLabel, alarmIsCustom, alarmIsCustom ? CUSTOM_ALARM_DURATION_MS : undefined);
     }
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -840,7 +868,7 @@ export default function Home() {
     setCountdownRunning(false);
     setCountdown(0);
     setCountdownElapsed(0);
-    if (alarmRef.current) { alarmRef.current.pause(); alarmRef.current.currentTime = 0; }
+    if (alarmRef.current) { alarmRef.current.stop(); alarmRef.current = null; }
   };
 
   const enableNotifications = async () => {
