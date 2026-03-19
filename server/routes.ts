@@ -368,6 +368,7 @@ export async function registerRoutes(
         bookingUrl: z.string().url().max(300).optional().or(z.literal("")),
         contactEmail: z.string().email().max(200).optional(),
         fullAddress: z.string().max(200).optional(),
+        modalities: z.array(z.string().max(50)).max(20).optional(),
       }).parse(req.body);
       const loc = await storage.createUserLocation(input);
       res.status(201).json(loc);

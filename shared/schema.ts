@@ -115,6 +115,7 @@ export const userLocations = pgTable("user_locations", {
   bookingUrl: text("booking_url"),
   contactEmail: text("contact_email"),
   fullAddress: text("full_address"),
+  modalities: text("modalities").array(),
   nominationCount: integer("nomination_count").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

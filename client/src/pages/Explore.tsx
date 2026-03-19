@@ -46,6 +46,21 @@ const DIFFICULTY_FILTERS: Array<{ value: Difficulty | "All"; label: string }> = 
   { value: "arctic",   label: DIFFICULTY_META["arctic"].emoji },
 ];
 
+const MODALITY_OPTIONS = [
+  { label: "Cold Plunge", emoji: "🧊" },
+  { label: "Ice Bath", emoji: "❄️" },
+  { label: "Sauna", emoji: "🔥" },
+  { label: "Infrared Sauna", emoji: "☀️" },
+  { label: "Steam Room", emoji: "💨" },
+  { label: "Contrast Therapy", emoji: "♨️" },
+  { label: "Cryotherapy", emoji: "🧊" },
+  { label: "Float Tank", emoji: "🌊" },
+  { label: "Red Light Therapy", emoji: "💡" },
+  { label: "Hot Tub", emoji: "🛁" },
+  { label: "Breathwork", emoji: "🧘" },
+  { label: "Cold Shower", emoji: "🚿" },
+];
+
 export const GEAR_ITEMS = [
   {
     id: "danner-950",
@@ -339,11 +354,19 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     name: "", fullAddress: "", city: "", state: "", country: "USA",
     description: "", phone: "", websiteUrl: "", yelpUrl: "", facebookUrl: "", bookingUrl: "", contactEmail: "",
   });
+  const [bizModalities, setBizModalities] = useState<string[]>([]);
 
   const resetBizForm = () => {
     setBizForm({ name: "", fullAddress: "", city: "", state: "", country: "USA", description: "", phone: "", websiteUrl: "", yelpUrl: "", facebookUrl: "", bookingUrl: "", contactEmail: "" });
+    setBizModalities([]);
     setBizTier("free");
     setBizGeoPos(null);
+  };
+
+  const toggleModality = (label: string) => {
+    setBizModalities((prev) =>
+      prev.includes(label) ? prev.filter((m) => m !== label) : [...prev, label]
+    );
   };
 
   const businessCheckoutMutation = useMutation({
@@ -408,6 +431,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       bookingUrl: bizForm.bookingUrl.trim() || undefined,
       contactEmail: bizForm.contactEmail.trim(),
       fullAddress: bizForm.fullAddress.trim() || undefined,
+      modalities: bizModalities.length > 0 ? bizModalities : undefined,
       isBusiness: true,
       submittedBy: username,
       ...(bizGeoPos ? { latitude: bizGeoPos.lat, longitude: bizGeoPos.lng } : {}),
@@ -1287,6 +1311,24 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               {biz.description && (
                 <p className="text-slate-300 text-sm leading-relaxed">{biz.description}</p>
               )}
+              {biz.modalities && biz.modalities.length > 0 && (
+                <div>
+                  <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-1.5">Modalities</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {biz.modalities.map((mod) => {
+                      const option = MODALITY_OPTIONS.find((o) => o.label === mod);
+                      return (
+                        <span
+                          key={mod}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold"
+                        >
+                          {option?.emoji} {mod}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 {lat !== null && lng !== null && (
                   <button
@@ -1476,6 +1518,30 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 rows={2}
                 className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500 resize-none"
               />
+            </div>
+
+            <div>
+              <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1.5">Modalities Offered</label>
+              <div className="flex flex-wrap gap-2">
+                {MODALITY_OPTIONS.map(({ label, emoji }) => {
+                  const selected = bizModalities.includes(label);
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      data-testid={`chip-modality-${label.replace(/\s+/g, "-").toLowerCase()}`}
+                      onClick={() => toggleModality(label)}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all active:scale-95 ${
+                        selected
+                          ? "bg-cyan-500/25 border-cyan-400/60 text-cyan-200"
+                          : "bg-blue-900/40 border-blue-700/40 text-blue-400 hover:border-blue-500/60"
+                      }`}
+                    >
+                      <span>{emoji}</span> {label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div>
