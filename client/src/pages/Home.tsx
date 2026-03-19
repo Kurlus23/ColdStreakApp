@@ -2580,11 +2580,14 @@ export default function Home() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="text-blue-400 text-[11px] uppercase tracking-widest">Days Plunged</div>
-                    <div className="text-blue-500 text-[11px]">{uniquePlungeDays} day{uniquePlungeDays !== 1 ? "s" : ""} total</div>
+                    {isPro
+                      ? <div className="text-blue-500 text-[11px]">{uniquePlungeDays} day{uniquePlungeDays !== 1 ? "s" : ""} total</div>
+                      : <span className="flex items-center gap-1 text-[11px] text-yellow-400 font-semibold"><Lock className="w-2.5 h-2.5" /> Pro</span>
+                    }
                   </div>
                   <span className={`text-blue-400 text-xs transition-transform duration-200 ${openSections.days ? "rotate-180" : ""}`}>▼</span>
                 </button>
-                {openSections.days && (
+                {openSections.days && isPro && (
                   <div className="px-4 pb-4 border-t border-blue-700/30 pt-3">
                     <div className="text-blue-500 text-[11px] mb-3">Reach milestone days to unlock each badge.</div>
                     <div className="flex flex-wrap gap-2">
@@ -2618,6 +2621,36 @@ export default function Home() {
                     </div>
                   </div>
                 )}
+                {openSections.days && !isPro && (
+                  <div className="px-4 pb-4 border-t border-blue-700/30 pt-3 space-y-3">
+                    <div className="relative">
+                      <div className="flex flex-wrap gap-2 blur-[3px] opacity-50 pointer-events-none select-none" aria-hidden="true">
+                        {DAYS_TIERS.map((tier) => (
+                          <div key={tier.id} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border bg-blue-800/40 border-blue-700/30 text-blue-600">
+                            <span className="text-base">{tier.emoji}</span>
+                            <div className="text-left">
+                              <div>{tier.label}</div>
+                              <div className="text-[10px] opacity-70">{tier.days === 365 ? "365+ days" : `${tier.days} days`}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowUpgradeModal(true)}
+                      className="w-full bg-gradient-to-br from-slate-900 to-blue-950 border border-cyan-600/50 rounded-xl p-3 text-left flex items-center gap-3 active:scale-[0.99] transition-all"
+                    >
+                      <div className="w-8 h-8 rounded-xl bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center shrink-0">
+                        <Crown className="w-4 h-4 text-yellow-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-white font-bold text-xs">Unlock milestone badges</p>
+                        <p className="text-blue-400 text-[11px]">Track plunge streaks across days, weeks & years</p>
+                      </div>
+                      <span className="text-cyan-400 text-xs font-bold shrink-0">Unlock →</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* State Badges */}
@@ -2627,10 +2660,13 @@ export default function Home() {
                   onClick={() => setOpenSections(s => ({ ...s, states: !s.states }))}
                   className="w-full flex items-center justify-between px-4 py-3 text-left"
                 >
-                  <div className="text-blue-400 text-[11px] uppercase tracking-widest">State Badges</div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-blue-400 text-[11px] uppercase tracking-widest">State Badges</div>
+                    {!isPro && <span className="flex items-center gap-1 text-[11px] text-yellow-400 font-semibold"><Lock className="w-2.5 h-2.5" /> Pro</span>}
+                  </div>
                   <span className={`text-blue-400 text-xs transition-transform duration-200 ${openSections.states ? "rotate-180" : ""}`}>▼</span>
                 </button>
-                {openSections.states && (
+                {openSections.states && isPro && (
                   <div className="px-4 pb-4 border-t border-blue-700/30 pt-3">
                     <div className="text-blue-500 text-[11px] mb-3">Plunge at every Chill Place in a state to earn its badge.</div>
                     <div className="flex flex-wrap gap-1.5">
@@ -2662,6 +2698,36 @@ export default function Home() {
                         );
                       })}
                     </div>
+                  </div>
+                )}
+                {openSections.states && !isPro && (
+                  <div className="px-4 pb-4 border-t border-blue-700/30 pt-3 space-y-3">
+                    <div className="relative">
+                      <div className="flex flex-wrap gap-1.5 blur-[3px] opacity-50 pointer-events-none select-none" aria-hidden="true">
+                        {allStates.slice(0, 12).map((state) => {
+                          const emoji = STATE_EMOJI[state] ?? "🏆";
+                          return (
+                            <div key={state} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-800/40 border border-blue-700/30 text-blue-600">
+                              <span>{emoji}</span>
+                              <span>{state}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowUpgradeModal(true)}
+                      className="w-full bg-gradient-to-br from-slate-900 to-blue-950 border border-cyan-600/50 rounded-xl p-3 text-left flex items-center gap-3 active:scale-[0.99] transition-all"
+                    >
+                      <div className="w-8 h-8 rounded-xl bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center shrink-0">
+                        <Crown className="w-4 h-4 text-yellow-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-white font-bold text-xs">Collect state badges</p>
+                        <p className="text-blue-400 text-[11px]">Plunge at every Chill Place in a state to earn its badge</p>
+                      </div>
+                      <span className="text-cyan-400 text-xs font-bold shrink-0">Unlock →</span>
+                    </button>
                   </div>
                 )}
               </div>
