@@ -1535,17 +1535,63 @@ export default function Home() {
                     </Fragment>
                   ))}
                   {locked.length > 0 && (
-                    <button
-                      data-testid="banner-upgrade-history"
-                      onClick={() => setShowUpgradeModal(true)}
-                      className="w-full bg-gradient-to-r from-cyan-900/60 to-blue-900/60 border border-cyan-700/50 rounded-2xl p-4 text-center space-y-1 active:scale-[0.99] transition-all"
-                    >
-                      <div className="flex items-center justify-center gap-2 text-cyan-300 font-bold">
-                        <Crown className="w-4 h-4 text-yellow-400" />
-                        {locked.length} older plunge{locked.length !== 1 ? "s" : ""} hidden
+                    <div data-testid="banner-upgrade-history" className="relative">
+                      {/* Ghost previews of locked plunges */}
+                      <div className="space-y-3 pointer-events-none select-none" aria-hidden="true">
+                        {locked.slice(0, 2).map((plunge) => (
+                            <div key={plunge.id} className="blur-[3px] opacity-40 bg-blue-900/60 border border-blue-700/40 rounded-2xl px-4 py-3 flex items-center justify-between">
+                              <div className="space-y-1">
+                                <div className="h-2.5 w-24 bg-blue-500/50 rounded-full" />
+                                <div className="h-2 w-16 bg-blue-600/40 rounded-full" />
+                              </div>
+                              <div className="flex gap-3">
+                                <div className="h-8 w-12 bg-cyan-700/40 rounded-xl" />
+                                <div className="h-8 w-12 bg-blue-700/40 rounded-xl" />
+                              </div>
+                            </div>
+                        ))}
                       </div>
-                      <div className="text-blue-400 text-xs">Upgrade to Pro for unlimited history →</div>
-                    </button>
+
+                      {/* Fade overlay */}
+                      <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-transparent to-slate-950/0 pointer-events-none" />
+
+                      {/* Lock CTA card */}
+                      <button
+                        onClick={() => setShowUpgradeModal(true)}
+                        className="relative mt-2 w-full bg-gradient-to-br from-slate-900 to-blue-950 border border-cyan-600/50 rounded-2xl p-4 text-left space-y-3 shadow-lg shadow-cyan-900/20 active:scale-[0.99] transition-all"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center shrink-0">
+                            <Crown className="w-4.5 h-4.5 text-yellow-400" />
+                          </div>
+                          <div>
+                            <p className="text-white font-bold text-sm leading-tight">
+                              {locked.length} plunge{locked.length !== 1 ? "s" : ""} locked
+                            </p>
+                            <p className="text-blue-400 text-[11px]">Upgrade to Pro to see your full history</p>
+                          </div>
+                          <span className="ml-auto text-yellow-400 font-bold text-sm shrink-0">from $9.99</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {[
+                            { icon: "📅", text: "Unlimited history" },
+                            { icon: "📊", text: "Advanced stats" },
+                            { icon: "📍", text: "Chill Places" },
+                            { icon: "📤", text: "CSV export" },
+                          ].map(({ icon, text }) => (
+                            <div key={text} className="flex items-center gap-1.5 bg-blue-900/40 rounded-lg px-2 py-1.5">
+                              <span className="text-[13px]">{icon}</span>
+                              <span className="text-blue-200 text-[11px] font-medium">{text}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold text-sm text-center">
+                          Unlock Pro →
+                        </div>
+                      </button>
+                    </div>
                   )}
                   {visible.length === 0 && locked.length === 0 && (
                     <div className="text-center text-blue-500 py-8 text-sm">No plunges yet. Start your first session!</div>
