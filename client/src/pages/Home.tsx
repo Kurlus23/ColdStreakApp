@@ -2991,8 +2991,8 @@ export default function Home() {
                   {[
                     { key: "timer",    label: "⏱ Timer",    cls: "bg-blue-500/20 border-blue-400/40 text-blue-300",    desc: "App-recorded duration" },
                     { key: "photo",    label: "📸 Photo",    cls: "bg-cyan-500/20 border-cyan-400/40 text-cyan-300",    desc: "Photo taken during session" },
-                    { key: "two",      label: "✓ Verified",  cls: "bg-emerald-500/20 border-emerald-400/40 text-emerald-300", desc: "Any 2 of: timer, photo, GPS" },
-                    { key: "verified", label: "✓ Verified",  cls: "bg-violet-500/20 border-violet-400/40 text-violet-200", desc: "All 3: timer + photo + GPS" },
+                    { key: "two",      label: "✓ Verified",  cls: "bg-slate-400/20 border-slate-300/40 text-slate-200", desc: "Any 2 of: timer, photo, GPS" },
+                    { key: "verified", label: "✓ Verified",  cls: "bg-yellow-500/20 border-yellow-400/40 text-yellow-200", desc: "All 3: timer + photo + GPS" },
                   ].map(({ key, label, cls, desc }) => (
                     <button
                       key={key}
@@ -3003,7 +3003,7 @@ export default function Home() {
                 </div>
                 {legendTip && (
                   <p className="text-[10px] mt-1.5 text-blue-300 pl-1">
-                    {{ timer: "⏱ Timer — App-recorded duration", photo: "📸 Photo — Photo taken during session", two: "✓ Verified (green) — Any 2 of: timer, photo, GPS", verified: "✓ Verified (purple) — All 3: timer + photo + GPS" }[legendTip]}
+                    {{ timer: "⏱ Timer — App-recorded duration", photo: "📸 Photo — Photo taken during session", two: "✓ Verified (silver) — Any 2 of: timer, photo, GPS", verified: "✓ Verified (gold) — All 3: timer + photo + GPS" }[legendTip]}
                   </p>
                 )}
               </div>
@@ -3083,7 +3083,7 @@ export default function Home() {
                                     <span
                                       data-testid={`badge-verified-${entry.id}`}
                                       title="GPS + Timer + Photo Verified"
-                                      className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none border bg-violet-500/20 border-violet-400/40 text-violet-200 shrink-0"
+                                      className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none border bg-yellow-500/20 border-yellow-400/40 text-yellow-200 shrink-0"
                                     >✓ Verified</span>
                                   );
                                 }
@@ -3095,7 +3095,7 @@ export default function Home() {
                                     <span
                                       data-testid={`badge-verified-${entry.id}`}
                                       title={title}
-                                      className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none border bg-emerald-500/20 border-emerald-400/40 text-emerald-300 shrink-0"
+                                      className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none border bg-slate-400/20 border-slate-300/40 text-slate-200 shrink-0"
                                     >✓ Verified</span>
                                   );
                                 }
