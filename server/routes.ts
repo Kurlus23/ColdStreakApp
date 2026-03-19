@@ -387,6 +387,13 @@ export async function registerRoutes(
   app.post("/api/community-locations/:id/nominate", async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const loc = await storage.getUserLocationById(id);
+    if (!loc) return res.status(404).json({ message: "Location not found" });
+    const caller = extractUser(req);
+    if (caller?.email && loc.contactEmail &&
+        caller.email.toLowerCase().trim() === loc.contactEmail.toLowerCase().trim()) {
+      return res.status(403).json({ message: "You cannot vote for your own listing." });
+    }
     const updated = await storage.nominateUserLocation(id);
     if (!updated) return res.status(404).json({ message: "Location not found" });
     res.json(updated);

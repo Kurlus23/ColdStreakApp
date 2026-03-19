@@ -333,7 +333,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   });
 
   const nominateMutation = useMutation({
-    mutationFn: (id: number) => fetch(`/api/community-locations/${id}/nominate`, { method: "POST" }).then((r) => r.json()),
+    mutationFn: (id: number) => apiRequest("POST", `/api/community-locations/${id}/nominate`).then((r) => r.json()),
     onSuccess: (_, id) => {
       const next = new Set(nominated);
       next.add(id);
@@ -1156,19 +1156,26 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                         </div>
                         <div className="flex flex-col items-end gap-1 flex-shrink-0">
                           {dist && <span className="text-[11px] text-cyan-400 font-semibold">{dist}</span>}
-                          <button
-                            data-testid={`button-vote-${loc.id}`}
-                            onClick={() => !hasVoted && nominateMutation.mutate(loc.id)}
-                            disabled={hasVoted || nominateMutation.isPending}
-                            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all active:scale-95 ${
-                              hasVoted
-                                ? "bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 cursor-default"
-                                : "bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/30"
-                            }`}
-                          >
-                            <Trophy className="w-3 h-3" />
-                            {hasVoted ? "Voted" : "Vote"}
-                          </button>
+                          {loc.isOwner ? (
+                            <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800/60 border border-slate-700/40 text-slate-500 cursor-default">
+                              <Building2 className="w-3 h-3" />
+                              Your listing
+                            </span>
+                          ) : (
+                            <button
+                              data-testid={`button-vote-${loc.id}`}
+                              onClick={() => !hasVoted && nominateMutation.mutate(loc.id)}
+                              disabled={hasVoted || nominateMutation.isPending}
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all active:scale-95 ${
+                                hasVoted
+                                  ? "bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 cursor-default"
+                                  : "bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/30"
+                              }`}
+                            >
+                              <Trophy className="w-3 h-3" />
+                              {hasVoted ? "Voted" : "Vote"}
+                            </button>
+                          )}
                           {onViewLeaderboard && (
                             <button
                               data-testid={`button-leaderboard-${loc.id}`}
