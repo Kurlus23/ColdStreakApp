@@ -390,7 +390,7 @@ export default function Home() {
   }, [stopWebCamera]);
 
   // Pro status
-  const { isPro, proEmail, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo, clearPro } = useProStatus();
+  const { isPro, proEmail, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo, clearPro, verifyProForEmail } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const { data: fpCountData } = useQuery<{ count: number; remaining: number; limit: number }>({
     queryKey: ["/api/founding-plunger-count"],
@@ -670,8 +670,8 @@ export default function Home() {
     if (ok) {
       setAuthEmail("");
       setAuthPassword("");
-      // Auto-restore Pro on login (handles fresh installs with no localStorage)
-      restorePurchase(email);
+      // Auto-restore Pro on login: checks server record first, then local promo
+      verifyProForEmail(email);
       // Auto-sync local plunges immediately on login/register
       backgroundSync();
     }
