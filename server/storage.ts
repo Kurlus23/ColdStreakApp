@@ -30,6 +30,7 @@ export interface IStorage {
   redeemPromoCode(code: string): Promise<PromoCode | null>;
   // Community locations
   getUserLocations(country?: string): Promise<UserLocation[]>;
+  getUserLocationById(id: number): Promise<UserLocation | null>;
   createUserLocation(loc: InsertUserLocation): Promise<UserLocation>;
   nominateUserLocation(id: number): Promise<UserLocation | null>;
   // Auth users
@@ -220,6 +221,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(promoCodes.code, normalized))
       .returning();
     return updated;
+  }
+
+  async getUserLocationById(id: number): Promise<UserLocation | null> {
+    const [loc] = await db.select().from(userLocations).where(eq(userLocations.id, id)).limit(1);
+    return loc ?? null;
   }
 
   async getUserLocations(country?: string): Promise<UserLocation[]> {

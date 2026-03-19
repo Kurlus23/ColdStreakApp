@@ -454,11 +454,19 @@ export async function registerRoutes(
   // Business listing checkout
   app.post("/api/stripe/business-checkout", async (req, res) => {
     try {
-      const { successUrl, cancelUrl, locationId } = z.object({
+      const { successUrl, cancelUrl, locationId, email } = z.object({
         successUrl: z.string().url(),
         cancelUrl: z.string().url(),
         locationId: z.number().int().positive(),
+        email: z.string().email(),
       }).parse(req.body);
+
+      // Verify the requester owns this listing by matching their contact email
+      const loc = await storage.getUserLocationById(locationId);
+      if (!loc) return res.status(404).json({ message: "Listing not found" });
+      if (!loc.contactEmail || loc.contactEmail.toLowerCase().trim() !== email.toLowerCase().trim()) {
+        return res.status(403).json({ message: "Email does not match the contact email on this listing. Only the business owner can verify." });
+      }
 
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],

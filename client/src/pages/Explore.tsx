@@ -329,6 +329,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   });
 
   const [verifyDialogLocId, setVerifyDialogLocId] = useState<number | null>(null);
+  const [verifyEmail, setVerifyEmail] = useState("");
   const [businessOpen, setBusinessOpen] = useState(true);
   const [showBusinessForm, setShowBusinessForm] = useState(false);
   const [businessProfileId, setBusinessProfileId] = useState<number | null>(null);
@@ -346,16 +347,24 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   };
 
   const businessCheckoutMutation = useMutation({
-    mutationFn: (locationId: number) =>
+    mutationFn: ({ locationId, email }: { locationId: number; email: string }) =>
       apiRequest("POST", "/api/stripe/business-checkout", {
         locationId,
+        email,
         successUrl: window.location.origin + "/",
         cancelUrl: window.location.origin + "/",
       }).then((r) => r.json()),
     onSuccess: (data: { url: string }) => {
       if (data.url) window.location.href = data.url;
     },
-    onError: () => toast({ title: "Checkout failed", description: "Please try again.", variant: "destructive" }),
+    onError: (err: any) => {
+      const msg = err?.message || "";
+      if (msg.includes("Email does not match") || msg.includes("403")) {
+        toast({ title: "Email not recognized", description: "Enter the contact email you used when submitting this listing.", variant: "destructive" });
+      } else {
+        toast({ title: "Checkout failed", description: "Please try again.", variant: "destructive" });
+      }
+    },
   });
 
   const submitBusinessMutation = useMutation({
@@ -371,7 +380,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     onSuccess: (loc) => {
       queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
       if (bizTier === "verified") {
-        businessCheckoutMutation.mutate(loc.id);
+        businessCheckoutMutation.mutate({ locationId: loc.id, email: bizForm.contactEmail });
       } else {
         setShowBusinessForm(false);
         resetBizForm();
@@ -1599,7 +1608,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               <p className="text-slate-400 text-[11px]">$29.99 / month — cancel anytime</p>
             </div>
             <button
-              onClick={() => setVerifyDialogLocId(null)}
+              onClick={() => { setVerifyDialogLocId(null); setVerifyEmail(""); }}
               className="ml-auto text-slate-500 hover:text-white transition-colors"
             >
               <X className="w-4 h-4" />
@@ -1612,9 +1621,9 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             <ul className="space-y-2">
               {[
                 "Gold ✓ Verified Business badge on your listing",
-                "Gold card highlight — easy to spot in the list",
+                "Full public profile with links, phone & directions",
                 "Increased trust and credibility with app users",
-                "Subscription renews monthly — cancel any time",
+                "1st month free — then $29.99/mo, cancel any time",
               ].map((benefit) => (
                 <li key={benefit} className="flex items-start gap-2 text-[11px] text-slate-300">
                   <CheckCircle2 className="w-3.5 h-3.5 text-yellow-400 shrink-0 mt-0.5" />
@@ -1622,22 +1631,38 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 </li>
               ))}
             </ul>
+            <div>
+              <label className="text-slate-400 text-[11px] block mb-1">
+                Confirm ownership — enter the contact email used when you submitted this listing
+              </label>
+              <input
+                data-testid="input-verify-email"
+                type="email"
+                value={verifyEmail}
+                onChange={(e) => setVerifyEmail(e.target.value)}
+                placeholder="owner@yourbusiness.com"
+                className="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-yellow-500 placeholder-slate-500"
+              />
+            </div>
           </div>
           <div className="px-5 pb-5 flex flex-col gap-2">
             <button
               data-testid="button-subscribe-business"
               onClick={() => {
-                const id = verifyDialogLocId;
-                setVerifyDialogLocId(null);
-                businessCheckoutMutation.mutate(id);
+                if (!verifyEmail.trim()) {
+                  toast({ title: "Email required", description: "Enter the contact email used when submitting this listing.", variant: "destructive" });
+                  return;
+                }
+                const id = verifyDialogLocId!;
+                businessCheckoutMutation.mutate({ locationId: id, email: verifyEmail.trim() });
               }}
-              disabled={businessCheckoutMutation.isPending}
+              disabled={businessCheckoutMutation.isPending || !verifyEmail.trim()}
               className="w-full py-3 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold text-sm transition-all active:scale-95 disabled:opacity-60"
             >
-              {businessCheckoutMutation.isPending ? "Redirecting…" : "Subscribe for $29.99/mo"}
+              {businessCheckoutMutation.isPending ? "Verifying…" : "Subscribe for $29.99/mo →"}
             </button>
             <button
-              onClick={() => setVerifyDialogLocId(null)}
+              onClick={() => { setVerifyDialogLocId(null); setVerifyEmail(""); }}
               className="w-full py-2 text-slate-500 text-xs hover:text-slate-400 transition-colors"
             >
               Not now
