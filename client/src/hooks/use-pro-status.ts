@@ -56,8 +56,10 @@ export function useProStatus() {
   const clearPro = useCallback(() => {
     localStorage.removeItem(PRO_STATUS_KEY);
     localStorage.removeItem(PRO_EMAIL_KEY);
-    if (!isPromoActive()) setIsPro(false);
+    localStorage.removeItem(PROMO_EXPIRES_KEY);
+    setIsPro(false);
     setProEmail(null);
+    setPromoExpiresAt(null);
   }, []);
 
   // On mount, verify cached pro status with the backend

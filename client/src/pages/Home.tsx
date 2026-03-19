@@ -390,7 +390,7 @@ export default function Home() {
   }, [stopWebCamera]);
 
   // Pro status
-  const { isPro, proEmail, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo } = useProStatus();
+  const { isPro, proEmail, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo, clearPro } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const { data: fpCountData } = useQuery<{ count: number; remaining: number; limit: number }>({
     queryKey: ["/api/founding-plunger-count"],
@@ -688,6 +688,7 @@ export default function Home() {
 
   const handleLogout = () => {
     auth.logout();
+    clearPro();
     setSyncDone(false);
     localStorage.removeItem("coldstreak-username");
     localStorage.removeItem("coldstreak-body-weight");
