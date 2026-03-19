@@ -1175,14 +1175,19 @@ export default function Home() {
                 <History className="w-5 h-5 text-cyan-400" /> Plunge History
               </h2>
               <div className="flex items-center gap-2">
-                {isPro && plunges.length > 0 && (
+                {plunges.length > 0 && (
                   <button
                     data-testid="button-export-csv"
-                    onClick={exportCSV}
-                    title="Export plunge history as CSV"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-700/50 border border-blue-600/50 text-blue-200 text-xs font-semibold hover:bg-blue-600/60 transition-all active:scale-95"
+                    onClick={isPro ? exportCSV : () => setShowUpgradeModal(true)}
+                    title={isPro ? "Export plunge history as CSV" : "Pro feature — upgrade to export"}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all active:scale-95 ${
+                      isPro
+                        ? "bg-blue-700/50 border-blue-600/50 text-blue-200 hover:bg-blue-600/60"
+                        : "bg-blue-900/30 border-blue-700/30 text-blue-500 opacity-70 hover:opacity-90"
+                    }`}
                   >
-                    <Download className="w-3.5 h-3.5" /> Export CSV
+                    {isPro ? <Download className="w-3.5 h-3.5" /> : <Lock className="w-3 h-3" />}
+                    Export CSV
                   </button>
                 )}
                 <button
