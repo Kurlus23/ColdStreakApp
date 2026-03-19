@@ -782,31 +782,19 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   );
                 })}
                 {freeBusinesses.map((biz) => (
-                  <div
+                  <button
                     key={biz.id}
                     data-testid={`card-business-free-${biz.id}`}
-                    className="rounded-xl p-3 bg-blue-900/30 border border-blue-700/30"
+                    onClick={() => setBusinessProfileId(biz.id)}
+                    className="w-full text-left rounded-xl p-3 bg-blue-900/30 border border-blue-700/30 hover:border-blue-500/50 active:scale-[0.98] transition-all"
                   >
                     <div className="flex items-center gap-2">
                       <Building2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                       <span className="text-blue-100 font-medium text-sm flex-1 truncate">{biz.name}</span>
-                      <button
-                        data-testid={`button-delete-business-${biz.id}`}
-                        onClick={() => { setDeleteDialogLocId(biz.id); setDeleteEmail(""); }}
-                        className="text-[10px] text-red-500/60 hover:text-red-400 transition-colors shrink-0 mr-1"
-                      >
-                        Remove
-                      </button>
-                      <button
-                        data-testid={`button-upgrade-business-${biz.id}`}
-                        onClick={() => setVerifyDialogLocId(biz.id)}
-                        className="text-[10px] text-yellow-500/70 hover:text-yellow-400 transition-colors font-semibold shrink-0"
-                      >
-                        Get Verified →
-                      </button>
+                      <span className="text-[9px] bg-blue-800/60 border border-blue-600/50 text-blue-400 px-1.5 py-0.5 rounded-full font-semibold shrink-0">Unverified</span>
                     </div>
                     <div className="text-blue-500 text-[11px] mt-0.5 ml-5">{[biz.city, biz.state].filter(Boolean).join(", ")}</div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -1438,25 +1426,31 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       if (!biz) return null;
       const lat = biz.latitude ? Number(biz.latitude) : null;
       const lng = biz.longitude ? Number(biz.longitude) : null;
+      const verified = biz.businessVerified;
       return (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm"
           onClick={() => setBusinessProfileId(null)}
         >
           <div
-            className="w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border border-yellow-600/40 rounded-t-3xl shadow-2xl overflow-y-auto max-h-[85vh]"
+            className={`w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border ${verified ? "border-yellow-600/40" : "border-blue-700/40"} rounded-t-3xl shadow-2xl overflow-y-auto max-h-[85vh]`}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Header */}
             <div className="flex items-start gap-3 px-5 pt-5 pb-4 border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-yellow-500/20 border border-yellow-500/40 shrink-0">
-                <Building2 className="w-5 h-5 text-yellow-400" />
+              <div className={`flex items-center justify-center w-10 h-10 rounded-xl shrink-0 ${verified ? "bg-yellow-500/20 border border-yellow-500/40" : "bg-blue-800/40 border border-blue-700/40"}`}>
+                <Building2 className={`w-5 h-5 ${verified ? "text-yellow-400" : "text-blue-400"}`} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-white font-bold text-base truncate">{biz.name}</h2>
-                  <span className="inline-flex items-center gap-1 text-[10px] bg-yellow-500/20 border border-yellow-400/40 text-yellow-300 px-1.5 py-0.5 rounded-full font-bold shrink-0">
-                    <BadgeCheck className="w-3 h-3" /> Verified
-                  </span>
+                  {verified ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] bg-yellow-500/20 border border-yellow-400/40 text-yellow-300 px-1.5 py-0.5 rounded-full font-bold shrink-0">
+                      <BadgeCheck className="w-3 h-3" /> Verified
+                    </span>
+                  ) : (
+                    <span className="text-[9px] bg-blue-800/60 border border-blue-600/50 text-blue-400 px-1.5 py-0.5 rounded-full font-semibold shrink-0">Unverified</span>
+                  )}
                 </div>
                 <p className="text-blue-400 text-xs mt-0.5">
                   {[biz.fullAddress, biz.city, biz.state].filter(Boolean).join(", ")}
@@ -1470,95 +1464,112 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="px-5 py-4 space-y-3 pb-8">
-              {biz.description && (
-                <p className="text-slate-300 text-sm leading-relaxed">{biz.description}</p>
-              )}
-              {biz.modalities && biz.modalities.length > 0 && (
-                <div>
-                  <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-1.5">Modalities</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {biz.modalities.map((mod) => {
-                      const option = MODALITY_OPTIONS.find((o) => o.label === mod);
-                      return (
-                        <span
-                          key={mod}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold"
-                        >
-                          {option?.emoji} {mod}
-                        </span>
-                      );
-                    })}
+
+            {/* Verified: full content */}
+            {verified && (
+              <div className="px-5 py-4 space-y-3 pb-2">
+                {biz.description && (
+                  <p className="text-slate-300 text-sm leading-relaxed">{biz.description}</p>
+                )}
+                {biz.modalities && biz.modalities.length > 0 && (
+                  <div>
+                    <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-1.5">Modalities</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {biz.modalities.map((mod) => {
+                        const option = MODALITY_OPTIONS.find((o) => o.label === mod);
+                        return (
+                          <span key={mod} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold">
+                            {option?.emoji} {mod}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </div>
+                )}
+                <div className="space-y-2">
+                  {lat !== null && lng !== null && (
+                    <button
+                      data-testid="button-biz-directions"
+                      onClick={() => openDirections(lat, lng)}
+                      className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-sm font-semibold hover:bg-cyan-500/20 transition-all active:scale-[0.98]"
+                    >
+                      <Navigation className="w-4 h-4 shrink-0" /> Get Directions
+                    </button>
+                  )}
+                  {biz.phone && (
+                    <a href={`tel:${biz.phone}`} data-testid="link-biz-phone"
+                      className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-blue-800/40 border border-blue-700/40 text-blue-200 text-sm hover:border-blue-500/60 transition-all">
+                      <Phone className="w-4 h-4 text-blue-400 shrink-0" />{biz.phone}
+                    </a>
+                  )}
+                  {biz.websiteUrl && (
+                    <a href={biz.websiteUrl} target="_blank" rel="noopener noreferrer" data-testid="link-biz-website"
+                      className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-blue-800/40 border border-blue-700/40 text-blue-200 text-sm hover:border-blue-500/60 transition-all">
+                      <ExternalLink className="w-4 h-4 text-blue-400 shrink-0" /> Website
+                    </a>
+                  )}
+                  {biz.yelpUrl && (
+                    <a href={biz.yelpUrl} target="_blank" rel="noopener noreferrer" data-testid="link-biz-yelp"
+                      className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-red-900/20 border border-red-700/30 text-red-200 text-sm hover:border-red-500/40 transition-all">
+                      <ExternalLink className="w-4 h-4 text-red-400 shrink-0" /> Yelp Reviews
+                    </a>
+                  )}
+                  {biz.facebookUrl && (
+                    <a href={biz.facebookUrl} target="_blank" rel="noopener noreferrer" data-testid="link-biz-facebook"
+                      className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-blue-900/30 border border-blue-600/30 text-blue-200 text-sm hover:border-blue-500/40 transition-all">
+                      <ExternalLink className="w-4 h-4 text-blue-400 shrink-0" /> Facebook
+                    </a>
+                  )}
+                  {biz.bookingUrl && (
+                    <a href={biz.bookingUrl} target="_blank" rel="noopener noreferrer" data-testid="link-biz-booking"
+                      className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-green-900/20 border border-green-700/30 text-green-200 text-sm font-semibold hover:border-green-500/40 transition-all">
+                      <ExternalLink className="w-4 h-4 text-green-400 shrink-0" /> Book Appointment
+                    </a>
+                  )}
                 </div>
-              )}
-              <div className="space-y-2">
-                {lat !== null && lng !== null && (
-                  <button
-                    data-testid="button-biz-directions"
-                    onClick={() => openDirections(lat, lng)}
-                    className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-sm font-semibold hover:bg-cyan-500/20 transition-all active:scale-[0.98]"
-                  >
-                    <Navigation className="w-4 h-4 shrink-0" /> Get Directions
-                  </button>
-                )}
-                {biz.phone && (
-                  <a
-                    href={`tel:${biz.phone}`}
-                    data-testid="link-biz-phone"
-                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-blue-800/40 border border-blue-700/40 text-blue-200 text-sm hover:border-blue-500/60 transition-all"
-                  >
-                    <Phone className="w-4 h-4 text-blue-400 shrink-0" />
-                    {biz.phone}
-                  </a>
-                )}
-                {biz.websiteUrl && (
-                  <a
-                    href={biz.websiteUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-testid="link-biz-website"
-                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-blue-800/40 border border-blue-700/40 text-blue-200 text-sm hover:border-blue-500/60 transition-all"
-                  >
-                    <ExternalLink className="w-4 h-4 text-blue-400 shrink-0" /> Website
-                  </a>
-                )}
-                {biz.yelpUrl && (
-                  <a
-                    href={biz.yelpUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-testid="link-biz-yelp"
-                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-red-900/20 border border-red-700/30 text-red-200 text-sm hover:border-red-500/40 transition-all"
-                  >
-                    <ExternalLink className="w-4 h-4 text-red-400 shrink-0" /> Yelp Reviews
-                  </a>
-                )}
-                {biz.facebookUrl && (
-                  <a
-                    href={biz.facebookUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-testid="link-biz-facebook"
-                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-blue-900/30 border border-blue-600/30 text-blue-200 text-sm hover:border-blue-500/40 transition-all"
-                  >
-                    <ExternalLink className="w-4 h-4 text-blue-400 shrink-0" /> Facebook
-                  </a>
-                )}
-                {biz.bookingUrl && (
-                  <a
-                    href={biz.bookingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-testid="link-biz-booking"
-                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-green-900/20 border border-green-700/30 text-green-200 text-sm font-semibold hover:border-green-500/40 transition-all"
-                  >
-                    <ExternalLink className="w-4 h-4 text-green-400 shrink-0" /> Book Appointment
-                  </a>
-                )}
               </div>
-            </div>
-            <div className="px-5 pb-6 border-t border-slate-800 pt-4">
+            )}
+
+            {/* Unverified: frosted preview + CTA */}
+            {!verified && (
+              <div className="px-5 py-4 space-y-3 pb-2">
+                <div className="relative">
+                  {/* Frosted placeholder rows */}
+                  <div className="space-y-2 blur-[3px] opacity-40 pointer-events-none select-none" aria-hidden="true">
+                    <div className="h-10 rounded-xl bg-slate-700/60 border border-slate-600/40 w-full" />
+                    <div className="flex flex-wrap gap-1.5">
+                      {["Cold Plunge", "Sauna", "Float Tank"].map((m) => (
+                        <span key={m} className="inline-flex items-center px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px]">{m}</span>
+                      ))}
+                    </div>
+                    <div className="h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 w-full" />
+                    <div className="h-10 rounded-xl bg-blue-800/40 border border-blue-700/40 w-full" />
+                    <div className="h-10 rounded-xl bg-blue-800/40 border border-blue-700/40 w-3/4" />
+                    <div className="h-10 rounded-xl bg-green-900/20 border border-green-700/30 w-full" />
+                  </div>
+                  {/* Gradient fade */}
+                  <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none" />
+                </div>
+                {/* CTA */}
+                <button
+                  data-testid={`button-upgrade-from-profile-${biz.id}`}
+                  onClick={() => { setBusinessProfileId(null); setVerifyDialogLocId(biz.id); }}
+                  className="w-full bg-gradient-to-br from-slate-900 to-blue-950 border border-yellow-600/50 rounded-xl p-3 flex items-center gap-3 active:scale-[0.99] transition-all"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center shrink-0">
+                    <BadgeCheck className="w-4 h-4 text-yellow-400" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-white font-bold text-xs">Get Verified — 1st month free</p>
+                    <p className="text-blue-400 text-[11px]">Show your full profile, links & booking</p>
+                  </div>
+                  <span className="text-yellow-400 text-xs font-bold shrink-0">Verify →</span>
+                </button>
+              </div>
+            )}
+
+            {/* Footer: remove listing */}
+            <div className="px-5 pb-6 border-t border-slate-800 pt-4 mt-2">
               <button
                 data-testid={`button-delete-biz-profile-${businessProfileId}`}
                 onClick={() => { setDeleteDialogLocId(businessProfileId); setDeleteEmail(""); setBusinessProfileId(null); }}
