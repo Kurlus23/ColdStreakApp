@@ -35,13 +35,13 @@ async function writeToClipboard(text: string): Promise<boolean> {
 }
 
 export async function nativeShare({
-  title,
+  title = "ColdStreak Plunge",
   text,
   photoBlob,
   photoFilename = "coldstreak-plunge.jpg",
   onCaptionCopied,
 }: {
-  title: string;
+  title?: string;
   text: string;
   photoBlob?: Blob | null;
   photoFilename?: string;
@@ -54,11 +54,13 @@ export async function nativeShare({
         // Copy caption to clipboard — always notify so user knows to paste it
         await writeToClipboard(text);
         onCaptionCopied?.();
-        await Share.share({ title, text, files: [uri], dialogTitle: title });
+        // dialogTitle only used by Android share sheet, not included in message body
+        await Share.share({ text, files: [uri], dialogTitle: title });
         return "shared";
       }
     }
-    await Share.share({ title, text, dialogTitle: title });
+    // No title in share payload — prevents iMessage from rendering it as a second bubble
+    await Share.share({ text, dialogTitle: title });
     return "shared";
   } catch (e: any) {
     if (e?.message?.includes("cancel") || e?.errorMessage?.includes("cancel")) {

@@ -3582,7 +3582,8 @@ export default function Home() {
                   if (!promptPlungeRef.current || sharingLockRef.current) return;
                   sharingLockRef.current = true;
                   setPromptSharing(true);
-                  const done = () => { sharingLockRef.current = false; setPromptSharing(false); };
+                  let doneCalled = false;
+                  const done = () => { if (doneCalled) return; doneCalled = true; sharingLockRef.current = false; setPromptSharing(false); };
 
                   let locationName: string | undefined;
                   if (promptLocationId === "custom") {
@@ -3604,14 +3605,14 @@ export default function Home() {
 
                   // ── Native Android/iOS: use Capacitor Share (avoids WebView doubling bug)
                   if (isNative()) {
-                    await nativeShare({ title: "ColdStreak Plunge", text });
+                    await nativeShare({ text });
                     done(); return;
                   }
 
-                  // ── Web browser: use navigator.share
+                  // ── Web browser: use navigator.share (no title — prevents iOS iMessage subject bubble)
                   if (navigator.share) {
                     try {
-                      await navigator.share({ title: "ColdStreak Plunge", text });
+                      await navigator.share({ text });
                       done(); return;
                     } catch (e: any) {
                       if (e?.name === "AbortError") { done(); return; }
