@@ -346,7 +346,13 @@ export async function registerRoutes(
   app.get("/api/community-locations", async (req, res) => {
     const country = req.query.country as string | undefined;
     const locations = await storage.getUserLocations(country);
-    res.json(locations);
+    const caller = extractUser(req);
+    const callerEmail = caller?.email?.toLowerCase().trim() ?? null;
+    const sanitized = locations.map(({ contactEmail, ...rest }) => ({
+      ...rest,
+      isOwner: callerEmail ? callerEmail === (contactEmail ?? "").toLowerCase().trim() : false,
+    }));
+    res.json(sanitized);
   });
 
   app.post("/api/community-locations", async (req, res) => {

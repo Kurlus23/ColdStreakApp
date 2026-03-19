@@ -12,6 +12,8 @@ import { PASSPORT_LOCATIONS, usePassportBadges, distanceMiles, DIFFICULTY_META, 
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { UserLocation } from "@shared/schema";
 
+type BizLocation = Omit<UserLocation, "contactEmail"> & { isOwner: boolean };
+
 const NOMINATIONS_KEY = "coldstreak-nominations";
 
 function openDirections(lat: number | string, lng: number | string) {
@@ -312,9 +314,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   }, [geoPos, requestGeo]);
 
   // ── Community locations query ──
-  const { data: communityLocs = [] } = useQuery<UserLocation[]>({
+  const { data: communityLocs = [] } = useQuery<BizLocation[]>({
     queryKey: ["/api/community-locations"],
-    queryFn: () => fetch("/api/community-locations").then((r) => r.json()),
   });
 
   // ── Submit community location ──
@@ -1553,34 +1554,38 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   {/* Gradient fade */}
                   <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none" />
                 </div>
-                {/* CTA */}
-                <button
-                  data-testid={`button-upgrade-from-profile-${biz.id}`}
-                  onClick={() => { setBusinessProfileId(null); setVerifyDialogLocId(biz.id); }}
-                  className="w-full bg-gradient-to-br from-slate-900 to-blue-950 border border-yellow-600/50 rounded-xl p-3 flex items-center gap-3 active:scale-[0.99] transition-all"
-                >
-                  <div className="w-8 h-8 rounded-xl bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center shrink-0">
-                    <BadgeCheck className="w-4 h-4 text-yellow-400" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className="text-white font-bold text-xs">Get Verified — 1st month free</p>
-                    <p className="text-blue-400 text-[11px]">Show your full profile, links & booking</p>
-                  </div>
-                  <span className="text-yellow-400 text-xs font-bold shrink-0">Verify →</span>
-                </button>
+                {/* CTA — only visible to the listing owner */}
+                {biz.isOwner && (
+                  <button
+                    data-testid={`button-upgrade-from-profile-${biz.id}`}
+                    onClick={() => { setBusinessProfileId(null); setVerifyDialogLocId(biz.id); }}
+                    className="w-full bg-gradient-to-br from-slate-900 to-blue-950 border border-yellow-600/50 rounded-xl p-3 flex items-center gap-3 active:scale-[0.99] transition-all"
+                  >
+                    <div className="w-8 h-8 rounded-xl bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center shrink-0">
+                      <BadgeCheck className="w-4 h-4 text-yellow-400" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-white font-bold text-xs">Get Verified — 1st month free</p>
+                      <p className="text-blue-400 text-[11px]">Show your full profile, links & booking</p>
+                    </div>
+                    <span className="text-yellow-400 text-xs font-bold shrink-0">Verify →</span>
+                  </button>
+                )}
               </div>
             )}
 
-            {/* Footer: remove listing */}
-            <div className="px-5 pb-6 border-t border-slate-800 pt-4 mt-2">
-              <button
-                data-testid={`button-delete-biz-profile-${businessProfileId}`}
-                onClick={() => { setDeleteDialogLocId(businessProfileId); setDeleteEmail(""); setBusinessProfileId(null); }}
-                className="w-full py-2 text-red-500/60 hover:text-red-400 text-xs transition-colors"
-              >
-                Remove this listing
-              </button>
-            </div>
+            {/* Footer: remove listing — only visible to the listing owner */}
+            {biz.isOwner && (
+              <div className="px-5 pb-6 border-t border-slate-800 pt-4 mt-2">
+                <button
+                  data-testid={`button-delete-biz-profile-${businessProfileId}`}
+                  onClick={() => { setDeleteDialogLocId(businessProfileId); setDeleteEmail(""); setBusinessProfileId(null); }}
+                  className="w-full py-2 text-red-500/60 hover:text-red-400 text-xs transition-colors"
+                >
+                  Remove this listing
+                </button>
+              </div>
+            )}
           </div>
         </div>
       );
