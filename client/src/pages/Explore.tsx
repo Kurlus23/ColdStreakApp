@@ -1605,7 +1605,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             </div>
             <div>
               <p className="text-white font-bold text-sm">Verified Business Listing</p>
-              <p className="text-slate-400 text-[11px]">$29.99 / month — cancel anytime</p>
+              <p className="text-green-400 text-[11px] font-semibold">First month free · then $29.99/mo · cancel anytime</p>
             </div>
             <button
               onClick={() => { setVerifyDialogLocId(null); setVerifyEmail(""); }}
@@ -1616,14 +1616,15 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
           </div>
           <div className="px-5 py-4 space-y-3">
             <p className="text-slate-300 text-xs leading-relaxed">
-              Stand out on ColdStreak's community boards and show customers you're a trusted cold plunge destination.
+              Stand out in ColdStreak's business directory and give customers everything they need to find and book you.
             </p>
             <ul className="space-y-2">
               {[
-                "Gold ✓ Verified Business badge on your listing",
-                "Full public profile with links, phone & directions",
-                "Increased trust and credibility with app users",
-                "1st month free — then $29.99/mo, cancel any time",
+                "Gold ✓ Verified badge — pinned to the top of the directory",
+                "Public profile: description, phone, website & social links",
+                "Google Maps directions button on your listing",
+                "Booking / appointment link shown to every viewer",
+                "First month free — no charge for 30 days",
               ].map((benefit) => (
                 <li key={benefit} className="flex items-start gap-2 text-[11px] text-slate-300">
                   <CheckCircle2 className="w-3.5 h-3.5 text-yellow-400 shrink-0 mt-0.5" />
