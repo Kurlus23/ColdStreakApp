@@ -1937,26 +1937,47 @@ export default function Home() {
                       <Flame className="w-3 h-3 text-orange-400" /> Body Weight
                     </label>
                     <div className="flex items-center gap-2">
-                      <select
-                        data-testid="input-body-weight"
-                        value={(() => {
-                          const nearest = Math.round(bodyWeightLbs / 5) * 5;
-                          return Math.min(400, Math.max(80, nearest));
-                        })()}
-                        onChange={(e) => {
-                          const val = Number(e.target.value);
+                      {/* − button */}
+                      <button
+                        data-testid="button-weight-decrease"
+                        onClick={() => {
+                          const val = Math.max(80, bodyWeightLbs - 1);
                           setBodyWeightLbs(val);
                           localStorage.setItem("coldstreak-body-weight", String(val));
                           const token = localStorage.getItem("coldstreak-auth-token");
                           if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: val }) }).catch(() => {});
                         }}
-                        className="bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 font-bold appearance-none text-center"
-                      >
-                        {Array.from({ length: 65 }, (_, i) => 80 + i * 5).map((w) => (
-                          <option key={w} value={w}>{w} lbs</option>
-                        ))}
-                      </select>
-                      <span className="text-blue-500 text-xs">({Math.round(bodyWeightLbs / 2.205)} kg)</span>
+                        className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400"
+                      >−</button>
+                      {/* Display + direct input */}
+                      <input
+                        data-testid="input-body-weight"
+                        type="number"
+                        min={80}
+                        max={400}
+                        value={bodyWeightLbs}
+                        onChange={(e) => {
+                          const val = Math.min(400, Math.max(80, Number(e.target.value) || 80));
+                          setBodyWeightLbs(val);
+                          localStorage.setItem("coldstreak-body-weight", String(val));
+                          const token = localStorage.getItem("coldstreak-auth-token");
+                          if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: val }) }).catch(() => {});
+                        }}
+                        className="w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm focus:outline-none focus:border-cyan-400 font-bold text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      />
+                      {/* + button */}
+                      <button
+                        data-testid="button-weight-increase"
+                        onClick={() => {
+                          const val = Math.min(400, bodyWeightLbs + 1);
+                          setBodyWeightLbs(val);
+                          localStorage.setItem("coldstreak-body-weight", String(val));
+                          const token = localStorage.getItem("coldstreak-auth-token");
+                          if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: val }) }).catch(() => {});
+                        }}
+                        className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400"
+                      >+</button>
+                      <span className="text-blue-500 text-xs">lbs ({Math.round(bodyWeightLbs / 2.205)} kg)</span>
                     </div>
                     <p className="text-blue-500 text-xs mt-1">Used to estimate calories burned per plunge.</p>
                   </div>
