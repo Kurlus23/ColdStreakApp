@@ -323,6 +323,8 @@ export default function Home() {
   const [promptSaving, setPromptSaving] = useState(false);
   const [promptSharing, setPromptSharing] = useState(false);
   const sharingLockRef = useRef(false);
+  const weightHoldRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const weightHoldCountRef = useRef(0);
   const [promptSubmitLeaderboard, setPromptSubmitLeaderboard] = useState(true);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const [showWebCamera, setShowWebCamera] = useState(false);
@@ -415,9 +417,9 @@ export default function Home() {
   const [bodyWeightLbs, setBodyWeightLbs] = useState<number>(() => {
     if (!localStorage.getItem("coldstreak-auth-token")) {
       localStorage.removeItem("coldstreak-body-weight");
-      return 154;
+      return 150;
     }
-    return Number(localStorage.getItem("coldstreak-body-weight") || 154);
+    return Number(localStorage.getItem("coldstreak-body-weight") || 150);
   });
   const [restoreEmailInput, setRestoreEmailInput] = useState("");
   const [restoreLoading, setRestoreLoading] = useState(false);
@@ -1937,35 +1939,60 @@ export default function Home() {
                       <Flame className="w-3 h-3 text-orange-400" /> Body Weight
                     </label>
                     <div className="flex items-center gap-2">
-                      {/* − button */}
-                      <button
-                        data-testid="button-weight-decrease"
-                        onClick={() => {
-                          const val = Math.max(80, bodyWeightLbs - 1);
-                          setBodyWeightLbs(val);
-                          localStorage.setItem("coldstreak-body-weight", String(val));
+                      {(() => {
+                        const saveWeightToServer = (val: number) => {
                           const token = localStorage.getItem("coldstreak-auth-token");
                           if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: val }) }).catch(() => {});
-                        }}
-                        className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400"
-                      >−</button>
-                      {/* Display + direct input */}
-                      <div
-                        data-testid="input-body-weight"
-                        className="w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none pointer-events-none"
-                      >{bodyWeightLbs}</div>
-                      {/* + button */}
-                      <button
-                        data-testid="button-weight-increase"
-                        onClick={() => {
-                          const val = Math.min(400, bodyWeightLbs + 1);
-                          setBodyWeightLbs(val);
-                          localStorage.setItem("coldstreak-body-weight", String(val));
-                          const token = localStorage.getItem("coldstreak-auth-token");
-                          if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: val }) }).catch(() => {});
-                        }}
-                        className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400"
-                      >+</button>
+                        };
+                        const stopHold = () => {
+                          if (weightHoldRef.current) { clearTimeout(weightHoldRef.current); weightHoldRef.current = null; }
+                          weightHoldCountRef.current = 0;
+                          const stored = Number(localStorage.getItem("coldstreak-body-weight"));
+                          if (stored) saveWeightToServer(stored);
+                        };
+                        const startHold = (dir: 1 | -1) => {
+                          const tick = () => {
+                            weightHoldCountRef.current += 1;
+                            const fast = weightHoldCountRef.current > 20;
+                            const step = fast ? 5 : 1;
+                            const delay = fast ? 60 : 120;
+                            setBodyWeightLbs(prev => {
+                              const val = Math.min(400, Math.max(80, prev + dir * step));
+                              localStorage.setItem("coldstreak-body-weight", String(val));
+                              return val;
+                            });
+                            weightHoldRef.current = setTimeout(tick, delay);
+                          };
+                          weightHoldRef.current = setTimeout(tick, 350);
+                        };
+                        const pressProps = (dir: 1 | -1) => ({
+                          onMouseDown: (e: React.MouseEvent) => { e.preventDefault(); startHold(dir); },
+                          onMouseUp: stopHold,
+                          onMouseLeave: stopHold,
+                          onTouchStart: (e: React.TouchEvent) => { e.preventDefault(); startHold(dir); },
+                          onTouchEnd: stopHold,
+                          onClick: () => {
+                            if (weightHoldCountRef.current > 0) return;
+                            setBodyWeightLbs(prev => {
+                              const val = Math.min(400, Math.max(80, prev + dir));
+                              localStorage.setItem("coldstreak-body-weight", String(val));
+                              saveWeightToServer(val);
+                              return val;
+                            });
+                          },
+                        });
+                        return (<>
+                          <button data-testid="button-weight-decrease" {...pressProps(-1)}
+                            className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
+                          >−</button>
+                          <div data-testid="input-body-weight"
+                            className="w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none pointer-events-none"
+                          >{bodyWeightLbs}</div>
+                          <button data-testid="button-weight-increase" {...pressProps(1)}
+                            className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
+                          >+</button>
+                        </>);
+                      })()}
                       <span className="text-blue-500 text-xs">lbs ({Math.round(bodyWeightLbs / 2.205)} kg)</span>
                     </div>
                     <p className="text-blue-500 text-xs mt-1">Used to estimate calories burned per plunge.</p>
