@@ -147,23 +147,29 @@ export function useProStatus() {
   const redeemPromo = useCallback(async (code: string): Promise<{ success: boolean; durationDays?: number; error?: string }> => {
     setLoading(true);
     try {
+      const loggedInEmail = getLoggedInEmail();
       const res = await fetch("/api/promo/redeem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, email: loggedInEmail ?? undefined }),
       });
       const data = await res.json();
       if (!res.ok) return { success: false, error: data.error ?? "Invalid code" };
       localStorage.setItem(PROMO_EXPIRES_KEY, data.expiresAt);
       setPromoExpiresAt(data.expiresAt);
       setIsPro(true);
+      // If the user is logged in, persist their email so Pro can be
+      // automatically restored on any device after they log back in
+      if (loggedInEmail) {
+        markPro(loggedInEmail, false);
+      }
       return { success: true, durationDays: data.durationDays };
     } catch {
       return { success: false, error: "Something went wrong" };
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [markPro]);
 
   return { isPro, proEmail, promoExpiresAt, loading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, clearPro, redeemPromo };
 }

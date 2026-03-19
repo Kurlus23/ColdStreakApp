@@ -574,7 +574,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/promo/redeem", async (req, res) => {
-    const { code } = req.body;
+    const { code, email } = req.body;
     if (!code || typeof code !== "string") {
       return res.status(400).json({ error: "Code required" });
     }
@@ -582,8 +582,16 @@ export async function registerRoutes(
     if (!promo) {
       return res.status(404).json({ error: "Invalid or expired code" });
     }
-    const expiresAt = new Date(Date.now() + promo.durationDays * 24 * 60 * 60 * 1000).toISOString();
-    res.json({ success: true, durationDays: promo.durationDays, expiresAt });
+    const expiresAt = new Date(Date.now() + promo.durationDays * 24 * 60 * 60 * 1000);
+    // If a logged-in email is provided, persist the promo grant server-side
+    // so Pro can be restored on any device after login
+    if (email && typeof email === "string" && email.includes("@")) {
+      await storage.createProUser(email.toLowerCase().trim(), `promo-${code}`, {
+        planType: "promo",
+        expiresAt,
+      });
+    }
+    res.json({ success: true, durationDays: promo.durationDays, expiresAt: expiresAt.toISOString() });
   });
 
   app.post("/api/badge-profile", async (req, res) => {
