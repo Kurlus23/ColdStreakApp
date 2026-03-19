@@ -445,9 +445,25 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       return distanceMiles(effectiveGeoPos.lat, effectiveGeoPos.lng, a.lat, a.lng) - distanceMiles(effectiveGeoPos.lat, effectiveGeoPos.lng, b.lat, b.lng);
     });
 
-  // ── Business locations (derived from communityLocs) ──
-  const businessLocs = communityLocs.filter((l) => l.isBusiness);
-  const verifiedBusinesses = businessLocs
+  // ── Business locations ──
+  const allBusinessLocs = communityLocs.filter((l) => l.isBusiness);
+  // Default radius for businesses: 100 miles when GPS is available; otherwise any distance
+  const bizEffectiveRadius = radiusMiles > 0 ? radiusMiles : (effectiveGeoPos ? 100 : 0);
+  function withinBizRange(lat: number, lng: number): boolean {
+    if (!bizEffectiveRadius || !effectiveGeoPos) return true;
+    return distanceMiles(effectiveGeoPos.lat, effectiveGeoPos.lng, lat, lng) <= bizEffectiveRadius;
+  }
+  const businessFiltered = allBusinessLocs.filter((loc) => {
+    if (!matchesText([loc.name, loc.country, loc.state, loc.city, loc.description])) return false;
+    const lat = loc.latitude ? Number(loc.latitude) : null;
+    const lng = loc.longitude ? Number(loc.longitude) : null;
+    if (lat !== null && lng !== null) {
+      if (!withinBizRange(lat, lng)) return false;
+    }
+    // Businesses without GPS coordinates always show (address-only listings)
+    return true;
+  });
+  const verifiedBusinesses = businessFiltered
     .filter((l) => l.businessVerified)
     .sort((a, b) => {
       if (effectiveGeoPos) {
@@ -460,7 +476,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       }
       return a.name.localeCompare(b.name);
     });
-  const freeBusinesses = businessLocs
+  const freeBusinesses = businessFiltered
     .filter((l) => !l.businessVerified)
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -654,9 +670,15 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
           </div>
           <div className="flex-1 text-left">
             <div className="text-white font-bold text-sm">Cold Plunge Businesses</div>
-            <div className="text-blue-400 text-[11px]">Local facilities &amp; spas — open to all users</div>
+            <div className="text-blue-400 text-[11px]">
+              {effectiveGeoPos
+                ? `Within ${bizEffectiveRadius} mi · sorted by distance`
+                : "Local facilities & spas — open to all users"}
+            </div>
           </div>
-          <span className="text-xs text-amber-400 font-semibold mr-1">{businessLocs.length > 0 ? `${businessLocs.length} listed` : "Be first!"}</span>
+          <span className="text-xs text-amber-400 font-semibold mr-1">
+            {allBusinessLocs.length === 0 ? "Be first!" : `${businessFiltered.length} shown`}
+          </span>
           <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform duration-300 ${businessOpen ? "rotate-180" : ""}`} />
         </button>
 
@@ -671,8 +693,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               List Your Business — Free
             </button>
 
-            {businessLocs.length === 0 ? (
+            {allBusinessLocs.length === 0 ? (
               <div className="text-center py-5 text-blue-400 text-sm">No businesses listed yet — be the first!</div>
+            ) : businessFiltered.length === 0 ? (
+              <div className="text-center py-5 text-blue-400 text-sm">
+                {effectiveGeoPos
+                  ? `No businesses within ${bizEffectiveRadius} miles. Try searching by city or zip, or widen the distance filter.`
+                  : "No businesses match your search."}
+              </div>
             ) : (
               <div className="space-y-2">
                 {verifiedBusinesses.map((biz) => {
