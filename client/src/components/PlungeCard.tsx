@@ -118,7 +118,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
     setPendingAction(() => action);
   };
 
-  const calories = Math.round(estimateCalories(plunge.duration, plunge.temperature, bodyWeightLbs));
+  const calories = plunge.calories ?? Math.round(estimateCalories(plunge.duration, plunge.temperature, bodyWeightLbs));
 
   useEffect(() => {
     getPhoto(plunge.id).then((p) => setLocalPhoto(p)).catch(() => {});

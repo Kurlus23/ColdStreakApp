@@ -672,7 +672,7 @@ export default function Home() {
     const headers = ["Date", "Time", "Duration", "Duration (sec)", "Temp (°F)", "Temp (°C)", "Cold Score", "Calories (kcal est.)", "Location"];
     const rows = plunges.map((p) => {
       const d = new Date(p.createdAt);
-      const calories = Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs));
+      const calories = p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs));
       const tempC = Math.round(((p.temperature - 32) * 5) / 9 * 10) / 10;
       const mins = Math.floor(p.duration / 60);
       const secs = p.duration % 60;
@@ -701,8 +701,10 @@ export default function Home() {
 
   const doLogPlunge = useCallback((durationSec: number) => {
     const score = plungeScore(durationSec, temperature);
+    const weightAtLogTime = Number(localStorage.getItem("coldstreak-body-weight") || 150);
+    const caloriesAtLogTime = Math.round(estimateCalories(durationSec, temperature, weightAtLogTime));
     createPlunge.mutate(
-      { duration: durationSec, temperature, score: String(score), hrAvg: null, spo2Avg: null, timerUsed: true },
+      { duration: durationSec, temperature, score: String(score), hrAvg: null, spo2Avg: null, timerUsed: true, calories: caloriesAtLogTime },
       {
         onSuccess: (newPlunge) => {
           Analytics.plungeLogged(durationSec, temperature, score);
@@ -880,9 +882,9 @@ export default function Home() {
   const thisWeek = plunges.filter((p) => new Date(p.createdAt) >= weekStart);
   const weeklyMinutes = thisWeek.reduce((sum, p) => sum + p.duration, 0) / 60;
   const weeklyScore = thisWeek.reduce((sum, p) => sum + Number(p.score), 0);
-  const todayCalories = todayPlunges.reduce((sum, p) => sum + estimateCalories(p.duration, p.temperature, bodyWeightLbs), 0);
-  const weeklyCalories = thisWeek.reduce((sum, p) => sum + estimateCalories(p.duration, p.temperature, bodyWeightLbs), 0);
-  const allTimeCalories = plunges.reduce((sum, p) => sum + estimateCalories(p.duration, p.temperature, bodyWeightLbs), 0);
+  const todayCalories = todayPlunges.reduce((sum, p) => sum + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs))), 0);
+  const weeklyCalories = thisWeek.reduce((sum, p) => sum + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs))), 0);
+  const allTimeCalories = plunges.reduce((sum, p) => sum + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs))), 0);
   const weeklyPct = Math.min(100, (weeklyMinutes / weeklyGoalMinutes) * 100);
   const streak = getStreak(plunges);
 
@@ -1449,7 +1451,7 @@ export default function Home() {
                       : manualLocSel === "custom" ? (manualLocCustom.trim() || undefined)
                       : undefined;
                     createPlunge.mutate(
-                      { duration: durationSec, temperature: manualTempF, score: String(score), hrAvg: null, spo2Avg: null, createdAt: isoDate, locationId: finalLocId, locationName: finalLocName },
+                      { duration: durationSec, temperature: manualTempF, score: String(score), hrAvg: null, spo2Avg: null, createdAt: isoDate, locationId: finalLocId, locationName: finalLocName, calories: Math.round(estimateCalories(durationSec, manualTempF, Number(localStorage.getItem("coldstreak-body-weight") || 150))) },
                       {
                         onSuccess: () => {
                           setShowManualEntry(false);

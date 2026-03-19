@@ -32,6 +32,7 @@ export const plunges = pgTable("plunges", {
   locationName: text("location_name"), // display name of location (nullable)
   locationId: text("location_id"), // passport location id (nullable)
   timerUsed: boolean("timer_used").default(false).notNull(), // true = in-app timer; false = manually entered
+  calories: integer("calories"), // kcal estimate locked at log time (nullable for legacy rows)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
