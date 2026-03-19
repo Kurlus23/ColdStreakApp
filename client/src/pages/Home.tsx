@@ -1541,20 +1541,28 @@ export default function Home() {
                   ))}
                   {locked.length > 0 && (
                     <div data-testid="banner-upgrade-history" className="relative">
-                      {/* Ghost previews of locked plunges */}
-                      <div className="space-y-3 pointer-events-none select-none" aria-hidden="true">
-                        {locked.slice(0, 2).map((plunge) => (
-                            <div key={plunge.id} className="blur-[3px] opacity-40 bg-blue-900/60 border border-blue-700/40 rounded-2xl px-4 py-3 flex items-center justify-between">
-                              <div className="space-y-1">
-                                <div className="h-2.5 w-24 bg-blue-500/50 rounded-full" />
-                                <div className="h-2 w-16 bg-blue-600/40 rounded-full" />
+                      {/* Frosted real locked plunges */}
+                      <div className="space-y-3 blur-[3px] opacity-50 pointer-events-none select-none" aria-hidden="true">
+                        {locked.slice(0, 2).map((plunge) => {
+                          const mins = Math.floor(plunge.durationSeconds / 60);
+                          const secs = plunge.durationSeconds % 60;
+                          return (
+                            <div key={plunge.id} className="bg-blue-900/60 border border-blue-700/40 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white text-sm font-semibold">{new Date(plunge.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                                <p className="text-blue-400 text-xs">{plunge.locationName || "Home plunge"}</p>
                               </div>
-                              <div className="flex gap-3">
-                                <div className="h-8 w-12 bg-cyan-700/40 rounded-xl" />
-                                <div className="h-8 w-12 bg-blue-700/40 rounded-xl" />
+                              <div className="flex gap-2 shrink-0">
+                                <div className="bg-cyan-500/20 border border-cyan-500/30 rounded-xl px-2.5 py-1.5 text-center">
+                                  <p className="text-cyan-300 text-xs font-bold">{plunge.tempF}°F</p>
+                                </div>
+                                <div className="bg-blue-700/40 border border-blue-600/30 rounded-xl px-2.5 py-1.5 text-center">
+                                  <p className="text-blue-200 text-xs font-bold">{mins}:{secs.toString().padStart(2, "0")}</p>
+                                </div>
                               </div>
                             </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       {/* Fade overlay */}
