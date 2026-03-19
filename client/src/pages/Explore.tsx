@@ -794,6 +794,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                       <span className="text-[9px] bg-blue-800/60 border border-blue-600/50 text-blue-400 px-1.5 py-0.5 rounded-full font-semibold shrink-0">Unverified</span>
                     </div>
                     <div className="text-blue-500 text-[11px] mt-0.5 ml-5">{[biz.city, biz.state].filter(Boolean).join(", ")}</div>
+                    <div className="text-amber-600/70 text-[10px] mt-1 ml-5">⚠ This business has not been verified by ColdStreak</div>
                   </button>
                 ))}
               </div>
