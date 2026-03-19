@@ -1438,11 +1438,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       const verified = biz.businessVerified;
       return (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
           onClick={() => setBusinessProfileId(null)}
         >
           <div
-            className={`w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border ${verified ? "border-yellow-600/40" : "border-blue-700/40"} rounded-t-3xl shadow-2xl overflow-y-auto max-h-[85vh]`}
+            className={`w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border ${verified ? "border-yellow-600/40" : "border-blue-700/40"} rounded-3xl shadow-2xl overflow-y-auto max-h-[85vh]`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
