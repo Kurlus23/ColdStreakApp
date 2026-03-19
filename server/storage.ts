@@ -32,6 +32,7 @@ export interface IStorage {
   getUserLocations(country?: string): Promise<UserLocation[]>;
   getUserLocationById(id: number): Promise<UserLocation | null>;
   createUserLocation(loc: InsertUserLocation): Promise<UserLocation>;
+  deleteUserLocation(id: number): Promise<void>;
   nominateUserLocation(id: number): Promise<UserLocation | null>;
   // Auth users
   createUser(email: string, passwordHash: string): Promise<User>;
@@ -241,6 +242,10 @@ export class DatabaseStorage implements IStorage {
   async createUserLocation(loc: InsertUserLocation): Promise<UserLocation> {
     const [created] = await db.insert(userLocations).values(loc).returning();
     return created;
+  }
+
+  async deleteUserLocation(id: number): Promise<void> {
+    await db.delete(userLocations).where(eq(userLocations.id, id));
   }
 
   async nominateUserLocation(id: number): Promise<UserLocation | null> {

@@ -386,6 +386,22 @@ export async function registerRoutes(
     res.json(updated);
   });
 
+  app.delete("/api/community-locations/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const { email } = req.body as { email?: string };
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ message: "Email required" });
+    }
+    const loc = await storage.getUserLocationById(id);
+    if (!loc) return res.status(404).json({ message: "Listing not found" });
+    if (!loc.contactEmail || loc.contactEmail.toLowerCase().trim() !== email.toLowerCase().trim()) {
+      return res.status(403).json({ message: "Email does not match the contact email on this listing." });
+    }
+    await storage.deleteUserLocation(id);
+    res.json({ success: true });
+  });
+
   // ── Stripe ─────────────────────────────────────────────────────────────
 
   app.post("/api/stripe/checkout", async (req, res) => {

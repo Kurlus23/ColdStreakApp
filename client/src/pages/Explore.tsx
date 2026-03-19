@@ -345,6 +345,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
 
   const [verifyDialogLocId, setVerifyDialogLocId] = useState<number | null>(null);
   const [verifyEmail, setVerifyEmail] = useState("");
+  const [deleteDialogLocId, setDeleteDialogLocId] = useState<number | null>(null);
+  const [deleteEmail, setDeleteEmail] = useState("");
   const [businessOpen, setBusinessOpen] = useState(true);
   const [showBusinessForm, setShowBusinessForm] = useState(false);
   const [businessProfileId, setBusinessProfileId] = useState<number | null>(null);
@@ -386,6 +388,25 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
         toast({ title: "Email not recognized", description: "Enter the contact email you used when submitting this listing.", variant: "destructive" });
       } else {
         toast({ title: "Checkout failed", description: "Please try again.", variant: "destructive" });
+      }
+    },
+  });
+
+  const deleteListingMutation = useMutation({
+    mutationFn: ({ locationId, email }: { locationId: number; email: string }) =>
+      apiRequest("DELETE", `/api/community-locations/${locationId}`, { email }).then((r) => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
+      setDeleteDialogLocId(null);
+      setDeleteEmail("");
+      toast({ title: "Listing removed", description: "Your listing has been deleted." });
+    },
+    onError: (err: any) => {
+      const msg = err?.message || "";
+      if (msg.includes("Email does not match") || msg.includes("403")) {
+        toast({ title: "Email not recognized", description: "Enter the contact email used when submitting this listing.", variant: "destructive" });
+      } else {
+        toast({ title: "Could not delete listing", description: "Please try again.", variant: "destructive" });
       }
     },
   });
@@ -769,6 +790,13 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     <div className="flex items-center gap-2">
                       <Building2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                       <span className="text-blue-100 font-medium text-sm flex-1 truncate">{biz.name}</span>
+                      <button
+                        data-testid={`button-delete-business-${biz.id}`}
+                        onClick={() => { setDeleteDialogLocId(biz.id); setDeleteEmail(""); }}
+                        className="text-[10px] text-red-500/60 hover:text-red-400 transition-colors shrink-0 mr-1"
+                      >
+                        Remove
+                      </button>
                       <button
                         data-testid={`button-upgrade-business-${biz.id}`}
                         onClick={() => setVerifyDialogLocId(biz.id)}
@@ -1530,6 +1558,15 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 )}
               </div>
             </div>
+            <div className="px-5 pb-6 border-t border-slate-800 pt-4">
+              <button
+                data-testid={`button-delete-biz-profile-${businessProfileId}`}
+                onClick={() => { setDeleteDialogLocId(businessProfileId); setDeleteEmail(""); setBusinessProfileId(null); }}
+                className="w-full py-2 text-red-500/60 hover:text-red-400 text-xs transition-colors"
+              >
+                Remove this listing
+              </button>
+            </div>
           </div>
         </div>
       );
@@ -1796,7 +1833,67 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       </div>
     )}
 
-    {/* ── Business Verify Dialog ── */}
+    {/* ── Delete Listing Dialog ── */}
+    {deleteDialogLocId !== null && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
+        <div className="w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-red-700/40 rounded-2xl shadow-2xl overflow-hidden">
+          <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-slate-800">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/40 shrink-0">
+              <X className="w-5 h-5 text-red-400" />
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm">Remove Listing</p>
+              <p className="text-slate-400 text-[11px]">This cannot be undone</p>
+            </div>
+            <button
+              onClick={() => { setDeleteDialogLocId(null); setDeleteEmail(""); }}
+              className="ml-auto text-slate-500 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="px-5 py-4 space-y-3">
+            <p className="text-slate-300 text-xs leading-relaxed">
+              To confirm you own this listing, enter the contact email you used when submitting it.
+            </p>
+            <div>
+              <label className="text-slate-400 text-[11px] block mb-1">Contact email</label>
+              <input
+                data-testid="input-delete-email"
+                type="email"
+                value={deleteEmail}
+                onChange={(e) => setDeleteEmail(e.target.value)}
+                placeholder="owner@yourbusiness.com"
+                className="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500 placeholder-slate-500"
+              />
+            </div>
+          </div>
+          <div className="px-5 pb-5 flex flex-col gap-2">
+            <button
+              data-testid="button-confirm-delete-listing"
+              onClick={() => {
+                if (!deleteEmail.trim()) {
+                  toast({ title: "Email required", description: "Enter the contact email used when submitting this listing.", variant: "destructive" });
+                  return;
+                }
+                deleteListingMutation.mutate({ locationId: deleteDialogLocId!, email: deleteEmail.trim() });
+              }}
+              disabled={deleteListingMutation.isPending || !deleteEmail.trim()}
+              className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-60"
+            >
+              {deleteListingMutation.isPending ? "Removing…" : "Remove listing"}
+            </button>
+            <button
+              onClick={() => { setDeleteDialogLocId(null); setDeleteEmail(""); }}
+              className="w-full py-2 text-slate-500 text-xs hover:text-slate-400 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
     {verifyDialogLocId !== null && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
         <div className="w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-yellow-600/40 rounded-2xl shadow-2xl overflow-hidden">
