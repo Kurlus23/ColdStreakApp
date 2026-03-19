@@ -1454,7 +1454,9 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   )}
                 </div>
                 <p className="text-blue-400 text-xs mt-0.5">
-                  {[biz.fullAddress, biz.city, biz.state].filter(Boolean).join(", ")}
+                  {verified
+                    ? [biz.fullAddress, biz.city, biz.state].filter(Boolean).join(", ")
+                    : [biz.city, biz.state].filter(Boolean).join(", ")}
                 </p>
               </div>
               <button
