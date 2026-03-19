@@ -70,12 +70,47 @@ async function seedPromoCodes() {
   }
 }
 
+async function seedTestVerifiedBusiness() {
+  try {
+    const { db } = await import("./db");
+    const { userLocations } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    const [existing] = await db.select().from(userLocations).where(eq(userLocations.name, "Arctic Recovery Studio"));
+    if (!existing) {
+      await db.insert(userLocations).values({
+        name: "Arctic Recovery Studio",
+        country: "USA",
+        state: "Virginia",
+        city: "Fredericksburg",
+        fullAddress: "2265 Princess Anne St, Fredericksburg, VA 22401",
+        description: "Premium cold plunge facility offering private and group sessions. Featuring Morozko Forge tubs at 34–38°F, infrared sauna, and guided breathwork coaching. Walk-ins welcome.",
+        isBusiness: true,
+        businessVerified: true,
+        phone: "(540) 555-0182",
+        websiteUrl: "https://arcticrecoverystudio.com",
+        yelpUrl: "https://yelp.com",
+        bookingUrl: "https://arcticrecoverystudio.com/book",
+        modalities: ["Cold Plunge", "Infrared Sauna", "Breathwork", "Recovery Therapy"],
+        latitude: "38.3005",
+        longitude: "-77.4605",
+        submittedBy: "Demo",
+        contactEmail: "demo@arcticrecoverystudio.com",
+        nominationCount: 0,
+      });
+      console.log("[seed] Created test verified business: Arctic Recovery Studio");
+    }
+  } catch (err) {
+    console.error("[seed] Failed to seed test verified business:", err);
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
 
   await seedPromoCodes();
+  await seedTestVerifiedBusiness();
 
   // ── Auth ──────────────────────────────────────────────────────────────
 

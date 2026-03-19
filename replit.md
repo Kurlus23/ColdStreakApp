@@ -192,6 +192,15 @@ Build when user base reaches scale where manual Stripe dashboard management beco
 ## Monetization Reminders
 
 ### Google AdSense — Do this at 1,000 users
+## REMINDER — Delete Before Google Play Launch
+
+The following test entry was added to help testers preview the Verified Business profile:
+- **"Arctic Recovery Studio"** — fake verified business (Fredericksburg, VA)
+- Inserted via `seedTestVerifiedBusiness()` in `server/routes.ts`
+- **Remove before Google Play launch**: delete `seedTestVerifiedBusiness()` from `server/routes.ts` startup, then run `DELETE FROM user_locations WHERE name = 'Arctic Recovery Studio'` on production.
+
+---
+
 Current ads are Amazon Associates affiliate links (commission-only, no impression revenue).
 Once the app reaches **1,000 registered users**, apply for Google AdSense to add impression-based banner revenue:
 1. Apply at https://adsense.google.com — site must be coldstreakapp.com
