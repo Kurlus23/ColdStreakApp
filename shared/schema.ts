@@ -109,6 +109,12 @@ export const userLocations = pgTable("user_locations", {
   isBusiness: boolean("is_business").default(false).notNull(),
   businessVerified: boolean("business_verified").default(false).notNull(),
   websiteUrl: text("website_url"),
+  phone: text("phone"),
+  yelpUrl: text("yelp_url"),
+  facebookUrl: text("facebook_url"),
+  bookingUrl: text("booking_url"),
+  contactEmail: text("contact_email"),
+  fullAddress: text("full_address"),
   nominationCount: integer("nomination_count").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

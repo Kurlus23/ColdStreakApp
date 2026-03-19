@@ -362,6 +362,12 @@ export async function registerRoutes(
         longitude: z.number().min(-180).max(180).optional(),
         isBusiness: z.boolean().optional(),
         websiteUrl: z.string().url().max(300).optional().or(z.literal("")),
+        phone: z.string().max(30).optional(),
+        yelpUrl: z.string().url().max(300).optional().or(z.literal("")),
+        facebookUrl: z.string().url().max(300).optional().or(z.literal("")),
+        bookingUrl: z.string().url().max(300).optional().or(z.literal("")),
+        contactEmail: z.string().email().max(200).optional(),
+        fullAddress: z.string().max(200).optional(),
       }).parse(req.body);
       const loc = await storage.createUserLocation(input);
       res.status(201).json(loc);

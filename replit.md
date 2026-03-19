@@ -59,7 +59,8 @@ Preferred communication style: Simple, everyday language.
 | `plunges` | id, clientId, userId (nullable), duration, temperature, score, photoData, locationName, createdAt |
 | `leaderboard_entries` | id, locationId, username, score, duration, temperature |
 | `pro_users` | id, email, stripeSessionId, active |
-| `user_locations` | id, name, country, state, city, latitude, longitude, nominationCount |
+| `user_locations` | id, name, country, state, city, latitude, longitude, isBusiness, businessVerified, websiteUrl, phone, yelpUrl, facebookUrl, bookingUrl, contactEmail, fullAddress, nominationCount |
+| `business_listings` | id, locationId, email, stripeSessionId, stripeSubscriptionId, active, expiresAt |
 
 ### Device Identity
 
@@ -80,7 +81,7 @@ Plunges use a `clientId` (UUID stored in localStorage) for anonymous tracking. W
 | `client/src/lib/analytics.ts` | PostHog event tracking |
 | `client/src/lib/monitoring.ts` | Sentry error monitoring |
 | `client/src/lib/queryClient.ts` | TanStack Query client (includes auth header injection) |
-| `client/src/pages/Explore.tsx` | Chill Places + community locations |
+| `client/src/pages/Explore.tsx` | Business listings (verified/free), Chill Places, community locations |
 | `client/src/pages/Privacy.tsx` | Public privacy policy page |
 | `client/src/pages/Terms.tsx` | Public terms of service page |
 | `capacitor.config.ts` | Android/iOS wrapper config (appId: com.coldstreak.app) |

@@ -4,7 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   MapPin, Compass, Search, X, ChevronDown, Lock,
-  Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, Building2, CheckCircle2, BadgeCheck
+  Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, Building2, CheckCircle2, BadgeCheck, Phone, ExternalLink
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useProStatus } from "@/hooks/use-pro-status";
@@ -329,6 +329,21 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   });
 
   const [verifyDialogLocId, setVerifyDialogLocId] = useState<number | null>(null);
+  const [businessOpen, setBusinessOpen] = useState(true);
+  const [showBusinessForm, setShowBusinessForm] = useState(false);
+  const [businessProfileId, setBusinessProfileId] = useState<number | null>(null);
+  const [bizTier, setBizTier] = useState<"free" | "verified">("free");
+  const [bizGeoPos, setBizGeoPos] = useState<GeoPos | null>(null);
+  const [bizForm, setBizForm] = useState({
+    name: "", fullAddress: "", city: "", state: "", country: "USA",
+    description: "", phone: "", websiteUrl: "", yelpUrl: "", facebookUrl: "", bookingUrl: "", contactEmail: "",
+  });
+
+  const resetBizForm = () => {
+    setBizForm({ name: "", fullAddress: "", city: "", state: "", country: "USA", description: "", phone: "", websiteUrl: "", yelpUrl: "", facebookUrl: "", bookingUrl: "", contactEmail: "" });
+    setBizTier("free");
+    setBizGeoPos(null);
+  };
 
   const businessCheckoutMutation = useMutation({
     mutationFn: (locationId: number) =>
@@ -342,6 +357,53 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     },
     onError: () => toast({ title: "Checkout failed", description: "Please try again.", variant: "destructive" }),
   });
+
+  const submitBusinessMutation = useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const res = await fetch("/api/community-locations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to submit");
+      return res.json() as Promise<{ id: number }>;
+    },
+    onSuccess: (loc) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
+      if (bizTier === "verified") {
+        businessCheckoutMutation.mutate(loc.id);
+      } else {
+        setShowBusinessForm(false);
+        resetBizForm();
+        toast({ title: "Business listed!", description: "Your business is now visible in the directory." });
+      }
+    },
+    onError: () => toast({ title: "Submission failed", description: "Please try again.", variant: "destructive" }),
+  });
+
+  const handleBusinessSubmit = () => {
+    if (!bizForm.name.trim()) { toast({ title: "Business name required", variant: "destructive" }); return; }
+    if (!bizForm.city.trim()) { toast({ title: "City required", variant: "destructive" }); return; }
+    if (!bizForm.state.trim()) { toast({ title: "State required", variant: "destructive" }); return; }
+    if (!bizForm.contactEmail.trim()) { toast({ title: "Contact email required", variant: "destructive" }); return; }
+    submitBusinessMutation.mutate({
+      name: bizForm.name.trim(),
+      country: bizForm.country,
+      city: bizForm.city.trim(),
+      state: bizForm.state.trim(),
+      description: bizForm.description.trim() || undefined,
+      phone: bizForm.phone.trim() || undefined,
+      websiteUrl: bizForm.websiteUrl.trim() || undefined,
+      yelpUrl: bizForm.yelpUrl.trim() || undefined,
+      facebookUrl: bizForm.facebookUrl.trim() || undefined,
+      bookingUrl: bizForm.bookingUrl.trim() || undefined,
+      contactEmail: bizForm.contactEmail.trim(),
+      fullAddress: bizForm.fullAddress.trim() || undefined,
+      isBusiness: true,
+      submittedBy: username,
+      ...(bizGeoPos ? { latitude: bizGeoPos.lat, longitude: bizGeoPos.lng } : {}),
+    });
+  };
 
   // ── Effective geo: zip geocode overrides GPS when searching by zip ──
   const effectiveGeoPos = zipGeoPos ?? geoPos;
@@ -383,9 +445,29 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       return distanceMiles(effectiveGeoPos.lat, effectiveGeoPos.lng, a.lat, a.lng) - distanceMiles(effectiveGeoPos.lat, effectiveGeoPos.lng, b.lat, b.lng);
     });
 
+  // ── Business locations (derived from communityLocs) ──
+  const businessLocs = communityLocs.filter((l) => l.isBusiness);
+  const verifiedBusinesses = businessLocs
+    .filter((l) => l.businessVerified)
+    .sort((a, b) => {
+      if (effectiveGeoPos) {
+        const aLat = a.latitude ? Number(a.latitude) : null;
+        const aLng = a.longitude ? Number(a.longitude) : null;
+        const bLat = b.latitude ? Number(b.latitude) : null;
+        const bLng = b.longitude ? Number(b.longitude) : null;
+        if (aLat && aLng && bLat && bLng)
+          return distanceMiles(effectiveGeoPos.lat, effectiveGeoPos.lng, aLat, aLng) - distanceMiles(effectiveGeoPos.lat, effectiveGeoPos.lng, bLat, bLng);
+      }
+      return a.name.localeCompare(b.name);
+    });
+  const freeBusinesses = businessLocs
+    .filter((l) => !l.businessVerified)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   // ── Filtered, sorted & limited Community locations ──
   const communityFiltered = communityLocs
     .filter((loc) => {
+      if (loc.isBusiness) return false;
       if (!matchesText([loc.name, loc.country, loc.state, loc.city, loc.description])) return false;
       const lat = loc.latitude ? Number(loc.latitude) : null;
       const lng = loc.longitude ? Number(loc.longitude) : null;
@@ -557,6 +639,89 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
         )}
         {/^\d{5}$/.test(searchText.trim()) && !zipLoading && !zipGeoPos && zipLabel === "Unknown zip code" && (
           <div className="text-[11px] text-red-400 px-1">Zip code not found</div>
+        )}
+      </div>
+
+      {/* ── Cold Plunge Businesses ── */}
+      <div className="bg-gradient-to-br from-amber-950/30 to-blue-950/80 border border-amber-700/30 rounded-2xl overflow-hidden">
+        <button
+          data-testid="button-toggle-businesses"
+          onClick={() => setBusinessOpen((v) => !v)}
+          className="w-full flex items-center gap-3 px-4 py-3.5"
+        >
+          <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-yellow-500/20 border border-yellow-500/40">
+            <Building2 className="w-4 h-4 text-yellow-400" />
+          </div>
+          <div className="flex-1 text-left">
+            <div className="text-white font-bold text-sm">Cold Plunge Businesses</div>
+            <div className="text-blue-400 text-[11px]">Local facilities &amp; spas — open to all users</div>
+          </div>
+          <span className="text-xs text-amber-400 font-semibold mr-1">{businessLocs.length > 0 ? `${businessLocs.length} listed` : "Be first!"}</span>
+          <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform duration-300 ${businessOpen ? "rotate-180" : ""}`} />
+        </button>
+
+        {businessOpen && (
+          <div className="px-3 pb-3 space-y-2">
+            <button
+              data-testid="button-list-business"
+              onClick={() => setShowBusinessForm(true)}
+              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 text-xs font-semibold hover:bg-yellow-500/30 transition-all active:scale-95"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              List Your Business — Free
+            </button>
+
+            {businessLocs.length === 0 ? (
+              <div className="text-center py-5 text-blue-400 text-sm">No businesses listed yet — be the first!</div>
+            ) : (
+              <div className="space-y-2">
+                {verifiedBusinesses.map((biz) => {
+                  const lat = biz.latitude ? Number(biz.latitude) : null;
+                  const lng = biz.longitude ? Number(biz.longitude) : null;
+                  const dist = lat !== null && lng !== null ? distLabel(lat, lng) : null;
+                  return (
+                    <button
+                      key={biz.id}
+                      data-testid={`card-business-verified-${biz.id}`}
+                      onClick={() => setBusinessProfileId(biz.id)}
+                      className="w-full text-left rounded-xl p-3 bg-yellow-900/15 border border-yellow-500/40 hover:border-yellow-400/60 active:scale-[0.98] transition-all"
+                    >
+                      <div className="flex items-center gap-2">
+                        <BadgeCheck className="w-4 h-4 text-yellow-400 shrink-0" />
+                        <span className="text-white font-semibold text-sm flex-1 truncate">{biz.name}</span>
+                        {dist && <span className="text-[11px] text-cyan-400 font-semibold shrink-0">{dist}</span>}
+                        <span className="text-[9px] bg-yellow-500/20 border border-yellow-400/40 text-yellow-300 px-1.5 py-0.5 rounded-full font-bold shrink-0">Verified</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1 ml-6 flex-wrap">
+                        <span className="text-blue-400 text-[11px]">{[biz.city, biz.state].filter(Boolean).join(", ")}</span>
+                        {biz.description && <span className="text-blue-500 text-[11px] truncate">· {biz.description}</span>}
+                      </div>
+                    </button>
+                  );
+                })}
+                {freeBusinesses.map((biz) => (
+                  <div
+                    key={biz.id}
+                    data-testid={`card-business-free-${biz.id}`}
+                    className="rounded-xl p-3 bg-blue-900/30 border border-blue-700/30"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                      <span className="text-blue-100 font-medium text-sm flex-1 truncate">{biz.name}</span>
+                      <button
+                        data-testid={`button-upgrade-business-${biz.id}`}
+                        onClick={() => setVerifyDialogLocId(biz.id)}
+                        className="text-[10px] text-yellow-500/70 hover:text-yellow-400 transition-colors font-semibold shrink-0"
+                      >
+                        Get Verified →
+                      </button>
+                    </div>
+                    <div className="text-blue-500 text-[11px] mt-0.5 ml-5">{[biz.city, biz.state].filter(Boolean).join(", ")}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -1038,6 +1203,356 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 Not now
               </button>
             )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ── Verified Business Profile Modal ── */}
+    {businessProfileId !== null && (() => {
+      const biz = communityLocs.find((l) => l.id === businessProfileId);
+      if (!biz) return null;
+      const lat = biz.latitude ? Number(biz.latitude) : null;
+      const lng = biz.longitude ? Number(biz.longitude) : null;
+      return (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setBusinessProfileId(null)}
+        >
+          <div
+            className="w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border border-yellow-600/40 rounded-t-3xl shadow-2xl overflow-y-auto max-h-[85vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3 px-5 pt-5 pb-4 border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-yellow-500/20 border border-yellow-500/40 shrink-0">
+                <Building2 className="w-5 h-5 text-yellow-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-white font-bold text-base truncate">{biz.name}</h2>
+                  <span className="inline-flex items-center gap-1 text-[10px] bg-yellow-500/20 border border-yellow-400/40 text-yellow-300 px-1.5 py-0.5 rounded-full font-bold shrink-0">
+                    <BadgeCheck className="w-3 h-3" /> Verified
+                  </span>
+                </div>
+                <p className="text-blue-400 text-xs mt-0.5">
+                  {[biz.fullAddress, biz.city, biz.state].filter(Boolean).join(", ")}
+                </p>
+              </div>
+              <button
+                data-testid="button-close-biz-profile"
+                onClick={() => setBusinessProfileId(null)}
+                className="text-slate-500 hover:text-white transition-colors shrink-0 ml-auto"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-3 pb-8">
+              {biz.description && (
+                <p className="text-slate-300 text-sm leading-relaxed">{biz.description}</p>
+              )}
+              <div className="space-y-2">
+                {lat !== null && lng !== null && (
+                  <button
+                    data-testid="button-biz-directions"
+                    onClick={() => openDirections(lat, lng)}
+                    className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-sm font-semibold hover:bg-cyan-500/20 transition-all active:scale-[0.98]"
+                  >
+                    <Navigation className="w-4 h-4 shrink-0" /> Get Directions
+                  </button>
+                )}
+                {biz.phone && (
+                  <a
+                    href={`tel:${biz.phone}`}
+                    data-testid="link-biz-phone"
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-blue-800/40 border border-blue-700/40 text-blue-200 text-sm hover:border-blue-500/60 transition-all"
+                  >
+                    <Phone className="w-4 h-4 text-blue-400 shrink-0" />
+                    {biz.phone}
+                  </a>
+                )}
+                {biz.websiteUrl && (
+                  <a
+                    href={biz.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid="link-biz-website"
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-blue-800/40 border border-blue-700/40 text-blue-200 text-sm hover:border-blue-500/60 transition-all"
+                  >
+                    <ExternalLink className="w-4 h-4 text-blue-400 shrink-0" /> Website
+                  </a>
+                )}
+                {biz.yelpUrl && (
+                  <a
+                    href={biz.yelpUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid="link-biz-yelp"
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-red-900/20 border border-red-700/30 text-red-200 text-sm hover:border-red-500/40 transition-all"
+                  >
+                    <ExternalLink className="w-4 h-4 text-red-400 shrink-0" /> Yelp Reviews
+                  </a>
+                )}
+                {biz.facebookUrl && (
+                  <a
+                    href={biz.facebookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid="link-biz-facebook"
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-blue-900/30 border border-blue-600/30 text-blue-200 text-sm hover:border-blue-500/40 transition-all"
+                  >
+                    <ExternalLink className="w-4 h-4 text-blue-400 shrink-0" /> Facebook
+                  </a>
+                )}
+                {biz.bookingUrl && (
+                  <a
+                    href={biz.bookingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid="link-biz-booking"
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-green-900/20 border border-green-700/30 text-green-200 text-sm font-semibold hover:border-green-500/40 transition-all"
+                  >
+                    <ExternalLink className="w-4 h-4 text-green-400 shrink-0" /> Book Appointment
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    })()}
+
+    {/* ── Business Submission Form ── */}
+    {showBusinessForm && (
+      <div
+        className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm"
+        onClick={() => { if (!submitBusinessMutation.isPending) { setShowBusinessForm(false); resetBizForm(); } }}
+      >
+        <div
+          className="w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border border-yellow-600/30 rounded-t-3xl shadow-2xl overflow-y-auto max-h-[90vh]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-yellow-500/15 border border-yellow-500/40 shrink-0">
+              <Building2 className="w-5 h-5 text-yellow-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-white font-bold text-sm">List Your Business</p>
+              <p className="text-slate-400 text-[11px]">Cold plunge facility, spa, or wellness center</p>
+            </div>
+            <button
+              data-testid="button-close-biz-form"
+              onClick={() => { setShowBusinessForm(false); resetBizForm(); }}
+              className="text-slate-500 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="px-5 py-4 space-y-3 pb-8">
+            {/* Tier selection */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                data-testid="button-biz-tier-free"
+                onClick={() => setBizTier("free")}
+                className={`py-3 px-3 rounded-xl border text-xs font-semibold text-left transition-all ${bizTier === "free" ? "bg-blue-700/40 border-blue-500/60 text-white" : "bg-blue-900/30 border-blue-700/30 text-blue-400 hover:border-blue-600/50"}`}
+              >
+                <div className="font-bold text-sm">Free</div>
+                <div className="text-[10px] opacity-70 mt-0.5">Name + city shown</div>
+              </button>
+              <button
+                data-testid="button-biz-tier-verified"
+                onClick={() => setBizTier("verified")}
+                className={`py-3 px-3 rounded-xl border text-xs font-semibold text-left transition-all ${bizTier === "verified" ? "bg-yellow-900/30 border-yellow-500/50 text-yellow-200" : "bg-blue-900/30 border-blue-700/30 text-blue-400 hover:border-yellow-700/40"}`}
+              >
+                <div className="flex items-center gap-1 font-bold text-sm">
+                  <BadgeCheck className="w-3.5 h-3.5 text-yellow-400" /> Verified
+                </div>
+                <div className="text-[10px] opacity-70 mt-0.5">$29.99/mo · 1st month free</div>
+              </button>
+            </div>
+
+            {bizTier === "verified" && (
+              <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-xl p-3 space-y-1.5">
+                <p className="text-yellow-300 text-xs font-semibold">Verified includes:</p>
+                {["Gold badge + top placement in directory", "Full public profile with links & contact info", "Google Maps directions button", "Website, Yelp, Facebook & booking links", "1st month free — then $29.99/mo, cancel anytime"].map((b) => (
+                  <div key={b} className="flex items-start gap-1.5 text-[11px] text-yellow-200/80">
+                    <CheckCircle2 className="w-3 h-3 text-yellow-400 shrink-0 mt-0.5" /> {b}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div>
+              <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Business Name *</label>
+              <input
+                data-testid="input-biz-name"
+                value={bizForm.name}
+                onChange={(e) => setBizForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Cold Plunge Studio"
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">City *</label>
+                <input
+                  data-testid="input-biz-city"
+                  value={bizForm.city}
+                  onChange={(e) => setBizForm((f) => ({ ...f, city: e.target.value }))}
+                  placeholder="Austin"
+                  className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">State *</label>
+                <input
+                  data-testid="input-biz-state"
+                  value={bizForm.state}
+                  onChange={(e) => setBizForm((f) => ({ ...f, state: e.target.value }))}
+                  placeholder="TX"
+                  className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">
+                Full Address{bizTier === "verified" ? " (shown on public profile)" : " (optional)"}
+              </label>
+              <input
+                data-testid="input-biz-address"
+                value={bizForm.fullAddress}
+                onChange={(e) => setBizForm((f) => ({ ...f, fullAddress: e.target.value }))}
+                placeholder="123 Main St"
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">About Your Business</label>
+              <textarea
+                data-testid="input-biz-description"
+                value={bizForm.description}
+                onChange={(e) => setBizForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="Describe your facility, amenities, and cold plunge options…"
+                rows={2}
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500 resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Phone</label>
+              <input
+                data-testid="input-biz-phone"
+                type="tel"
+                value={bizForm.phone}
+                onChange={(e) => setBizForm((f) => ({ ...f, phone: e.target.value }))}
+                placeholder="(512) 555-0100"
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Website</label>
+              <input
+                data-testid="input-biz-website"
+                type="url"
+                value={bizForm.websiteUrl}
+                onChange={(e) => setBizForm((f) => ({ ...f, websiteUrl: e.target.value }))}
+                placeholder="https://yourbusiness.com"
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+              />
+            </div>
+
+            {bizTier === "verified" && (
+              <>
+                <div>
+                  <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Yelp URL</label>
+                  <input
+                    data-testid="input-biz-yelp"
+                    type="url"
+                    value={bizForm.yelpUrl}
+                    onChange={(e) => setBizForm((f) => ({ ...f, yelpUrl: e.target.value }))}
+                    placeholder="https://yelp.com/biz/your-business"
+                    className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Facebook URL</label>
+                  <input
+                    data-testid="input-biz-facebook"
+                    type="url"
+                    value={bizForm.facebookUrl}
+                    onChange={(e) => setBizForm((f) => ({ ...f, facebookUrl: e.target.value }))}
+                    placeholder="https://facebook.com/your-business"
+                    className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Booking / Appointments URL</label>
+                  <input
+                    data-testid="input-biz-booking"
+                    type="url"
+                    value={bizForm.bookingUrl}
+                    onChange={(e) => setBizForm((f) => ({ ...f, bookingUrl: e.target.value }))}
+                    placeholder="https://book.yourscheduler.com"
+                    className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+                  />
+                </div>
+              </>
+            )}
+
+            <div>
+              <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Contact Email * <span className="text-blue-600 normal-case">(private — admin use only, never shown publicly)</span></label>
+              <input
+                data-testid="input-biz-email"
+                type="email"
+                value={bizForm.contactEmail}
+                onChange={(e) => setBizForm((f) => ({ ...f, contactEmail: e.target.value }))}
+                placeholder="owner@yourbusiness.com"
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+              />
+            </div>
+
+            <button
+              data-testid="button-biz-use-location"
+              type="button"
+              onClick={async () => {
+                try {
+                  const pos = await getPosition();
+                  setBizGeoPos(pos);
+                  toast({ title: "GPS attached", description: "Location pinned for map directions." });
+                } catch {
+                  toast({ title: "Location denied", description: "Enable location access to pin your spot.", variant: "destructive" });
+                }
+              }}
+              className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl border text-xs font-semibold transition-all active:scale-95 ${
+                bizGeoPos
+                  ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300"
+                  : "bg-blue-800/40 border-blue-700/40 text-blue-400 hover:text-white"
+              }`}
+            >
+              <Navigation className="w-3.5 h-3.5" />
+              {bizGeoPos ? "GPS attached ✓ (for map directions)" : "Pin my location (enables directions)"}
+            </button>
+
+            <p className="text-blue-600 text-[10px] leading-relaxed">
+              By submitting, you confirm the information is accurate and you are authorized to represent this business. Contact email is used for administrative purposes only and is never displayed publicly.
+            </p>
+
+            <button
+              data-testid="button-submit-business"
+              onClick={handleBusinessSubmit}
+              disabled={submitBusinessMutation.isPending || businessCheckoutMutation.isPending}
+              className="w-full py-3 rounded-xl bg-yellow-500 hover:bg-yellow-400 disabled:opacity-50 text-slate-950 font-bold text-sm transition-all active:scale-[0.98]"
+            >
+              {submitBusinessMutation.isPending || businessCheckoutMutation.isPending
+                ? "Processing…"
+                : bizTier === "verified"
+                ? "Continue to Payment →"
+                : "List My Business for Free"}
+            </button>
           </div>
         </div>
       </div>

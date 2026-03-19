@@ -39,6 +39,9 @@ export default function Privacy() {
                 <span className="font-semibold text-slate-800">Community location submissions</span> — location name and any details you provide when suggesting a community spot. These are stored on our servers and may be visible to other Pro users.
               </li>
               <li>
+                <span className="font-semibold text-slate-800">Business listing submissions</span> — if you submit a business listing, we collect the information you provide: business name, city, state, full address, phone number, website and social media URLs, and a contact email address. Your contact email is used solely for administrative purposes and is never displayed publicly. The business name, city, state, description, and any links you provide may be displayed publicly within the app's business directory. Verified business listings require a paid monthly subscription processed through Stripe; Stripe handles all payment data and ColdStreak does not store your credit card information.
+              </li>
+              <li>
                 <span className="font-semibold text-slate-800">Device settings and preferences</span> — stored locally on your device (body weight, home location label, alarm preferences). Not transmitted to our servers.
               </li>
             </ul>
