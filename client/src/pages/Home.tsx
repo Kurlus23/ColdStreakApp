@@ -2928,7 +2928,7 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">Purchases &amp; Refunds</p>
-                    <p className="text-blue-200 text-xs leading-relaxed">ColdStreak Pro is a one-time purchase. All purchases are final and non-refundable except where required by applicable law.</p>
+                    <p className="text-blue-200 text-xs leading-relaxed">ColdStreak Pro is available as a Lifetime purchase ($19.99, non-refundable) or an Annual subscription ($9.99/yr, auto-renewing, cancel anytime). All sales are final except where required by applicable law. See our full Terms of Service for details.</p>
                   </div>
                   <div>
                     <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">Limitation of Liability</p>
