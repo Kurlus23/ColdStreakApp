@@ -26,6 +26,7 @@ function getSiteOrigin(req: Request): string {
 }
 const ANNUAL_PRICE_ID = process.env.STRIPE_ANNUAL_PRICE_ID!;
 const JWT_SECRET = process.env.SESSION_SECRET || "coldstreak-dev-secret";
+const ADMIN_EMAILS = new Set(["kurlus23@gmail.com"]);
 
 interface JwtPayload { userId: number; email: string; }
 
@@ -395,12 +396,14 @@ export async function registerRoutes(
 
   app.get("/api/community-locations", async (req, res) => {
     const country = req.query.country as string | undefined;
-    const locations = await storage.getUserLocations(country);
     const caller = extractUser(req);
     const callerEmail = caller?.email?.toLowerCase().trim() ?? null;
+    const isAdmin = callerEmail ? ADMIN_EMAILS.has(callerEmail) : false;
+    const locations = await storage.getUserLocations(country, isAdmin);
     const sanitized = locations.map(({ contactEmail, ...rest }) => ({
       ...rest,
       isOwner: callerEmail ? callerEmail === (contactEmail ?? "").toLowerCase().trim() : false,
+      isAdmin,
     }));
     res.json(sanitized);
   });
@@ -481,17 +484,40 @@ export async function registerRoutes(
   app.delete("/api/community-locations/:id", async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
-    const { email } = req.body as { email?: string };
-    if (!email || typeof email !== "string") {
-      return res.status(400).json({ message: "Email required" });
-    }
     const loc = await storage.getUserLocationById(id);
     if (!loc) return res.status(404).json({ message: "Listing not found" });
-    if (!loc.contactEmail || loc.contactEmail.toLowerCase().trim() !== email.toLowerCase().trim()) {
-      return res.status(403).json({ message: "Email does not match the contact email on this listing." });
+    const caller = extractUser(req);
+    const callerEmail = caller?.email?.toLowerCase().trim() ?? null;
+    const isAdmin = callerEmail ? ADMIN_EMAILS.has(callerEmail) : false;
+    const isOwner = callerEmail && loc.contactEmail
+      ? callerEmail === loc.contactEmail.toLowerCase().trim()
+      : false;
+    if (!isAdmin && !isOwner) {
+      // Fall back to email-body verification (for business owners who may not be registered)
+      const { email } = req.body as { email?: string };
+      if (!email || typeof email !== "string") {
+        return res.status(400).json({ message: "Email required" });
+      }
+      if (!loc.contactEmail || loc.contactEmail.toLowerCase().trim() !== email.toLowerCase().trim()) {
+        return res.status(403).json({ message: "Email does not match the contact email on this listing." });
+      }
     }
     await storage.deleteUserLocation(id);
     res.json({ success: true });
+  });
+
+  // ── Admin: hide / unhide locations ─────────────────────────────────────
+  app.patch("/api/admin/locations/:id/visibility", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller || !ADMIN_EMAILS.has(caller.email.toLowerCase().trim())) {
+      return res.status(403).json({ message: "Admin only" });
+    }
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const { hidden } = z.object({ hidden: z.boolean() }).parse(req.body);
+    const updated = await storage.setLocationHidden(id, hidden);
+    if (!updated) return res.status(404).json({ message: "Location not found" });
+    res.json(updated);
   });
 
   // ── Stripe ─────────────────────────────────────────────────────────────

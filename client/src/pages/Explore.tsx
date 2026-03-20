@@ -4,7 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   MapPin, Compass, Search, X, ChevronDown, Lock,
-  Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, Building2, CheckCircle2, BadgeCheck, Phone, ExternalLink, Pencil, LocateFixed
+  Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, Building2, CheckCircle2, BadgeCheck, Phone, ExternalLink, Pencil, LocateFixed, Trash2, Eye, EyeOff
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useProStatus } from "@/hooks/use-pro-status";
@@ -12,7 +12,7 @@ import { PASSPORT_LOCATIONS, usePassportBadges, distanceMiles, DIFFICULTY_META, 
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { UserLocation } from "@shared/schema";
 
-type BizLocation = Omit<UserLocation, "contactEmail"> & { isOwner: boolean };
+type BizLocation = Omit<UserLocation, "contactEmail"> & { isOwner: boolean; isAdmin: boolean };
 
 const NOMINATIONS_KEY = "coldstreak-nominations";
 
@@ -348,6 +348,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [verifyEmail, setVerifyEmail] = useState("");
   const [deleteDialogLocId, setDeleteDialogLocId] = useState<number | null>(null);
   const [deleteEmail, setDeleteEmail] = useState("");
+  const [ownerDeleteConfirmId, setOwnerDeleteConfirmId] = useState<number | null>(null);
   const [editLocId, setEditLocId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ name: "", description: "", city: "", state: "", country: "", latitude: "", longitude: "", accessLat: "", accessLng: "" });
   const [editAccessGpsLoading, setEditAccessGpsLoading] = useState(false);
@@ -363,6 +364,27 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       toast({ title: "Location updated!" });
     },
     onError: () => toast({ title: "Failed to save", variant: "destructive" }),
+  });
+
+  const ownerDeleteMutation = useMutation({
+    mutationFn: (id: number) =>
+      apiRequest("DELETE", `/api/community-locations/${id}`, {}).then((r) => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
+      setEditLocId(null);
+      setOwnerDeleteConfirmId(null);
+      toast({ title: "Location removed", description: "Your location has been deleted." });
+    },
+    onError: () => toast({ title: "Could not delete location", variant: "destructive" }),
+  });
+
+  const adminVisibilityMutation = useMutation({
+    mutationFn: ({ id, hidden }: { id: number; hidden: boolean }) =>
+      apiRequest("PATCH", `/api/admin/locations/${id}/visibility`, { hidden }).then((r) => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
+    },
+    onError: () => toast({ title: "Admin action failed", variant: "destructive" }),
   });
 
   const openEdit = (loc: BizLocation) => {
@@ -1252,6 +1274,40 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                           )}
                         </div>
                       </div>
+                      {loc.isAdmin && (
+                        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-amber-500/20">
+                          <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wide flex items-center gap-1">
+                            🛡 Admin
+                          </span>
+                          {loc.isHidden ? (
+                            <button
+                              data-testid={`button-admin-show-${loc.id}`}
+                              onClick={(e) => { e.stopPropagation(); adminVisibilityMutation.mutate({ id: loc.id, hidden: false }); }}
+                              className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-green-500/20 border border-green-500/30 text-green-400 hover:bg-green-500/30 transition-all"
+                            >
+                              <Eye className="w-3 h-3" /> Restore
+                            </button>
+                          ) : (
+                            <button
+                              data-testid={`button-admin-hide-${loc.id}`}
+                              onClick={(e) => { e.stopPropagation(); adminVisibilityMutation.mutate({ id: loc.id, hidden: true }); }}
+                              className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:bg-amber-500/30 transition-all"
+                            >
+                              <EyeOff className="w-3 h-3" /> Hide
+                            </button>
+                          )}
+                          <button
+                            data-testid={`button-admin-delete-${loc.id}`}
+                            onClick={(e) => { e.stopPropagation(); setDeleteDialogLocId(loc.id); }}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition-all"
+                          >
+                            <Trash2 className="w-3 h-3" /> Delete
+                          </button>
+                          {loc.isHidden && (
+                            <span className="ml-auto text-[10px] font-bold text-red-400 bg-red-900/30 border border-red-500/30 px-1.5 py-0.5 rounded-full">HIDDEN</span>
+                          )}
+                        </div>
+                      )}
                       <div className="mt-2">
                         <div className="flex justify-between text-[10px] text-blue-500 mb-1">
                           <span>{isReview ? "🔥 Under review" : `${loc.nominationCount} / 25 votes`}</span>
@@ -1581,6 +1637,52 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
           >
             {editLocMutation.isPending ? "Saving…" : "Save Changes"}
           </button>
+
+          <button
+            data-testid="button-owner-delete-loc"
+            onClick={() => setOwnerDeleteConfirmId(editLocId)}
+            className="w-full py-2.5 rounded-xl border border-red-600/40 bg-red-950/30 text-red-400 hover:bg-red-900/40 hover:text-red-300 font-semibold text-sm transition-all active:scale-95 flex items-center justify-center gap-1.5"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Remove this location
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* ── Owner delete confirmation ── */}
+    {ownerDeleteConfirmId !== null && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
+        <div className="w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-red-700/40 rounded-2xl shadow-2xl overflow-hidden">
+          <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-slate-800">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/40 shrink-0">
+              <Trash2 className="w-5 h-5 text-red-400" />
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm">Remove Location</p>
+              <p className="text-slate-400 text-[11px]">This cannot be undone</p>
+            </div>
+            <button onClick={() => setOwnerDeleteConfirmId(null)} className="ml-auto text-slate-500 hover:text-white transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-slate-300 text-sm leading-relaxed">
+              Are you sure you want to permanently remove this location from the community map? Everyone who has saved or visited it will lose access to it.
+            </p>
+          </div>
+          <div className="px-5 pb-5 flex flex-col gap-2">
+            <button
+              data-testid="button-confirm-owner-delete"
+              onClick={() => { if (ownerDeleteConfirmId) ownerDeleteMutation.mutate(ownerDeleteConfirmId); }}
+              disabled={ownerDeleteMutation.isPending}
+              className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-60"
+            >
+              {ownerDeleteMutation.isPending ? "Removing…" : "Yes, remove it"}
+            </button>
+            <button onClick={() => setOwnerDeleteConfirmId(null)} className="w-full py-2 text-slate-500 text-xs hover:text-slate-400 transition-colors">
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     )}
@@ -2016,65 +2118,81 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     )}
 
     {/* ── Delete Listing Dialog ── */}
-    {deleteDialogLocId !== null && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
-        <div className="w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-red-700/40 rounded-2xl shadow-2xl overflow-hidden">
-          <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-slate-800">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/40 shrink-0">
-              <X className="w-5 h-5 text-red-400" />
+    {deleteDialogLocId !== null && (() => {
+      const deleteLoc = communityLocs.find((l) => l.id === deleteDialogLocId);
+      const isAdminDelete = deleteLoc?.isAdmin ?? false;
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
+          <div className="w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-red-700/40 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-slate-800">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/40 shrink-0">
+                <Trash2 className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <p className="text-white font-bold text-sm">Remove Listing</p>
+                <p className="text-slate-400 text-[11px]">{isAdminDelete ? "Admin action — cannot be undone" : "This cannot be undone"}</p>
+              </div>
+              <button
+                onClick={() => { setDeleteDialogLocId(null); setDeleteEmail(""); }}
+                className="ml-auto text-slate-500 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <div>
-              <p className="text-white font-bold text-sm">Remove Listing</p>
-              <p className="text-slate-400 text-[11px]">This cannot be undone</p>
+            <div className="px-5 py-4 space-y-3">
+              {isAdminDelete ? (
+                <p className="text-slate-300 text-xs leading-relaxed">
+                  Permanently delete <span className="text-white font-semibold">{deleteLoc?.name}</span>? This removes it for all users and cannot be undone. Consider hiding it temporarily instead.
+                </p>
+              ) : (
+                <>
+                  <p className="text-slate-300 text-xs leading-relaxed">
+                    To confirm you own this listing, enter the contact email you used when submitting it.
+                  </p>
+                  <div>
+                    <label className="text-slate-400 text-[11px] block mb-1">Contact email</label>
+                    <input
+                      data-testid="input-delete-email"
+                      type="email"
+                      value={deleteEmail}
+                      onChange={(e) => setDeleteEmail(e.target.value)}
+                      placeholder="owner@yourbusiness.com"
+                      className="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500 placeholder-slate-500"
+                    />
+                  </div>
+                </>
+              )}
             </div>
-            <button
-              onClick={() => { setDeleteDialogLocId(null); setDeleteEmail(""); }}
-              className="ml-auto text-slate-500 hover:text-white transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="px-5 py-4 space-y-3">
-            <p className="text-slate-300 text-xs leading-relaxed">
-              To confirm you own this listing, enter the contact email you used when submitting it.
-            </p>
-            <div>
-              <label className="text-slate-400 text-[11px] block mb-1">Contact email</label>
-              <input
-                data-testid="input-delete-email"
-                type="email"
-                value={deleteEmail}
-                onChange={(e) => setDeleteEmail(e.target.value)}
-                placeholder="owner@yourbusiness.com"
-                className="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500 placeholder-slate-500"
-              />
+            <div className="px-5 pb-5 flex flex-col gap-2">
+              <button
+                data-testid="button-confirm-delete-listing"
+                onClick={() => {
+                  if (isAdminDelete) {
+                    deleteListingMutation.mutate({ locationId: deleteDialogLocId!, email: "" });
+                  } else {
+                    if (!deleteEmail.trim()) {
+                      toast({ title: "Email required", description: "Enter the contact email used when submitting this listing.", variant: "destructive" });
+                      return;
+                    }
+                    deleteListingMutation.mutate({ locationId: deleteDialogLocId!, email: deleteEmail.trim() });
+                  }
+                }}
+                disabled={deleteListingMutation.isPending || (!isAdminDelete && !deleteEmail.trim())}
+                className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-60"
+              >
+                {deleteListingMutation.isPending ? "Removing…" : "Remove listing"}
+              </button>
+              <button
+                onClick={() => { setDeleteDialogLocId(null); setDeleteEmail(""); }}
+                className="w-full py-2 text-slate-500 text-xs hover:text-slate-400 transition-colors"
+              >
+                Cancel
+              </button>
             </div>
-          </div>
-          <div className="px-5 pb-5 flex flex-col gap-2">
-            <button
-              data-testid="button-confirm-delete-listing"
-              onClick={() => {
-                if (!deleteEmail.trim()) {
-                  toast({ title: "Email required", description: "Enter the contact email used when submitting this listing.", variant: "destructive" });
-                  return;
-                }
-                deleteListingMutation.mutate({ locationId: deleteDialogLocId!, email: deleteEmail.trim() });
-              }}
-              disabled={deleteListingMutation.isPending || !deleteEmail.trim()}
-              className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-60"
-            >
-              {deleteListingMutation.isPending ? "Removing…" : "Remove listing"}
-            </button>
-            <button
-              onClick={() => { setDeleteDialogLocId(null); setDeleteEmail(""); }}
-              className="w-full py-2 text-slate-500 text-xs hover:text-slate-400 transition-colors"
-            >
-              Cancel
-            </button>
           </div>
         </div>
-      </div>
-    )}
+      );
+    })()}
 
     {verifyDialogLocId !== null && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">

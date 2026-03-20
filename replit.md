@@ -199,6 +199,10 @@ The following test entry was added to help testers preview the Verified Business
 - Inserted via `seedTestVerifiedBusiness()` in `server/routes.ts`
 - **Remove before Google Play launch**: delete `seedTestVerifiedBusiness()` from `server/routes.ts` startup, then run `DELETE FROM user_locations WHERE name = 'Arctic Recovery Studio'` on production.
 
+## Admin emails
+Defined in `server/routes.ts` as `ADMIN_EMAILS` (a `Set<string>`). Currently: `kurlus23@gmail.com`.
+Admins see all locations including hidden ones, and get per-card controls (Hide/Restore/Delete) in the Explore tab. Admin DELETE bypasses the email verification.
+
 ## TEMP — Startup backfill (safe to remove after first prod deploy)
 - A one-time backfill in `server/routes.ts` startup sets `contact_email = 'kurlus23@gmail.com'` on production location IDs 7 and 8 (FoR Quarry, FoR Plunge) so `isOwner` returns true for the submitter.
 - **Remove after first successful prod deploy** by deleting the `inArray(userLocations.id, [7, 8])` update block from `registerRoutes`.

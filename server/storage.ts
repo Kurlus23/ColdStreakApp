@@ -29,9 +29,11 @@ export interface IStorage {
   getPromoCode(code: string): Promise<PromoCode | null>;
   redeemPromoCode(code: string): Promise<PromoCode | null>;
   // Community locations
-  getUserLocations(country?: string): Promise<UserLocation[]>;
+  getUserLocations(country?: string, includeHidden?: boolean): Promise<UserLocation[]>;
   getUserLocationById(id: number): Promise<UserLocation | null>;
   createUserLocation(loc: InsertUserLocation): Promise<UserLocation>;
+  updateUserLocation(id: number, updates: Partial<InsertUserLocation>): Promise<UserLocation | null>;
+  setLocationHidden(id: number, hidden: boolean): Promise<UserLocation | null>;
   deleteUserLocation(id: number): Promise<void>;
   nominateUserLocation(id: number): Promise<UserLocation | null>;
   // Auth users
@@ -229,14 +231,18 @@ export class DatabaseStorage implements IStorage {
     return loc ?? null;
   }
 
-  async getUserLocations(country?: string): Promise<UserLocation[]> {
-    const query = db.select().from(userLocations).orderBy(desc(userLocations.nominationCount));
-    if (country && country !== "All") {
-      return await db.select().from(userLocations)
-        .where(eq(userLocations.country, country))
-        .orderBy(desc(userLocations.nominationCount));
-    }
-    return await query;
+  async getUserLocations(country?: string, includeHidden = false): Promise<UserLocation[]> {
+    const conditions = [];
+    if (!includeHidden) conditions.push(eq(userLocations.isHidden, false));
+    if (country && country !== "All") conditions.push(eq(userLocations.country, country));
+    return await db.select().from(userLocations)
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(desc(userLocations.nominationCount));
+  }
+
+  async setLocationHidden(id: number, hidden: boolean): Promise<UserLocation | null> {
+    const [updated] = await db.update(userLocations).set({ isHidden: hidden }).where(eq(userLocations.id, id)).returning();
+    return updated ?? null;
   }
 
   async createUserLocation(loc: InsertUserLocation): Promise<UserLocation> {
