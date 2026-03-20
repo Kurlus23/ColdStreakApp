@@ -2331,7 +2331,14 @@ export default function Home() {
               <h2 className="text-white font-bold text-lg flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-cyan-400" /> Cold Plunge Gear
               </h2>
-              <span className="text-blue-500 text-xs">{GEAR_ITEMS.length} items</span>
+              <div className="flex items-center gap-2">
+                <span className="text-blue-500 text-xs">{GEAR_ITEMS.length} items</span>
+                <button
+                  data-testid="button-close-gear"
+                  onClick={() => navTo("timer")}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
+                >✕</button>
+              </div>
             </div>
             {GEAR_ITEMS.map((item) => (
               <div key={item.id} className="bg-blue-950/80 rounded-2xl overflow-hidden border border-blue-800/50">
@@ -2422,13 +2429,20 @@ export default function Home() {
                       )}
                     </div>
                   </div>
-                  {featuredBadgeIds.length > 0 && (
-                    <div className="flex flex-wrap justify-end gap-0.5 shrink-0 ml-2 max-w-[120px]">
-                      {featuredBadgeIds.map(id => (
-                        <span key={id} className="text-xl leading-tight">{badgeEmojiLookup[id] ?? "🏆"}</span>
-                      ))}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    {featuredBadgeIds.length > 0 && (
+                      <div className="flex flex-wrap justify-end gap-0.5 max-w-[100px]">
+                        {featuredBadgeIds.map(id => (
+                          <span key={id} className="text-xl leading-tight">{badgeEmojiLookup[id] ?? "🏆"}</span>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      data-testid="button-close-achievements"
+                      onClick={() => navTo("timer")}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
+                    >✕</button>
+                  </div>
                 </div>
                 <div className="h-2 bg-blue-900/60 rounded-full overflow-hidden">
                   <div
