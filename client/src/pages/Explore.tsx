@@ -1401,8 +1401,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             <p>
               Always assess conditions yourself before entering any body of water, never plunge alone, and <span className="text-white font-semibold">consult a physician</span> if you have any heart, respiratory, or circulatory conditions.
             </p>
+            <p>
+              <span className="text-white font-semibold">No Trespassing:</span> Always verify you have legal access to a location before visiting. Many natural bodies of water are on private property. Respect all posted signs and local laws. ColdStreak does not verify the legal accessibility of any community-submitted location.
+            </p>
             <p className="text-slate-500 text-[11px]">
-              ColdStreak is not liable for any injury, loss, or damages arising from use of community-submitted locations.
+              ColdStreak is not liable for any injury, loss, damages, or legal consequences arising from use of community-submitted locations.
             </p>
           </div>
 

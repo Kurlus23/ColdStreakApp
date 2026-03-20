@@ -2889,8 +2889,11 @@ export default function Home() {
                   <p className="text-indigo-200 text-xs leading-relaxed">
                     Cold water immersion carries serious risks. Conditions at any location can change without notice. Always assess conditions yourself, never plunge alone, and consult a physician if you have any heart, respiratory, or circulatory conditions.
                   </p>
+                  <p className="text-indigo-200 text-xs leading-relaxed">
+                    <span className="font-bold text-indigo-300">No Trespassing:</span> Always verify you have legal access to a location before visiting. Many natural bodies of water are on private property. Respect all posted signs and local laws. ColdStreak does not verify the legal accessibility of any community-submitted location.
+                  </p>
                   <p className="text-indigo-200/60 text-[10px] leading-relaxed">
-                    ColdStreak is not liable for any injury, loss, or damages arising from use of community-submitted locations.
+                    ColdStreak is not liable for any injury, loss, damages, or legal consequences arising from use of community-submitted locations.
                   </p>
                 </div>
               )}
