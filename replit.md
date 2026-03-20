@@ -199,9 +199,25 @@ The following test entry was added to help testers preview the Verified Business
 - Inserted via `seedTestVerifiedBusiness()` in `server/routes.ts`
 - **Remove before Google Play launch**: delete `seedTestVerifiedBusiness()` from `server/routes.ts` startup, then run `DELETE FROM user_locations WHERE name = 'Arctic Recovery Studio'` on production.
 
-## Admin emails
-Defined in `server/routes.ts` as `ADMIN_EMAILS` (a `Set<string>`). Currently: `kurlus23@gmail.com`.
-Admins see all locations including hidden ones, and get per-card controls (Hide/Restore/Delete) in the Explore tab. Admin DELETE bypasses the email verification.
+## Admin System
+
+### Admin account
+- **Email**: `admin@coldstreakapp.com` (or override with `ADMIN_EMAIL` env var)
+- **Password**: `ColdStreak-Admin-2026!` (or override with `ADMIN_PASSWORD` env var)
+- **Status**: Disabled by default (`is_disabled = true` in DB). Login returns 403 until enabled.
+- **To enable**: Run `UPDATE users SET is_disabled = false WHERE email = 'admin@coldstreakapp.com';` on the production database.
+- **To change password**: Update the `ADMIN_PASSWORD` env var — the seeder re-hashes it each startup only if the account doesn't exist yet. To reset manually: `UPDATE users SET password_hash = '<bcrypt hash>' WHERE email = 'admin@coldstreakapp.com';`
+
+### Admin privileges (all except pay system)
+- Sees all community locations including hidden ones
+- Per-card controls in Explore: Hide, Restore, Delete (no email verification required)
+- Can edit any location (not just their own)
+- Excluded from: Stripe/payment flows
+
+### Admin detection
+- `ADMIN_EMAILS` set in `server/routes.ts` (currently `kurlus23@gmail.com`) — always has admin rights via email match
+- DB `users.is_admin = true` — elevated at login, stored in JWT claim `isAdmin`
+- `isCallerAdmin(caller)` helper checks both sources
 
 ## TEMP — Startup backfill (safe to remove after first prod deploy)
 - A one-time backfill in `server/routes.ts` startup sets `contact_email = 'kurlus23@gmail.com'` on production location IDs 7 and 8 (FoR Quarry, FoR Plunge) so `isOwner` returns true for the submitter.

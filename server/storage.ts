@@ -38,6 +38,7 @@ export interface IStorage {
   nominateUserLocation(id: number): Promise<UserLocation | null>;
   // Auth users
   createUser(email: string, passwordHash: string): Promise<User>;
+  upsertAdminAccount(email: string, passwordHash: string): Promise<void>;
   getUserByEmail(email: string): Promise<User | null>;
   getUserById(id: number): Promise<User | null>;
   deleteUser(id: number): Promise<void>;
@@ -274,6 +275,24 @@ export class DatabaseStorage implements IStorage {
       .values({ email: email.toLowerCase(), passwordHash })
       .returning();
     return user;
+  }
+
+  async upsertAdminAccount(email: string, passwordHash: string): Promise<void> {
+    const e = email.toLowerCase();
+    const [existing] = await db.select().from(users).where(eq(users.email, e));
+    if (!existing) {
+      await db.insert(users).values({
+        email: e,
+        passwordHash,
+        emailVerified: true,
+        isAdmin: true,
+        isDisabled: true,
+      });
+      console.log(`[seed] Admin account created: ${e} (disabled)`);
+    } else {
+      await db.update(users).set({ isAdmin: true }).where(eq(users.email, e));
+      console.log(`[seed] Admin account confirmed: ${e}`);
+    }
   }
 
   async getUserByEmail(email: string): Promise<User | null> {

@@ -28,10 +28,16 @@ const ANNUAL_PRICE_ID = process.env.STRIPE_ANNUAL_PRICE_ID!;
 const JWT_SECRET = process.env.SESSION_SECRET || "coldstreak-dev-secret";
 const ADMIN_EMAILS = new Set(["kurlus23@gmail.com"]);
 
-interface JwtPayload { userId: number; email: string; }
+interface JwtPayload { userId: number; email: string; isAdmin?: boolean; }
 
 function signToken(payload: JwtPayload): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "90d" });
+}
+
+function isCallerAdmin(caller: JwtPayload | null): boolean {
+  if (!caller) return false;
+  const email = caller.email.toLowerCase().trim();
+  return !!caller.isAdmin || ADMIN_EMAILS.has(email);
 }
 
 function verifyToken(token: string): JwtPayload | null {
@@ -105,6 +111,17 @@ async function seedTestVerifiedBusiness() {
   }
 }
 
+async function seedAdminAccount() {
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL || "admin@coldstreakapp.com";
+    const adminPassword = process.env.ADMIN_PASSWORD || "ColdStreak-Admin-2026!";
+    const hash = await bcrypt.hash(adminPassword, 12);
+    await storage.upsertAdminAccount(adminEmail, hash);
+  } catch (err) {
+    console.error("[seed] Failed to seed admin account:", err);
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -112,6 +129,7 @@ export async function registerRoutes(
 
   await seedPromoCodes();
   await seedTestVerifiedBusiness();
+  await seedAdminAccount();
   // TEMP: backfill contactEmail on Kurlus's community locations that predate auto-injection
   try {
     const { db } = await import("./db");
@@ -173,8 +191,10 @@ export async function registerRoutes(
       const valid = await bcrypt.compare(password, user.passwordHash);
       if (!valid) return res.status(401).json({ message: "Invalid email or password" });
 
-      const token = signToken({ userId: user.id, email: user.email });
-      res.json({ token, user: { id: user.id, email: user.email, emailVerified: user.emailVerified } });
+      if (user.isDisabled) return res.status(403).json({ message: "This account is currently disabled." });
+
+      const token = signToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin });
+      res.json({ token, user: { id: user.id, email: user.email, emailVerified: user.emailVerified, isAdmin: user.isAdmin } });
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       throw err;
@@ -398,12 +418,12 @@ export async function registerRoutes(
     const country = req.query.country as string | undefined;
     const caller = extractUser(req);
     const callerEmail = caller?.email?.toLowerCase().trim() ?? null;
-    const isAdmin = callerEmail ? ADMIN_EMAILS.has(callerEmail) : false;
-    const locations = await storage.getUserLocations(country, isAdmin);
+    const admin = isCallerAdmin(caller);
+    const locations = await storage.getUserLocations(country, admin);
     const sanitized = locations.map(({ contactEmail, ...rest }) => ({
       ...rest,
       isOwner: callerEmail ? callerEmail === (contactEmail ?? "").toLowerCase().trim() : false,
-      isAdmin,
+      isAdmin: admin,
     }));
     res.json(sanitized);
   });
@@ -454,7 +474,11 @@ export async function registerRoutes(
       if (!caller) return res.status(401).json({ message: "Unauthorized" });
       const loc = await storage.getUserLocationById(id);
       if (!loc) return res.status(404).json({ message: "Location not found" });
-      if (!loc.contactEmail || loc.contactEmail.toLowerCase().trim() !== caller.email.toLowerCase().trim()) {
+      const admin = isCallerAdmin(caller);
+      const isOwner = loc.contactEmail
+        ? loc.contactEmail.toLowerCase().trim() === caller.email.toLowerCase().trim()
+        : false;
+      if (!admin && !isOwner) {
         return res.status(403).json({ message: "Not the owner of this location" });
       }
       const updates = locationInputSchema.partial().parse(req.body);
@@ -488,11 +512,11 @@ export async function registerRoutes(
     if (!loc) return res.status(404).json({ message: "Listing not found" });
     const caller = extractUser(req);
     const callerEmail = caller?.email?.toLowerCase().trim() ?? null;
-    const isAdmin = callerEmail ? ADMIN_EMAILS.has(callerEmail) : false;
+    const admin = isCallerAdmin(caller);
     const isOwner = callerEmail && loc.contactEmail
       ? callerEmail === loc.contactEmail.toLowerCase().trim()
       : false;
-    if (!isAdmin && !isOwner) {
+    if (!admin && !isOwner) {
       // Fall back to email-body verification (for business owners who may not be registered)
       const { email } = req.body as { email?: string };
       if (!email || typeof email !== "string") {
@@ -509,7 +533,7 @@ export async function registerRoutes(
   // ── Admin: hide / unhide locations ─────────────────────────────────────
   app.patch("/api/admin/locations/:id/visibility", async (req, res) => {
     const caller = extractUser(req);
-    if (!caller || !ADMIN_EMAILS.has(caller.email.toLowerCase().trim())) {
+    if (!isCallerAdmin(caller)) {
       return res.status(403).json({ message: "Admin only" });
     }
     const id = Number(req.params.id);
