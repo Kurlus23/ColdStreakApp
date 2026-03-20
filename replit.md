@@ -225,6 +225,25 @@ The following test entry was added to help testers preview the Verified Business
 
 ---
 
+## Version 2.0 Roadmap
+
+Features deliberately deferred from v1 — revisit after Google Play launch and initial user growth.
+
+### Community Location Photos
+- Allow the location owner (and only the owner) to upload one cover photo per location.
+- Photo starts hidden (`isApproved = false`) until an admin approves it — satisfies App Store / Google Play user-generated content moderation requirements.
+- **Before building:** migrate off base64-in-Postgres to a proper image host (Cloudinary, Supabase Storage, or similar) — base64 is fine for per-user session photos but becomes a performance problem when fetched by all Explore users.
+- Add a reporting mechanism so users can flag inappropriate photos (required by Apple App Store Review Guideline 1.2 and Google Play User Generated Content policy).
+- Schema additions needed: `locationPhoto text` (URL, not base64), `locationPhotoApproved boolean default false` on `userLocations`.
+
+### Other 2.0 Candidates
+- Social following / friend leaderboards
+- Push notifications for streak reminders
+- Apple Health / Google Fit integration for heart rate import
+- In-app streak sharing / social cards
+
+---
+
 Current ads are Amazon Associates affiliate links (commission-only, no impression revenue).
 Once the app reaches **1,000 registered users**, apply for Google AdSense to add impression-based banner revenue:
 1. Apply at https://adsense.google.com — site must be coldstreakapp.com
