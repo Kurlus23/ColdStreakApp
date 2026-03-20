@@ -350,6 +350,8 @@ export default function Home() {
   const [promptCustomLocation, setPromptCustomLocation] = useState<string>("");
   const [promptSaving, setPromptSaving] = useState(false);
   const [promptSharing, setPromptSharing] = useState(false);
+  const [gpsLocationName, setGpsLocationName] = useState<string | null>(null);
+  const [gpsLocationLoading, setGpsLocationLoading] = useState(false);
   const sharingLockRef = useRef(false);
   const weightHoldRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const weightHoldCountRef = useRef(0);
@@ -744,6 +746,38 @@ export default function Home() {
           setPromptPhotoData(null);
           setPromptLocationId("");
           setPromptCustomLocation("");
+          setGpsLocationName(null);
+          setGpsLocationLoading(true);
+          (async () => {
+            try {
+              const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                const tid = setTimeout(() => reject(new Error("timeout")), 8000);
+                navigator.geolocation?.getCurrentPosition(
+                  (p) => { clearTimeout(tid); resolve(p); },
+                  (e) => { clearTimeout(tid); reject(e); },
+                  { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+                );
+              });
+              const { latitude: lat, longitude: lng } = pos.coords;
+              const controller = new AbortController();
+              const timer = setTimeout(() => controller.abort(), 5000);
+              const r = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`,
+                { headers: { "Accept-Language": "en" }, signal: controller.signal }
+              );
+              clearTimeout(timer);
+              const data = await r.json();
+              const addr = data.address ?? {};
+              const city = addr.city ?? addr.town ?? addr.village ?? addr.hamlet ?? "";
+              const state = addr.state ?? addr.county ?? "";
+              const name = [city, state].filter(Boolean).join(", ");
+              if (name) {
+                setGpsLocationName(name);
+                setPromptLocationId((cur) => cur === "" ? "gps" : cur);
+              }
+            } catch { /* GPS unavailable or timed out — keep default */ }
+            setGpsLocationLoading(false);
+          })();
           setPromptSubmitLeaderboard(true);
           setShowPostSessionAd(true);
           backgroundSync();
@@ -3479,6 +3513,8 @@ export default function Home() {
                 className="w-full bg-blue-900/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm appearance-none focus:outline-none focus:border-cyan-400"
               >
                 <option value="">— No location —</option>
+                {gpsLocationLoading && <option value="gps" disabled>📍 Detecting GPS location…</option>}
+                {gpsLocationName && <option value="gps">📍 {gpsLocationName}</option>}
                 <option value="home">🏠 Home</option>
                 {communityLocs.length > 0 && (
                   <optgroup label="Community Spots">
@@ -3636,10 +3672,12 @@ export default function Home() {
                 if (!photoPromptId) return;
                 const isCommunityPick = promptLocationId.startsWith("community-");
                 const isHomePick = promptLocationId === "home";
-                let finalLocationId: string | undefined = promptLocationId && promptLocationId !== "custom" ? promptLocationId : undefined;
+                let finalLocationId: string | undefined = promptLocationId && promptLocationId !== "custom" && promptLocationId !== "gps" ? promptLocationId : undefined;
                 let finalLocationName: string | undefined;
                 if (isHomePick) {
                   finalLocationName = homeLabel;
+                } else if (promptLocationId === "gps") {
+                  finalLocationName = gpsLocationName ?? undefined;
                 } else if (promptLocationId === "custom") {
                   finalLocationName = promptCustomLocation.trim() || undefined;
                 } else if (isCommunityPick) {
@@ -3650,8 +3688,8 @@ export default function Home() {
                 }
 
                 if (!finalLocationName) {
-                  finalLocationName = homeLabel || "Home";
-                  finalLocationId = "home";
+                  finalLocationName = gpsLocationName ?? homeLabel ?? "Home";
+                  finalLocationId = gpsLocationName ? undefined : "home";
                 }
 
                 setPromptSaving(true);
