@@ -12,6 +12,8 @@ export const users = pgTable("users", {
   resetTokenExpiry: timestamp("reset_token_expiry"),
   displayName: text("display_name"),
   bodyWeight: integer("body_weight"),
+  isAdmin: boolean("is_admin").default(false).notNull(),
+  isDisabled: boolean("is_disabled").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
