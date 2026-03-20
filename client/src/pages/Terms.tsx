@@ -25,7 +25,7 @@ export default function Terms() {
 
           <section>
             <h2 className="text-base font-bold text-slate-900 mb-2">Use of the App</h2>
-            <p className="text-slate-600 mb-2">ColdStreak is provided for personal, non-commercial health tracking purposes only. You agree not to:</p>
+            <p className="text-slate-600 mb-2">ColdStreak is provided for personal health tracking purposes. Business owners may also use the App to submit and manage a business listing through the Verified Business Listing feature. You agree not to:</p>
             <ul className="list-disc pl-5 space-y-2 text-slate-600">
               <li>Use the App in any way that violates applicable laws or regulations.</li>
               <li>Attempt to reverse engineer, modify, or create derivative works of the App.</li>
@@ -50,15 +50,21 @@ export default function Terms() {
 
           <section>
             <h2 className="text-base font-bold text-slate-900 mb-2">Community Locations</h2>
+            <p className="text-slate-600 mb-2">
+              Community Spots are submitted by ColdStreak users and have not been verified for safety, accuracy, legality, or accessibility by ColdStreak. Conditions at any location — water temperature, currents, depth, accessibility — can change without notice due to weather, flooding, drought, or closures. Always assess conditions yourself before entering any body of water. Never plunge alone. ColdStreak is not liable for any injury, loss, or damages arising from use of community-submitted locations.
+            </p>
+            <p className="text-slate-600 mb-2">
+              <strong className="text-slate-800">Trespassing and Land Access:</strong> The presence of a location in ColdStreak does not imply legal public access or permission to enter. Many natural swimming spots are located on private land, protected reserves, or areas with seasonal restrictions. It is your responsibility to research and comply with applicable access laws before visiting any location. ColdStreak is not responsible for trespassing violations, fines, or any consequences arising from accessing restricted locations.
+            </p>
             <p className="text-slate-600">
-              Community Spots are submitted by ColdStreak users and have not been verified for safety, accuracy, or accessibility by ColdStreak. Conditions at any location — water temperature, currents, depth, accessibility — can change without notice due to weather, flooding, drought, or closures. Always assess conditions yourself before entering any body of water. Never plunge alone. ColdStreak is not liable for any injury, loss, or damages arising from use of community-submitted locations.
+              Directions and access point coordinates provided for community locations are for general guidance only and may not reflect current trail conditions, road closures, or official trailhead access points. Always verify directions independently before travel.
             </p>
           </section>
 
           <section>
             <h2 className="text-base font-bold text-slate-900 mb-2">User-Submitted Content</h2>
             <p className="text-slate-600">
-              By submitting a community spot, leaderboard entry, or any other content, you confirm the information is accurate to the best of your knowledge and grant ColdStreak a non-exclusive, worldwide, royalty-free license to display it within the App. We reserve the right to remove any content that is inaccurate, inappropriate, offensive, or in violation of these terms, without notice.
+              By submitting a community spot, leaderboard entry, or any other content, you confirm that the information is accurate to the best of your knowledge, that you are not disclosing a location on private land without authorization, and you grant ColdStreak a non-exclusive, worldwide, royalty-free license to display it within the App. You may edit or remove your own submitted locations at any time through the App. ColdStreak reserves the right to remove or hide any content that is inaccurate, inappropriate, offensive, or in violation of these terms, without notice.
             </p>
           </section>
 
@@ -117,7 +123,7 @@ export default function Terms() {
           <section>
             <h2 className="text-base font-bold text-slate-900 mb-2">Limitation of Liability</h2>
             <p className="text-slate-600">
-              To the fullest extent permitted by applicable law, ColdStreak and its developers shall not be liable for any indirect, incidental, special, punitive, or consequential damages — including but not limited to personal injury, property damage, loss of data, or loss of revenue — arising from your use of the App, cold plunge activities undertaken in connection with it, or reliance on community-submitted location data. Our total liability to you for any claim arising from use of the App shall not exceed the amount you paid for ColdStreak Pro, if any. Your sole remedy for dissatisfaction with the App is to stop using it.
+              To the fullest extent permitted by applicable law, ColdStreak and its developers shall not be liable for any indirect, incidental, special, punitive, or consequential damages — including but not limited to personal injury, property damage, loss of data, or loss of revenue — arising from your use of the App, cold plunge activities undertaken in connection with it, trespassing or access violations in connection with community-submitted locations, or reliance on community-submitted location data or directions. Our total liability to you for any claim arising from use of the App shall not exceed the total amount you paid to ColdStreak in the twelve months preceding the claim. Your sole remedy for dissatisfaction with the App is to stop using it.
             </p>
           </section>
 

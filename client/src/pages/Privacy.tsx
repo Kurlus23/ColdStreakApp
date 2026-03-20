@@ -27,22 +27,28 @@ export default function Privacy() {
             <h2 className="text-base font-bold text-slate-900 mb-2">Information We Collect</h2>
             <ul className="list-disc pl-5 space-y-2 text-slate-600">
               <li>
-                <span className="font-semibold text-slate-800">Plunge history and session data</span> — duration, temperature, score, and optional notes you enter. Stored on your device and, if you have an account, on our servers.
+                <span className="font-semibold text-slate-800">Plunge history and session data</span> — duration, temperature, score, and any optional details you enter (such as location name). Stored on your device and, if you have an account, on our servers.
               </li>
               <li>
-                <span className="font-semibold text-slate-800">Email address</span> — collected only if you purchase ColdStreak Pro or create an account. Used solely to verify your purchase and restore access across devices. Never used for marketing without explicit consent.
+                <span className="font-semibold text-slate-800">Session photos</span> — if you choose to attach a photo to a plunge session, it is stored on our servers (encrypted at rest and in transit) and is only visible to you when viewing your own history.
               </li>
               <li>
-                <span className="font-semibold text-slate-800">Leaderboard entries</span> — if you choose to submit a score to a public leaderboard, your chosen display name and plunge score are stored on our servers and visible to other users.
+                <span className="font-semibold text-slate-800">Email address</span> — collected only if you create an account or purchase ColdStreak Pro. Used to verify your purchase, restore access across devices, and for account-related communications. Never used for marketing without explicit consent.
               </li>
               <li>
-                <span className="font-semibold text-slate-800">Community location submissions</span> — location name and any details you provide when suggesting a community spot. These are stored on our servers and may be visible to other Pro users.
+                <span className="font-semibold text-slate-800">Leaderboard entries</span> — if you choose to submit a score to a public leaderboard, your chosen display name and plunge score are stored on our servers and visible to all users.
               </li>
               <li>
-                <span className="font-semibold text-slate-800">Business listing submissions</span> — if you submit a business listing, we collect the information you provide: business name, city, state, full address, phone number, website and social media URLs, and a contact email address. Your contact email is used solely for administrative purposes and is never displayed publicly. The business name, city, state, description, and any links you provide may be displayed publicly within the app's business directory. Verified business listings require a paid monthly subscription processed through Stripe; Stripe handles all payment data and ColdStreak does not store your credit card information.
+                <span className="font-semibold text-slate-800">Community location submissions</span> — if you submit a community spot, the location name, coordinates, and any details you provide are stored on our servers and visible to all users of the App. Your contact email is recorded for ownership purposes only and is never displayed publicly.
               </li>
               <li>
-                <span className="font-semibold text-slate-800">Device settings and preferences</span> — stored locally on your device (body weight, home location label, alarm preferences). Not transmitted to our servers.
+                <span className="font-semibold text-slate-800">Business listing submissions</span> — if you submit a business listing, we collect the information you provide: business name, city, state, full address, phone number, website and social media URLs, and a contact email address. Your contact email is used solely for administrative purposes and is never displayed publicly. The business name, city, state, description, and any links you provide may be displayed publicly within the App. Verified business listings require a paid monthly subscription processed through Stripe; Stripe handles all payment data and ColdStreak does not store your credit card information.
+              </li>
+              <li>
+                <span className="font-semibold text-slate-800">Device location (GPS)</span> — only requested with your explicit permission. When granted, your device coordinates are used locally to suggest nearby community locations and to auto-detect your city and state for session logging. Precise coordinates are not stored on our servers; only the resolved city/state name may be saved as part of a plunge session at your direction. Location data is never used for advertising or shared with third parties.
+              </li>
+              <li>
+                <span className="font-semibold text-slate-800">Device settings and preferences</span> — stored locally on your device only (body weight, home location label, alarm preferences, private spots). Not transmitted to our servers.
               </li>
             </ul>
           </section>
@@ -50,7 +56,7 @@ export default function Privacy() {
           <section>
             <h2 className="text-base font-bold text-slate-900 mb-2">Information We Do Not Collect</h2>
             <ul className="list-disc pl-5 space-y-2 text-slate-600">
-              <li>We do not collect your precise GPS location without your explicit permission.</li>
+              <li>We do not collect your precise GPS location without your explicit permission, and we do not store raw GPS coordinates on our servers.</li>
               <li>We do not collect health data beyond what you manually enter.</li>
               <li>We do not use advertising tracking identifiers or third-party ad tracking SDKs.</li>
               <li>We do not sell, rent, or share your personal data with third parties for their marketing purposes.</li>
@@ -63,7 +69,10 @@ export default function Privacy() {
               <li>To provide and improve the ColdStreak app and its features.</li>
               <li>To verify Pro subscription status and restore purchases across devices.</li>
               <li>To display public leaderboard entries as opted in by you.</li>
-              <li>To operate the community location feature.</li>
+              <li>To operate the community location feature, including displaying submitted spots to all users and attributing edits to the submitter's account.</li>
+              <li>To display verified business listing information to users of the Explore feature.</li>
+              <li>To resolve a city/state name from your device coordinates when you enable GPS (location data is not stored beyond the resolved place name).</li>
+              <li>To detect and fix errors in the App through anonymous crash reports.</li>
             </ul>
           </section>
 
@@ -78,10 +87,19 @@ export default function Privacy() {
             <h2 className="text-base font-bold text-slate-900 mb-2">Third-Party Services</h2>
             <ul className="list-disc pl-5 space-y-2 text-slate-600">
               <li>
-                <span className="font-semibold text-slate-800">Stripe</span> — payment processing for ColdStreak Pro. Subject to <a href="https://stripe.com/privacy" className="text-cyan-600 hover:underline" target="_blank" rel="noopener noreferrer">Stripe's Privacy Policy</a>.
+                <span className="font-semibold text-slate-800">Stripe</span> — payment processing for ColdStreak Pro and Verified Business Listings. ColdStreak does not store payment card data. Subject to <a href="https://stripe.com/privacy" className="text-cyan-600 hover:underline" target="_blank" rel="noopener noreferrer">Stripe's Privacy Policy</a>.
               </li>
               <li>
-                <span className="font-semibold text-slate-800">Advertising</span> — free users may see advertisements served by third-party networks. These networks may use cookies or device identifiers in accordance with their own privacy policies. Pro users do not see ads.
+                <span className="font-semibold text-slate-800">PostHog</span> — anonymous product analytics (e.g. feature usage events such as timer started, plunge logged). No personally identifiable information is sent. Subject to <a href="https://posthog.com/privacy" className="text-cyan-600 hover:underline" target="_blank" rel="noopener noreferrer">PostHog's Privacy Policy</a>.
+              </li>
+              <li>
+                <span className="font-semibold text-slate-800">Sentry</span> — error monitoring. If the App encounters an error, an automated crash report is sent to Sentry. Reports may include device type, operating system, and a stack trace. No personally identifiable information is intentionally included. Subject to <a href="https://sentry.io/privacy/" className="text-cyan-600 hover:underline" target="_blank" rel="noopener noreferrer">Sentry's Privacy Policy</a>.
+              </li>
+              <li>
+                <span className="font-semibold text-slate-800">Nominatim / OpenStreetMap</span> — reverse geocoding. When you grant location permission, your device coordinates are sent to the Nominatim public API to resolve a city and state name. No personal account is created and the OpenStreetMap Foundation does not retain coordinates for longer than required for the request. Subject to the <a href="https://osmfoundation.org/wiki/Privacy_Policy" className="text-cyan-600 hover:underline" target="_blank" rel="noopener noreferrer">OSMF Privacy Policy</a>.
+              </li>
+              <li>
+                <span className="font-semibold text-slate-800">Advertising</span> — free users may see advertisements served by third-party networks. These networks may use cookies or device identifiers in accordance with their own privacy policies. ColdStreak Pro users do not see ads.
               </li>
             </ul>
           </section>
