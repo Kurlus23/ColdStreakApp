@@ -17,6 +17,28 @@ webpush.setVapidDetails(
 );
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-02-24.acacia" });
+
+// Lifetime pricing phases
+const LIFETIME_PRICE_IDS: Record<1 | 2 | 3, string> = {
+  1: process.env.STRIPE_PRICE_ID!,          // $19.99 — Early Adopter
+  2: process.env.STRIPE_LIFETIME_PRICE_ID_P2 || process.env.STRIPE_PRICE_ID!, // $24.99
+  3: process.env.STRIPE_LIFETIME_PRICE_ID_P3 || process.env.STRIPE_PRICE_ID!, // $29.99
+};
+const LIFETIME_PRICES: Record<1 | 2 | 3, number> = { 1: 19.99, 2: 24.99, 3: 29.99 };
+const LIFETIME_LABELS: Record<1 | 2 | 3, string> = {
+  1: "Early Adopter",
+  2: "Standard",
+  3: "Standard",
+};
+
+function getLifetimePhase(fpRemaining: number): 1 | 2 | 3 {
+  const override = process.env.LIFETIME_PRICE_PHASE;
+  if (override === "3") return 3;
+  if (override === "2") return 2;
+  return fpRemaining > 0 ? 1 : 2;
+}
+
+// Legacy alias so existing checkout code still compiles
 const PRICE_ID = process.env.STRIPE_PRICE_ID!;
 
 function getSiteOrigin(req: Request): string {
@@ -555,9 +577,16 @@ export async function registerRoutes(
       }).parse(req.body);
 
       const isAnnual = plan === "annual";
+      let lifetimePriceId = PRICE_ID;
+      if (!isAnnual) {
+        const count = await storage.getProUserCount();
+        const fpRemaining = Math.max(0, 1000 - count);
+        const phase = getLifetimePhase(fpRemaining);
+        lifetimePriceId = LIFETIME_PRICE_IDS[phase];
+      }
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
-        line_items: [{ price: isAnnual ? ANNUAL_PRICE_ID : PRICE_ID, quantity: 1 }],
+        line_items: [{ price: isAnnual ? ANNUAL_PRICE_ID : lifetimePriceId, quantity: 1 }],
         mode: isAnnual ? "subscription" : "payment",
         success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: cancelUrl,
@@ -778,6 +807,20 @@ export async function registerRoutes(
     const count = await storage.getProUserCount();
     const remaining = Math.max(0, 1000 - count);
     res.json({ count, remaining, limit: 1000 });
+  });
+
+  app.get("/api/lifetime-price", async (_req, res) => {
+    const count = await storage.getProUserCount();
+    const fpRemaining = Math.max(0, 1000 - count);
+    const phase = getLifetimePhase(fpRemaining);
+    res.json({
+      phase,
+      price: LIFETIME_PRICES[phase],
+      priceId: LIFETIME_PRICE_IDS[phase],
+      label: LIFETIME_LABELS[phase],
+      fpRemaining,
+      nextPrice: phase < 3 ? LIFETIME_PRICES[(phase + 1) as 2 | 3] : null,
+    });
   });
 
   // ── Push Notifications ──────────────────────────────────────────

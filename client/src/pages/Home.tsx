@@ -404,6 +404,15 @@ export default function Home() {
     enabled: showUpgradeModal,
     staleTime: 30_000,
   });
+  const { data: lifetimePriceData } = useQuery<{ phase: number; price: number; label: string; fpRemaining: number; nextPrice: number | null }>({
+    queryKey: ["/api/lifetime-price"],
+    enabled: showUpgradeModal,
+    staleTime: 30_000,
+  });
+  const lifetimePrice = lifetimePriceData?.price ?? 19.99;
+  const lifetimeLabel = lifetimePriceData?.label ?? "Early Adopter";
+  const lifetimePhase = lifetimePriceData?.phase ?? 1;
+  const lifetimeNextPrice = lifetimePriceData?.nextPrice ?? null;
   const [showPostSessionAd, setShowPostSessionAd] = useState(false);
   const [showAchievements, setShowAchievements] = useState(() => {
     return localStorage.getItem("coldstreak-achievements-open") !== "false";
@@ -4274,11 +4283,15 @@ export default function Home() {
                 <div className="text-slate-400 text-[10px]">~$0.83/mo</div>
               </div>
               <div className="rounded-2xl border border-yellow-500/60 bg-yellow-900/20 p-3 text-center space-y-1 relative">
-                <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-yellow-500 text-black text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">Early Adopter</div>
+                {lifetimePhase === 1 && (
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-yellow-500 text-black text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">Early Adopter</div>
+                )}
                 <div className="text-[10px] font-bold uppercase tracking-wider text-yellow-400">Lifetime</div>
-                <div className="text-2xl font-black text-white">$19.99</div>
+                <div className="text-2xl font-black text-white">${lifetimePrice.toFixed(2)}</div>
                 <div className="text-yellow-300 text-xs">pay once, keep forever</div>
-                <div className="text-amber-400 text-[10px] font-semibold">intro price — rising to $29.99</div>
+                {lifetimeNextPrice && (
+                  <div className="text-amber-400 text-[10px] font-semibold">intro price — rising to ${lifetimeNextPrice.toFixed(2)}</div>
+                )}
               </div>
             </div>
 
@@ -4311,7 +4324,7 @@ export default function Home() {
                 disabled={proLoading}
                 className="w-full py-3 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-black font-bold text-sm shadow-lg shadow-yellow-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
               >
-                {proLoading ? "…" : "Get Lifetime — $19.99"}
+                {proLoading ? "…" : `Get Lifetime — $${lifetimePrice.toFixed(2)}`}
               </button>
             </div>
 
