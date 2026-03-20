@@ -3631,12 +3631,12 @@ export default function Home() {
             {/* Save */}
             <button
               data-testid="button-save-photo"
-              disabled={promptSaving || (!promptPhotoData && !promptLocationId)}
+              disabled={promptSaving}
               onClick={async () => {
                 if (!photoPromptId) return;
                 const isCommunityPick = promptLocationId.startsWith("community-");
                 const isHomePick = promptLocationId === "home";
-                const finalLocationId = promptLocationId && promptLocationId !== "custom" ? promptLocationId : undefined;
+                let finalLocationId: string | undefined = promptLocationId && promptLocationId !== "custom" ? promptLocationId : undefined;
                 let finalLocationName: string | undefined;
                 if (isHomePick) {
                   finalLocationName = homeLabel;
@@ -3649,9 +3649,9 @@ export default function Home() {
                   finalLocationName = PASSPORT_LOCATIONS.find((l) => l.id === promptLocationId)?.name;
                 }
 
-                if (!promptPhotoData && !finalLocationName) {
-                  setPhotoPromptId(null);
-                  return;
+                if (!finalLocationName) {
+                  finalLocationName = homeLabel || "Home";
+                  finalLocationId = "home";
                 }
 
                 setPromptSaving(true);
