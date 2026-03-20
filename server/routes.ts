@@ -111,6 +111,16 @@ export async function registerRoutes(
 
   await seedPromoCodes();
   await seedTestVerifiedBusiness();
+  // TEMP: backfill contactEmail on Kurlus's community locations that predate auto-injection
+  try {
+    const { db } = await import("./db");
+    const { userLocations } = await import("@shared/schema");
+    const { and, eq, isNull, inArray } = await import("drizzle-orm");
+    await db.update(userLocations)
+      .set({ contactEmail: "kurlus23@gmail.com" })
+      .where(and(inArray(userLocations.id, [7, 8]), isNull(userLocations.contactEmail)));
+  } catch (_) {}
+
 
   // ── Auth ──────────────────────────────────────────────────────────────
 
@@ -395,29 +405,58 @@ export async function registerRoutes(
     res.json(sanitized);
   });
 
+  const locationInputSchema = z.object({
+    name: z.string().min(2).max(100),
+    country: z.string().min(2).max(60),
+    state: z.string().max(60).optional(),
+    city: z.string().max(60).optional(),
+    description: z.string().max(300).optional(),
+    submittedBy: z.string().max(50).optional(),
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
+    accessLat: z.number().min(-90).max(90).nullable().optional(),
+    accessLng: z.number().min(-180).max(180).nullable().optional(),
+    isBusiness: z.boolean().optional(),
+    websiteUrl: z.string().url().max(300).optional().or(z.literal("")),
+    phone: z.string().max(30).optional(),
+    yelpUrl: z.string().url().max(300).optional().or(z.literal("")),
+    facebookUrl: z.string().url().max(300).optional().or(z.literal("")),
+    bookingUrl: z.string().url().max(300).optional().or(z.literal("")),
+    contactEmail: z.string().email().max(200).optional(),
+    fullAddress: z.string().max(200).optional(),
+    modalities: z.array(z.string().max(50)).max(20).optional(),
+  });
+
   app.post("/api/community-locations", async (req, res) => {
     try {
-      const input = z.object({
-        name: z.string().min(2).max(100),
-        country: z.string().min(2).max(60),
-        state: z.string().max(60).optional(),
-        city: z.string().max(60).optional(),
-        description: z.string().max(300).optional(),
-        submittedBy: z.string().max(50).optional(),
-        latitude: z.number().min(-90).max(90).optional(),
-        longitude: z.number().min(-180).max(180).optional(),
-        isBusiness: z.boolean().optional(),
-        websiteUrl: z.string().url().max(300).optional().or(z.literal("")),
-        phone: z.string().max(30).optional(),
-        yelpUrl: z.string().url().max(300).optional().or(z.literal("")),
-        facebookUrl: z.string().url().max(300).optional().or(z.literal("")),
-        bookingUrl: z.string().url().max(300).optional().or(z.literal("")),
-        contactEmail: z.string().email().max(200).optional(),
-        fullAddress: z.string().max(200).optional(),
-        modalities: z.array(z.string().max(50)).max(20).optional(),
-      }).parse(req.body);
+      const input = locationInputSchema.parse(req.body);
+      const caller = extractUser(req);
+      // Auto-attach the caller's email for ownership tracking
+      if (caller?.email && !input.contactEmail) {
+        (input as any).contactEmail = caller.email.toLowerCase().trim();
+      }
       const loc = await storage.createUserLocation(input);
       res.status(201).json(loc);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      throw err;
+    }
+  });
+
+  app.patch("/api/community-locations/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      const caller = extractUser(req);
+      if (!caller) return res.status(401).json({ message: "Unauthorized" });
+      const loc = await storage.getUserLocationById(id);
+      if (!loc) return res.status(404).json({ message: "Location not found" });
+      if (!loc.contactEmail || loc.contactEmail.toLowerCase().trim() !== caller.email.toLowerCase().trim()) {
+        return res.status(403).json({ message: "Not the owner of this location" });
+      }
+      const updates = locationInputSchema.partial().parse(req.body);
+      const updated = await storage.updateUserLocation(id, updates);
+      res.json(updated);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       throw err;

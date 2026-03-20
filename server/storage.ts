@@ -244,6 +244,11 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async updateUserLocation(id: number, updates: Partial<InsertUserLocation>): Promise<UserLocation | null> {
+    const [updated] = await db.update(userLocations).set(updates).where(eq(userLocations.id, id)).returning();
+    return updated ?? null;
+  }
+
   async deleteUserLocation(id: number): Promise<void> {
     await db.delete(userLocations).where(eq(userLocations.id, id));
   }

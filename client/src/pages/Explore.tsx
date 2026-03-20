@@ -4,7 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   MapPin, Compass, Search, X, ChevronDown, Lock,
-  Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, Building2, CheckCircle2, BadgeCheck, Phone, ExternalLink
+  Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, Building2, CheckCircle2, BadgeCheck, Phone, ExternalLink, Pencil, LocateFixed
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useProStatus } from "@/hooks/use-pro-status";
@@ -348,6 +348,54 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [verifyEmail, setVerifyEmail] = useState("");
   const [deleteDialogLocId, setDeleteDialogLocId] = useState<number | null>(null);
   const [deleteEmail, setDeleteEmail] = useState("");
+  const [editLocId, setEditLocId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", description: "", city: "", state: "", country: "", latitude: "", longitude: "", accessLat: "", accessLng: "" });
+  const [editAccessGpsLoading, setEditAccessGpsLoading] = useState(false);
+  const [editMainGpsLoading, setEditMainGpsLoading] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+
+  const editLocMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+      apiRequest("PATCH", `/api/community-locations/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
+      setEditLocId(null);
+      toast({ title: "Location updated!" });
+    },
+    onError: () => toast({ title: "Failed to save", variant: "destructive" }),
+  });
+
+  const openEdit = (loc: BizLocation) => {
+    setEditForm({
+      name: loc.name ?? "",
+      description: loc.description ?? "",
+      city: loc.city ?? "",
+      state: loc.state ?? "",
+      country: loc.country ?? "",
+      latitude: loc.latitude ?? "",
+      longitude: loc.longitude ?? "",
+      accessLat: loc.accessLat ?? "",
+      accessLng: loc.accessLng ?? "",
+    });
+    setEditLocId(loc.id);
+  };
+
+  const grabGps = async (target: "main" | "access") => {
+    if (target === "main") setEditMainGpsLoading(true); else setEditAccessGpsLoading(true);
+    try {
+      const pos = Capacitor.isNativePlatform()
+        ? (await Geolocation.getCurrentPosition({ enableHighAccuracy: true })).coords
+        : await new Promise<GeolocationCoordinates>((res, rej) => {
+            navigator.geolocation.getCurrentPosition((p) => res(p.coords), rej, { enableHighAccuracy: true, timeout: 10000 });
+          });
+      const lat = pos.latitude.toFixed(6);
+      const lng = pos.longitude.toFixed(6);
+      if (target === "main") setEditForm((f) => ({ ...f, latitude: lat, longitude: lng }));
+      else setEditForm((f) => ({ ...f, accessLat: lat, accessLng: lng }));
+      toast({ title: target === "access" ? "Access point pinned ✓" : "Main pin updated ✓" });
+    } catch { toast({ title: "GPS unavailable", variant: "destructive" }); }
+    if (target === "main") setEditMainGpsLoading(false); else setEditAccessGpsLoading(false);
+  };
   const [businessOpen, setBusinessOpen] = useState(true);
   const [showBusinessForm, setShowBusinessForm] = useState(false);
   const [businessProfileId, setBusinessProfileId] = useState<number | null>(null);
@@ -1087,6 +1135,9 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   const isReview = loc.nominationCount >= 25;
                   const lat = loc.latitude ? Number(loc.latitude) : null;
                   const lng = loc.longitude ? Number(loc.longitude) : null;
+                  const dirLat = loc.accessLat ? Number(loc.accessLat) : lat;
+                  const dirLng = loc.accessLng ? Number(loc.accessLng) : lng;
+                  const hasAccessPoint = !!(loc.accessLat && loc.accessLng);
                   const dist = lat !== null && lng !== null ? distLabel(lat, lng) : null;
                   return (
                     <div
@@ -1116,11 +1167,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                               <span className="text-[9px] bg-amber-500/20 border border-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0">Business</span>
                             ) : null}
                             {isReview && <Flame className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />}
-                            {lat !== null && lng !== null && (
+                            {dirLat !== null && dirLng !== null && (
                               <button
                                 data-testid={`button-directions-community-${loc.id}`}
-                                onClick={() => openDirections(lat, lng)}
-                                title="Get directions"
+                                onClick={() => openDirections(dirLat, dirLng)}
+                                title={hasAccessPoint ? "Get directions to access/parking point" : "Get directions"}
                                 className="w-6 h-6 flex items-center justify-center rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 hover:text-cyan-300 transition-all active:scale-95 flex-shrink-0"
                               >
                                 <Navigation className="w-3 h-3" />
@@ -1157,10 +1208,13 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                         <div className="flex flex-col items-end gap-1 flex-shrink-0">
                           {dist && <span className="text-[11px] text-cyan-400 font-semibold">{dist}</span>}
                           {loc.isOwner ? (
-                            <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800/60 border border-slate-700/40 text-slate-500 cursor-default">
-                              <Building2 className="w-3 h-3" />
-                              Your listing
-                            </span>
+                            <button
+                              data-testid={`button-edit-loc-${loc.id}`}
+                              onClick={() => openEdit(loc)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-cyan-800/40 border border-cyan-600/40 text-cyan-300 hover:bg-cyan-700/50 transition-all active:scale-95"
+                            >
+                              <Pencil className="w-3 h-3" /> Edit
+                            </button>
                           ) : (
                             <button
                               data-testid={`button-vote-${loc.id}`}
@@ -1428,6 +1482,105 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               </button>
             )}
           </div>
+        </div>
+      </div>
+    )}
+
+    {/* ── Edit Community Location Modal ── */}
+    {editLocId !== null && (
+      <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setEditLocId(null)}>
+        <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl p-5 space-y-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between">
+            <h2 className="text-white font-bold text-base flex items-center gap-2"><Pencil className="w-4 h-4 text-cyan-400" /> Edit Location</h2>
+            <button onClick={() => setEditLocId(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-700/60 text-slate-400 hover:text-white transition-colors">✕</button>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="text-slate-400 text-xs font-semibold uppercase tracking-wide">Name</label>
+              <input data-testid="input-edit-loc-name" value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                className="w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400" />
+            </div>
+            <div>
+              <label className="text-slate-400 text-xs font-semibold uppercase tracking-wide">Description</label>
+              <textarea data-testid="input-edit-loc-description" value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} rows={2}
+                className="w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 resize-none" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-slate-400 text-xs font-semibold uppercase tracking-wide">City</label>
+                <input value={editForm.city} onChange={(e) => setEditForm((f) => ({ ...f, city: e.target.value }))}
+                  className="w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400" />
+              </div>
+              <div>
+                <label className="text-slate-400 text-xs font-semibold uppercase tracking-wide">State</label>
+                <input value={editForm.state} onChange={(e) => setEditForm((f) => ({ ...f, state: e.target.value }))}
+                  className="w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400" />
+              </div>
+            </div>
+
+            {/* Main location pin */}
+            <div className="bg-slate-800/60 rounded-2xl p-3 border border-slate-700/50 space-y-2">
+              <p className="text-slate-300 text-xs font-semibold">📍 Main Location Pin</p>
+              <p className="text-slate-500 text-[11px]">Where the water is. Used for the map marker.</p>
+              {editForm.latitude && editForm.longitude && (
+                <p className="text-cyan-400 text-[11px] font-mono">{editForm.latitude}, {editForm.longitude}</p>
+              )}
+              <button data-testid="button-edit-main-gps" onClick={() => grabGps("main")} disabled={editMainGpsLoading}
+                className="flex items-center gap-1.5 text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors disabled:opacity-50">
+                <LocateFixed className="w-3.5 h-3.5" />
+                {editMainGpsLoading ? "Getting GPS…" : "Update with current GPS"}
+              </button>
+            </div>
+
+            {/* Access / parking point */}
+            <div className="bg-slate-800/60 rounded-2xl p-3 border border-slate-700/50 space-y-2">
+              <p className="text-slate-300 text-xs font-semibold">🅿 Access / Parking Point</p>
+              <p className="text-slate-500 text-[11px]">Where directions lead — trailhead, parking lot, or gate. Separate from the water location.</p>
+              {editForm.accessLat && editForm.accessLng ? (
+                <div className="flex items-center gap-2">
+                  <p className="text-green-400 text-[11px] font-mono flex-1">{editForm.accessLat}, {editForm.accessLng}</p>
+                  <button onClick={() => setEditForm((f) => ({ ...f, accessLat: "", accessLng: "" }))}
+                    className="text-[11px] text-slate-500 hover:text-red-400 transition-colors">Clear</button>
+                </div>
+              ) : (
+                <p className="text-slate-600 text-[11px]">Not set — directions go to main pin.</p>
+              )}
+              <button data-testid="button-edit-access-gps" onClick={() => grabGps("access")} disabled={editAccessGpsLoading}
+                className="flex items-center gap-1.5 text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors disabled:opacity-50">
+                <LocateFixed className="w-3.5 h-3.5" />
+                {editAccessGpsLoading ? "Getting GPS…" : (editForm.accessLat ? "Update access point GPS" : "Pin access point with GPS")}
+              </button>
+            </div>
+          </div>
+
+          <button
+            data-testid="button-save-edit-loc"
+            disabled={editLocMutation.isPending || !editForm.name.trim()}
+            onClick={() => {
+              if (!editLocId) return;
+              const payload: Record<string, unknown> = {
+                name: editForm.name.trim(),
+                description: editForm.description.trim() || undefined,
+                city: editForm.city.trim() || undefined,
+                state: editForm.state.trim() || undefined,
+                country: editForm.country.trim() || undefined,
+              };
+              if (editForm.latitude) payload.latitude = Number(editForm.latitude);
+              if (editForm.longitude) payload.longitude = Number(editForm.longitude);
+              if (editForm.accessLat && editForm.accessLng) {
+                payload.accessLat = Number(editForm.accessLat);
+                payload.accessLng = Number(editForm.accessLng);
+              } else if (!editForm.accessLat) {
+                payload.accessLat = null;
+                payload.accessLng = null;
+              }
+              editLocMutation.mutate({ id: editLocId, data: payload });
+            }}
+            className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-blue-950 font-bold text-sm transition-all active:scale-95"
+          >
+            {editLocMutation.isPending ? "Saving…" : "Save Changes"}
+          </button>
         </div>
       </div>
     )}
