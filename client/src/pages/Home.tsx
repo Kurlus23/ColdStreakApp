@@ -748,6 +748,7 @@ export default function Home() {
           setPromptCustomLocation("");
           setGpsLocationName(null);
           setGpsLocationLoading(true);
+          const nearbyLocs = communityLocs; // capture current list
           (async () => {
             try {
               const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -755,26 +756,52 @@ export default function Home() {
                 navigator.geolocation?.getCurrentPosition(
                   (p) => { clearTimeout(tid); resolve(p); },
                   (e) => { clearTimeout(tid); reject(e); },
-                  { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+                  { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
                 );
               });
               const { latitude: lat, longitude: lng } = pos.coords;
-              const controller = new AbortController();
-              const timer = setTimeout(() => controller.abort(), 5000);
-              const r = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`,
-                { headers: { "Accept-Language": "en" }, signal: controller.signal }
-              );
-              clearTimeout(timer);
-              const data = await r.json();
-              const addr = data.address ?? {};
-              const city = addr.city ?? addr.town ?? addr.village ?? addr.hamlet ?? "";
-              const state = addr.state ?? addr.county ?? "";
-              const name = [city, state].filter(Boolean).join(", ");
-              if (name) {
-                setGpsLocationName(name);
+
+              // Haversine distance in metres
+              const haversineM = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+                const R = 6371000;
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+              };
+
+              // Find nearest community/business location within 800 m
+              let nearestId: number | null = null;
+              let nearestDist = Infinity;
+              for (const loc of nearbyLocs) {
+                if (!loc.latitude || !loc.longitude) continue;
+                const d = haversineM(lat, lng, Number(loc.latitude), Number(loc.longitude));
+                if (d < 800 && d < nearestDist) { nearestDist = d; nearestId = loc.id; }
               }
-            } catch { /* GPS unavailable or timed out — keep default */ }
+
+              if (nearestId !== null) {
+                // Auto-select the nearby location
+                setPromptLocationId(`community-${nearestId}`);
+              } else {
+                // Reverse geocode to city, state
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), 5000);
+                const r = await fetch(
+                  `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`,
+                  { headers: { "Accept-Language": "en" }, signal: controller.signal }
+                );
+                clearTimeout(timer);
+                const data = await r.json();
+                const addr = data.address ?? {};
+                const city = addr.city ?? addr.town ?? addr.village ?? addr.hamlet ?? "";
+                const state = addr.state ?? addr.county ?? "";
+                const name = [city, state].filter(Boolean).join(", ");
+                if (name) {
+                  setGpsLocationName(name);
+                  setPromptLocationId("gps");
+                }
+              }
+            } catch { /* GPS unavailable or denied — keep Home default */ }
             setGpsLocationLoading(false);
           })();
           setPromptSubmitLeaderboard(true);

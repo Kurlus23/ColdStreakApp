@@ -207,9 +207,14 @@ export async function registerRoutes(
   app.get("/api/auth/verify-email", async (req, res) => {
     const token = String(req.query.token || "");
     if (!token) return res.status(400).json({ message: "Missing token" });
-    const user = await storage.verifyEmailToken(token);
-    if (!user) return res.status(400).json({ message: "Invalid or already used verification link" });
-    res.json({ ok: true, emailVerified: true });
+    try {
+      const user = await storage.verifyEmailToken(token);
+      if (!user) return res.status(400).json({ message: "Invalid or already used verification link" });
+      res.json({ ok: true, emailVerified: true });
+    } catch (err) {
+      console.error("[verify-email] DB error:", err);
+      res.status(503).json({ message: "Server temporarily unavailable — please try again in a moment." });
+    }
   });
 
   app.post("/api/auth/resend-verification", async (req, res) => {
