@@ -744,7 +744,7 @@ export default function Home() {
           promptPlungeRef.current = { score: String(score), duration: durationSec, temperature, timerUsed: true };
           setPhotoPromptId(newPlunge.id);
           setPromptPhotoData(null);
-          setPromptLocationId("");
+          setPromptLocationId("home");
           setPromptCustomLocation("");
           setGpsLocationName(null);
           setGpsLocationLoading(true);
@@ -773,7 +773,6 @@ export default function Home() {
               const name = [city, state].filter(Boolean).join(", ");
               if (name) {
                 setGpsLocationName(name);
-                setPromptLocationId((cur) => cur === "" ? "gps" : cur);
               }
             } catch { /* GPS unavailable or timed out — keep default */ }
             setGpsLocationLoading(false);
