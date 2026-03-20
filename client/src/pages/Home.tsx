@@ -352,6 +352,11 @@ export default function Home() {
   const [promptSharing, setPromptSharing] = useState(false);
   const [gpsLocationName, setGpsLocationName] = useState<string | null>(null);
   const [gpsLocationLoading, setGpsLocationLoading] = useState(false);
+  const [privateLocs, setPrivateLocs] = useState<Array<{id: string; name: string}>>(() => {
+    try { return JSON.parse(localStorage.getItem("coldstreak-private-locs") || "[]"); } catch { return []; }
+  });
+  const [savePrivateOpen, setSavePrivateOpen] = useState(false);
+  const [savePrivateName, setSavePrivateName] = useState("");
   const sharingLockRef = useRef(false);
   const weightHoldRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const weightHoldCountRef = useRef(0);
@@ -748,6 +753,8 @@ export default function Home() {
           setPromptCustomLocation("");
           setGpsLocationName(null);
           setGpsLocationLoading(true);
+          setSavePrivateOpen(false);
+          setSavePrivateName("");
           const nearbyLocs = communityLocs; // capture current list
           (async () => {
             try {
@@ -3556,6 +3563,13 @@ export default function Home() {
                 {gpsLocationLoading && <option value="gps" disabled>📍 Detecting GPS location…</option>}
                 {gpsLocationName && <option value="gps">📍 {gpsLocationName}</option>}
                 <option value="home">🏠 Home</option>
+                {privateLocs.length > 0 && (
+                  <optgroup label="My Spots">
+                    {privateLocs.map((l) => (
+                      <option key={l.id} value={l.id}>🔒 {l.name}</option>
+                    ))}
+                  </optgroup>
+                )}
                 {communityLocs.length > 0 && (
                   <optgroup label="Community Spots">
                     {communityLocs.map((l) => (
@@ -3596,7 +3610,62 @@ export default function Home() {
                 </div>
               )}
 
-              {promptLocationId && promptLocationId !== "custom" && promptLocationId !== "home" && (
+              {promptLocationId === "gps" && gpsLocationName && (
+                <div className="bg-blue-900/50 rounded-xl px-3 py-2 border border-blue-700/40 space-y-2">
+                  <div className="text-xs text-blue-300 leading-relaxed">
+                    <span className="font-semibold text-cyan-300">📍 {gpsLocationName}</span>
+                    {" — "}City/state only. No exact address shared.
+                  </div>
+                  {!savePrivateOpen ? (
+                    <button
+                      data-testid="button-save-private-hint"
+                      onClick={() => { setSavePrivateOpen(true); setSavePrivateName(gpsLocationName); }}
+                      className="flex items-center gap-1.5 text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
+                    >
+                      🔒 Save to my private spots
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <input
+                        data-testid="input-private-loc-name"
+                        type="text"
+                        value={savePrivateName}
+                        onChange={(e) => setSavePrivateName(e.target.value)}
+                        placeholder="Name this spot…"
+                        className="flex-1 bg-blue-800/60 border border-blue-600 rounded-lg px-2.5 py-1.5 text-white text-xs placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                      />
+                      <button
+                        data-testid="button-confirm-save-private"
+                        onClick={() => {
+                          const name = savePrivateName.trim() || gpsLocationName;
+                          const id = `private-${Date.now()}`;
+                          const updated = [...privateLocs, { id, name }];
+                          setPrivateLocs(updated);
+                          localStorage.setItem("coldstreak-private-locs", JSON.stringify(updated));
+                          setPromptLocationId(id);
+                          setSavePrivateOpen(false);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-cyan-500/80 text-blue-950 text-xs font-bold hover:bg-cyan-400 transition-colors"
+                      >Save</button>
+                      <button
+                        onClick={() => setSavePrivateOpen(false)}
+                        className="text-blue-500 text-xs hover:text-blue-300 transition-colors"
+                      >✕</button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {promptLocationId.startsWith("private-") && (
+                <div className="bg-blue-900/50 rounded-xl px-3 py-2 border border-blue-700/40">
+                  <div className="text-xs text-blue-300 leading-relaxed">
+                    <span className="font-semibold text-cyan-300">🔒 {privateLocs.find(l => l.id === promptLocationId)?.name ?? "Private Spot"}</span>
+                    {" — "}Saved to your spots only. Never shared publicly.
+                  </div>
+                </div>
+              )}
+
+              {promptLocationId && promptLocationId !== "custom" && promptLocationId !== "home" && promptLocationId !== "gps" && !promptLocationId.startsWith("private-") && (
                 <div className="bg-blue-900/50 rounded-xl px-3 py-2 border border-blue-700/40">
                   {(() => {
                     if (promptLocationId.startsWith("community-")) {
@@ -3664,8 +3733,8 @@ export default function Home() {
               )}
             </div>
 
-            {/* Leaderboard submission toggle — only for passport/community locations, not home */}
-            {promptLocationId && promptLocationId !== "custom" && promptLocationId !== "home" && (
+            {/* Leaderboard submission toggle — only for passport/community locations, not home/gps/private */}
+            {promptLocationId && promptLocationId !== "custom" && promptLocationId !== "home" && promptLocationId !== "gps" && !promptLocationId.startsWith("private-") && (
               <div className="bg-blue-900/50 rounded-2xl p-3 border border-blue-700/40 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm font-semibold text-white">
@@ -3712,12 +3781,15 @@ export default function Home() {
                 if (!photoPromptId) return;
                 const isCommunityPick = promptLocationId.startsWith("community-");
                 const isHomePick = promptLocationId === "home";
-                let finalLocationId: string | undefined = promptLocationId && promptLocationId !== "custom" && promptLocationId !== "gps" ? promptLocationId : undefined;
+                const isPrivatePick = promptLocationId.startsWith("private-");
+                let finalLocationId: string | undefined = promptLocationId && promptLocationId !== "custom" && promptLocationId !== "gps" && !isPrivatePick ? promptLocationId : undefined;
                 let finalLocationName: string | undefined;
                 if (isHomePick) {
                   finalLocationName = homeLabel;
                 } else if (promptLocationId === "gps") {
                   finalLocationName = gpsLocationName ?? undefined;
+                } else if (isPrivatePick) {
+                  finalLocationName = privateLocs.find((l) => l.id === promptLocationId)?.name;
                 } else if (promptLocationId === "custom") {
                   finalLocationName = promptCustomLocation.trim() || undefined;
                 } else if (isCommunityPick) {
