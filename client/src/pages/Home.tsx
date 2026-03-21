@@ -1367,6 +1367,75 @@ export default function Home() {
     }
   };
 
+  // Reconnect to a previously paired thermometer from the UI (without picker)
+  async function reconnectThermoFromUI(deviceId: string, name: string) {
+    if (!assertBleAvailable()) return;
+    setBtConnecting(true);
+    thermoReconnectCountRef.current = 0;
+    try {
+      await BleClient.initialize();
+      btDeviceRef.current = deviceId;
+      setBtDeviceName(name);
+      await BleClient.connect(deviceId, () => {
+        if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
+        setBtConnected(false);
+        if (btDeviceRef.current) {
+          if (thermoReconnectTimerRef.current) clearTimeout(thermoReconnectTimerRef.current);
+          thermoReconnectTimerRef.current = setTimeout(autoReconnectThermo, 2500);
+        }
+      });
+      let connected = false;
+      let protocol: "gatt" | "govee" | "tp25" | null = null;
+      if (!connected) {
+        try {
+          await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
+            const tempF = parseBtTemperature(dv);
+            if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+          });
+          protocol = "gatt"; connected = true;
+        } catch { /* not GATT */ }
+      }
+      if (!connected) {
+        try {
+          await BleClient.startNotifications(deviceId, GOVEE_SERVICE, GOVEE_CHAR_DATA, (dv) => {
+            const tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
+            if (tempF !== null && tempF > 25 && tempF < 120)
+              setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+          });
+          try { await BleClient.writeWithoutResponse(deviceId, GOVEE_SERVICE, GOVEE_CHAR_PROTO, new DataView(new Uint8Array([0xAA, 0x01]).buffer)); } catch { /* ignore */ }
+          protocol = "govee"; connected = true;
+        } catch { /* not Govee */ }
+      }
+      if (!connected) {
+        try {
+          await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
+            const tempF = parseTp25Temperature(dv);
+            if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+          });
+          try { await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE, new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)); } catch { /* ignore */ }
+          protocol = "tp25"; connected = true;
+        } catch { /* not TP25 */ }
+      }
+      if (connected) {
+        btProtocolRef.current = protocol;
+        startThermoKeepalive(deviceId, protocol!);
+        setBtConnected(true);
+        toast({ title: "Thermometer reconnected", description: `${name} — temperature will update automatically.` });
+      } else {
+        btDeviceRef.current = null;
+        toast({ title: "Could not reconnect", description: "Device in range but could not start notifications.", variant: "destructive" });
+      }
+    } catch (err: any) {
+      btDeviceRef.current = null;
+      const msg = err?.message ?? "";
+      if (!msg.includes("cancelled")) {
+        toast({ title: "Reconnect failed", description: msg || "Could not connect to thermometer.", variant: "destructive" });
+      }
+    } finally {
+      setBtConnecting(false);
+    }
+  }
+
   const disconnectThermometer = async () => {
     // Capture before clearing so we can still call BleClient.disconnect
     const deviceId = btDeviceRef.current;
