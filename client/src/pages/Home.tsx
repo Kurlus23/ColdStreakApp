@@ -1201,6 +1201,8 @@ export default function Home() {
     setHrScanActive(false);
     setHrScanDevices([]);
     setHrConnecting(true);
+    // Hint the user early — some watches show a pairing confirmation dialog
+    toast({ title: "Connecting…", description: "Check your watch for a pairing confirmation." });
     try {
       hrDeviceIdRef.current = deviceId;
       setHrDeviceName(name);
@@ -1209,7 +1211,9 @@ export default function Home() {
         setHrConnected(false);
         setCurrentHR(null);
         toast({ title: "Heart rate monitor disconnected", description: name });
-      });
+      }, { timeout: 30000 });
+      // Short pause — lets the watch enumerate GATT services before we subscribe
+      await new Promise(r => setTimeout(r, 750));
       await BleClient.startNotifications(deviceId, HR_SERVICE, HR_CHAR, (dv) => {
         const bpm = parseHeartRate(dv);
         if (bpm !== null) {
@@ -1222,9 +1226,17 @@ export default function Home() {
       toast({ title: "Heart rate monitor connected", description: `${name} — live BPM active.` });
     } catch (err: any) {
       hrDeviceIdRef.current = null;
-      const msg = err?.message ?? "";
+      await BleClient.disconnect(deviceId).catch(() => {});
+      const msg = (err?.message ?? "").toLowerCase();
       if (!msg.includes("cancelled")) {
-        toast({ title: "Connection failed", description: msg || "Could not connect.", variant: "destructive" });
+        const isTimeout = msg.includes("timeout") || msg.includes("timed out");
+        toast({
+          title: isTimeout ? "Connection timed out" : "Connection failed",
+          description: isTimeout
+            ? "The watch didn't respond in time. Accept the pairing request on your watch, then try again."
+            : err?.message || "Could not connect.",
+          variant: "destructive",
+        });
       }
     } finally {
       setHrConnecting(false);
@@ -1271,7 +1283,10 @@ export default function Home() {
         setHrConnected(false);
         setCurrentHR(null);
         toast({ title: "Heart rate monitor disconnected", description: name });
-      });
+      }, { timeout: 30000 });
+
+      // Short pause — lets the watch enumerate GATT services before we subscribe
+      await new Promise(r => setTimeout(r, 750));
 
       await BleClient.startNotifications(addr, HR_SERVICE, HR_CHAR, (dv) => {
         const bpm = parseHeartRate(dv);
@@ -1287,9 +1302,17 @@ export default function Home() {
     } catch (err: any) {
       if (!scanStopped) await BleClient.stopLEScan().catch(() => {});
       hrDeviceIdRef.current = null;
-      const msg = err?.message ?? "";
+      await BleClient.disconnect(addr).catch(() => {});
+      const msg = (err?.message ?? "").toLowerCase();
       if (!msg.includes("cancelled")) {
-        toast({ title: "Connection failed", description: msg || "Could not connect.", variant: "destructive" });
+        const isTimeout = msg.includes("timeout") || msg.includes("timed out");
+        toast({
+          title: isTimeout ? "Connection timed out" : "Connection failed",
+          description: isTimeout
+            ? "The watch didn't respond in time. Accept the pairing request on your watch, then try again."
+            : err?.message || "Could not connect.",
+          variant: "destructive",
+        });
       }
     } finally {
       setHrConnecting(false);
