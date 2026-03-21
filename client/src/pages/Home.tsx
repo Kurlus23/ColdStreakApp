@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import { Camera as CapCamera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { Capacitor } from "@capacitor/core";
+import { BleClient } from "@capacitor-community/bluetooth-le";
 import { savePhoto } from "@/lib/photoStore";
 import icebergBg from "@assets/image_1773152998246.png";
 import {
@@ -196,8 +197,7 @@ export default function Home() {
   const [btConnected, setBtConnected] = useState(false);
   const [btConnecting, setBtConnecting] = useState(false);
   const [btDeviceName, setBtDeviceName] = useState("");
-  const btDeviceRef = useRef<any>(null);
-  const btCharacteristicRef = useRef<any>(null);
+  const btDeviceRef = useRef<string | null>(null); // stores deviceId (string)
 
   // Countdown
   const [countdownMode, setCountdownMode] = useState(false);
@@ -767,15 +767,19 @@ export default function Home() {
     }
   }
 
-  // Known Govee/Intellirocks GATT service & characteristic UUIDs
+  // Standard Bluetooth Health Thermometer (full 128-bit UUIDs required by BleClient)
+  const HEALTH_THERM_SERVICE = "00001809-0000-1000-8000-00805f9b34fb";
+  const HEALTH_THERM_CHAR    = "00002a1c-0000-1000-8000-00805f9b34fb";
+
+  // Govee INTELLI_ROCKS GATT service & characteristic UUIDs
   const GOVEE_SERVICE    = "494e5445-4c4c-495f-524f-434b535f4857";
-  const GOVEE_CHAR_PROTO = "494e5445-4c4c-495f-524f-434b535f2011"; // protocol / keep-alive
-  const GOVEE_CHAR_DATA  = "494e5445-4c4c-495f-524f-434b535f2013"; // primary data stream
+  const GOVEE_CHAR_PROTO = "494e5445-4c4c-495f-524f-434b535f2011";
+  const GOVEE_CHAR_DATA  = "494e5445-4c4c-495f-524f-434b535f2013";
 
   // ThermoPro TP25 GATT service & characteristic UUIDs (reverse-engineered)
   const TP25_SERVICE    = "1086fff0-3343-4817-8bb2-b32206336ce8";
-  const TP25_CHAR_WRITE = "1086fff1-3343-4817-8bb2-b32206336ce8"; // write commands
-  const TP25_CHAR_NOTIF = "1086fff2-3343-4817-8bb2-b32206336ce8"; // temperature notifications
+  const TP25_CHAR_WRITE = "1086fff1-3343-4817-8bb2-b32206336ce8";
+  const TP25_CHAR_NOTIF = "1086fff2-3343-4817-8bb2-b32206336ce8";
 
   // Parse a ThermoPro TP25 TLVC notification — returns probe 1 temp in °F
   // Packet structure: [type][len][p1_hi][p1_lo][p2_hi][p2_lo]...[checksum]
@@ -819,100 +823,64 @@ export default function Home() {
   }
 
   const connectThermometer = async () => {
-    const bt = (navigator as any).bluetooth;
-    if (!bt) {
-      const isNativeApp = !!(window as any).Capacitor?.isNativePlatform?.();
-      toast({
-        title: isNativeApp ? "Open in Chrome to use thermometer" : "Bluetooth not supported",
-        description: isNativeApp
-          ? "Bluetooth thermometer pairing requires Chrome. Open coldstreakapp.com in Chrome on this device."
-          : "Use Chrome on Android or desktop to connect a Bluetooth thermometer.",
-        variant: "destructive",
-      });
-      return;
-    }
     try {
       setBtConnecting(true);
-      // Filter to known thermometer brands + standard health_thermometer service
-      const device = await bt.requestDevice({
-        filters: [
-          { namePrefix: "GVH" },
-          { namePrefix: "Govee" },
-          { namePrefix: "Thermopro" },
-          { namePrefix: "ThermoPro" },
-          { namePrefix: "TP" },
-          { services: ["health_thermometer"] },
-        ],
-        optionalServices: [
-          "health_thermometer",
-          GOVEE_SERVICE,
-          TP25_SERVICE,
-        ],
+      await BleClient.initialize();
+
+      // Show picker filtered to TP25 + standard health thermometers
+      const device = await BleClient.requestDevice({
+        services: [TP25_SERVICE, HEALTH_THERM_SERVICE],
+        optionalServices: [GOVEE_SERVICE],
       });
-      btDeviceRef.current = device;
+
+      const deviceId = device.deviceId;
+      btDeviceRef.current = deviceId;
       setBtDeviceName(device.name ?? "Thermometer");
 
-      device.addEventListener("gattserverdisconnected", () => {
+      await BleClient.connect(deviceId, () => {
+        // Native disconnect callback
         setBtConnected(false);
-        toast({ title: "Thermometer disconnected", description: btDeviceRef.current?.name ?? "Device lost connection." });
+        toast({ title: "Thermometer disconnected", description: device.name ?? "Device lost connection." });
       });
 
-      const server = await device.gatt.connect();
       let connected = false;
 
-      // ── Attempt 1: standard health_thermometer GATT service ──────────────
+      // ── Attempt 1: standard health_thermometer GATT ──────────────────────
       try {
-        const service = await server.getPrimaryService("health_thermometer");
-        const char = await service.getCharacteristic("temperature_measurement");
-        btCharacteristicRef.current = char;
-        await char.startNotifications();
-        char.addEventListener("characteristicvaluechanged", (e: Event) => {
-          const tempF = parseBtTemperature((e.target as any).value as DataView);
+        await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
+          const tempF = parseBtTemperature(dv);
           if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
         });
         connected = true;
       } catch { /* device doesn't use standard profile */ }
 
-      // ── Attempt 2: Govee INTELLI_ROCKS proprietary GATT service ──────────
+      // ── Attempt 2: Govee INTELLI_ROCKS ───────────────────────────────────
       if (!connected) {
         try {
-          const service = await server.getPrimaryService(GOVEE_SERVICE);
-          const dataChar = await service.getCharacteristic(GOVEE_CHAR_DATA);
-          btCharacteristicRef.current = dataChar;
-          await dataChar.startNotifications();
-          dataChar.addEventListener("characteristicvaluechanged", (e: Event) => {
-            const dv = (e.target as any).value as DataView;
+          await BleClient.startNotifications(deviceId, GOVEE_SERVICE, GOVEE_CHAR_DATA, (dv) => {
             const tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
             if (tempF !== null && tempF > 25 && tempF < 120) {
               setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
             }
           });
           try {
-            const protoChar = await service.getCharacteristic(GOVEE_CHAR_PROTO);
-            await protoChar.writeValueWithoutResponse(new Uint8Array([0xAA, 0x01]));
+            await BleClient.writeWithoutResponse(deviceId, GOVEE_SERVICE, GOVEE_CHAR_PROTO,
+              new DataView(new Uint8Array([0xAA, 0x01]).buffer));
           } catch { /* ignore */ }
           connected = true;
-        } catch { /* device doesn't expose known Govee service */ }
+        } catch { /* device doesn't expose Govee service */ }
       }
 
-      // ── Attempt 3: ThermoPro TP25 proprietary GATT service ───────────────
+      // ── Attempt 3: ThermoPro TP25 ─────────────────────────────────────────
       if (!connected) {
         try {
-          const service = await server.getPrimaryService(TP25_SERVICE);
-          const notifChar = await service.getCharacteristic(TP25_CHAR_NOTIF);
-          btCharacteristicRef.current = notifChar;
-          await notifChar.startNotifications();
-          notifChar.addEventListener("characteristicvaluechanged", (e: Event) => {
-            const dv = (e.target as any).value as DataView;
+          await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
             const tempF = parseTp25Temperature(dv);
-            if (tempF !== null) {
-              setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
-            }
+            if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
           });
-          // Send the standard TP25 "start streaming" handshake to FFF1
           try {
-            const writeChar = await service.getCharacteristic(TP25_CHAR_WRITE);
-            await writeChar.writeValueWithoutResponse(new Uint8Array([0x21, 0x03, 0x01, 0x25]));
+            await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
+              new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer));
           } catch { /* some firmware versions don't need this */ }
           connected = true;
         } catch { /* device doesn't expose TP25 service */ }
@@ -922,36 +890,27 @@ export default function Home() {
         setBtConnected(true);
         toast({ title: "Thermometer connected", description: `${device.name ?? "Device"} — temperature will update automatically.` });
       } else {
-        // Connected to GATT but no temperature service found — log diagnostics
-        try {
-          const services = await server.getPrimaryServices();
-          const serviceList = services.map((s: any) => s.uuid).join(", ");
-          console.log("[BT] Services found:", serviceList);
-          toast({
-            title: "Device connected — protocol unknown",
-            description: `Open DevTools console and share the service UUIDs shown so we can add support. Services: ${serviceList.slice(0, 80)}`,
-            variant: "destructive",
-          });
-        } catch {
-          toast({ title: "Device connected — no temperature data found", description: "This device may not expose temperature via a readable GATT service.", variant: "destructive" });
-        }
-        setBtConnected(false);
+        await BleClient.disconnect(deviceId).catch(() => {});
+        btDeviceRef.current = null;
+        toast({ title: "Device connected — protocol unknown", description: "Could not read temperature from this device.", variant: "destructive" });
       }
     } catch (err: any) {
-      if (err?.name !== "NotFoundError") {
-        toast({ title: "Connection failed", description: err?.message ?? "Could not connect to thermometer.", variant: "destructive" });
+      const msg = err?.message ?? "";
+      if (!msg.includes("cancelled") && !msg.includes("User cancelled") && err?.name !== "NotFoundError") {
+        toast({ title: "Connection failed", description: msg || "Could not connect to thermometer.", variant: "destructive" });
       }
     } finally {
       setBtConnecting(false);
     }
   };
 
-  const disconnectThermometer = () => {
-    try { btDeviceRef.current?.gatt?.disconnect(); } catch { /* ignore */ }
+  const disconnectThermometer = async () => {
+    try {
+      if (btDeviceRef.current) await BleClient.disconnect(btDeviceRef.current);
+    } catch { /* ignore */ }
     setBtConnected(false);
     setBtDeviceName("");
     btDeviceRef.current = null;
-    btCharacteristicRef.current = null;
   };
   // ─────────────────────────────────────────────────────────────────────────
 

@@ -182,10 +182,18 @@ Build when user base reaches scale where manual Stripe dashboard management beco
 - Both require separate watch app targets in Xcode / Android Studio
 
 ### Digital Thermometer Integration
-- Bluetooth thermometer support (e.g., Govee, SensorPush) via **Web Bluetooth API** (Chrome/Android) or Capacitor Bluetooth plugin
+- Bluetooth thermometer support via **`@capacitor-community/bluetooth-le`** — works natively in Android app AND in Chrome browser. Supports ThermoPro TP25 (TP25_SERVICE `1086fff0-...`), standard health_thermometer (`00001809-...`), Govee INTELLI_ROCKS. Probe temp parsed from TLVC packets (bytes 2+ aligned, big-endian tenths-of-°C). **Android build requires these AndroidManifest.xml permissions:**
+  ```xml
+  <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+  <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+  <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
+  <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+  ```
+  After any BLE plugin changes run: `npx cap sync android`
 - Auto-fill temperature field when timer starts
 - Could display live temp on timer screen during plunge
-- iOS Web Bluetooth not supported — would need native Capacitor plugin
+- iOS: `@capacitor-community/bluetooth-le` also supports iOS natively via CoreBluetooth — no Web Bluetooth needed
 
 ---
 
