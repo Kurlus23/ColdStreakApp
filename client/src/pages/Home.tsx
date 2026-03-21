@@ -9,7 +9,7 @@ import {
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2, FileText,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff, Heart
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff, Heart, X
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -204,6 +204,7 @@ export default function Home() {
   const btProtocolRef = useRef<"gatt" | "govee" | "tp25" | null>(null);
   const thermoReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const thermoReconnectCountRef = useRef(0);
+  const [savedDevicesKey, setSavedDevicesKey] = useState(0); // bump to re-render saved device rows
   // HR custom scanner
   const [hrScanActive, setHrScanActive] = useState(false);
   const [hrScanDone, setHrScanDone] = useState(false);
@@ -3365,29 +3366,40 @@ export default function Home() {
                 <div className="space-y-2">
                   {/* Quick reconnect to last paired thermometer */}
                   {(() => {
+                    void savedDevicesKey; // depend on key so forget triggers re-render
                     try {
                       const saved = localStorage.getItem("coldstreak-bt-thermo");
                       if (!saved) return null;
                       const { deviceId, name } = JSON.parse(saved) as { deviceId: string; name: string };
                       return (
-                        <button
-                          data-testid="button-bt-quick-reconnect"
-                          onClick={() => reconnectThermoFromUI(deviceId, name)}
-                          disabled={btConnecting}
-                          className="w-full flex items-center gap-2 bg-blue-900/30 border border-blue-600/30 rounded-xl px-3 py-2 hover:bg-blue-800/40 transition-colors disabled:opacity-40"
-                        >
-                          <Snowflake className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                          <div className="flex-1 text-left min-w-0">
-                            <div className="text-blue-200 text-xs font-semibold truncate">
-                              {btConnecting ? "Connecting…" : <>Reconnect to <span className="text-white">{name || "Thermometer"}</span></>}
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            data-testid="button-bt-quick-reconnect"
+                            onClick={() => reconnectThermoFromUI(deviceId, name)}
+                            disabled={btConnecting}
+                            className="flex-1 flex items-center gap-2 bg-blue-900/30 border border-blue-600/30 rounded-xl px-3 py-2 hover:bg-blue-800/40 transition-colors disabled:opacity-40 min-w-0"
+                          >
+                            <Snowflake className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                            <div className="flex-1 text-left min-w-0">
+                              <div className="text-blue-200 text-xs font-semibold truncate">
+                                {btConnecting ? "Connecting…" : <>Reconnect to <span className="text-white">{name || "Thermometer"}</span></>}
+                              </div>
+                              <div className="text-blue-400/60 text-[10px] font-mono truncate">{deviceId}</div>
                             </div>
-                            <div className="text-blue-400/60 text-[10px] font-mono truncate">{deviceId}</div>
-                          </div>
-                          {btConnecting
-                            ? <span className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
-                            : <span className="text-cyan-400 text-[10px] font-semibold shrink-0">Connect</span>
-                          }
-                        </button>
+                            {btConnecting
+                              ? <span className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                              : <span className="text-cyan-400 text-[10px] font-semibold shrink-0">Connect</span>
+                            }
+                          </button>
+                          <button
+                            data-testid="button-bt-forget-thermo"
+                            onClick={() => { localStorage.removeItem("coldstreak-bt-thermo"); setSavedDevicesKey(k => k + 1); }}
+                            title="Forget device"
+                            className="w-8 h-8 rounded-xl bg-red-900/20 border border-red-700/20 text-red-400/60 hover:bg-red-900/40 hover:text-red-300 flex items-center justify-center transition-colors shrink-0"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       );
                     } catch { return null; }
                   })()}
@@ -3528,30 +3540,41 @@ export default function Home() {
 
                   {/* Quick reconnect to last manually-paired device */}
                   {(() => {
+                    void savedDevicesKey; // depend on key so forget triggers re-render
                     try {
                       const saved = localStorage.getItem("coldstreak-bt-hr");
                       if (!saved) return null;
                       const { deviceId, name } = JSON.parse(saved) as { deviceId: string; name: string };
                       if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(deviceId)) return null;
                       return (
-                        <button
-                          data-testid="button-hr-quick-reconnect"
-                          onClick={() => connectManualHR(deviceId, name)}
-                          disabled={hrConnecting}
-                          className="w-full flex items-center gap-2 bg-blue-900/30 border border-blue-600/30 rounded-xl px-3 py-2 hover:bg-blue-800/40 transition-colors disabled:opacity-40"
-                        >
-                          <Heart className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                          <div className="flex-1 text-left min-w-0">
-                            <div className="text-blue-200 text-xs font-semibold truncate">
-                              {hrConnecting ? "Connecting…" : <>Reconnect to <span className="text-white">{name || "Heart Rate Monitor"}</span></>}
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            data-testid="button-hr-quick-reconnect"
+                            onClick={() => connectManualHR(deviceId, name)}
+                            disabled={hrConnecting}
+                            className="flex-1 flex items-center gap-2 bg-blue-900/30 border border-blue-600/30 rounded-xl px-3 py-2 hover:bg-blue-800/40 transition-colors disabled:opacity-40 min-w-0"
+                          >
+                            <Heart className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                            <div className="flex-1 text-left min-w-0">
+                              <div className="text-blue-200 text-xs font-semibold truncate">
+                                {hrConnecting ? "Connecting…" : <>Reconnect to <span className="text-white">{name || "Heart Rate Monitor"}</span></>}
+                              </div>
+                              <div className="text-blue-400/60 text-[10px] font-mono truncate">{deviceId}</div>
                             </div>
-                            <div className="text-blue-400/60 text-[10px] font-mono truncate">{deviceId}</div>
-                          </div>
-                          {hrConnecting
-                            ? <span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin shrink-0" />
-                            : <span className="text-red-400 text-[10px] font-semibold shrink-0">Connect</span>
-                          }
-                        </button>
+                            {hrConnecting
+                              ? <span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                              : <span className="text-red-400 text-[10px] font-semibold shrink-0">Connect</span>
+                            }
+                          </button>
+                          <button
+                            data-testid="button-hr-forget"
+                            onClick={() => { localStorage.removeItem("coldstreak-bt-hr"); setSavedDevicesKey(k => k + 1); }}
+                            title="Forget device"
+                            className="w-8 h-8 rounded-xl bg-red-900/20 border border-red-700/20 text-red-400/60 hover:bg-red-900/40 hover:text-red-300 flex items-center justify-center transition-colors shrink-0"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       );
                     } catch { return null; }
                   })()}
