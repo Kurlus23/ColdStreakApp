@@ -3686,6 +3686,23 @@ export default function Home() {
                   </div>
                 </div>
               )}
+
+              {/* Troubleshooting — collapsible, no extra state needed */}
+              <details className="border-t border-blue-700/20 pt-2 mt-1">
+                <summary className="text-blue-400/50 text-[11px] cursor-pointer hover:text-blue-300 transition-colors select-none list-none flex items-center gap-1">
+                  <span className="text-[9px]">▸</span> Can't connect? Try these steps
+                </summary>
+                <ol className="mt-2 space-y-2 text-blue-300/70 text-[11px] leading-relaxed pl-1">
+                  <li><span className="text-white/80 font-semibold">1. Pair in Android Bluetooth settings first.</span>{" "}
+                    Open Android <em>Settings → Connected devices → Pair new device</em>, find your watch in the list and tap it. This creates the system-level bond ColdStreak needs. Come back and connect here after.</li>
+                  <li><span className="text-white/80 font-semibold">2. Start a workout on your watch.</span>{" "}
+                    Zepp OS watches only broadcast live heart rate over Bluetooth when a workout is active. Start any activity on the watch, then tap Connect here.</li>
+                  <li><span className="text-white/80 font-semibold">3. Enable third-party access in Zepp.</span>{" "}
+                    In the Zepp app: <em>Profile → your watch → Health monitoring → Heart rate → Allow third-party access</em>.</li>
+                  <li><span className="text-white/80 font-semibold">4. Still timing out?</span>{" "}
+                    Forget the device here, unpair it in Android Bluetooth settings, then redo steps 1–3.</li>
+                </ol>
+              </details>
             </div>
 
             {/* Manual reminder */}
