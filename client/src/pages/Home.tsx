@@ -772,6 +772,33 @@ export default function Home() {
   const GOVEE_CHAR_PROTO = "494e5445-4c4c-495f-524f-434b535f2011"; // protocol / keep-alive
   const GOVEE_CHAR_DATA  = "494e5445-4c4c-495f-524f-434b535f2013"; // primary data stream
 
+  // ThermoPro TP25 GATT service & characteristic UUIDs (reverse-engineered)
+  const TP25_SERVICE    = "1086fff0-3343-4817-8bb2-b32206336ce8";
+  const TP25_CHAR_WRITE = "1086fff1-3343-4817-8bb2-b32206336ce8"; // write commands
+  const TP25_CHAR_NOTIF = "1086fff2-3343-4817-8bb2-b32206336ce8"; // temperature notifications
+
+  // Parse a ThermoPro TP25 TLVC notification — returns probe 1 temp in °F
+  // Packet: [type][len][p1_hi][p1_lo][p2_hi][p2_lo][p3_hi][p3_lo][p4_hi][p4_lo]...[checksum]
+  // Temperature = (big-endian uint16) / 10  in °C; 0xFFFF = no probe
+  function parseTp25Temperature(dv: DataView): number | null {
+    try {
+      const hex = Array.from({ length: dv.byteLength }, (_, i) =>
+        dv.getUint8(i).toString(16).padStart(2, "0")).join(" ");
+      console.log("[TP25] raw bytes:", hex);
+      if (dv.byteLength < 4) return null;
+      // Try each pair of bytes as a probe reading — return first plausible water temp
+      for (let i = 0; i + 1 < dv.byteLength - 1; i++) {
+        const raw = (dv.getUint8(i) << 8) | dv.getUint8(i + 1);
+        if (raw === 0xFFFF || raw === 0x0000) continue;
+        const tempC = raw / 10;
+        const tempF = (tempC * 9) / 5 + 32;
+        // Sanity-check: valid cold-plunge range is 25–110°F
+        if (tempF >= 25 && tempF <= 110) return tempF;
+      }
+      return null;
+    } catch { return null; }
+  }
+
   function parseGoveeTemperature(dv: DataView): number | null {
     try {
       // Govee encodes temp+humidity as a 3-byte big-endian integer
@@ -791,16 +818,20 @@ export default function Home() {
     }
     try {
       setBtConnecting(true);
-      // Filter to Govee devices (GVH… or Govee_…) + standard thermometers
+      // Filter to known thermometer brands + standard health_thermometer service
       const device = await bt.requestDevice({
         filters: [
           { namePrefix: "GVH" },
           { namePrefix: "Govee" },
+          { namePrefix: "Thermopro" },
+          { namePrefix: "ThermoPro" },
+          { namePrefix: "TP" },
           { services: ["health_thermometer"] },
         ],
         optionalServices: [
           "health_thermometer",
           GOVEE_SERVICE,
+          TP25_SERVICE,
         ],
       });
       btDeviceRef.current = device;
@@ -831,25 +862,45 @@ export default function Home() {
       if (!connected) {
         try {
           const service = await server.getPrimaryService(GOVEE_SERVICE);
-          // Subscribe to data characteristic for notifications
           const dataChar = await service.getCharacteristic(GOVEE_CHAR_DATA);
           btCharacteristicRef.current = dataChar;
           await dataChar.startNotifications();
           dataChar.addEventListener("characteristicvaluechanged", (e: Event) => {
             const dv = (e.target as any).value as DataView;
-            // Try Govee encoding first, then fall back to raw IEEE-11073
             const tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
             if (tempF !== null && tempF > 25 && tempF < 120) {
               setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
             }
           });
-          // Poke the keep-alive/protocol characteristic to start data flow
           try {
             const protoChar = await service.getCharacteristic(GOVEE_CHAR_PROTO);
             await protoChar.writeValueWithoutResponse(new Uint8Array([0xAA, 0x01]));
-          } catch { /* ignore — not all Govee devices need this */ }
+          } catch { /* ignore */ }
           connected = true;
         } catch { /* device doesn't expose known Govee service */ }
+      }
+
+      // ── Attempt 3: ThermoPro TP25 proprietary GATT service ───────────────
+      if (!connected) {
+        try {
+          const service = await server.getPrimaryService(TP25_SERVICE);
+          const notifChar = await service.getCharacteristic(TP25_CHAR_NOTIF);
+          btCharacteristicRef.current = notifChar;
+          await notifChar.startNotifications();
+          notifChar.addEventListener("characteristicvaluechanged", (e: Event) => {
+            const dv = (e.target as any).value as DataView;
+            const tempF = parseTp25Temperature(dv);
+            if (tempF !== null) {
+              setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
+            }
+          });
+          // Send the standard TP25 "start streaming" handshake to FFF1
+          try {
+            const writeChar = await service.getCharacteristic(TP25_CHAR_WRITE);
+            await writeChar.writeValueWithoutResponse(new Uint8Array([0x21, 0x03, 0x01, 0x25]));
+          } catch { /* some firmware versions don't need this */ }
+          connected = true;
+        } catch { /* device doesn't expose TP25 service */ }
       }
 
       if (connected) {
