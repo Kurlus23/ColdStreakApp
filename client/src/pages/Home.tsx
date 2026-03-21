@@ -115,7 +115,7 @@ function playAlarm(url: string, label: string, isCustom: boolean, stopAfterMs?: 
   return handle;
 }
 
-type Screen = "timer" | "history" | "explore" | "gear" | "settings" | "legal" | "achievements";
+type Screen = "timer" | "history" | "explore" | "gear" | "settings" | "legal" | "achievements" | "devices";
 
 
 function plungeScore(durationSeconds: number, tempF: number): number {
@@ -831,6 +831,99 @@ export default function Home() {
     } catch { return null; }
   }
 
+  // ─── Auto-reconnect on app open ──────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+
+    async function attemptReconnect(
+      key: string,
+      connectFn: (deviceId: string, name: string) => Promise<void>
+    ) {
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      try {
+        const { deviceId, name } = JSON.parse(raw) as { deviceId: string; name: string };
+        await connectFn(deviceId, name);
+      } catch { /* device not in range or bluetooth off — fail silently */ }
+    }
+
+    async function reconnectThermo(deviceId: string, name: string) {
+      if (cancelled) return;
+      setBtConnecting(true);
+      try {
+        await BleClient.initialize();
+        btDeviceRef.current = deviceId;
+        setBtDeviceName(name);
+        await BleClient.connect(deviceId, () => {
+          setBtConnected(false);
+          toast({ title: "Thermometer disconnected", description: name });
+        });
+        // Try TP25 first, then standard GATT
+        let started = false;
+        try {
+          await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_NOTIFY_CHAR, (dv) => {
+            const tempF = parseTp25Temperature(dv);
+            if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
+          });
+          started = true;
+        } catch { /* not a TP25 */ }
+        if (!started) {
+          try {
+            await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
+              const tempF = parseBtTemperature(dv);
+              if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
+            });
+          } catch { /* ignore */ }
+        }
+        if (!cancelled) {
+          setBtConnected(true);
+          toast({ title: "Thermometer reconnected", description: name });
+        }
+      } catch { btDeviceRef.current = null; } finally {
+        if (!cancelled) setBtConnecting(false);
+      }
+    }
+
+    async function reconnectHR(deviceId: string, name: string) {
+      if (cancelled) return;
+      setHrConnecting(true);
+      try {
+        await BleClient.initialize();
+        hrDeviceIdRef.current = deviceId;
+        setHrDeviceName(name);
+        await BleClient.connect(deviceId, () => {
+          setHrConnected(false);
+          setCurrentHR(null);
+          toast({ title: "Heart rate monitor disconnected", description: name });
+        });
+        await BleClient.startNotifications(deviceId, HR_SERVICE, HR_CHAR, (dv) => {
+          const bpm = parseHeartRate(dv);
+          if (bpm !== null) {
+            setCurrentHR(bpm);
+            setHrPeak(prev => prev === null ? bpm : Math.max(prev, bpm));
+            hrReadingsRef.current.push(bpm);
+          }
+        });
+        if (!cancelled) {
+          setHrConnected(true);
+          toast({ title: "Heart rate monitor reconnected", description: name });
+        }
+      } catch { hrDeviceIdRef.current = null; } finally {
+        if (!cancelled) setHrConnecting(false);
+      }
+    }
+
+    // Small delay so app fully renders before trying BLE
+    const timer = setTimeout(() => {
+      attemptReconnect("coldstreak-bt-thermo", reconnectThermo);
+      attemptReconnect("coldstreak-bt-hr", reconnectHR);
+    }, 1500);
+
+    return () => { cancelled = true; clearTimeout(timer); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // ─────────────────────────────────────────────────────────────────────────
+
   const connectThermometer = async () => {
     try {
       setBtConnecting(true);
@@ -845,6 +938,7 @@ export default function Home() {
       const deviceId = device.deviceId;
       btDeviceRef.current = deviceId;
       setBtDeviceName(device.name ?? "Thermometer");
+      localStorage.setItem("coldstreak-bt-thermo", JSON.stringify({ deviceId: device.deviceId, name: device.name ?? "Thermometer" }));
 
       await BleClient.connect(deviceId, () => {
         // Native disconnect callback
@@ -948,6 +1042,7 @@ export default function Home() {
       const deviceId = device.deviceId;
       hrDeviceIdRef.current = deviceId;
       setHrDeviceName(device.name ?? "Heart Rate Monitor");
+      localStorage.setItem("coldstreak-bt-hr", JSON.stringify({ deviceId: device.deviceId, name: device.name ?? "Heart Rate Monitor" }));
 
       await BleClient.connect(deviceId, () => {
         setHrConnected(false);
@@ -1318,7 +1413,15 @@ export default function Home() {
               className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col"
               data-testid="card-water-temp"
             >
-              <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest mb-1">Water Temp</div>
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest">Water Temp</div>
+                {btConnected && (
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                    <span className="text-green-400 text-[9px] font-semibold">Live</span>
+                  </div>
+                )}
+              </div>
 
               {/* Styled native select — looks like a big number, native picker on tap */}
               <div className="relative flex-1 flex items-center mb-2">
@@ -1353,30 +1456,18 @@ export default function Home() {
                 >●C</button>
               </div>
 
-              {/* Bluetooth thermometer */}
-              {btConnected ? (
-                <button
-                  data-testid="button-bt-disconnect"
-                  onClick={disconnectThermometer}
-                  className="mt-1.5 flex items-center gap-1 text-[10px] text-green-400 hover:text-red-400 transition-colors w-full"
-                  title="Tap to disconnect"
-                >
-                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shrink-0" />
-                  <span className="truncate">{btDeviceName || "Thermometer"}</span>
-                </button>
-              ) : (
-                <button
-                  data-testid="button-bt-connect"
-                  onClick={connectThermometer}
-                  disabled={btConnecting}
-                  className="mt-1.5 flex items-center gap-1 text-[10px] text-blue-400 hover:text-cyan-300 transition-colors disabled:opacity-50 w-full"
-                >
-                  {btConnecting
-                    ? <><span className="w-2 h-2 border border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" /><span>Connecting…</span></>
-                    : <><Bluetooth className="w-2.5 h-2.5 shrink-0" /><span>Connect Thermometer</span></>
-                  }
-                </button>
-              )}
+              {/* BT thermometer status indicator — manage in Devices tab */}
+              <button
+                onClick={() => navTo("devices")}
+                className="mt-1.5 flex items-center gap-1 text-[10px] transition-colors w-full"
+                data-testid="button-bt-status"
+              >
+                {btConnected ? (
+                  <><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shrink-0" /><span className="text-green-400 truncate">{btDeviceName || "Thermometer"}</span></>
+                ) : (
+                  <><Bluetooth className="w-2.5 h-2.5 text-blue-500 shrink-0" /><span className="text-blue-500">Connect Thermometer</span></>
+                )}
+              </button>
             </div>
 
             {/* Timer */}
@@ -1506,56 +1597,30 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Heart Rate Monitor — full-width strip below the 3-col grid */}
-          <div className="bg-blue-900/75 backdrop-blur-md rounded-2xl px-3.5 py-2.5 border border-blue-700/40 mb-2.5 flex items-center gap-3">
-            {/* Live BPM or idle state */}
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <Heart className={`w-4 h-4 shrink-0 ${hrConnected && currentHR ? "text-red-400 animate-pulse" : "text-slate-500"}`} />
-              {hrConnected && currentHR ? (
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-white text-2xl font-bold leading-none">{currentHR}</span>
-                  <span className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest">BPM</span>
-                  {hrPeak && <span className="text-red-300/80 text-[10px] ml-1">↑{hrPeak}</span>}
-                </div>
-              ) : hrConnected ? (
-                <span className="text-blue-300 text-xs">Waiting for reading…</span>
-              ) : (
-                <span className="text-slate-400 text-xs">Heart Rate Monitor</span>
-              )}
-            </div>
-
-            {/* Connect / disconnect button */}
-            {hrConnected ? (
-              <button
-                data-testid="button-hr-disconnect"
-                onClick={disconnectHR}
-                className="flex items-center gap-1 text-[10px] text-green-400 hover:text-red-400 transition-colors shrink-0"
-                title="Tap to disconnect"
-              >
-                <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                <span className="truncate max-w-[80px]">{hrDeviceName || "Watch"}</span>
-              </button>
+          {/* Heart Rate Monitor — full-width status strip, tap to manage in Devices */}
+          <button
+            data-testid="card-hr-status"
+            onClick={() => navTo("devices")}
+            className="bg-blue-900/75 backdrop-blur-md rounded-2xl px-3.5 py-2.5 border border-blue-700/40 mb-2.5 flex items-center gap-3 w-full text-left"
+          >
+            <Heart className={`w-4 h-4 shrink-0 ${hrConnected && currentHR ? "text-red-400 animate-pulse" : "text-slate-500"}`} />
+            {hrConnected && currentHR ? (
+              <div className="flex items-baseline gap-1.5 flex-1">
+                <span className="text-white text-2xl font-bold leading-none">{currentHR}</span>
+                <span className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest">BPM</span>
+                {hrPeak && <span className="text-red-300/80 text-[10px] ml-1">↑{hrPeak}</span>}
+              </div>
             ) : (
-              <button
-                data-testid="button-hr-connect"
-                onClick={connectHR}
-                disabled={hrConnecting}
-                className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-cyan-300 transition-colors disabled:opacity-50 shrink-0"
-              >
-                {hrConnecting
-                  ? <><span className="w-2 h-2 border border-cyan-400 border-t-transparent rounded-full animate-spin" /><span>Connecting…</span></>
-                  : <><Bluetooth className="w-2.5 h-2.5" /><span>Connect Watch</span></>
-                }
-              </button>
+              <span className="text-slate-400 text-xs flex-1">{hrConnected ? "Waiting for reading…" : "Heart Rate Monitor"}</span>
             )}
-          </div>
+            {hrConnected
+              ? <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shrink-0" />
+              : <Bluetooth className="w-3 h-3 text-blue-600 shrink-0" />
+            }
+          </button>
 
-          {/* Smartwatch note — only shown when not connected */}
-          {!hrConnected && (
-            <p className="text-blue-400/70 text-[10px] text-center mb-1.5 px-2" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>
-              ⌚ Smartwatch users: start a workout on your watch first to enable live HR data
-            </p>
-          )}
+          {/* Affiliate banner ad — in-content so it never overlaps readouts */}
+          {!isPro && !showPostSessionAd && <BannerAd />}
 
           {/* Weekly goal / score row */}
           <div
@@ -2738,6 +2803,105 @@ export default function Home() {
             ))}
             <p className="text-blue-600 text-[10px] text-center pb-1">
               As an Amazon Associate, ColdStreak earns from qualifying purchases.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ─── DEVICES SCREEN ─── */}
+      {screen === "devices" && (
+        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
+          <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-4 border border-blue-800/50 min-h-full space-y-4">
+            <h2 className="text-white font-bold text-lg flex items-center gap-2">
+              <Bluetooth className="w-5 h-5 text-cyan-400" /> Bluetooth Devices
+            </h2>
+
+            {/* Thermometer */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
+              <div className="flex items-center gap-2">
+                <Snowflake className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span className="text-white font-semibold text-sm">Water Thermometer</span>
+                {btConnected && <span className="ml-auto flex items-center gap-1 text-[10px] text-green-400"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />Connected</span>}
+              </div>
+              <p className="text-blue-400/80 text-xs leading-relaxed">
+                Connect a BLE thermometer (e.g. ThermoPro TP25) to automatically read your water temperature during a plunge.
+              </p>
+              {btConnected ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 bg-green-900/30 border border-green-700/40 rounded-xl px-3 py-2">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shrink-0" />
+                    <span className="text-green-300 text-sm font-medium flex-1 truncate">{btDeviceName || "Thermometer"}</span>
+                    <span className="text-green-400/70 text-xs font-bold">{btConnected ? `${temperature}°${useCelsius ? "C" : "F"}` : "—"}</span>
+                  </div>
+                  <button
+                    data-testid="button-bt-disconnect-devices"
+                    onClick={disconnectThermometer}
+                    className="w-full py-2 rounded-xl bg-red-900/30 border border-red-700/40 text-red-300 text-sm font-semibold hover:bg-red-900/50 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <BluetoothOff className="w-4 h-4" /> Disconnect
+                  </button>
+                </div>
+              ) : (
+                <button
+                  data-testid="button-bt-connect-devices"
+                  onClick={connectThermometer}
+                  disabled={btConnecting}
+                  className="w-full py-2 rounded-xl bg-cyan-900/30 border border-cyan-700/40 text-cyan-300 text-sm font-semibold hover:bg-cyan-900/50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {btConnecting
+                    ? <><span className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />Connecting…</>
+                    : <><Bluetooth className="w-4 h-4" />Pair Thermometer</>
+                  }
+                </button>
+              )}
+            </div>
+
+            {/* Heart Rate Monitor */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
+              <div className="flex items-center gap-2">
+                <Heart className="w-4 h-4 text-red-400 shrink-0" />
+                <span className="text-white font-semibold text-sm">Heart Rate Monitor</span>
+                {hrConnected && <span className="ml-auto flex items-center gap-1 text-[10px] text-green-400"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />Connected</span>}
+              </div>
+              <p className="text-blue-400/80 text-xs leading-relaxed">
+                Connect a Bluetooth heart rate monitor or smartwatch. Supports any device using the standard BLE Heart Rate Profile (e.g. Amazfit, Polar, Garmin).
+              </p>
+              <p className="text-yellow-400/70 text-[10px] leading-relaxed bg-yellow-900/20 border border-yellow-700/30 rounded-lg px-3 py-2">
+                ⌚ Smartwatch tip: Start a workout on your watch <em>before</em> connecting to activate live HR broadcasting.
+              </p>
+              {hrConnected ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 bg-green-900/30 border border-green-700/40 rounded-xl px-3 py-2">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shrink-0" />
+                    <span className="text-green-300 text-sm font-medium flex-1 truncate">{hrDeviceName || "Heart Rate Monitor"}</span>
+                    {currentHR && <span className="text-red-300 text-sm font-bold">{currentHR} <span className="text-xs font-normal text-red-300/70">BPM</span></span>}
+                  </div>
+                  <button
+                    data-testid="button-hr-disconnect-devices"
+                    onClick={disconnectHR}
+                    className="w-full py-2 rounded-xl bg-red-900/30 border border-red-700/40 text-red-300 text-sm font-semibold hover:bg-red-900/50 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <BluetoothOff className="w-4 h-4" /> Disconnect
+                  </button>
+                </div>
+              ) : (
+                <button
+                  data-testid="button-hr-connect-devices"
+                  onClick={connectHR}
+                  disabled={hrConnecting}
+                  className="w-full py-2 rounded-xl bg-red-900/20 border border-red-700/40 text-red-300 text-sm font-semibold hover:bg-red-900/40 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {hrConnecting
+                    ? <><span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />Connecting…</>
+                    : <><Bluetooth className="w-4 h-4" />Pair Heart Rate Monitor</>
+                  }
+                </button>
+              )}
+            </div>
+
+            {/* Manual reminder */}
+            <p className="text-blue-600/70 text-[10px] text-center px-2 pb-1">
+              No BLE device? You can always type your water temperature manually on the timer screen.
             </p>
           </div>
         </div>
@@ -4500,6 +4664,21 @@ export default function Home() {
             <span className="text-[10px] font-semibold">Badges</span>
           </button>
 
+          {/* Devices */}
+          <button
+            data-testid="nav-devices"
+            onClick={() => navTo("devices")}
+            className={`flex-1 flex flex-col items-center gap-1 transition-colors relative ${screen === "devices" ? "text-white" : "text-blue-500 hover:text-blue-300"}`}
+          >
+            <div className="relative">
+              <Bluetooth className="w-5 h-5" />
+              {(btConnected || hrConnected) && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full border border-blue-950" />
+              )}
+            </div>
+            <span className="text-[10px] font-semibold">Devices</span>
+          </button>
+
           {/* Settings */}
           <button
             data-testid="nav-settings"
@@ -4516,7 +4695,7 @@ export default function Home() {
       {screen === "timer" && streak > 0 && notifPermission === "default" && !notifDismissed && (
         <div
           className="fixed left-0 right-0 px-3"
-          style={{ bottom: !isPro && !showPostSessionAd ? "296px" : "248px", zIndex: 31 }}
+          style={{ bottom: "84px", zIndex: 31 }}
         >
           <div className="flex items-center gap-2 bg-yellow-900/40 border border-yellow-600/30 rounded-xl px-3 py-2.5">
             <Bell className="w-4 h-4 text-yellow-400 shrink-0" />
@@ -4538,12 +4717,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* ─── STICKY BANNER AD ─── */}
-      {!isPro && !showPostSessionAd && screen === "timer" && (
-        <div className="fixed left-0 right-0 z-30 px-3" style={{ bottom: "248px" }}>
-          <BannerAd />
-        </div>
-      )}
 
       {/* ─── POST-SESSION AD ─── */}
       {showPostSessionAd && !isPro && (

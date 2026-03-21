@@ -5,5 +5,7 @@ export const modules: ModuleMap = {
   "./components/mockups/founding-badge/AchievementsCard.tsx": () => import("../components/mockups/founding-badge/AchievementsCard.tsx"),
   "./components/mockups/founding-badge/BadgeProfileHeader.tsx": () => import("../components/mockups/founding-badge/BadgeProfileHeader.tsx"),
   "./components/mockups/founding-badge/LeaderboardEntry.tsx": () => import("../components/mockups/founding-badge/LeaderboardEntry.tsx"),
-  "./components/mockups/founding-badge/UpgradeBanner.tsx": () => import("../components/mockups/founding-badge/UpgradeBanner.tsx")
+  "./components/mockups/founding-badge/UpgradeBanner.tsx": () => import("../components/mockups/founding-badge/UpgradeBanner.tsx"),
+  "./components/mockups/nav-preview/DevicesScreen.tsx": () => import("../components/mockups/nav-preview/DevicesScreen.tsx"),
+  "./components/mockups/nav-preview/TimerScreen.tsx": () => import("../components/mockups/nav-preview/TimerScreen.tsx")
 };
