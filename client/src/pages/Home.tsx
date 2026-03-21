@@ -3268,7 +3268,15 @@ export default function Home() {
                           type="text"
                           placeholder="e.g. AB:CD:EF:12:34:56"
                           value={hrManualAddress}
-                          onChange={e => setHrManualAddress(e.target.value.toUpperCase())}
+                          onChange={e => {
+                            // Strip non-hex chars, replace letter O with 0, uppercase
+                            const raw = e.target.value.toUpperCase().replace(/O/g, "0").replace(/[^0-9A-F]/g, "");
+                            // Group into pairs and join with colons (max 6 pairs = 12 hex chars)
+                            const trimmed = raw.slice(0, 12);
+                            const formatted = trimmed.match(/.{1,2}/g)?.join(":") ?? trimmed;
+                            setHrManualAddress(formatted);
+                          }}
+                          maxLength={17}
                           className="w-full bg-blue-900/40 border border-blue-700/40 rounded-lg px-3 py-2 text-white text-sm placeholder-blue-500/50 focus:outline-none focus:border-blue-500 font-mono tracking-wider"
                         />
                         <input
