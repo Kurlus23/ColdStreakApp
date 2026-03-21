@@ -901,7 +901,12 @@ export default function Home() {
           setBtConnected(true);
           toast({ title: "Thermometer reconnected", description: name });
         }
-      } catch { btDeviceRef.current = null; } finally {
+      } catch (err: any) {
+        btDeviceRef.current = null;
+        if ((err?.message ?? "").toLowerCase().includes("not implemented")) {
+          localStorage.removeItem("coldstreak-bt-thermo"); // plugin not in this build, stop retrying
+        }
+      } finally {
         if (!cancelled) setBtConnecting(false);
       }
     }
@@ -930,7 +935,12 @@ export default function Home() {
           setHrConnected(true);
           toast({ title: "Heart rate monitor reconnected", description: name });
         }
-      } catch { hrDeviceIdRef.current = null; } finally {
+      } catch (err: any) {
+        hrDeviceIdRef.current = null;
+        if ((err?.message ?? "").toLowerCase().includes("not implemented")) {
+          localStorage.removeItem("coldstreak-bt-hr"); // plugin not in this build, stop retrying
+        }
+      } finally {
         if (!cancelled) setHrConnecting(false);
       }
     }
@@ -1022,7 +1032,15 @@ export default function Home() {
       }
     } catch (err: any) {
       const msg = err?.message ?? "";
-      if (!msg.includes("cancelled") && !msg.includes("User cancelled") && err?.name !== "NotFoundError") {
+      if (msg.toLowerCase().includes("not implemented")) {
+        // Native plugin missing from this APK build — needs cap sync + rebuild
+        toast({
+          title: "App update required",
+          description: "Bluetooth isn't available in this build. Please rebuild the app with `npx cap sync android` and reinstall.",
+          variant: "destructive",
+        });
+        localStorage.removeItem("coldstreak-bt-thermo"); // don't keep retrying
+      } else if (!msg.includes("cancelled") && !msg.includes("User cancelled") && err?.name !== "NotFoundError") {
         toast({ title: "Connection failed", description: msg || "Could not connect to thermometer.", variant: "destructive" });
       }
     } finally {
@@ -1087,7 +1105,14 @@ export default function Home() {
       toast({ title: "Heart rate monitor connected", description: `${device.name ?? "Device"} — live BPM active.` });
     } catch (err: any) {
       const msg = err?.message ?? "";
-      if (!msg.includes("cancelled") && !msg.includes("User cancelled") && err?.name !== "NotFoundError") {
+      if (msg.toLowerCase().includes("not implemented")) {
+        toast({
+          title: "App update required",
+          description: "Bluetooth isn't available in this build. Please rebuild the app with `npx cap sync android` and reinstall.",
+          variant: "destructive",
+        });
+        localStorage.removeItem("coldstreak-bt-hr"); // don't keep retrying
+      } else if (!msg.includes("cancelled") && !msg.includes("User cancelled") && err?.name !== "NotFoundError") {
         toast({ title: "Connection failed", description: msg || "Could not connect to heart rate monitor.", variant: "destructive" });
       }
     } finally {
