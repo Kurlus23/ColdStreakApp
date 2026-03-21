@@ -2044,7 +2044,7 @@ export default function Home() {
             </div>
 
             {/* Cold Score — tappable, cycles today → week → kcal (daily) → kcal (weekly) */}
-            <div className="relative w-full">
+            <div className="relative w-full h-full">
               {/* Info button — top-right corner */}
               <button
                 data-testid="button-score-info"
@@ -2075,7 +2075,7 @@ export default function Home() {
                   setScoreInfoOpen(false);
                   setScoreView(v => v === "today" ? "week" : v === "week" ? "kcal" : v === "kcal" ? "kcal-week" : "today");
                 }}
-                className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 hover:border-cyan-500/50 w-full"
+                className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 hover:border-cyan-500/50 w-full h-full"
               >
                 {scoreView === "kcal" || scoreView === "kcal-week" ? (
                   <>
