@@ -821,7 +821,14 @@ export default function Home() {
   const connectThermometer = async () => {
     const bt = (navigator as any).bluetooth;
     if (!bt) {
-      toast({ title: "Bluetooth not supported", description: "Use Chrome on Android or desktop to connect a Bluetooth thermometer.", variant: "destructive" });
+      const isNativeApp = !!(window as any).Capacitor?.isNativePlatform?.();
+      toast({
+        title: isNativeApp ? "Open in Chrome to use thermometer" : "Bluetooth not supported",
+        description: isNativeApp
+          ? "Bluetooth thermometer pairing requires Chrome. Open coldstreakapp.com in Chrome on this device."
+          : "Use Chrome on Android or desktop to connect a Bluetooth thermometer.",
+        variant: "destructive",
+      });
       return;
     }
     try {
