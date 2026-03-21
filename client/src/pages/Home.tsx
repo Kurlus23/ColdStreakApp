@@ -200,6 +200,8 @@ export default function Home() {
   const btDeviceRef = useRef<string | null>(null); // stores deviceId (string)
   const btKeepaliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const btProtocolRef = useRef<"gatt" | "govee" | "tp25" | null>(null);
+  const thermoReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const thermoReconnectCountRef = useRef(0);
   // HR custom scanner
   const [hrScanActive, setHrScanActive] = useState(false);
   const [hrScanDevices, setHrScanDevices] = useState<{deviceId: string; name: string; rssi: number}[]>([]);
@@ -914,8 +916,12 @@ export default function Home() {
         btDeviceRef.current = deviceId;
         setBtDeviceName(name);
         await BleClient.connect(deviceId, () => {
+          if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
           setBtConnected(false);
-          toast({ title: "Thermometer disconnected", description: name });
+          if (btDeviceRef.current) {
+            if (thermoReconnectTimerRef.current) clearTimeout(thermoReconnectTimerRef.current);
+            thermoReconnectTimerRef.current = setTimeout(autoReconnectThermo, 2500);
+          }
         });
         // Mirror the same 3-attempt order as manual connectThermometer
         let started = false;
@@ -986,6 +992,13 @@ export default function Home() {
 
     async function reconnectHR(deviceId: string, name: string) {
       if (cancelled) return;
+      // MAC address format (manually entered) → needs scan-first approach
+      const isMac = /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(deviceId);
+      if (isMac) {
+        // connectManualHR is hoisted — scans first to cache device, then connects
+        await connectManualHR(deviceId, name);
+        return;
+      }
       setHrConnecting(true);
       try {
         await BleClient.initialize();
@@ -1044,6 +1057,76 @@ export default function Home() {
       }, 10_000);
     }
     // GATT health thermometer is indication-based, no keep-alive needed
+  }
+
+  // ─── Thermometer auto-reconnect ──────────────────────────────────────────────
+  async function autoReconnectThermo() {
+    const deviceId = btDeviceRef.current;
+    if (!deviceId) return; // user deliberately disconnected — do nothing
+    if (thermoReconnectCountRef.current >= 8) {
+      thermoReconnectCountRef.current = 0;
+      toast({ title: "Thermometer offline", description: "Could not reconnect. Tap Pair Thermometer to try again.", variant: "destructive" });
+      return;
+    }
+    thermoReconnectCountRef.current++;
+    const protocol = btProtocolRef.current;
+
+    const scheduleRetry = () => {
+      if (!btDeviceRef.current) return; // disconnected manually in the meantime
+      if (thermoReconnectTimerRef.current) clearTimeout(thermoReconnectTimerRef.current);
+      thermoReconnectTimerRef.current = setTimeout(autoReconnectThermo, 2500);
+    };
+
+    try {
+      await BleClient.connect(deviceId, () => {
+        if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
+        setBtConnected(false);
+        scheduleRetry();
+      });
+
+      let reconnected = false;
+
+      if (protocol === "gatt" && !reconnected) {
+        try {
+          await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
+            const tempF = parseBtTemperature(dv);
+            if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+          });
+          reconnected = true;
+        } catch { /* not this profile */ }
+      }
+      if (protocol === "govee" && !reconnected) {
+        try {
+          await BleClient.startNotifications(deviceId, GOVEE_SERVICE, GOVEE_CHAR_DATA, (dv) => {
+            const tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
+            if (tempF !== null && tempF > 25 && tempF < 120)
+              setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+          });
+          try { await BleClient.writeWithoutResponse(deviceId, GOVEE_SERVICE, GOVEE_CHAR_PROTO, new DataView(new Uint8Array([0xAA, 0x01]).buffer)); } catch { /* ignore */ }
+          reconnected = true;
+        } catch { /* not Govee */ }
+      }
+      if (protocol === "tp25" && !reconnected) {
+        try {
+          await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
+            const tempF = parseTp25Temperature(dv);
+            if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+          });
+          try { await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE, new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)); } catch { /* ignore */ }
+          reconnected = true;
+        } catch { /* not TP25 */ }
+      }
+
+      if (reconnected) {
+        startThermoKeepalive(deviceId, btProtocolRef.current!);
+        setBtConnected(true);
+        thermoReconnectCountRef.current = 0;
+      } else {
+        scheduleRetry();
+      }
+    } catch {
+      scheduleRetry();
+    }
   }
 
   // ─── HR custom scanner ──────────────────────────────────────────────────────
@@ -1203,10 +1286,12 @@ export default function Home() {
       localStorage.setItem("coldstreak-bt-thermo", JSON.stringify({ deviceId: device.deviceId, name: device.name ?? "Thermometer" }));
 
       await BleClient.connect(deviceId, () => {
-        // Native disconnect callback
         if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
         setBtConnected(false);
-        toast({ title: "Thermometer disconnected", description: device.name ?? "Device lost connection." });
+        if (btDeviceRef.current) {
+          if (thermoReconnectTimerRef.current) clearTimeout(thermoReconnectTimerRef.current);
+          thermoReconnectTimerRef.current = setTimeout(autoReconnectThermo, 2500);
+        }
       });
 
       let connected = false;
@@ -1283,14 +1368,20 @@ export default function Home() {
   };
 
   const disconnectThermometer = async () => {
+    // Capture before clearing so we can still call BleClient.disconnect
+    const deviceId = btDeviceRef.current;
+    // Clear everything BEFORE disconnecting so the disconnect callback
+    // sees btDeviceRef.current = null and won't schedule a reconnect
     if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
-    try {
-      if (btDeviceRef.current) await BleClient.disconnect(btDeviceRef.current);
-    } catch { /* ignore */ }
-    setBtConnected(false);
-    setBtDeviceName("");
+    if (thermoReconnectTimerRef.current) { clearTimeout(thermoReconnectTimerRef.current); thermoReconnectTimerRef.current = null; }
+    thermoReconnectCountRef.current = 0;
     btDeviceRef.current = null;
     btProtocolRef.current = null;
+    setBtConnected(false);
+    setBtDeviceName("");
+    try {
+      if (deviceId) await BleClient.disconnect(deviceId);
+    } catch { /* ignore */ }
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -3310,11 +3401,48 @@ export default function Home() {
                     </div>
                   )}
 
+                  {/* Quick reconnect to last manually-paired device */}
+                  {(() => {
+                    try {
+                      const saved = localStorage.getItem("coldstreak-bt-hr");
+                      if (!saved) return null;
+                      const { deviceId, name } = JSON.parse(saved) as { deviceId: string; name: string };
+                      if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(deviceId)) return null;
+                      return (
+                        <button
+                          data-testid="button-hr-quick-reconnect"
+                          onClick={() => connectManualHR(deviceId, name)}
+                          disabled={hrConnecting}
+                          className="w-full flex items-center gap-2 bg-blue-900/30 border border-blue-600/30 rounded-xl px-3 py-2 hover:bg-blue-800/40 transition-colors disabled:opacity-40"
+                        >
+                          <Heart className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                          <span className="text-blue-200 text-xs flex-1 text-left truncate">Reconnect to <span className="font-semibold">{name || deviceId}</span></span>
+                          <span className="text-blue-400/60 text-[10px] font-mono shrink-0">{deviceId}</span>
+                        </button>
+                      );
+                    } catch { return null; }
+                  })()}
+
                   {/* Manual Bluetooth address entry */}
                   <div className="border-t border-blue-700/20 pt-2 mt-1">
                     <button
                       data-testid="button-hr-manual-toggle"
-                      onClick={() => setHrManualEntry(v => !v)}
+                      onClick={() => {
+                        const next = !hrManualEntry;
+                        setHrManualEntry(next);
+                        if (next && !hrManualAddress) {
+                          try {
+                            const saved = localStorage.getItem("coldstreak-bt-hr");
+                            if (saved) {
+                              const { deviceId, name } = JSON.parse(saved) as { deviceId: string; name: string };
+                              if (/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(deviceId)) {
+                                setHrManualAddress(deviceId);
+                                setHrManualName(name || "");
+                              }
+                            }
+                          } catch { /* ignore */ }
+                        }
+                      }}
                       className="text-blue-400/60 text-[11px] hover:text-blue-300 transition-colors w-full text-center"
                     >
                       {hrManualEntry ? "Hide" : "Enter Bluetooth address manually →"}
