@@ -1913,15 +1913,18 @@ export default function Home() {
             >
               <div className="flex items-start justify-between mb-1">
                 <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest">Water Temp</div>
-                {btConnected ? (
-                  <button onClick={() => navTo("devices")} className="flex flex-col items-end gap-[2px]" data-testid="button-bt-status-header">
-                    <div className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                      <span className="text-green-400 text-[9px] font-semibold">Live</span>
-                    </div>
-                    <span className="text-green-400/60 text-[8px] leading-none truncate max-w-[56px]">{btDeviceName || "Thermometer"}</span>
-                  </button>
-                ) : null}
+                {/* Always rendered to keep header height stable; invisible when not live */}
+                <button
+                  onClick={() => navTo("devices")}
+                  className={`flex flex-col items-end gap-[2px] ${btConnected ? "" : "invisible"}`}
+                  data-testid="button-bt-status-header"
+                >
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                    <span className="text-green-400 text-[9px] font-semibold">Live</span>
+                  </div>
+                  <span className="text-green-400/60 text-[8px] leading-none truncate max-w-[56px]">{btDeviceName || "Thermometer"}</span>
+                </button>
               </div>
 
               {/* Styled native select — looks like a big number, native picker on tap */}
@@ -1957,28 +1960,26 @@ export default function Home() {
                 >●C</button>
               </div>
 
-              {/* Calibration offset — visible while connected, stays for 10 s after disconnect */}
-              {btOffsetVisible && (
-                <div className="flex items-center gap-1 mt-1 mb-1">
-                  <span className="text-blue-400/60 text-[9px] uppercase tracking-widest shrink-0">Offset</span>
-                  <div className="flex items-center gap-0.5 ml-auto">
-                    <button
-                      data-testid="button-tile-offset-down"
-                      onClick={() => setBtTempOffset(prev => { const v = Math.max(-10, prev - 1); localStorage.setItem("coldstreak-bt-temp-offset", String(v)); return v; })}
-                      className="w-5 h-5 rounded flex items-center justify-center bg-blue-800/60 text-blue-300 text-sm font-bold leading-none hover:bg-blue-700/70 active:scale-95 transition-all"
-                    >−</button>
-                    <span
-                      data-testid="text-tile-offset"
-                      className="text-blue-300 text-[10px] font-bold w-8 text-center"
-                    >{btTempOffset >= 0 ? "+" : ""}{btTempOffset}°</span>
-                    <button
-                      data-testid="button-tile-offset-up"
-                      onClick={() => setBtTempOffset(prev => { const v = Math.min(10, prev + 1); localStorage.setItem("coldstreak-bt-temp-offset", String(v)); return v; })}
-                      className="w-5 h-5 rounded flex items-center justify-center bg-blue-800/60 text-blue-300 text-sm font-bold leading-none hover:bg-blue-700/70 active:scale-95 transition-all"
-                    >+</button>
-                  </div>
+              {/* Calibration offset — always rendered to keep tile height stable; invisible when no BT thermometer */}
+              <div className={`flex items-center gap-1 mt-1 mb-1 ${btOffsetVisible ? "" : "invisible"}`}>
+                <span className="text-blue-400/60 text-[9px] uppercase tracking-widest shrink-0">Offset</span>
+                <div className="flex items-center gap-0.5 ml-auto">
+                  <button
+                    data-testid="button-tile-offset-down"
+                    onClick={() => setBtTempOffset(prev => { const v = Math.max(-10, prev - 1); localStorage.setItem("coldstreak-bt-temp-offset", String(v)); return v; })}
+                    className="w-5 h-5 rounded flex items-center justify-center bg-blue-800/60 text-blue-300 text-sm font-bold leading-none hover:bg-blue-700/70 active:scale-95 transition-all"
+                  >−</button>
+                  <span
+                    data-testid="text-tile-offset"
+                    className="text-blue-300 text-[10px] font-bold w-8 text-center"
+                  >{btTempOffset >= 0 ? "+" : ""}{btTempOffset}°</span>
+                  <button
+                    data-testid="button-tile-offset-up"
+                    onClick={() => setBtTempOffset(prev => { const v = Math.min(10, prev + 1); localStorage.setItem("coldstreak-bt-temp-offset", String(v)); return v; })}
+                    className="w-5 h-5 rounded flex items-center justify-center bg-blue-800/60 text-blue-300 text-sm font-bold leading-none hover:bg-blue-700/70 active:scale-95 transition-all"
+                  >+</button>
                 </div>
-              )}
+              </div>
 
             </div>
 
