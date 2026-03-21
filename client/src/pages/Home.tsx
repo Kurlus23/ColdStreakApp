@@ -2947,9 +2947,16 @@ export default function Home() {
       {screen === "devices" && (
         <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
           <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-4 border border-blue-800/50 min-h-full space-y-4">
-            <h2 className="text-white font-bold text-lg flex items-center gap-2">
-              <Bluetooth className="w-5 h-5 text-cyan-400" /> Bluetooth Devices
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                <Bluetooth className="w-5 h-5 text-cyan-400" /> Bluetooth Devices
+              </h2>
+              <button
+                data-testid="button-close-devices"
+                onClick={() => navTo("timer")}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
+              >✕</button>
+            </div>
 
             {/* Warning when BLE plugin is missing from this build */}
             {!bleAvailable && Capacitor.isNativePlatform() && (
