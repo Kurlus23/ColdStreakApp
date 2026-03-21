@@ -199,6 +199,7 @@ export default function Home() {
   const [btDeviceName, setBtDeviceName] = useState("");
   const [btOffsetVisible, setBtOffsetVisible] = useState(false);
   const btOffsetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [btThermoTimedOut, setBtThermoTimedOut] = useState(false);
   const btDeviceRef = useRef<string | null>(null); // stores deviceId (string)
   const btKeepaliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const btProtocolRef = useRef<"gatt" | "govee" | "tp25" | null>(null);
@@ -1084,9 +1085,10 @@ export default function Home() {
   async function autoReconnectThermo() {
     const deviceId = btDeviceRef.current;
     if (!deviceId) return; // user deliberately disconnected — do nothing
-    if (thermoReconnectCountRef.current >= 8) {
+    if (thermoReconnectCountRef.current >= 3) {
       thermoReconnectCountRef.current = 0;
-      toast({ title: "Thermometer offline", description: "Could not reconnect. Tap Pair Thermometer to try again.", variant: "destructive" });
+      btDeviceRef.current = null; // stop further auto-retry
+      setBtThermoTimedOut(true);  // show quiet note in Devices tab instead of a banner
       return;
     }
     thermoReconnectCountRef.current++;
@@ -1326,6 +1328,7 @@ export default function Home() {
     if (!assertBleAvailable()) return;
     try {
       setBtConnecting(true);
+      setBtThermoTimedOut(false);
       await BleClient.initialize();
 
       // Show all nearby BLE devices — user picks their thermometer
@@ -1424,6 +1427,7 @@ export default function Home() {
   async function reconnectThermoFromUI(deviceId: string, name: string) {
     if (!assertBleAvailable()) return;
     setBtConnecting(true);
+    setBtThermoTimedOut(false);
     thermoReconnectCountRef.current = 0;
     try {
       await BleClient.initialize();
@@ -3391,6 +3395,13 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="space-y-2">
+                  {/* Timed-out notice — shown after 3 failed auto-reconnect attempts */}
+                  {btThermoTimedOut && (
+                    <div className="flex items-center gap-2 bg-yellow-900/20 border border-yellow-700/30 rounded-xl px-3 py-2">
+                      <span className="text-yellow-400 text-sm">⚠</span>
+                      <span className="text-yellow-300/80 text-[11px]">Device timed out — tap below to reconnect.</span>
+                    </div>
+                  )}
                   {/* Quick reconnect to last paired thermometer */}
                   {(() => {
                     void savedDevicesKey; // depend on key so forget triggers re-render
