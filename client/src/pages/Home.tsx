@@ -778,22 +778,30 @@ export default function Home() {
   const TP25_CHAR_NOTIF = "1086fff2-3343-4817-8bb2-b32206336ce8"; // temperature notifications
 
   // Parse a ThermoPro TP25 TLVC notification — returns probe 1 temp in °F
-  // Packet: [type][len][p1_hi][p1_lo][p2_hi][p2_lo][p3_hi][p3_lo][p4_hi][p4_lo]...[checksum]
-  // Temperature = (big-endian uint16) / 10  in °C; 0xFFFF = no probe
+  // Packet structure: [type][len][p1_hi][p1_lo][p2_hi][p2_lo]...[checksum]
+  // Probe temps start at byte 2 (skip type + len header bytes)
+  // Each probe = big-endian uint16; encoding is tenths of °C (0xFFFF = no probe)
   function parseTp25Temperature(dv: DataView): number | null {
     try {
       const hex = Array.from({ length: dv.byteLength }, (_, i) =>
         dv.getUint8(i).toString(16).padStart(2, "0")).join(" ");
       console.log("[TP25] raw bytes:", hex);
       if (dv.byteLength < 4) return null;
-      // Try each pair of bytes as a probe reading — return first plausible water temp
-      for (let i = 0; i + 1 < dv.byteLength - 1; i++) {
+
+      // Skip TLVC header (bytes 0-1 = type + length); probe data starts at byte 2.
+      // Walk aligned 2-byte pairs representing each probe, ignoring the trailing checksum.
+      for (let i = 2; i + 1 < dv.byteLength; i += 2) {
         const raw = (dv.getUint8(i) << 8) | dv.getUint8(i + 1);
-        if (raw === 0xFFFF || raw === 0x0000) continue;
-        const tempC = raw / 10;
-        const tempF = (tempC * 9) / 5 + 32;
-        // Sanity-check: valid cold-plunge range is 25–110°F
-        if (tempF >= 25 && tempF <= 110) return tempF;
+        if (raw === 0xFFFF || raw === 0x0000) continue; // no probe / disconnected
+
+        // Attempt A: encoded as tenths of °C (standard for most meat thermometers)
+        const tempC_a = raw / 10;
+        const tempF_a = (tempC_a * 9) / 5 + 32;
+        if (tempF_a >= 25 && tempF_a <= 110) return tempF_a;
+
+        // Attempt B: encoded as tenths of °F (some TP25 firmware variants)
+        const tempF_b = raw / 10;
+        if (tempF_b >= 25 && tempF_b <= 110) return tempF_b;
       }
       return null;
     } catch { return null; }
