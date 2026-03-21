@@ -200,6 +200,9 @@ export default function Home() {
   const btDeviceRef = useRef<string | null>(null); // stores deviceId (string)
   const btKeepaliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const btProtocolRef = useRef<"gatt" | "govee" | "tp25" | null>(null);
+  // HR custom scanner
+  const [hrScanActive, setHrScanActive] = useState(false);
+  const [hrScanDevices, setHrScanDevices] = useState<{deviceId: string; name: string; rssi: number}[]>([]);
   // Temperature calibration offset in °F (persisted, user-adjustable)
   const [btTempOffset, setBtTempOffset] = useState<number>(
     () => Number(localStorage.getItem("coldstreak-bt-temp-offset") ?? 0)
@@ -574,6 +577,12 @@ export default function Home() {
 
   const navTo = (s: Screen) => {
     const next = screen === s ? "timer" : s;
+    // Stop any active HR scan when leaving devices screen
+    if (screen === "devices" && next !== "devices" && hrScanActive) {
+      BleClient.stopLEScan().catch(() => {});
+      setHrScanActive(false);
+      setHrScanDevices([]);
+    }
     setScreen(next);
     localStorage.setItem("defaultScreen", next);
   };
@@ -1023,14 +1032,89 @@ export default function Home() {
       btKeepaliveRef.current = setInterval(() => {
         BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
           new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)).catch(() => {});
-      }, 20_000);
+      }, 10_000);
     } else if (protocol === "govee") {
       btKeepaliveRef.current = setInterval(() => {
         BleClient.writeWithoutResponse(deviceId, GOVEE_SERVICE, GOVEE_CHAR_PROTO,
           new DataView(new Uint8Array([0xAA, 0x01]).buffer)).catch(() => {});
-      }, 20_000);
+      }, 10_000);
     }
     // GATT health thermometer is indication-based, no keep-alive needed
+  }
+
+  // ─── HR custom scanner ──────────────────────────────────────────────────────
+  const HR_WATCH_REGEX = /amazfit|polar|garmin|apple watch|galaxy watch|mi band|huawei band|fitbit|whoop|coros|suunto|bangle|wahoo|stryd|fenix|vivoactive|forerunner|instinct/i;
+
+  async function startHrScan() {
+    if (!assertBleAvailable()) return;
+    try {
+      setHrScanDevices([]);
+      setHrScanActive(true);
+      await BleClient.initialize();
+      await BleClient.requestLEScan({}, (result) => {
+        const name = result.device.name ?? "";
+        const hasHrUuid = result.uuids?.some(u => u.toLowerCase().includes("180d")) ?? false;
+        if (!hasHrUuid && !HR_WATCH_REGEX.test(name)) return; // skip non-HR devices
+        setHrScanDevices(prev => {
+          if (prev.some(d => d.deviceId === result.device.deviceId)) return prev;
+          return [...prev, { deviceId: result.device.deviceId, name: name || "Unknown", rssi: result.rssi ?? -99 }];
+        });
+      });
+      // Auto-stop after 15 s
+      setTimeout(() => {
+        BleClient.stopLEScan().catch(() => {});
+        setHrScanActive(false);
+      }, 15_000);
+    } catch (err: any) {
+      setHrScanActive(false);
+      const msg = err?.message ?? "";
+      if (msg.toLowerCase().includes("not implemented")) {
+        toast({ title: "Rebuild required", description: "Run `npx cap sync android` and reinstall.", variant: "destructive" });
+      } else if (!msg.includes("cancelled")) {
+        toast({ title: "Scan failed", description: msg || "Could not scan for devices.", variant: "destructive" });
+      }
+    }
+  }
+
+  async function stopHrScan() {
+    await BleClient.stopLEScan().catch(() => {});
+    setHrScanActive(false);
+    setHrScanDevices([]);
+  }
+
+  async function connectFromHrScan(deviceId: string, name: string) {
+    await BleClient.stopLEScan().catch(() => {});
+    setHrScanActive(false);
+    setHrScanDevices([]);
+    setHrConnecting(true);
+    try {
+      hrDeviceIdRef.current = deviceId;
+      setHrDeviceName(name);
+      localStorage.setItem("coldstreak-bt-hr", JSON.stringify({ deviceId, name }));
+      await BleClient.connect(deviceId, () => {
+        setHrConnected(false);
+        setCurrentHR(null);
+        toast({ title: "Heart rate monitor disconnected", description: name });
+      });
+      await BleClient.startNotifications(deviceId, HR_SERVICE, HR_CHAR, (dv) => {
+        const bpm = parseHeartRate(dv);
+        if (bpm !== null) {
+          setCurrentHR(bpm);
+          setHrPeak(prev => prev === null ? bpm : Math.max(prev, bpm));
+          hrReadingsRef.current.push(bpm);
+        }
+      });
+      setHrConnected(true);
+      toast({ title: "Heart rate monitor connected", description: `${name} — live BPM active.` });
+    } catch (err: any) {
+      hrDeviceIdRef.current = null;
+      const msg = err?.message ?? "";
+      if (!msg.includes("cancelled")) {
+        toast({ title: "Connection failed", description: msg || "Could not connect.", variant: "destructive" });
+      }
+    } finally {
+      setHrConnecting(false);
+    }
   }
 
   const connectThermometer = async () => {
@@ -1591,10 +1675,33 @@ export default function Home() {
                 >●C</button>
               </div>
 
+              {/* Calibration offset — only visible when BT thermometer is live */}
+              {btConnected && (
+                <div className="flex items-center gap-1 mt-1 mb-1">
+                  <span className="text-blue-400/60 text-[9px] uppercase tracking-widest shrink-0">Offset</span>
+                  <div className="flex items-center gap-0.5 ml-auto">
+                    <button
+                      data-testid="button-tile-offset-down"
+                      onClick={() => setBtTempOffset(prev => { const v = Math.max(-10, prev - 1); localStorage.setItem("coldstreak-bt-temp-offset", String(v)); return v; })}
+                      className="w-5 h-5 rounded flex items-center justify-center bg-blue-800/60 text-blue-300 text-sm font-bold leading-none hover:bg-blue-700/70 active:scale-95 transition-all"
+                    >−</button>
+                    <span
+                      data-testid="text-tile-offset"
+                      className="text-blue-300 text-[10px] font-bold w-8 text-center"
+                    >{btTempOffset >= 0 ? "+" : ""}{btTempOffset}°</span>
+                    <button
+                      data-testid="button-tile-offset-up"
+                      onClick={() => setBtTempOffset(prev => { const v = Math.min(10, prev + 1); localStorage.setItem("coldstreak-bt-temp-offset", String(v)); return v; })}
+                      className="w-5 h-5 rounded flex items-center justify-center bg-blue-800/60 text-blue-300 text-sm font-bold leading-none hover:bg-blue-700/70 active:scale-95 transition-all"
+                    >+</button>
+                  </div>
+                </div>
+              )}
+
               {/* BT thermometer status indicator — manage in Devices tab */}
               <button
                 onClick={() => navTo("devices")}
-                className="mt-1.5 flex items-center gap-1 text-[10px] transition-colors w-full"
+                className="mt-1 flex items-center gap-1 text-[10px] transition-colors w-full"
                 data-testid="button-bt-status"
               >
                 {btConnected ? (
@@ -3076,17 +3183,64 @@ export default function Home() {
                   </button>
                 </div>
               ) : (
-                <button
-                  data-testid="button-hr-connect-devices"
-                  onClick={connectHR}
-                  disabled={hrConnecting}
-                  className="w-full py-2 rounded-xl bg-red-900/20 border border-red-700/40 text-red-300 text-sm font-semibold hover:bg-red-900/40 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {hrConnecting
-                    ? <><span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />Connecting…</>
-                    : <><Bluetooth className="w-4 h-4" />Pair Heart Rate Monitor</>
-                  }
-                </button>
+                <div className="space-y-2">
+                  {/* Scan button */}
+                  {!hrScanActive && hrScanDevices.length === 0 && (
+                    <button
+                      data-testid="button-hr-scan"
+                      onClick={startHrScan}
+                      disabled={hrConnecting}
+                      className="w-full py-2 rounded-xl bg-red-900/20 border border-red-700/40 text-red-300 text-sm font-semibold hover:bg-red-900/40 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {hrConnecting
+                        ? <><span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />Connecting…</>
+                        : <><Bluetooth className="w-4 h-4" />Scan for Heart Rate Monitors</>
+                      }
+                    </button>
+                  )}
+
+                  {/* Scanning indicator */}
+                  {hrScanActive && (
+                    <div className="flex items-center justify-between bg-red-900/20 border border-red-700/30 rounded-xl px-3 py-2">
+                      <div className="flex items-center gap-2 text-red-300 text-xs">
+                        <span className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                        Scanning for HR devices…
+                      </div>
+                      <button
+                        data-testid="button-hr-scan-stop"
+                        onClick={stopHrScan}
+                        className="text-red-400/70 text-[10px] hover:text-red-300 transition-colors"
+                      >Stop</button>
+                    </div>
+                  )}
+
+                  {/* Discovered devices list */}
+                  {hrScanDevices.length > 0 && (
+                    <div className="space-y-1.5">
+                      {hrScanDevices.map((d) => (
+                        <button
+                          key={d.deviceId}
+                          data-testid={`button-hr-device-${d.deviceId}`}
+                          onClick={() => connectFromHrScan(d.deviceId, d.name)}
+                          className="w-full flex items-center gap-3 bg-blue-900/40 border border-blue-700/30 rounded-xl px-3 py-2 hover:bg-blue-800/50 transition-colors text-left"
+                        >
+                          <Heart className="w-4 h-4 text-red-400 shrink-0" />
+                          <span className="text-white text-sm font-medium flex-1 truncate">{d.name}</span>
+                          <span className="text-blue-400/60 text-[10px]">{d.rssi} dBm</span>
+                          <span className="text-blue-300 text-[10px] font-semibold shrink-0">Connect</span>
+                        </button>
+                      ))}
+                      {hrScanActive && <p className="text-blue-400/50 text-[10px] text-center">Searching…</p>}
+                      {!hrScanActive && (
+                        <button
+                          data-testid="button-hr-scan-again"
+                          onClick={startHrScan}
+                          className="w-full py-1.5 text-blue-400/70 text-[11px] hover:text-blue-300 transition-colors"
+                        >Scan again</button>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
