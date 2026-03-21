@@ -197,6 +197,8 @@ export default function Home() {
   const [btConnected, setBtConnected] = useState(false);
   const [btConnecting, setBtConnecting] = useState(false);
   const [btDeviceName, setBtDeviceName] = useState("");
+  const [btOffsetVisible, setBtOffsetVisible] = useState(false);
+  const btOffsetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const btDeviceRef = useRef<string | null>(null); // stores deviceId (string)
   const btKeepaliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const btProtocolRef = useRef<"gatt" | "govee" | "tp25" | null>(null);
@@ -252,6 +254,20 @@ export default function Home() {
     localStorage.setItem("coldstreak-bt-temp-offset", String(btTempOffset));
     btTempOffsetRef.current = btTempOffset;
   }, [btTempOffset]);
+
+  // Keep the calibration offset visible for 10 s after a disconnect so the
+  // brief reconnect cycle doesn't flash it in and out
+  useEffect(() => {
+    if (btConnected) {
+      if (btOffsetTimerRef.current) clearTimeout(btOffsetTimerRef.current);
+      setBtOffsetVisible(true);
+    } else {
+      btOffsetTimerRef.current = setTimeout(() => setBtOffsetVisible(false), 10_000);
+    }
+    return () => {
+      if (btOffsetTimerRef.current) clearTimeout(btOffsetTimerRef.current);
+    };
+  }, [btConnected]);
 
   // Handle Stripe payment return — verify session_id in URL
   useEffect(() => {
@@ -1917,8 +1933,8 @@ export default function Home() {
                 >●C</button>
               </div>
 
-              {/* Calibration offset — only visible when BT thermometer is live */}
-              {btConnected && (
+              {/* Calibration offset — visible while connected, stays for 10 s after disconnect */}
+              {btOffsetVisible && (
                 <div className="flex items-center gap-1 mt-1 mb-1">
                   <span className="text-blue-400/60 text-[9px] uppercase tracking-widest shrink-0">Offset</span>
                   <div className="flex items-center gap-0.5 ml-auto">
@@ -1940,16 +1956,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Connect Thermometer shortcut — only shown when disconnected */}
-              {!btConnected && (
-                <button
-                  onClick={() => navTo("devices")}
-                  className="mt-1 flex items-center gap-1 text-[10px] transition-colors w-full"
-                  data-testid="button-bt-status"
-                >
-                  <Bluetooth className="w-2.5 h-2.5 text-blue-500 shrink-0" /><span className="text-blue-500">Connect Thermometer</span>
-                </button>
-              )}
             </div>
 
             {/* Timer */}
