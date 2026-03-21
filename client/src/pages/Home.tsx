@@ -791,9 +791,13 @@ export default function Home() {
     }
     try {
       setBtConnecting(true);
-      // Accept all devices so the Govee pool thermometer appears in the picker
+      // Filter to Govee devices (GVH… or Govee_…) + standard thermometers
       const device = await bt.requestDevice({
-        acceptAllDevices: true,
+        filters: [
+          { namePrefix: "GVH" },
+          { namePrefix: "Govee" },
+          { services: ["health_thermometer"] },
+        ],
         optionalServices: [
           "health_thermometer",
           GOVEE_SERVICE,
