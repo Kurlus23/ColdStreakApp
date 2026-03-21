@@ -801,8 +801,11 @@ export default function Home() {
     const a = document.createElement("a");
     a.href = url;
     a.download = `coldstreak-plunges-${new Date().toISOString().slice(0, 10)}.csv`;
+    // Must be in DOM for Android tablets / WebView to trigger the download
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     Analytics.track("csv_exported", { plunge_count: plunges.length });
   };
 
@@ -3699,7 +3702,9 @@ export default function Home() {
                     Zepp OS watches only broadcast live heart rate over Bluetooth when a workout is active. Start any activity on the watch, then tap Connect here.</li>
                   <li><span className="text-white/80 font-semibold">3. Enable third-party access in Zepp.</span>{" "}
                     In the Zepp app: <em>Profile → your watch → Health monitoring → Heart rate → Allow third-party access</em>.</li>
-                  <li><span className="text-white/80 font-semibold">4. Still timing out?</span>{" "}
+                  <li><span className="text-white/80 font-semibold">4. Connecting from a tablet?</span>{" "}
+                    First disconnect the watch from your phone (turn off phone Bluetooth or close Zepp) — the watch can only be actively connected to one device at a time. Then pair and connect on the tablet.</li>
+                  <li><span className="text-white/80 font-semibold">5. Still timing out?</span>{" "}
                     Forget the device here, unpair it in Android Bluetooth settings, then redo steps 1–3.</li>
                 </ol>
               </details>
