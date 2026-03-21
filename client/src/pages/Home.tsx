@@ -767,6 +767,22 @@ export default function Home() {
     }
   }
 
+  // Known Govee/Intellirocks GATT service & characteristic UUIDs
+  const GOVEE_SERVICE    = "494e5445-4c4c-495f-524f-434b535f4857";
+  const GOVEE_CHAR_PROTO = "494e5445-4c4c-495f-524f-434b535f2011"; // protocol / keep-alive
+  const GOVEE_CHAR_DATA  = "494e5445-4c4c-495f-524f-434b535f2013"; // primary data stream
+
+  function parseGoveeTemperature(dv: DataView): number | null {
+    try {
+      // Govee encodes temp+humidity as a 3-byte big-endian integer
+      // e.g. bytes [03, 21, 5D] → 0x03215D = 205149 → temp = 20.51°C, humi = 49%
+      if (dv.byteLength < 3) return null;
+      const raw = (dv.getUint8(0) << 16) | (dv.getUint8(1) << 8) | dv.getUint8(2);
+      const tempC = (raw / 1000) / 10; // first 3 digits / 10 = °C
+      return (tempC * 9 / 5) + 32; // convert to °F
+    } catch { return null; }
+  }
+
   const connectThermometer = async () => {
     const bt = (navigator as any).bluetooth;
     if (!bt) {
@@ -775,9 +791,13 @@ export default function Home() {
     }
     try {
       setBtConnecting(true);
+      // Accept all devices so the Govee pool thermometer appears in the picker
       const device = await bt.requestDevice({
-        filters: [{ services: ["health_thermometer"] }],
-        optionalServices: ["health_thermometer"],
+        acceptAllDevices: true,
+        optionalServices: [
+          "health_thermometer",
+          GOVEE_SERVICE,
+        ],
       });
       btDeviceRef.current = device;
       setBtDeviceName(device.name ?? "Thermometer");
@@ -788,21 +808,65 @@ export default function Home() {
       });
 
       const server = await device.gatt.connect();
-      const service = await server.getPrimaryService("health_thermometer");
-      const characteristic = await service.getCharacteristic("temperature_measurement");
-      btCharacteristicRef.current = characteristic;
+      let connected = false;
 
-      await characteristic.startNotifications();
-      characteristic.addEventListener("characteristicvaluechanged", (e: Event) => {
-        const dv = (e.target as any).value as DataView;
-        const tempF = parseBtTemperature(dv);
-        if (tempF !== null) {
-          setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
+      // ── Attempt 1: standard health_thermometer GATT service ──────────────
+      try {
+        const service = await server.getPrimaryService("health_thermometer");
+        const char = await service.getCharacteristic("temperature_measurement");
+        btCharacteristicRef.current = char;
+        await char.startNotifications();
+        char.addEventListener("characteristicvaluechanged", (e: Event) => {
+          const tempF = parseBtTemperature((e.target as any).value as DataView);
+          if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
+        });
+        connected = true;
+      } catch { /* device doesn't use standard profile */ }
+
+      // ── Attempt 2: Govee INTELLI_ROCKS proprietary GATT service ──────────
+      if (!connected) {
+        try {
+          const service = await server.getPrimaryService(GOVEE_SERVICE);
+          // Subscribe to data characteristic for notifications
+          const dataChar = await service.getCharacteristic(GOVEE_CHAR_DATA);
+          btCharacteristicRef.current = dataChar;
+          await dataChar.startNotifications();
+          dataChar.addEventListener("characteristicvaluechanged", (e: Event) => {
+            const dv = (e.target as any).value as DataView;
+            // Try Govee encoding first, then fall back to raw IEEE-11073
+            const tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
+            if (tempF !== null && tempF > 25 && tempF < 120) {
+              setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
+            }
+          });
+          // Poke the keep-alive/protocol characteristic to start data flow
+          try {
+            const protoChar = await service.getCharacteristic(GOVEE_CHAR_PROTO);
+            await protoChar.writeValueWithoutResponse(new Uint8Array([0xAA, 0x01]));
+          } catch { /* ignore — not all Govee devices need this */ }
+          connected = true;
+        } catch { /* device doesn't expose known Govee service */ }
+      }
+
+      if (connected) {
+        setBtConnected(true);
+        toast({ title: "Thermometer connected", description: `${device.name ?? "Device"} — temperature will update automatically.` });
+      } else {
+        // Connected to GATT but no temperature service found — log diagnostics
+        try {
+          const services = await server.getPrimaryServices();
+          const serviceList = services.map((s: any) => s.uuid).join(", ");
+          console.log("[BT] Services found:", serviceList);
+          toast({
+            title: "Device connected — protocol unknown",
+            description: `Open DevTools console and share the service UUIDs shown so we can add support. Services: ${serviceList.slice(0, 80)}`,
+            variant: "destructive",
+          });
+        } catch {
+          toast({ title: "Device connected — no temperature data found", description: "This device may not expose temperature via a readable GATT service.", variant: "destructive" });
         }
-      });
-
-      setBtConnected(true);
-      toast({ title: "Thermometer connected", description: `${device.name ?? "Device"} — temperature will update automatically.` });
+        setBtConnected(false);
+      }
     } catch (err: any) {
       if (err?.name !== "NotFoundError") {
         toast({ title: "Connection failed", description: err?.message ?? "Could not connect to thermometer.", variant: "destructive" });
