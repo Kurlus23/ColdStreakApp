@@ -1121,6 +1121,71 @@ export default function Home() {
     }
   }
 
+  // Connect to a manually-entered MAC address:
+  // must scan first so the Android BLE stack caches the device, then connect.
+  async function connectManualHR(addr: string, name: string) {
+    if (!assertBleAvailable()) return;
+    setHrConnecting(true);
+    let scanStopped = false;
+    try {
+      await BleClient.initialize();
+      let found = false;
+
+      // Scan broadly — wait until we see the target device (up to 12 s)
+      await BleClient.requestLEScan({}, (result) => {
+        if (result.device.deviceId.toUpperCase() === addr.toUpperCase()) {
+          found = true;
+        }
+      });
+
+      await new Promise<void>((resolve) => {
+        const deadline = setTimeout(() => resolve(), 12_000);
+        const poll = setInterval(() => {
+          if (found) { clearTimeout(deadline); clearInterval(poll); resolve(); }
+        }, 250);
+      });
+
+      await BleClient.stopLEScan().catch(() => {});
+      scanStopped = true;
+
+      if (!found) {
+        throw new Error("Watch not found nearby. Make sure Bluetooth is on and the watch is in range, then try again.");
+      }
+
+      // Device is now in the BLE cache — proceed with connection
+      hrDeviceIdRef.current = addr;
+      setHrDeviceName(name);
+      localStorage.setItem("coldstreak-bt-hr", JSON.stringify({ deviceId: addr, name }));
+
+      await BleClient.connect(addr, () => {
+        setHrConnected(false);
+        setCurrentHR(null);
+        toast({ title: "Heart rate monitor disconnected", description: name });
+      });
+
+      await BleClient.startNotifications(addr, HR_SERVICE, HR_CHAR, (dv) => {
+        const bpm = parseHeartRate(dv);
+        if (bpm !== null) {
+          setCurrentHR(bpm);
+          setHrPeak(prev => prev === null ? bpm : Math.max(prev, bpm));
+          hrReadingsRef.current.push(bpm);
+        }
+      });
+
+      setHrConnected(true);
+      toast({ title: "Heart rate monitor connected", description: `${name} — live BPM active.` });
+    } catch (err: any) {
+      if (!scanStopped) await BleClient.stopLEScan().catch(() => {});
+      hrDeviceIdRef.current = null;
+      const msg = err?.message ?? "";
+      if (!msg.includes("cancelled")) {
+        toast({ title: "Connection failed", description: msg || "Could not connect.", variant: "destructive" });
+      }
+    } finally {
+      setHrConnecting(false);
+    }
+  }
+
   const connectThermometer = async () => {
     if (!assertBleAvailable()) return;
     try {
@@ -3258,7 +3323,7 @@ export default function Home() {
                     {hrManualEntry && (
                       <div className="mt-2 space-y-2">
                         <p className="text-blue-400/60 text-[10px] leading-relaxed">
-                          Find your device's Bluetooth address in its companion app settings (e.g. Zepp → Profile → Device Info → Bluetooth Address). Paste it below to connect directly without scanning.
+                          Find your device's Bluetooth address in its companion app settings (e.g. Zepp → Profile → Device Info → Bluetooth Address). The app will scan for your device in the background then connect — keep the watch nearby. Allow up to 12 seconds.
                         </p>
                         <p className="text-yellow-400/60 text-[10px] bg-yellow-900/20 border border-yellow-700/30 rounded-lg px-2.5 py-1.5 leading-relaxed">
                           Android only — iOS randomizes Bluetooth addresses and this won't work on iPhone.
@@ -3295,7 +3360,7 @@ export default function Home() {
                               toast({ title: "Invalid address", description: "Format must be AB:CD:EF:12:34:56", variant: "destructive" });
                               return;
                             }
-                            connectFromHrScan(addr, hrManualName.trim() || addr);
+                            connectManualHR(addr, hrManualName.trim() || addr);
                             setHrManualEntry(false);
                             setHrManualAddress("");
                             setHrManualName("");
