@@ -203,6 +203,10 @@ export default function Home() {
   // HR custom scanner
   const [hrScanActive, setHrScanActive] = useState(false);
   const [hrScanDevices, setHrScanDevices] = useState<{deviceId: string; name: string; rssi: number}[]>([]);
+  // HR manual address entry
+  const [hrManualEntry, setHrManualEntry] = useState(false);
+  const [hrManualAddress, setHrManualAddress] = useState("");
+  const [hrManualName, setHrManualName] = useState("");
   // Temperature calibration offset in °F (persisted, user-adjustable)
   const [btTempOffset, setBtTempOffset] = useState<number>(
     () => Number(localStorage.getItem("coldstreak-bt-temp-offset") ?? 0)
@@ -3240,6 +3244,65 @@ export default function Home() {
                       )}
                     </div>
                   )}
+
+                  {/* Manual Bluetooth address entry */}
+                  <div className="border-t border-blue-700/20 pt-2 mt-1">
+                    <button
+                      data-testid="button-hr-manual-toggle"
+                      onClick={() => setHrManualEntry(v => !v)}
+                      className="text-blue-400/60 text-[11px] hover:text-blue-300 transition-colors w-full text-center"
+                    >
+                      {hrManualEntry ? "Hide" : "Enter Bluetooth address manually →"}
+                    </button>
+
+                    {hrManualEntry && (
+                      <div className="mt-2 space-y-2">
+                        <p className="text-blue-400/60 text-[10px] leading-relaxed">
+                          Find your device's Bluetooth address in its companion app settings (e.g. Zepp → Profile → Device Info → Bluetooth Address). Paste it below to connect directly without scanning.
+                        </p>
+                        <p className="text-yellow-400/60 text-[10px] bg-yellow-900/20 border border-yellow-700/30 rounded-lg px-2.5 py-1.5 leading-relaxed">
+                          Android only — iOS randomizes Bluetooth addresses and this won't work on iPhone.
+                        </p>
+                        <input
+                          data-testid="input-hr-manual-address"
+                          type="text"
+                          placeholder="e.g. AB:CD:EF:12:34:56"
+                          value={hrManualAddress}
+                          onChange={e => setHrManualAddress(e.target.value.toUpperCase())}
+                          className="w-full bg-blue-900/40 border border-blue-700/40 rounded-lg px-3 py-2 text-white text-sm placeholder-blue-500/50 focus:outline-none focus:border-blue-500 font-mono tracking-wider"
+                        />
+                        <input
+                          data-testid="input-hr-manual-name"
+                          type="text"
+                          placeholder="Device name (optional, e.g. Amazfit T-Rex 2)"
+                          value={hrManualName}
+                          onChange={e => setHrManualName(e.target.value)}
+                          className="w-full bg-blue-900/40 border border-blue-700/40 rounded-lg px-3 py-2 text-white text-sm placeholder-blue-500/50 focus:outline-none focus:border-blue-500"
+                        />
+                        <button
+                          data-testid="button-hr-manual-connect"
+                          onClick={() => {
+                            const addr = hrManualAddress.trim();
+                            if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(addr)) {
+                              toast({ title: "Invalid address", description: "Format must be AB:CD:EF:12:34:56", variant: "destructive" });
+                              return;
+                            }
+                            connectFromHrScan(addr, hrManualName.trim() || addr);
+                            setHrManualEntry(false);
+                            setHrManualAddress("");
+                            setHrManualName("");
+                          }}
+                          disabled={hrConnecting || !hrManualAddress.trim()}
+                          className="w-full py-2 rounded-xl bg-red-900/20 border border-red-700/40 text-red-300 text-sm font-semibold hover:bg-red-900/40 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                        >
+                          {hrConnecting
+                            ? <><span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />Connecting…</>
+                            : <><Bluetooth className="w-4 h-4" />Connect to Address</>
+                          }
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
