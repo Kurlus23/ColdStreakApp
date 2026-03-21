@@ -8,7 +8,7 @@ import {
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2, FileText,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -191,6 +191,13 @@ export default function Home() {
     () => Math.min(60, Math.max(25, Number(localStorage.getItem("coldstreak-temperature") ?? 50)))
   );
   const [useCelsius, setUseCelsius] = useState(false);
+
+  // Bluetooth thermometer
+  const [btConnected, setBtConnected] = useState(false);
+  const [btConnecting, setBtConnecting] = useState(false);
+  const [btDeviceName, setBtDeviceName] = useState("");
+  const btDeviceRef = useRef<any>(null);
+  const btCharacteristicRef = useRef<any>(null);
 
   // Countdown
   const [countdownMode, setCountdownMode] = useState(false);
@@ -744,6 +751,76 @@ export default function Home() {
     Analytics.track("csv_exported", { plunge_count: plunges.length });
   };
 
+  // ── Bluetooth Thermometer ────────────────────────────────────────────────
+  function parseBtTemperature(value: DataView): number | null {
+    try {
+      const flags = value.getUint8(0);
+      const isFahrenheit = (flags & 0x01) !== 0;
+      // IEEE-11073 32-bit FLOAT: bytes 1-3 = 24-bit signed mantissa (LE), byte 4 = signed exponent
+      const mantissaRaw = value.getUint8(1) | (value.getUint8(2) << 8) | (value.getUint8(3) << 16);
+      const mantissa = mantissaRaw & 0x800000 ? mantissaRaw - 0x1000000 : mantissaRaw;
+      const exponent = value.getInt8(4);
+      const tempValue = mantissa * Math.pow(10, exponent);
+      return isFahrenheit ? tempValue : (tempValue * 9 / 5) + 32;
+    } catch {
+      return null;
+    }
+  }
+
+  const connectThermometer = async () => {
+    const bt = (navigator as any).bluetooth;
+    if (!bt) {
+      toast({ title: "Bluetooth not supported", description: "Use Chrome on Android or desktop to connect a Bluetooth thermometer.", variant: "destructive" });
+      return;
+    }
+    try {
+      setBtConnecting(true);
+      const device = await bt.requestDevice({
+        filters: [{ services: ["health_thermometer"] }],
+        optionalServices: ["health_thermometer"],
+      });
+      btDeviceRef.current = device;
+      setBtDeviceName(device.name ?? "Thermometer");
+
+      device.addEventListener("gattserverdisconnected", () => {
+        setBtConnected(false);
+        toast({ title: "Thermometer disconnected", description: btDeviceRef.current?.name ?? "Device lost connection." });
+      });
+
+      const server = await device.gatt.connect();
+      const service = await server.getPrimaryService("health_thermometer");
+      const characteristic = await service.getCharacteristic("temperature_measurement");
+      btCharacteristicRef.current = characteristic;
+
+      await characteristic.startNotifications();
+      characteristic.addEventListener("characteristicvaluechanged", (e: Event) => {
+        const dv = (e.target as any).value as DataView;
+        const tempF = parseBtTemperature(dv);
+        if (tempF !== null) {
+          setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
+        }
+      });
+
+      setBtConnected(true);
+      toast({ title: "Thermometer connected", description: `${device.name ?? "Device"} — temperature will update automatically.` });
+    } catch (err: any) {
+      if (err?.name !== "NotFoundError") {
+        toast({ title: "Connection failed", description: err?.message ?? "Could not connect to thermometer.", variant: "destructive" });
+      }
+    } finally {
+      setBtConnecting(false);
+    }
+  };
+
+  const disconnectThermometer = () => {
+    try { btDeviceRef.current?.gatt?.disconnect(); } catch { /* ignore */ }
+    setBtConnected(false);
+    setBtDeviceName("");
+    btDeviceRef.current = null;
+    btCharacteristicRef.current = null;
+  };
+  // ─────────────────────────────────────────────────────────────────────────
+
   const doLogPlunge = useCallback((durationSec: number) => {
     const score = plungeScore(durationSec, temperature);
     const weightAtLogTime = Number(localStorage.getItem("coldstreak-body-weight") || 150);
@@ -1099,6 +1176,31 @@ export default function Home() {
                   className={`flex-1 text-[11px] py-1 rounded-md font-bold transition-all ${useCelsius ? "bg-white text-blue-900" : "text-blue-300 hover:text-white"}`}
                 >●C</button>
               </div>
+
+              {/* Bluetooth thermometer */}
+              {btConnected ? (
+                <button
+                  data-testid="button-bt-disconnect"
+                  onClick={disconnectThermometer}
+                  className="mt-1.5 flex items-center gap-1 text-[10px] text-green-400 hover:text-red-400 transition-colors w-full"
+                  title="Tap to disconnect"
+                >
+                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shrink-0" />
+                  <span className="truncate">{btDeviceName || "Thermometer"}</span>
+                </button>
+              ) : (
+                <button
+                  data-testid="button-bt-connect"
+                  onClick={connectThermometer}
+                  disabled={btConnecting}
+                  className="mt-1.5 flex items-center gap-1 text-[10px] text-blue-400 hover:text-cyan-300 transition-colors disabled:opacity-50 w-full"
+                >
+                  {btConnecting
+                    ? <><span className="w-2 h-2 border border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" /><span>Connecting…</span></>
+                    : <><Bluetooth className="w-2.5 h-2.5 shrink-0" /><span>Connect Thermometer</span></>
+                  }
+                </button>
+              )}
             </div>
 
             {/* Timer */}

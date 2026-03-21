@@ -199,6 +199,14 @@ The following test entry was added to help testers preview the Verified Business
 - Inserted via `seedTestVerifiedBusiness()` in `server/routes.ts`
 - **Remove before Google Play launch**: delete `seedTestVerifiedBusiness()` from `server/routes.ts` startup, then run `DELETE FROM user_locations WHERE name = 'Arctic Recovery Studio'` on production.
 
+## ⏰ REMINDER — June 21, 2026
+**Pricing Phase 3**: When ColdStreak hits 5k–10k daily active users, set `LIFETIME_PRICE_PHASE=3` in Secrets and redeploy. This switches the lifetime Pro price from $24.99 → $29.99 automatically on the next checkout.
+- Phase 2 ($24.99) kicks in automatically when the 1,000th Founding Plunger badge slot is claimed.
+- Phase 3 ($29.99) requires the manual env var set above.
+- Stripe Price IDs: P2 = `STRIPE_LIFETIME_PRICE_ID_P2`, P3 = `STRIPE_LIFETIME_PRICE_ID_P3` (both already in Secrets).
+
+---
+
 ## Admin System
 
 ### Admin account
