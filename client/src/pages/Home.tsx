@@ -204,6 +204,7 @@ export default function Home() {
   const thermoReconnectCountRef = useRef(0);
   // HR custom scanner
   const [hrScanActive, setHrScanActive] = useState(false);
+  const [hrScanDone, setHrScanDone] = useState(false);
   const [hrScanDevices, setHrScanDevices] = useState<{deviceId: string; name: string; rssi: number}[]>([]);
   // HR manual address entry
   const [hrManualEntry, setHrManualEntry] = useState(false);
@@ -1136,21 +1137,29 @@ export default function Home() {
     if (!assertBleAvailable()) return;
     try {
       setHrScanDevices([]);
+      setHrScanDone(false);
       setHrScanActive(true);
       await BleClient.initialize();
       await BleClient.requestLEScan({}, (result) => {
         const name = result.device.name ?? "";
-        const hasHrUuid = result.uuids?.some(u => u.toLowerCase().includes("180d")) ?? false;
-        if (!hasHrUuid && !HR_WATCH_REGEX.test(name)) return; // skip non-HR devices
+        if (!name) return; // skip completely unnamed devices — they can't be identified
+        const rssi = result.rssi ?? -99;
         setHrScanDevices(prev => {
-          if (prev.some(d => d.deviceId === result.device.deviceId)) return prev;
-          return [...prev, { deviceId: result.device.deviceId, name: name || "Unknown", rssi: result.rssi ?? -99 }];
+          const idx = prev.findIndex(d => d.deviceId === result.device.deviceId);
+          if (idx >= 0) {
+            // Update RSSI live
+            const updated = [...prev];
+            updated[idx] = { ...updated[idx], rssi };
+            return updated;
+          }
+          return [...prev, { deviceId: result.device.deviceId, name, rssi }];
         });
       });
       // Auto-stop after 15 s
       setTimeout(() => {
         BleClient.stopLEScan().catch(() => {});
         setHrScanActive(false);
+        setHrScanDone(true);
       }, 15_000);
     } catch (err: any) {
       setHrScanActive(false);
@@ -1166,7 +1175,8 @@ export default function Home() {
   async function stopHrScan() {
     await BleClient.stopLEScan().catch(() => {});
     setHrScanActive(false);
-    setHrScanDevices([]);
+    setHrScanDone(true);
+    // keep hrScanDevices so the list stays visible after stopping
   }
 
   async function connectFromHrScan(deviceId: string, name: string) {
@@ -3443,8 +3453,20 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {/* Scan button */}
-                  {!hrScanActive && hrScanDevices.length === 0 && (
+                  {/* Scan / scanning indicator row */}
+                  {hrScanActive ? (
+                    <div className="flex items-center justify-between bg-red-900/20 border border-red-700/30 rounded-xl px-3 py-2">
+                      <div className="flex items-center gap-2 text-red-300 text-xs">
+                        <span className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                        Scanning…{hrScanDevices.length > 0 && <span className="text-red-300/60"> ({hrScanDevices.length} found)</span>}
+                      </div>
+                      <button
+                        data-testid="button-hr-scan-stop"
+                        onClick={stopHrScan}
+                        className="text-red-400/70 text-[10px] hover:text-red-300 transition-colors"
+                      >Stop</button>
+                    </div>
+                  ) : (
                     <button
                       data-testid="button-hr-scan"
                       onClick={startHrScan}
@@ -3453,51 +3475,48 @@ export default function Home() {
                     >
                       {hrConnecting
                         ? <><span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />Connecting…</>
-                        : <><Bluetooth className="w-4 h-4" />Scan for Heart Rate Monitors</>
+                        : <><Bluetooth className="w-4 h-4" />{hrScanDone && hrScanDevices.length > 0 ? "Scan again" : "Scan for Heart Rate Monitors"}</>
                       }
                     </button>
                   )}
 
-                  {/* Scanning indicator */}
-                  {hrScanActive && (
-                    <div className="flex items-center justify-between bg-red-900/20 border border-red-700/30 rounded-xl px-3 py-2">
-                      <div className="flex items-center gap-2 text-red-300 text-xs">
-                        <span className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin shrink-0" />
-                        Scanning for HR devices…
-                      </div>
-                      <button
-                        data-testid="button-hr-scan-stop"
-                        onClick={stopHrScan}
-                        className="text-red-400/70 text-[10px] hover:text-red-300 transition-colors"
-                      >Stop</button>
+                  {/* Discovered devices list — sorted strongest signal first */}
+                  {hrScanDevices.length > 0 && (
+                    <div className="space-y-1.5">
+                      {[...hrScanDevices].sort((a, b) => b.rssi - a.rssi).map((d) => {
+                        const bars = d.rssi >= -60 ? 3 : d.rssi >= -75 ? 2 : 1;
+                        const barColor = bars === 3 ? "text-green-400" : bars === 2 ? "text-yellow-400" : "text-red-400/60";
+                        return (
+                          <button
+                            key={d.deviceId}
+                            data-testid={`button-hr-device-${d.deviceId}`}
+                            onClick={() => connectFromHrScan(d.deviceId, d.name)}
+                            disabled={hrConnecting}
+                            className="w-full flex items-center gap-3 bg-blue-900/40 border border-blue-700/30 rounded-xl px-3 py-2.5 hover:bg-blue-800/50 transition-colors text-left disabled:opacity-40"
+                          >
+                            <Heart className="w-4 h-4 text-red-400 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-white text-sm font-medium truncate">{d.name}</div>
+                              <div className="text-blue-400/50 text-[10px] font-mono truncate">{d.deviceId}</div>
+                            </div>
+                            {/* Signal strength bars */}
+                            <div className={`flex items-end gap-[2px] ${barColor} shrink-0`} title={`${d.rssi} dBm`}>
+                              <span className={`w-[3px] rounded-sm ${bars >= 1 ? "bg-current" : "bg-current opacity-20"}`} style={{height: 6}} />
+                              <span className={`w-[3px] rounded-sm ${bars >= 2 ? "bg-current" : "bg-current opacity-20"}`} style={{height: 10}} />
+                              <span className={`w-[3px] rounded-sm ${bars >= 3 ? "bg-current" : "bg-current opacity-20"}`} style={{height: 14}} />
+                            </div>
+                            <span className="text-blue-300 text-[10px] font-semibold shrink-0">Connect</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
 
-                  {/* Discovered devices list */}
-                  {hrScanDevices.length > 0 && (
-                    <div className="space-y-1.5">
-                      {hrScanDevices.map((d) => (
-                        <button
-                          key={d.deviceId}
-                          data-testid={`button-hr-device-${d.deviceId}`}
-                          onClick={() => connectFromHrScan(d.deviceId, d.name)}
-                          className="w-full flex items-center gap-3 bg-blue-900/40 border border-blue-700/30 rounded-xl px-3 py-2 hover:bg-blue-800/50 transition-colors text-left"
-                        >
-                          <Heart className="w-4 h-4 text-red-400 shrink-0" />
-                          <span className="text-white text-sm font-medium flex-1 truncate">{d.name}</span>
-                          <span className="text-blue-400/60 text-[10px]">{d.rssi} dBm</span>
-                          <span className="text-blue-300 text-[10px] font-semibold shrink-0">Connect</span>
-                        </button>
-                      ))}
-                      {hrScanActive && <p className="text-blue-400/50 text-[10px] text-center">Searching…</p>}
-                      {!hrScanActive && (
-                        <button
-                          data-testid="button-hr-scan-again"
-                          onClick={startHrScan}
-                          className="w-full py-1.5 text-blue-400/70 text-[11px] hover:text-blue-300 transition-colors"
-                        >Scan again</button>
-                      )}
-                    </div>
+                  {/* No devices found after scan */}
+                  {hrScanDone && !hrScanActive && hrScanDevices.length === 0 && (
+                    <p className="text-blue-400/50 text-[11px] text-center py-1">
+                      No devices found. Make sure your watch is nearby and awake.
+                    </p>
                   )}
 
                   {/* Quick reconnect to last manually-paired device */}
