@@ -198,6 +198,14 @@ export default function Home() {
   const [btConnecting, setBtConnecting] = useState(false);
   const [btDeviceName, setBtDeviceName] = useState("");
   const btDeviceRef = useRef<string | null>(null); // stores deviceId (string)
+  const btKeepaliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const btProtocolRef = useRef<"gatt" | "govee" | "tp25" | null>(null);
+  // Temperature calibration offset in °F (persisted, user-adjustable)
+  const [btTempOffset, setBtTempOffset] = useState<number>(
+    () => Number(localStorage.getItem("coldstreak-bt-temp-offset") ?? 0)
+  );
+  // Ref copy so BLE callbacks (closures) always see the latest offset
+  const btTempOffsetRef = useRef<number>(Number(localStorage.getItem("coldstreak-bt-temp-offset") ?? 0));
 
   // Heart rate monitor (separate BLE connection)
   const [hrConnected, setHrConnected] = useState(false);
@@ -229,6 +237,11 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem("coldstreak-temperature", String(temperature));
   }, [temperature]);
+
+  useEffect(() => {
+    localStorage.setItem("coldstreak-bt-temp-offset", String(btTempOffset));
+    btTempOffsetRef.current = btTempOffset;
+  }, [btTempOffset]);
 
   // Handle Stripe payment return — verify session_id in URL
   useEffect(() => {
@@ -893,15 +906,16 @@ export default function Home() {
         });
         // Mirror the same 3-attempt order as manual connectThermometer
         let started = false;
+        let protocol: "gatt" | "govee" | "tp25" | null = null;
 
         // Attempt 1: Standard GATT health_thermometer
         if (!started) {
           try {
             await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
               const tempF = parseBtTemperature(dv);
-              if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
+              if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
             });
-            started = true;
+            protocol = "gatt"; started = true;
           } catch { /* not this profile */ }
         }
 
@@ -911,13 +925,13 @@ export default function Home() {
             await BleClient.startNotifications(deviceId, GOVEE_SERVICE, GOVEE_CHAR_DATA, (dv) => {
               const tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
               if (tempF !== null && tempF > 25 && tempF < 120)
-                setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
+                setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
             });
             try {
               await BleClient.writeWithoutResponse(deviceId, GOVEE_SERVICE, GOVEE_CHAR_PROTO,
                 new DataView(new Uint8Array([0xAA, 0x01]).buffer));
             } catch { /* ignore */ }
-            started = true;
+            protocol = "govee"; started = true;
           } catch { /* not Govee */ }
         }
 
@@ -926,18 +940,19 @@ export default function Home() {
           try {
             await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
               const tempF = parseTp25Temperature(dv);
-              if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
+              if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
             });
             try {
               await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
                 new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer));
             } catch { /* some firmware versions don't need this */ }
-            started = true;
+            protocol = "tp25"; started = true;
           } catch { /* not TP25 */ }
         }
 
         if (!cancelled) {
-          if (started) {
+          if (started && protocol) {
+            startThermoKeepalive(deviceId, protocol);
             setBtConnected(true);
             toast({ title: "Thermometer reconnected", description: name });
           } else {
@@ -1001,16 +1016,32 @@ export default function Home() {
   }, []);
   // ─────────────────────────────────────────────────────────────────────────
 
+  // Helper: start keep-alive pings so the thermometer doesn't time out
+  function startThermoKeepalive(deviceId: string, protocol: "gatt" | "govee" | "tp25") {
+    if (btKeepaliveRef.current) clearInterval(btKeepaliveRef.current);
+    if (protocol === "tp25") {
+      btKeepaliveRef.current = setInterval(() => {
+        BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
+          new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)).catch(() => {});
+      }, 20_000);
+    } else if (protocol === "govee") {
+      btKeepaliveRef.current = setInterval(() => {
+        BleClient.writeWithoutResponse(deviceId, GOVEE_SERVICE, GOVEE_CHAR_PROTO,
+          new DataView(new Uint8Array([0xAA, 0x01]).buffer)).catch(() => {});
+      }, 20_000);
+    }
+    // GATT health thermometer is indication-based, no keep-alive needed
+  }
+
   const connectThermometer = async () => {
     if (!assertBleAvailable()) return;
     try {
       setBtConnecting(true);
       await BleClient.initialize();
 
-      // Show picker filtered to TP25 + standard health thermometers
+      // Show all nearby BLE devices — user picks their thermometer
       const device = await BleClient.requestDevice({
-        services: [TP25_SERVICE, HEALTH_THERM_SERVICE],
-        optionalServices: [GOVEE_SERVICE],
+        optionalServices: [TP25_SERVICE, HEALTH_THERM_SERVICE, GOVEE_SERVICE],
       });
 
       const deviceId = device.deviceId;
@@ -1020,6 +1051,7 @@ export default function Home() {
 
       await BleClient.connect(deviceId, () => {
         // Native disconnect callback
+        if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
         setBtConnected(false);
         toast({ title: "Thermometer disconnected", description: device.name ?? "Device lost connection." });
       });
@@ -1030,8 +1062,9 @@ export default function Home() {
       try {
         await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
           const tempF = parseBtTemperature(dv);
-          if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
+          if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
         });
+        btProtocolRef.current = "gatt";
         connected = true;
       } catch { /* device doesn't use standard profile */ }
 
@@ -1041,13 +1074,14 @@ export default function Home() {
           await BleClient.startNotifications(deviceId, GOVEE_SERVICE, GOVEE_CHAR_DATA, (dv) => {
             const tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
             if (tempF !== null && tempF > 25 && tempF < 120) {
-              setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
+              setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
             }
           });
           try {
             await BleClient.writeWithoutResponse(deviceId, GOVEE_SERVICE, GOVEE_CHAR_PROTO,
               new DataView(new Uint8Array([0xAA, 0x01]).buffer));
           } catch { /* ignore */ }
+          btProtocolRef.current = "govee";
           connected = true;
         } catch { /* device doesn't expose Govee service */ }
       }
@@ -1057,17 +1091,19 @@ export default function Home() {
         try {
           await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
             const tempF = parseTp25Temperature(dv);
-            if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
+            if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
           });
           try {
             await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
               new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer));
           } catch { /* some firmware versions don't need this */ }
+          btProtocolRef.current = "tp25";
           connected = true;
         } catch { /* device doesn't expose TP25 service */ }
       }
 
       if (connected) {
+        startThermoKeepalive(deviceId, btProtocolRef.current!);
         setBtConnected(true);
         toast({ title: "Thermometer connected", description: `${device.name ?? "Device"} — temperature will update automatically.` });
       } else {
@@ -1094,12 +1130,14 @@ export default function Home() {
   };
 
   const disconnectThermometer = async () => {
+    if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
     try {
       if (btDeviceRef.current) await BleClient.disconnect(btDeviceRef.current);
     } catch { /* ignore */ }
     setBtConnected(false);
     setBtDeviceName("");
     btDeviceRef.current = null;
+    btProtocolRef.current = null;
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1122,9 +1160,12 @@ export default function Home() {
     try {
       setHrConnecting(true);
       await BleClient.initialize();
+      // Use optionalServices so ALL nearby BLE devices appear in the picker —
+      // many smartwatches (Amazfit, Garmin, etc.) don't advertise the HR UUID
+      // in their scan packet unless you filter by device name, so a service
+      // filter would hide them entirely.
       const device = await BleClient.requestDevice({
-        services: [HR_SERVICE],
-        optionalServices: [],
+        optionalServices: [HR_SERVICE],
       });
       const deviceId = device.deviceId;
       hrDeviceIdRef.current = deviceId;
@@ -2973,6 +3014,30 @@ export default function Home() {
                   }
                 </button>
               )}
+              {/* Temperature calibration offset */}
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-blue-400/70 text-xs flex-1">Calibration offset</span>
+                <button
+                  data-testid="button-temp-offset-down"
+                  onClick={() => setBtTempOffset(v => Math.max(-10, +(v - 1).toFixed(0)))}
+                  className="w-7 h-7 rounded-lg bg-blue-800/60 text-white text-base font-bold flex items-center justify-center hover:bg-blue-700/60 transition-colors"
+                >−</button>
+                <span data-testid="text-temp-offset" className="text-white text-xs font-bold w-10 text-center">
+                  {btTempOffset > 0 ? `+${btTempOffset}` : btTempOffset}°{useCelsius ? "C" : "F"}
+                </span>
+                <button
+                  data-testid="button-temp-offset-up"
+                  onClick={() => setBtTempOffset(v => Math.min(10, +(v + 1).toFixed(0)))}
+                  className="w-7 h-7 rounded-lg bg-blue-800/60 text-white text-base font-bold flex items-center justify-center hover:bg-blue-700/60 transition-colors"
+                >+</button>
+                {btTempOffset !== 0 && (
+                  <button
+                    data-testid="button-temp-offset-reset"
+                    onClick={() => setBtTempOffset(0)}
+                    className="text-blue-400/60 text-[10px] hover:text-blue-300 transition-colors"
+                  >reset</button>
+                )}
+              </div>
             </div>
 
             {/* Heart Rate Monitor */}
