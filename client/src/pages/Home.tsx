@@ -832,20 +832,31 @@ export default function Home() {
   }
 
   // ─── BLE availability helper ─────────────────────────────────────────────
-  // Returns true if BLE can actually work: native Capacitor app, or a browser
-  // that exposes Web Bluetooth (desktop Chrome). Shows a toast and returns
-  // false when running as a web app in a mobile browser (Android Chrome /
-  // iOS Safari) where neither the native bridge nor Web Bluetooth is present.
-  const bleAvailable = Capacitor.isNativePlatform() ||
-    (typeof navigator !== "undefined" && !!(navigator as any).bluetooth);
+  // True only when BLE will actually work:
+  //   • Native Android/iOS with the BluetoothLe plugin properly synced, OR
+  //   • Desktop Chrome (Web Bluetooth API present)
+  // Notably false when: native app built without `npx cap sync android`, or
+  // any mobile browser (Android Chrome / iOS Safari).
+  const blePluginNative = Capacitor.isNativePlatform() && Capacitor.isPluginAvailable("BluetoothLe");
+  const bleAvailable = blePluginNative ||
+    (!Capacitor.isNativePlatform() && typeof navigator !== "undefined" && !!(navigator as any).bluetooth);
 
   function assertBleAvailable(): boolean {
     if (bleAvailable) return true;
-    toast({
-      title: "Bluetooth unavailable",
-      description: "Bluetooth sensors require the ColdStreak Android or iOS app. They are not supported in the mobile browser.",
-      variant: "destructive",
-    });
+    if (Capacitor.isNativePlatform()) {
+      // Native shell but plugin wasn't synced into this build
+      toast({
+        title: "Rebuild required",
+        description: "Run `npx cap sync android` then rebuild and reinstall the APK to enable Bluetooth.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Bluetooth unavailable",
+        description: "Bluetooth sensors require the ColdStreak Android or iOS app. They are not supported in the mobile browser.",
+        variant: "destructive",
+      });
+    }
     return false;
   }
   // ─────────────────────────────────────────────────────────────────────────
@@ -2899,8 +2910,20 @@ export default function Home() {
               <Bluetooth className="w-5 h-5 text-cyan-400" /> Bluetooth Devices
             </h2>
 
+            {/* Warning when BLE plugin is missing from this build */}
+            {!bleAvailable && Capacitor.isNativePlatform() && (
+              <div className="bg-red-900/30 border border-red-700/50 rounded-2xl px-4 py-3 flex gap-3 items-start">
+                <span className="text-red-400 text-lg shrink-0">⚠️</span>
+                <div>
+                  <p className="text-red-300 text-sm font-semibold">Rebuild required</p>
+                  <p className="text-red-400/80 text-xs leading-relaxed mt-0.5">
+                    The Bluetooth plugin wasn't included in this build. Run <span className="font-mono">npx cap sync android</span> then rebuild and reinstall the APK.
+                  </p>
+                </div>
+              </div>
+            )}
             {/* Mobile-browser warning — BLE only works in native Capacitor app */}
-            {!bleAvailable && (
+            {!bleAvailable && !Capacitor.isNativePlatform() && (
               <div className="bg-yellow-900/30 border border-yellow-700/50 rounded-2xl px-4 py-3 flex gap-3 items-start">
                 <span className="text-yellow-400 text-lg shrink-0">⚠️</span>
                 <div>
