@@ -880,26 +880,60 @@ export default function Home() {
           setBtConnected(false);
           toast({ title: "Thermometer disconnected", description: name });
         });
-        // Try TP25 first, then standard GATT
+        // Mirror the same 3-attempt order as manual connectThermometer
         let started = false;
-        try {
-          await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_NOTIFY_CHAR, (dv) => {
-            const tempF = parseTp25Temperature(dv);
-            if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
-          });
-          started = true;
-        } catch { /* not a TP25 */ }
+
+        // Attempt 1: Standard GATT health_thermometer
         if (!started) {
           try {
             await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
               const tempF = parseBtTemperature(dv);
               if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
             });
-          } catch { /* ignore */ }
+            started = true;
+          } catch { /* not this profile */ }
         }
+
+        // Attempt 2: Govee INTELLI_ROCKS
+        if (!started) {
+          try {
+            await BleClient.startNotifications(deviceId, GOVEE_SERVICE, GOVEE_CHAR_DATA, (dv) => {
+              const tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
+              if (tempF !== null && tempF > 25 && tempF < 120)
+                setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
+            });
+            try {
+              await BleClient.writeWithoutResponse(deviceId, GOVEE_SERVICE, GOVEE_CHAR_PROTO,
+                new DataView(new Uint8Array([0xAA, 0x01]).buffer));
+            } catch { /* ignore */ }
+            started = true;
+          } catch { /* not Govee */ }
+        }
+
+        // Attempt 3: ThermoPro TP25
+        if (!started) {
+          try {
+            await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
+              const tempF = parseTp25Temperature(dv);
+              if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF))));
+            });
+            try {
+              await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
+                new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer));
+            } catch { /* some firmware versions don't need this */ }
+            started = true;
+          } catch { /* not TP25 */ }
+        }
+
         if (!cancelled) {
-          setBtConnected(true);
-          toast({ title: "Thermometer reconnected", description: name });
+          if (started) {
+            setBtConnected(true);
+            toast({ title: "Thermometer reconnected", description: name });
+          } else {
+            // Connected at BLE level but no temp profile matched — disconnect cleanly
+            await BleClient.disconnect(deviceId).catch(() => {});
+            btDeviceRef.current = null;
+          }
         }
       } catch (err: any) {
         btDeviceRef.current = null;
