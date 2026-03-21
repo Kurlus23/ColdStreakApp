@@ -3345,17 +3345,47 @@ export default function Home() {
                   </button>
                 </div>
               ) : (
-                <button
-                  data-testid="button-bt-connect-devices"
-                  onClick={connectThermometer}
-                  disabled={btConnecting}
-                  className="w-full py-2 rounded-xl bg-cyan-900/30 border border-cyan-700/40 text-cyan-300 text-sm font-semibold hover:bg-cyan-900/50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {btConnecting
-                    ? <><span className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />Connecting…</>
-                    : <><Bluetooth className="w-4 h-4" />Pair Thermometer</>
-                  }
-                </button>
+                <div className="space-y-2">
+                  {/* Quick reconnect to last paired thermometer */}
+                  {(() => {
+                    try {
+                      const saved = localStorage.getItem("coldstreak-bt-thermo");
+                      if (!saved) return null;
+                      const { deviceId, name } = JSON.parse(saved) as { deviceId: string; name: string };
+                      return (
+                        <button
+                          data-testid="button-bt-quick-reconnect"
+                          onClick={() => reconnectThermoFromUI(deviceId, name)}
+                          disabled={btConnecting}
+                          className="w-full flex items-center gap-2 bg-blue-900/30 border border-blue-600/30 rounded-xl px-3 py-2 hover:bg-blue-800/40 transition-colors disabled:opacity-40"
+                        >
+                          <Snowflake className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                          <div className="flex-1 text-left min-w-0">
+                            <div className="text-blue-200 text-xs font-semibold truncate">
+                              {btConnecting ? "Connecting…" : <>Reconnect to <span className="text-white">{name || "Thermometer"}</span></>}
+                            </div>
+                            <div className="text-blue-400/60 text-[10px] font-mono truncate">{deviceId}</div>
+                          </div>
+                          {btConnecting
+                            ? <span className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                            : <span className="text-cyan-400 text-[10px] font-semibold shrink-0">Connect</span>
+                          }
+                        </button>
+                      );
+                    } catch { return null; }
+                  })()}
+
+                  {/* Pair a different / new thermometer */}
+                  <button
+                    data-testid="button-bt-connect-devices"
+                    onClick={connectThermometer}
+                    disabled={btConnecting}
+                    className="w-full py-2 rounded-xl bg-cyan-900/20 border border-cyan-700/30 text-cyan-400/80 text-xs font-semibold hover:bg-cyan-900/40 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <Bluetooth className="w-3.5 h-3.5" />
+                    {localStorage.getItem("coldstreak-bt-thermo") ? "Pair a different thermometer" : "Pair Thermometer"}
+                  </button>
+                </div>
               )}
               {/* Temperature calibration offset */}
               <div className="flex items-center gap-2 pt-1">
@@ -3485,8 +3515,16 @@ export default function Home() {
                           className="w-full flex items-center gap-2 bg-blue-900/30 border border-blue-600/30 rounded-xl px-3 py-2 hover:bg-blue-800/40 transition-colors disabled:opacity-40"
                         >
                           <Heart className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                          <span className="text-blue-200 text-xs flex-1 text-left truncate">Reconnect to <span className="font-semibold">{name || deviceId}</span></span>
-                          <span className="text-blue-400/60 text-[10px] font-mono shrink-0">{deviceId}</span>
+                          <div className="flex-1 text-left min-w-0">
+                            <div className="text-blue-200 text-xs font-semibold truncate">
+                              {hrConnecting ? "Connecting…" : <>Reconnect to <span className="text-white">{name || "Heart Rate Monitor"}</span></>}
+                            </div>
+                            <div className="text-blue-400/60 text-[10px] font-mono truncate">{deviceId}</div>
+                          </div>
+                          {hrConnecting
+                            ? <span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                            : <span className="text-red-400 text-[10px] font-semibold shrink-0">Connect</span>
+                          }
                         </button>
                       );
                     } catch { return null; }
