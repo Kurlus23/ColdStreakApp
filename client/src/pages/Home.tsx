@@ -1871,14 +1871,17 @@ export default function Home() {
               className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col"
               data-testid="card-water-temp"
             >
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-start justify-between mb-1">
                 <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest">Water Temp</div>
-                {btConnected && (
-                  <div className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                    <span className="text-green-400 text-[9px] font-semibold">Live</span>
-                  </div>
-                )}
+                {btConnected ? (
+                  <button onClick={() => navTo("devices")} className="flex flex-col items-end gap-[2px]" data-testid="button-bt-status-header">
+                    <div className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                      <span className="text-green-400 text-[9px] font-semibold">Live</span>
+                    </div>
+                    <span className="text-green-400/60 text-[8px] leading-none truncate max-w-[56px]">{btDeviceName || "Thermometer"}</span>
+                  </button>
+                ) : null}
               </div>
 
               {/* Styled native select — looks like a big number, native picker on tap */}
@@ -1937,18 +1940,16 @@ export default function Home() {
                 </div>
               )}
 
-              {/* BT thermometer status indicator — manage in Devices tab */}
-              <button
-                onClick={() => navTo("devices")}
-                className="mt-1 flex items-center gap-1 text-[10px] transition-colors w-full"
-                data-testid="button-bt-status"
-              >
-                {btConnected ? (
-                  <><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shrink-0" /><span className="text-green-400 truncate">{btDeviceName || "Thermometer"}</span></>
-                ) : (
-                  <><Bluetooth className="w-2.5 h-2.5 text-blue-500 shrink-0" /><span className="text-blue-500">Connect Thermometer</span></>
-                )}
-              </button>
+              {/* Connect Thermometer shortcut — only shown when disconnected */}
+              {!btConnected && (
+                <button
+                  onClick={() => navTo("devices")}
+                  className="mt-1 flex items-center gap-1 text-[10px] transition-colors w-full"
+                  data-testid="button-bt-status"
+                >
+                  <Bluetooth className="w-2.5 h-2.5 text-blue-500 shrink-0" /><span className="text-blue-500">Connect Thermometer</span>
+                </button>
+              )}
             </div>
 
             {/* Timer */}
