@@ -1,0 +1,103 @@
+🔑 What you’re actually looking for
+
+There are TWO different “3rd party HR” paths in the Zepp ecosystem:
+
+1. 📡 Bluetooth HR Broadcast (REAL-TIME)
+
+👉 This is what you want for apps/dev integration
+
+2. 🔗 App permission sharing (Health Connect / Apple Health)
+
+👉 This is delayed + not useful for live app integration
+
+✅ OPTION A — Real-time HR broadcast (the one you want)
+On the watch:
+Open Workout
+Pick any workout (you don’t have to start it yet)
+Scroll settings / options
+Look for:
+“Heart Rate Broadcast”
+or “HR Sharing”
+Turn it ON
+
+👉 Once enabled:
+
+The watch starts broadcasting HR over BLE
+Uses standard Bluetooth Heart Rate Profile (HRP)
+Your app can connect like it would to a chest strap
+⚠️ Important quirks (this trips people up)
+It’s often ONLY active during workouts
+It may:
+stop when workout ends
+require re-enabling
+Not visible in normal settings menus
+
+From real-world users:
+
+“Amazfit has a built-in heart rate share app, just turn it on”
+
+❌ OPTION B — Zepp “3rd party access” (NOT what you want)
+
+Path:
+
+Zepp app → Profile → 3rd-party account linking
+
+This includes:
+
+Health Connect
+Google Fit
+Strava
+
+You can enable heart rate permissions there:
+
+“Profile > 3rd-party account linking > Health Connect… allow heart rate”
+
+BUT:
+
+❌ Not real-time
+❌ Not accessible directly by your app
+❌ Cloud-mediated
+🧠 Key takeaway (for your cold plunge app)
+
+If your goal is:
+
+“pull HR into my app automatically”
+
+You want:
+Bluetooth HR broadcast mode
+NOT Zepp integrations
+🛠️ Dev-level detail (useful for you)
+
+Once broadcast is ON:
+
+Device appears like:
+Amazfit T-Rex 2
+or generic HR device
+Uses:
+Standard BLE Heart Rate Service (0x180D)
+Characteristic:
+0x2A37 (Heart Rate Measurement)
+
+👉 This is HUGE because:
+
+No reverse engineering needed
+Works with:
+iOS CoreBluetooth
+Android BLE
+any fitness API
+⚠️ One limitation (important for your app design)
+
+You cannot pull HR in the background continuously unless:
+
+workout is active
+or broadcast is manually enabled
+
+So UX-wise, you may need:
+
+“Start session” → triggers HR broadcast usage
+
+🏁 Bottom line
+There’s no obvious “3rd party HR” toggle in Zepp settings
+The feature is:
+👉 hidden inside workout → HR broadcast
+Uses standard BLE HR profile (easy to integrate once enabled)

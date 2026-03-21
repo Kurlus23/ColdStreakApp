@@ -9,7 +9,7 @@ import {
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2, FileText,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff, Heart
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -198,6 +198,15 @@ export default function Home() {
   const [btConnecting, setBtConnecting] = useState(false);
   const [btDeviceName, setBtDeviceName] = useState("");
   const btDeviceRef = useRef<string | null>(null); // stores deviceId (string)
+
+  // Heart rate monitor (separate BLE connection)
+  const [hrConnected, setHrConnected] = useState(false);
+  const [hrConnecting, setHrConnecting] = useState(false);
+  const [hrDeviceName, setHrDeviceName] = useState("");
+  const hrDeviceIdRef = useRef<string | null>(null);
+  const [currentHR, setCurrentHR] = useState<number | null>(null);
+  const [hrPeak, setHrPeak] = useState<number | null>(null);
+  const hrReadingsRef = useRef<number[]>([]);
 
   // Countdown
   const [countdownMode, setCountdownMode] = useState(false);
@@ -912,6 +921,71 @@ export default function Home() {
     setBtDeviceName("");
     btDeviceRef.current = null;
   };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Heart Rate Monitor (standard BLE Heart Rate Profile — 0x180D / 0x2A37)
+  // ─────────────────────────────────────────────────────────────────────────
+  const HR_SERVICE = "0000180d-0000-1000-8000-00805f9b34fb";
+  const HR_CHAR    = "00002a37-0000-1000-8000-00805f9b34fb";
+
+  function parseHeartRate(dv: DataView): number | null {
+    try {
+      const flags = dv.getUint8(0);
+      const is16bit = (flags & 0x01) !== 0;
+      const bpm = is16bit ? dv.getUint16(1, true) : dv.getUint8(1);
+      return bpm > 20 && bpm < 250 ? bpm : null;
+    } catch { return null; }
+  }
+
+  const connectHR = async () => {
+    try {
+      setHrConnecting(true);
+      await BleClient.initialize();
+      const device = await BleClient.requestDevice({
+        services: [HR_SERVICE],
+        optionalServices: [],
+      });
+      const deviceId = device.deviceId;
+      hrDeviceIdRef.current = deviceId;
+      setHrDeviceName(device.name ?? "Heart Rate Monitor");
+
+      await BleClient.connect(deviceId, () => {
+        setHrConnected(false);
+        setCurrentHR(null);
+        toast({ title: "Heart rate monitor disconnected", description: device.name ?? "Device lost connection." });
+      });
+
+      await BleClient.startNotifications(deviceId, HR_SERVICE, HR_CHAR, (dv) => {
+        const bpm = parseHeartRate(dv);
+        if (bpm !== null) {
+          setCurrentHR(bpm);
+          setHrPeak(prev => prev === null ? bpm : Math.max(prev, bpm));
+          hrReadingsRef.current.push(bpm);
+        }
+      });
+
+      setHrConnected(true);
+      toast({ title: "Heart rate monitor connected", description: `${device.name ?? "Device"} — live BPM active.` });
+    } catch (err: any) {
+      const msg = err?.message ?? "";
+      if (!msg.includes("cancelled") && !msg.includes("User cancelled") && err?.name !== "NotFoundError") {
+        toast({ title: "Connection failed", description: msg || "Could not connect to heart rate monitor.", variant: "destructive" });
+      }
+    } finally {
+      setHrConnecting(false);
+    }
+  };
+
+  const disconnectHR = async () => {
+    try {
+      if (hrDeviceIdRef.current) await BleClient.disconnect(hrDeviceIdRef.current);
+    } catch { /* ignore */ }
+    setHrConnected(false);
+    setHrDeviceName("");
+    setCurrentHR(null);
+    hrDeviceIdRef.current = null;
+  };
+  // ─────────────────────────────────────────────────────────────────────────
   // ─────────────────────────────────────────────────────────────────────────
 
   const doLogPlunge = useCallback((durationSec: number) => {
@@ -919,7 +993,13 @@ export default function Home() {
     const weightAtLogTime = Number(localStorage.getItem("coldstreak-body-weight") || 150);
     const caloriesAtLogTime = Math.round(estimateCalories(durationSec, temperature, weightAtLogTime));
     createPlunge.mutate(
-      { duration: durationSec, temperature, score: String(score), hrAvg: null, spo2Avg: null, timerUsed: true, calories: caloriesAtLogTime },
+      {
+        duration: durationSec, temperature, score: String(score), timerUsed: true, calories: caloriesAtLogTime,
+        hrAvg: hrReadingsRef.current.length > 0
+          ? Math.round(hrReadingsRef.current.reduce((a, b) => a + b, 0) / hrReadingsRef.current.length)
+          : null,
+        spo2Avg: null,
+      },
       {
         onSuccess: (newPlunge) => {
           Analytics.plungeLogged(durationSec, temperature, score);
@@ -1109,6 +1189,9 @@ export default function Home() {
   const handleReset = () => {
     if (countdownMode) { resetCountdown(); }
     else { setSeconds(0); setIsRunning(false); startTimeRef.current = null; }
+    // Clear HR session readings so avg is fresh for next plunge
+    hrReadingsRef.current = [];
+    setHrPeak(null);
   };
 
   const resetCountdown = () => {
@@ -1422,6 +1505,57 @@ export default function Home() {
               </button>
             </div>
           </div>
+
+          {/* Heart Rate Monitor — full-width strip below the 3-col grid */}
+          <div className="bg-blue-900/75 backdrop-blur-md rounded-2xl px-3.5 py-2.5 border border-blue-700/40 mb-2.5 flex items-center gap-3">
+            {/* Live BPM or idle state */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Heart className={`w-4 h-4 shrink-0 ${hrConnected && currentHR ? "text-red-400 animate-pulse" : "text-slate-500"}`} />
+              {hrConnected && currentHR ? (
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-white text-2xl font-bold leading-none">{currentHR}</span>
+                  <span className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest">BPM</span>
+                  {hrPeak && <span className="text-red-300/80 text-[10px] ml-1">↑{hrPeak}</span>}
+                </div>
+              ) : hrConnected ? (
+                <span className="text-blue-300 text-xs">Waiting for reading…</span>
+              ) : (
+                <span className="text-slate-400 text-xs">Heart Rate Monitor</span>
+              )}
+            </div>
+
+            {/* Connect / disconnect button */}
+            {hrConnected ? (
+              <button
+                data-testid="button-hr-disconnect"
+                onClick={disconnectHR}
+                className="flex items-center gap-1 text-[10px] text-green-400 hover:text-red-400 transition-colors shrink-0"
+                title="Tap to disconnect"
+              >
+                <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                <span className="truncate max-w-[80px]">{hrDeviceName || "Watch"}</span>
+              </button>
+            ) : (
+              <button
+                data-testid="button-hr-connect"
+                onClick={connectHR}
+                disabled={hrConnecting}
+                className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-cyan-300 transition-colors disabled:opacity-50 shrink-0"
+              >
+                {hrConnecting
+                  ? <><span className="w-2 h-2 border border-cyan-400 border-t-transparent rounded-full animate-spin" /><span>Connecting…</span></>
+                  : <><Bluetooth className="w-2.5 h-2.5" /><span>Connect Watch</span></>
+                }
+              </button>
+            )}
+          </div>
+
+          {/* Smartwatch note — only shown when not connected */}
+          {!hrConnected && (
+            <p className="text-blue-400/70 text-[10px] text-center mb-1.5 px-2" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>
+              ⌚ Smartwatch users: start a workout on your watch first to enable live HR data
+            </p>
+          )}
 
           {/* Weekly goal / score row */}
           <div
