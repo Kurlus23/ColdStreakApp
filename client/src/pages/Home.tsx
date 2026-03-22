@@ -456,7 +456,7 @@ export default function Home() {
   }, [stopWebCamera]);
 
   // Pro status
-  const { isPro, proEmail, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo, clearPro, verifyProForEmail } = useProStatus();
+  const { isPro, proEmail, proPlan, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo, clearPro, verifyProForEmail } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [pendingRestoreEmail, setPendingRestoreEmail] = useState<string | null>(null);
 
@@ -2643,13 +2643,22 @@ export default function Home() {
 
             {/* ColdStreak Pro */}
             {isPro ? (
-              <div className="bg-gradient-to-r from-cyan-900/60 to-blue-900/60 rounded-2xl p-4 border border-cyan-600/50 space-y-1">
+              <div className="bg-gradient-to-r from-cyan-900/60 to-blue-900/60 rounded-2xl p-4 border border-cyan-600/50 space-y-3">
                 <div className="flex items-center gap-2 text-white font-bold">
                   <Crown className="w-4 h-4 text-yellow-400" /> ColdStreak Pro
                   <CheckCircle2 className="w-4 h-4 text-green-400 ml-auto" />
                 </div>
                 <div className="text-cyan-300 text-xs">Active · {proEmail}</div>
-                <div className="text-blue-400 text-xs pt-1">Unlimited history · Chill Places · Advanced stats</div>
+                <div className="text-blue-400 text-xs">Unlimited history · Chill Places · Advanced stats</div>
+                {(proPlan === "monthly" || proPlan === "annual") && (
+                  <button
+                    data-testid="button-upgrade-to-lifetime"
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="w-full py-2 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+                  >
+                    <Crown className="w-3.5 h-3.5" /> Upgrade to Lifetime — $19.99
+                  </button>
+                )}
               </div>
             ) : (
               <div className="bg-gradient-to-r from-cyan-900/60 to-blue-900/60 rounded-2xl p-4 border border-cyan-700/50 space-y-3">
@@ -5672,27 +5681,42 @@ export default function Home() {
             </ul>
 
             {/* Pricing options */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-cyan-500/60 bg-cyan-900/20 p-3 text-center space-y-1">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Monthly</div>
-                <div className="text-2xl font-black text-white">$3.99</div>
-                <div className="text-cyan-300 text-xs">per year</div>
-                <div className="text-slate-400 text-[10px]">~$0.83/mo</div>
-              </div>
-              <div className="rounded-2xl border border-yellow-500/60 bg-yellow-900/20 p-3 text-center space-y-1 relative">
+            {(proPlan === "monthly" || proPlan === "annual") ? (
+              <div className="rounded-2xl border border-yellow-500/60 bg-yellow-900/20 p-4 text-center space-y-1 relative">
                 {lifetimePhase === 1 && (
                   <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-yellow-500 text-black text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">Early Adopter</div>
                 )}
                 <div className="text-[10px] font-bold uppercase tracking-wider text-yellow-400">Lifetime</div>
-                <div className="text-2xl font-black text-white">${lifetimePrice.toFixed(2)}</div>
-                <div className="text-yellow-300 text-xs">pay once, keep forever</div>
+                <div className="text-3xl font-black text-white">${lifetimePrice.toFixed(2)}</div>
+                <div className="text-yellow-300 text-xs">pay once, keep forever — cancel your subscription</div>
                 {lifetimeNextPrice && (
                   <div className="text-amber-400 text-[10px] font-semibold">intro price — rising to ${lifetimeNextPrice.toFixed(2)}</div>
                 )}
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-cyan-500/60 bg-cyan-900/20 p-3 text-center space-y-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Monthly</div>
+                  <div className="text-2xl font-black text-white">$3.99</div>
+                  <div className="text-cyan-300 text-xs">per month</div>
+                  <div className="text-slate-400 text-[10px]">cancel anytime</div>
+                </div>
+                <div className="rounded-2xl border border-yellow-500/60 bg-yellow-900/20 p-3 text-center space-y-1 relative">
+                  {lifetimePhase === 1 && (
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-yellow-500 text-black text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">Early Adopter</div>
+                  )}
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-yellow-400">Lifetime</div>
+                  <div className="text-2xl font-black text-white">${lifetimePrice.toFixed(2)}</div>
+                  <div className="text-yellow-300 text-xs">pay once, keep forever</div>
+                  {lifetimeNextPrice && (
+                    <div className="text-amber-400 text-[10px] font-semibold">intro price — rising to ${lifetimeNextPrice.toFixed(2)}</div>
+                  )}
+                </div>
+              </div>
+            )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className={(proPlan === "monthly" || proPlan === "annual") ? "" : "grid grid-cols-2 gap-3"}>
+              {!(proPlan === "monthly" || proPlan === "annual") && (
               <button
                 data-testid="button-checkout-monthly"
                 onClick={async () => {
@@ -5708,6 +5732,7 @@ export default function Home() {
               >
                 {proLoading ? "…" : "Get Monthly — $3.99"}
               </button>
+              )}
               <button
                 data-testid="button-checkout"
                 onClick={async () => {

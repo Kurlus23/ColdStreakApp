@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 
 const PRO_EMAIL_KEY = "coldstreak-pro-email";
 const PRO_STATUS_KEY = "coldstreak-is-pro";
+const PRO_PLAN_KEY = "coldstreak-pro-plan";
 const PROMO_EXPIRES_KEY = "coldstreak-promo-expires";
 const PROMO_OWNER_KEY = "coldstreak-promo-owner";
 const AUTH_USER_KEY = "coldstreak-auth-user";
@@ -43,6 +44,9 @@ export function useProStatus() {
   const [proEmail, setProEmail] = useState<string | null>(
     () => localStorage.getItem(PRO_EMAIL_KEY)
   );
+  const [proPlan, setProPlan] = useState<string | null>(
+    () => localStorage.getItem(PRO_PLAN_KEY)
+  );
   const [promoExpiresAt, setPromoExpiresAt] = useState<string | null>(
     () => localStorage.getItem(PROMO_EXPIRES_KEY)
   );
@@ -51,13 +55,15 @@ export function useProStatus() {
     () => localStorage.getItem(FOUNDING_PLUNGER_KEY) === "true"
   );
 
-  const markPro = useCallback((email: string, foundingPlunger = false) => {
+  const markPro = useCallback((email: string, foundingPlunger = false, planType?: string) => {
     localStorage.setItem(PRO_STATUS_KEY, "true");
     localStorage.setItem(PRO_EMAIL_KEY, email.toLowerCase());
     localStorage.setItem(FOUNDING_PLUNGER_KEY, String(foundingPlunger));
+    if (planType) localStorage.setItem(PRO_PLAN_KEY, planType);
     setIsPro(true);
     setProEmail(email.toLowerCase());
     setIsFoundingPlunger(foundingPlunger);
+    if (planType) setProPlan(planType);
   }, []);
 
   // Called on logout — clears Stripe pro flags but keeps promo so the same
@@ -66,9 +72,11 @@ export function useProStatus() {
     localStorage.removeItem(PRO_STATUS_KEY);
     localStorage.removeItem(PRO_EMAIL_KEY);
     localStorage.removeItem(FOUNDING_PLUNGER_KEY);
+    localStorage.removeItem(PRO_PLAN_KEY);
     setIsPro(false);
     setProEmail(null);
     setIsFoundingPlunger(false);
+    setProPlan(null);
     // Promo expiry + owner are intentionally kept so the same user recovers
     // their promo after logging back in. verifyProForEmail() will clear them
     // if the logged-in email doesn't match the promo owner.
@@ -81,7 +89,7 @@ export function useProStatus() {
       const res = await fetch(`/api/pro-status/${encodeURIComponent(norm)}`);
       const data = await res.json();
       if (data.isPro) {
-        markPro(data.email, data.foundingPlunger ?? false);
+        markPro(data.email, data.foundingPlunger ?? false, data.planType);
         return;
       }
     } catch { /* network error — fall through to promo check */ }
@@ -120,7 +128,7 @@ export function useProStatus() {
       .then((r) => r.json())
       .then((data) => {
         if (data.isPro) {
-          markPro(data.email, data.foundingPlunger ?? false);
+          markPro(data.email, data.foundingPlunger ?? false, data.planType);
         } else {
           clearPro();
         }
@@ -164,7 +172,7 @@ export function useProStatus() {
       const res = await fetch(`/api/stripe/verify?session_id=${sessionId}`);
       const data = await res.json();
       if (data.isPro && data.email) {
-        markPro(data.email, data.foundingPlunger ?? false);
+        markPro(data.email, data.foundingPlunger ?? false, data.planType);
         return true;
       }
     } catch (e) {
@@ -181,7 +189,7 @@ export function useProStatus() {
       const res = await fetch(`/api/pro-status/${encodeURIComponent(email)}`);
       const data = await res.json();
       if (data.isPro) {
-        markPro(data.email, data.foundingPlunger ?? false);
+        markPro(data.email, data.foundingPlunger ?? false, data.planType);
         return true;
       }
     } catch (e) {
@@ -209,7 +217,7 @@ export function useProStatus() {
       if (loggedInEmail) {
         // Lock promo to this account and mark Stripe-style so restore works
         localStorage.setItem(PROMO_OWNER_KEY, loggedInEmail.toLowerCase());
-        markPro(loggedInEmail, false);
+        markPro(loggedInEmail, false, "promo");
       }
       return { success: true, durationDays: data.durationDays };
     } catch {
@@ -219,5 +227,5 @@ export function useProStatus() {
     }
   }, [markPro]);
 
-  return { isPro, proEmail, promoExpiresAt, loading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, clearPro, redeemPromo, verifyProForEmail };
+  return { isPro, proEmail, proPlan, promoExpiresAt, loading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, clearPro, redeemPromo, verifyProForEmail };
 }
