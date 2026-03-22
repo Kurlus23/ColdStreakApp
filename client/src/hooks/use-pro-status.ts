@@ -145,7 +145,7 @@ export function useProStatus() {
         window.location.href = data.url;
         return { success: true };
       }
-      return { success: false, error: data.message ?? "Could not start checkout. Please try again." };
+      return { success: false, error: data.detail ?? data.message ?? "Could not start checkout. Please try again." };
     } catch (e) {
       console.error("Checkout failed", e);
       return { success: false, error: "Network error. Please check your connection and try again." };

@@ -609,9 +609,12 @@ export async function registerRoutes(
       });
 
       res.json({ url: session.url });
-    } catch (err) {
-      console.error("Stripe checkout error:", err);
-      res.status(500).json({ message: "Failed to create checkout session" });
+    } catch (err: any) {
+      console.error("Stripe checkout error:", err?.message ?? err);
+      res.status(500).json({
+        message: "Failed to create checkout session",
+        detail: TEST_MODE ? (err?.message ?? String(err)) : undefined,
+      });
     }
   });
 
