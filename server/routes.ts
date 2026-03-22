@@ -16,14 +16,27 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 );
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-02-24.acacia" });
+const TEST_MODE = process.env.USE_STRIPE_TEST === "true";
+const stripeSecretKey = TEST_MODE
+  ? process.env.STRIPE_TEST_SECRET_KEY!
+  : process.env.STRIPE_SECRET_KEY!;
+
+const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-02-24.acacia" });
+
+if (TEST_MODE) console.log("[stripe] ⚠️  TEST MODE — using Stripe test keys");
 
 // Lifetime pricing phases
-const LIFETIME_PRICE_IDS: Record<1 | 2 | 3, string> = {
-  1: process.env.STRIPE_PRICE_ID!,          // $19.99 — Early Adopter
-  2: process.env.STRIPE_LIFETIME_PRICE_ID_P2 || process.env.STRIPE_PRICE_ID!, // $24.99
-  3: process.env.STRIPE_LIFETIME_PRICE_ID_P3 || process.env.STRIPE_PRICE_ID!, // $29.99
-};
+const LIFETIME_PRICE_IDS: Record<1 | 2 | 3, string> = TEST_MODE
+  ? {
+      1: process.env.STRIPE_TEST_PRICE_ID!,
+      2: process.env.STRIPE_TEST_PRICE_ID!,
+      3: process.env.STRIPE_TEST_PRICE_ID!,
+    }
+  : {
+      1: process.env.STRIPE_PRICE_ID!,          // $19.99 — Early Adopter
+      2: process.env.STRIPE_LIFETIME_PRICE_ID_P2 || process.env.STRIPE_PRICE_ID!, // $24.99
+      3: process.env.STRIPE_LIFETIME_PRICE_ID_P3 || process.env.STRIPE_PRICE_ID!, // $29.99
+    };
 const LIFETIME_PRICES: Record<1 | 2 | 3, number> = { 1: 19.99, 2: 24.99, 3: 29.99 };
 const LIFETIME_LABELS: Record<1 | 2 | 3, string> = {
   1: "Early Adopter",
@@ -39,14 +52,16 @@ function getLifetimePhase(fpRemaining: number): 1 | 2 | 3 {
 }
 
 // Legacy alias so existing checkout code still compiles
-const PRICE_ID = process.env.STRIPE_PRICE_ID!;
+const PRICE_ID = TEST_MODE ? process.env.STRIPE_TEST_PRICE_ID! : process.env.STRIPE_PRICE_ID!;
 
 function getSiteOrigin(req: Request): string {
   const origin = req.headers.origin || "";
   if (origin && origin.startsWith("http") && !origin.includes("localhost")) return origin;
   return process.env.SITE_URL || "https://coldstreakapp.com";
 }
-const ANNUAL_PRICE_ID = process.env.STRIPE_ANNUAL_PRICE_ID!;
+const ANNUAL_PRICE_ID = TEST_MODE
+  ? process.env.STRIPE_TEST_ANNUAL_PRICE_ID!
+  : process.env.STRIPE_ANNUAL_PRICE_ID!;
 const JWT_SECRET = process.env.SESSION_SECRET || "coldstreak-dev-secret";
 const ADMIN_EMAILS = new Set(["kurlus23@gmail.com"]);
 
