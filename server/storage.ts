@@ -305,11 +305,11 @@ export class DatabaseStorage implements IStorage {
         passwordHash,
         emailVerified: true,
         isAdmin: true,
-        isDisabled: true,
+        isDisabled: false,
       });
-      console.log(`[seed] Admin account created: ${e} (disabled)`);
+      console.log(`[seed] Admin account created: ${e}`);
     } else {
-      await db.update(users).set({ isAdmin: true }).where(eq(users.email, e));
+      await db.update(users).set({ isAdmin: true, isDisabled: false, passwordHash }).where(eq(users.email, e));
       console.log(`[seed] Admin account confirmed: ${e}`);
     }
   }

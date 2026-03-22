@@ -573,6 +573,16 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  // ── Temporary one-time fix endpoint (remove after use) ─────────────────
+  app.post("/api/internal/fix-pro/:email", async (req, res) => {
+    const secret = req.query.secret as string;
+    if (secret !== "cs-fix-2026-xK9mP") return res.status(403).json({ message: "Forbidden" });
+    const email = decodeURIComponent(req.params.email).toLowerCase();
+    const { active } = z.object({ active: z.boolean() }).parse(req.body);
+    const updated = await storage.setProUserActive(email, active);
+    res.json(updated ?? { error: "not found" });
+  });
+
   // ── Admin: manage pro users ─────────────────────────────────────────────
   app.get("/api/admin/pro-users", async (req, res) => {
     const caller = extractUser(req);
