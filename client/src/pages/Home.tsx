@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import { Camera as CapCamera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { Capacitor } from "@capacitor/core";
+import { App as CapApp } from "@capacitor/app";
 import { BleClient } from "@capacitor-community/bluetooth-le";
 import { savePhoto } from "@/lib/photoStore";
 import icebergBg from "@assets/image_1773152998246.png";
@@ -460,7 +461,41 @@ export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [pendingRestoreEmail, setPendingRestoreEmail] = useState<string | null>(null);
 
-  // Native app: auto-restore Pro when user returns from Stripe checkout in external browser
+  // Native app: handle deep link return from Stripe checkout via Android App Links
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let listenerHandle: { remove: () => void } | null = null;
+    CapApp.addListener("appUrlOpen", async (data: { url: string }) => {
+      try {
+        const url = new URL(data.url);
+        const sessionId = url.searchParams.get("session_id");
+        if (sessionId) {
+          localStorage.removeItem(PENDING_CHECKOUT_KEY);
+          const success = await verifySession(sessionId);
+          if (success) {
+            toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "All Pro features are now unlocked." });
+          } else {
+            toast({ title: "Payment not confirmed", description: "If you completed payment, try Restore Purchase.", variant: "destructive" });
+          }
+          return;
+        }
+        const pendingEmail = localStorage.getItem(PENDING_CHECKOUT_KEY);
+        if (!pendingEmail) return;
+        localStorage.removeItem(PENDING_CHECKOUT_KEY);
+        if (pendingEmail !== "unknown") {
+          const success = await restorePurchase(pendingEmail);
+          if (success) {
+            toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "All Pro features are now unlocked." });
+            return;
+          }
+        }
+        setPendingRestoreEmail(pendingEmail === "unknown" ? "" : pendingEmail);
+      } catch {}
+    }).then((h) => { listenerHandle = h; });
+    return () => { listenerHandle?.remove(); };
+  }, [verifySession, restorePurchase]);
+
+  // Native app: fallback restore via visibility change (for non-App-Link returns)
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     const handleVisibility = async () => {
