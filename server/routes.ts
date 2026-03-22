@@ -795,6 +795,33 @@ export async function registerRoutes(
     res.json({ received: true });
   });
 
+  // ── Stripe Customer Portal (manage/cancel subscription) ─────────────────
+  app.post("/api/stripe/portal", async (req, res) => {
+    try {
+      const caller = extractUser(req);
+      if (!caller) return res.status(401).json({ message: "Not logged in" });
+
+      const user = await storage.getProUser(caller.email);
+      if (!user?.stripeSubscriptionId) {
+        return res.status(400).json({ message: "No active subscription found" });
+      }
+
+      const sub = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+      const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+
+      const { returnUrl } = z.object({ returnUrl: z.string().url() }).parse(req.body);
+      const session = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: returnUrl,
+      });
+
+      res.json({ url: session.url });
+    } catch (err) {
+      console.error("Portal error:", err);
+      res.status(500).json({ message: "Could not open subscription portal" });
+    }
+  });
+
   app.get("/api/pro-status/:email", async (req, res) => {
     const email = decodeURIComponent(req.params.email).toLowerCase();
     const user = await storage.getProUser(email);

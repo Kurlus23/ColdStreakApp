@@ -2651,13 +2651,36 @@ export default function Home() {
                 <div className="text-cyan-300 text-xs">Active · {proEmail}</div>
                 <div className="text-blue-400 text-xs">Unlimited history · Chill Places · Advanced stats</div>
                 {(proPlan === "monthly" || proPlan === "annual") && (
-                  <button
-                    data-testid="button-upgrade-to-lifetime"
-                    onClick={() => setShowUpgradeModal(true)}
-                    className="w-full py-2 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
-                  >
-                    <Crown className="w-3.5 h-3.5" /> Upgrade to Lifetime — $19.99
-                  </button>
+                  <div className="space-y-2">
+                    <button
+                      data-testid="button-upgrade-to-lifetime"
+                      onClick={() => setShowUpgradeModal(true)}
+                      className="w-full py-2 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+                    >
+                      <Crown className="w-3.5 h-3.5" /> Upgrade to Lifetime — $19.99
+                    </button>
+                    <button
+                      data-testid="button-manage-subscription"
+                      onClick={async () => {
+                        try {
+                          const token = localStorage.getItem("coldstreak-auth-token");
+                          const res = await fetch("/api/stripe/portal", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                            body: JSON.stringify({ returnUrl: window.location.origin + "/" }),
+                          });
+                          const data = await res.json();
+                          if (data.url) window.open(data.url, "_blank");
+                          else toast({ title: "Unable to open portal", description: data.message ?? "Please try again.", variant: "destructive" });
+                        } catch {
+                          toast({ title: "Network error", description: "Please check your connection.", variant: "destructive" });
+                        }
+                      }}
+                      className="w-full py-2 rounded-xl border border-blue-600/50 text-blue-400 text-xs font-semibold transition-all active:scale-[0.98] hover:border-blue-400 flex items-center justify-center gap-1.5"
+                    >
+                      Manage / Cancel Subscription
+                    </button>
+                  </div>
                 )}
               </div>
             ) : (
