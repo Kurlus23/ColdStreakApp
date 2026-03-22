@@ -24,6 +24,8 @@ const stripeSecretKey = TEST_MODE
 const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-02-24.acacia" });
 
 if (TEST_MODE) console.log("[stripe] ⚠️  TEST MODE — using Stripe test keys");
+if (TEST_MODE) console.log("[stripe] TEST_PRICE_ID:", process.env.STRIPE_TEST_PRICE_ID);
+if (TEST_MODE) console.log("[stripe] TEST_ANNUAL_PRICE_ID:", process.env.STRIPE_TEST_ANNUAL_PRICE_ID);
 
 // Lifetime pricing phases
 const LIFETIME_PRICE_IDS: Record<1 | 2 | 3, string> = TEST_MODE
