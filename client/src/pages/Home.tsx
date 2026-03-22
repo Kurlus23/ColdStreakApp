@@ -2117,27 +2117,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Heart Rate Monitor — full-width status strip, tap to manage in Devices */}
-          <button
-            data-testid="card-hr-status"
-            onClick={() => navTo("devices")}
-            className="bg-blue-900/75 backdrop-blur-md rounded-2xl px-3.5 py-2.5 border border-blue-700/40 mb-2.5 flex items-center gap-3 w-full text-left"
-          >
-            <Heart className={`w-4 h-4 shrink-0 ${hrConnected && currentHR ? "text-red-400 animate-pulse" : "text-slate-500"}`} />
-            {hrConnected && currentHR ? (
-              <div className="flex items-baseline gap-1.5 flex-1">
-                <span className="text-white text-2xl font-bold leading-none">{currentHR}</span>
-                <span className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest">BPM</span>
-                {hrPeak && <span className="text-red-300/80 text-[10px] ml-1">↑{hrPeak}</span>}
-              </div>
-            ) : (
-              <span className="text-slate-400 text-xs flex-1">{hrConnected ? "Waiting for reading…" : "Heart Rate Monitor"}</span>
-            )}
-            {hrConnected
-              ? <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shrink-0" />
-              : <Bluetooth className="w-3 h-3 text-blue-600 shrink-0" />
-            }
-          </button>
 
           {/* Affiliate banner ad — in-content so it never overlaps readouts */}
           {!isPro && !showPostSessionAd && <BannerAd />}
