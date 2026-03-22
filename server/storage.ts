@@ -6,7 +6,7 @@ import {
   type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile, type PushSubscription,
   type BusinessListing,
 } from "@shared/schema";
-import { desc, eq, sql, or, isNull, and } from "drizzle-orm";
+import { desc, eq, sql, or, isNull, and, not } from "drizzle-orm";
 
 export interface IStorage {
   // Plunges
@@ -158,13 +158,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProUserCount(): Promise<number> {
-    const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(proUsers).where(eq(proUsers.active, true));
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(proUsers)
+      .where(and(eq(proUsers.active, true), not(eq(proUsers.planType, "promo"))));
     return count;
   }
 
   async createProUser(email: string, stripeSessionId: string, opts?: { planType?: string; stripeSubscriptionId?: string; expiresAt?: Date }): Promise<ProUser> {
     const count = await this.getProUserCount();
-    const isFounder = count < 1000;
+    const isPaidPlan = opts?.planType !== "promo";
+    const isFounder = isPaidPlan && count < 1000;
     const [user] = await db
       .insert(proUsers)
       .values({
