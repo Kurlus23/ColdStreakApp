@@ -287,28 +287,6 @@ export default function Home() {
     });
   }, []);
 
-  // Native app: auto-restore Pro when user returns from Stripe checkout in external browser
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-    const handleVisibility = async () => {
-      if (document.visibilityState !== "visible") return;
-      const pendingEmail = localStorage.getItem(PENDING_CHECKOUT_KEY);
-      if (!pendingEmail) return;
-      localStorage.removeItem(PENDING_CHECKOUT_KEY);
-      // If we have a real email, try to restore silently
-      if (pendingEmail !== "unknown") {
-        const success = await restorePurchase(pendingEmail);
-        if (success) {
-          toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "All Pro features are now unlocked." });
-          return;
-        }
-      }
-      // Fall back to showing the restore email prompt
-      setPendingRestoreEmail(pendingEmail === "unknown" ? "" : pendingEmail);
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [restorePurchase]);
 
   // Handle business listing verification return
   useEffect(() => {
@@ -481,6 +459,28 @@ export default function Home() {
   const { isPro, proEmail, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo, clearPro, verifyProForEmail } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [pendingRestoreEmail, setPendingRestoreEmail] = useState<string | null>(null);
+
+  // Native app: auto-restore Pro when user returns from Stripe checkout in external browser
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const handleVisibility = async () => {
+      if (document.visibilityState !== "visible") return;
+      const pendingEmail = localStorage.getItem(PENDING_CHECKOUT_KEY);
+      if (!pendingEmail) return;
+      localStorage.removeItem(PENDING_CHECKOUT_KEY);
+      if (pendingEmail !== "unknown") {
+        const success = await restorePurchase(pendingEmail);
+        if (success) {
+          toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "All Pro features are now unlocked." });
+          return;
+        }
+      }
+      setPendingRestoreEmail(pendingEmail === "unknown" ? "" : pendingEmail);
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [restorePurchase]);
+
   const { data: fpCountData } = useQuery<{ count: number; remaining: number; limit: number }>({
     queryKey: ["/api/founding-plunger-count"],
     enabled: showUpgradeModal,
