@@ -26,6 +26,7 @@ const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-02-24.acacia" });
 if (TEST_MODE) console.log("[stripe] ⚠️  TEST MODE — using Stripe test keys");
 if (TEST_MODE) console.log("[stripe] TEST_PRICE_ID:", process.env.STRIPE_TEST_PRICE_ID);
 if (TEST_MODE) console.log("[stripe] TEST_ANNUAL_PRICE_ID:", process.env.STRIPE_TEST_ANNUAL_PRICE_ID);
+if (TEST_MODE) console.log("[stripe] TEST_MONTHLY_PRICE_ID:", process.env.STRIPE_TEST_MONTHLY_PRICE_ID);
 
 // Lifetime pricing phases
 const LIFETIME_PRICE_IDS: Record<1 | 2 | 3, string> = TEST_MODE
@@ -64,6 +65,9 @@ function getSiteOrigin(req: Request): string {
 const ANNUAL_PRICE_ID = TEST_MODE
   ? process.env.STRIPE_TEST_ANNUAL_PRICE_ID!
   : process.env.STRIPE_ANNUAL_PRICE_ID!;
+const MONTHLY_PRICE_ID = TEST_MODE
+  ? process.env.STRIPE_TEST_MONTHLY_PRICE_ID!
+  : (process.env.STRIPE_MONTHLY_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID!);
 const JWT_SECRET = process.env.SESSION_SECRET || "coldstreak-dev-secret";
 const ADMIN_EMAILS = new Set(["kurlus23@gmail.com"]);
 
@@ -590,12 +594,13 @@ export async function registerRoutes(
       const { successUrl, cancelUrl, plan } = z.object({
         successUrl: z.string().url(),
         cancelUrl: z.string().url(),
-        plan: z.enum(["lifetime", "annual"]).default("lifetime"),
+        plan: z.enum(["lifetime", "annual", "monthly"]).default("lifetime"),
       }).parse(req.body);
 
-      const isAnnual = plan === "annual";
+      const isSubscription = plan === "annual" || plan === "monthly";
+      const subscriptionPriceId = plan === "monthly" ? MONTHLY_PRICE_ID : ANNUAL_PRICE_ID;
       let lifetimePriceId = PRICE_ID;
-      if (!isAnnual) {
+      if (!isSubscription) {
         const count = await storage.getProUserCount();
         const fpRemaining = Math.max(0, 1000 - count);
         const phase = getLifetimePhase(fpRemaining);
@@ -603,8 +608,8 @@ export async function registerRoutes(
       }
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
-        line_items: [{ price: isAnnual ? ANNUAL_PRICE_ID : lifetimePriceId, quantity: 1 }],
-        mode: isAnnual ? "subscription" : "payment",
+        line_items: [{ price: isSubscription ? subscriptionPriceId : lifetimePriceId, quantity: 1 }],
+        mode: isSubscription ? "subscription" : "payment",
         success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: cancelUrl,
         allow_promotion_codes: true,
@@ -637,18 +642,21 @@ export async function registerRoutes(
         return res.status(400).json({ message: "No email on session" });
       }
 
-      const isAnnual = session.mode === "subscription";
+      const isSubscription = session.mode === "subscription";
       let subscriptionId: string | undefined;
       let expiresAt: Date | undefined;
+      let planType = "lifetime";
 
-      if (isAnnual && session.subscription) {
+      if (isSubscription && session.subscription) {
         const sub = session.subscription as Stripe.Subscription;
         subscriptionId = sub.id;
         expiresAt = new Date(sub.current_period_end * 1000);
+        const interval = sub.items?.data?.[0]?.plan?.interval;
+        planType = interval === "month" ? "monthly" : "annual";
       }
 
       const proUser = await storage.createProUser(email, session_id, {
-        planType: isAnnual ? "annual" : "lifetime",
+        planType,
         stripeSubscriptionId: subscriptionId,
         expiresAt,
       });
