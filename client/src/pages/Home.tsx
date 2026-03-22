@@ -491,7 +491,7 @@ export default function Home() {
         }
         setPendingRestoreEmail(pendingEmail === "unknown" ? "" : pendingEmail);
       } catch {}
-    }).then((h) => { listenerHandle = h; });
+    }).then((h: { remove: () => void }) => { listenerHandle = h; });
     return () => { listenerHandle?.remove(); };
   }, [verifySession, restorePurchase]);
 
