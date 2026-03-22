@@ -2578,7 +2578,7 @@ export default function Home() {
                             </p>
                             <p className="text-blue-400 text-[11px]">Upgrade to Pro to see your full history</p>
                           </div>
-                          <span className="ml-auto text-yellow-400 font-bold text-sm shrink-0">from $9.99</span>
+                          <span className="ml-auto text-yellow-400 font-bold text-sm shrink-0">from $3.99</span>
                         </div>
 
                         <div className="grid grid-cols-2 gap-1.5">
@@ -2655,7 +2655,7 @@ export default function Home() {
               <div className="bg-gradient-to-r from-cyan-900/60 to-blue-900/60 rounded-2xl p-4 border border-cyan-700/50 space-y-3">
                 <div className="flex items-center gap-2 text-white font-bold">
                   <Crown className="w-4 h-4 text-yellow-400" /> ColdStreak Pro
-                  <span className="ml-auto text-yellow-400 text-sm font-bold">from $9.99</span>
+                  <span className="ml-auto text-yellow-400 text-sm font-bold">from $3.99</span>
                 </div>
                 <ul className="space-y-1 text-blue-300 text-xs">
                   {["Unlimited plunge history", "Chill Places + leaderboards", "Advanced stats & personal bests", "CSV / Apple Health export", "No ads"].map((f) => (
@@ -2667,7 +2667,7 @@ export default function Home() {
                   onClick={() => setShowUpgradeModal(true)}
                   className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white font-bold text-sm transition-all active:scale-[0.98]"
                 >
-                  Upgrade to Pro — from $9.99/yr
+                  Upgrade to Pro — from $3.99/yr
                 </button>
                 {!showSettingsRestore ? (
                   <button
@@ -4282,7 +4282,7 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">Purchases &amp; Refunds</p>
-                    <p className="text-blue-200 text-xs leading-relaxed">ColdStreak Pro is available as a Lifetime purchase ($19.99 introductory price, rising to $29.99 — non-refundable, yours forever) or an Annual subscription ($9.99/yr, auto-renewing, cancel anytime). All sales are final except where required by applicable law. See our full Terms of Service for details.</p>
+                    <p className="text-blue-200 text-xs leading-relaxed">ColdStreak Pro is available as a Lifetime purchase ($19.99 introductory price, rising to $29.99 — non-refundable, yours forever) or an Annual subscription ($3.99/yr, auto-renewing, cancel anytime). All sales are final except where required by applicable law. See our full Terms of Service for details.</p>
                   </div>
                   <div>
                     <p className="text-blue-300 text-[11px] font-bold uppercase tracking-widest mb-1">Limitation of Liability</p>
@@ -5675,7 +5675,7 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl border border-cyan-500/60 bg-cyan-900/20 p-3 text-center space-y-1">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Annual</div>
-                <div className="text-2xl font-black text-white">$9.99</div>
+                <div className="text-2xl font-black text-white">$3.99</div>
                 <div className="text-cyan-300 text-xs">per year</div>
                 <div className="text-slate-400 text-[10px]">~$0.83/mo</div>
               </div>
@@ -5706,7 +5706,7 @@ export default function Home() {
                 disabled={proLoading}
                 className="w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white font-bold text-sm shadow-lg shadow-cyan-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
               >
-                {proLoading ? "…" : "Get Annual — $9.99"}
+                {proLoading ? "…" : "Get Annual — $3.99"}
               </button>
               <button
                 data-testid="button-checkout"
