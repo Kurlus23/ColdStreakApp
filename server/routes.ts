@@ -170,6 +170,23 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  // ── Android App Links verification ──────────────────────────────────────
+  app.get("/.well-known/assetlinks.json", (_req, res) => {
+    const sha256 = process.env.ANDROID_SHA256_CERT;
+    const links = sha256
+      ? [{
+          relation: ["delegate_permission/common.handle_all_urls"],
+          target: {
+            namespace: "android_app",
+            package_name: "com.coldstreak.app",
+            sha256_cert_fingerprints: [sha256],
+          },
+        }]
+      : [];
+    res.setHeader("Content-Type", "application/json");
+    res.json(links);
+  });
+
   await seedPromoCodes();
   await seedTestVerifiedBusiness();
   await seedAdminAccount();
