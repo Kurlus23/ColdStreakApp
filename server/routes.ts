@@ -843,26 +843,20 @@ export async function registerRoutes(
     const email = decodeURIComponent(req.params.email).toLowerCase();
     const user = await storage.getProUser(email);
     const isExpired = user?.expiresAt ? new Date(user.expiresAt) < new Date() : false;
-    if (user && user.active && !isExpired) {
+    const isActiveNonLifetime = user && user.active && !isExpired && user.planType !== "lifetime";
+
+    // If already lifetime in DB, return immediately
+    if (user && user.active && !isExpired && user.planType === "lifetime") {
       return res.json({ email: user.email, isPro: true, foundingPlunger: user.foundingPlunger, planType: user.planType });
     }
 
-    // DB shows inactive — check Stripe directly for a valid payment so restore
-    // works even if verifySession was never called (e.g. old APK without appUrlOpen)
+    // Check Stripe directly:
+    // - Always if DB shows inactive/expired (restore)
+    // - Also if DB shows monthly/annual (may have upgraded to lifetime without verifySession)
     try {
       const customers = await stripe.customers.list({ email, limit: 5 });
       for (const customer of customers.data) {
-        // Check active subscriptions
-        const subs = await stripe.subscriptions.list({ customer: customer.id, status: "active", limit: 3 });
-        if (subs.data.length > 0) {
-          const sub = subs.data[0];
-          const interval = sub.items?.data?.[0]?.plan?.interval;
-          const planType = interval === "month" ? "monthly" : "annual";
-          const expiresAt = new Date(sub.current_period_end * 1000);
-          const proUser = await storage.createProUser(email, sub.id, { planType, stripeSubscriptionId: sub.id, expiresAt });
-          return res.json({ email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType });
-        }
-        // Check recent successful one-time payments (lifetime)
+        // Check for a one-time lifetime payment first (highest priority)
         const sessions = await stripe.checkout.sessions.list({ customer: customer.id, limit: 10 });
         for (const session of sessions.data) {
           if (session.payment_status === "paid" && session.mode === "payment") {
@@ -870,9 +864,26 @@ export async function registerRoutes(
             return res.json({ email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType });
           }
         }
+        // Check active subscriptions (monthly/annual)
+        if (!isActiveNonLifetime) {
+          const subs = await stripe.subscriptions.list({ customer: customer.id, status: "active", limit: 3 });
+          if (subs.data.length > 0) {
+            const sub = subs.data[0];
+            const interval = sub.items?.data?.[0]?.plan?.interval;
+            const planType = interval === "month" ? "monthly" : "annual";
+            const expiresAt = new Date(sub.current_period_end * 1000);
+            const proUser = await storage.createProUser(email, sub.id, { planType, stripeSubscriptionId: sub.id, expiresAt });
+            return res.json({ email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType });
+          }
+        }
       }
     } catch (err) {
       console.error("Stripe restore check failed:", err);
+    }
+
+    // Fall back to DB value if active (monthly/annual and Stripe check found nothing new)
+    if (isActiveNonLifetime) {
+      return res.json({ email: user!.email, isPro: true, foundingPlunger: user!.foundingPlunger, planType: user!.planType });
     }
 
     res.json({ email, isPro: false, foundingPlunger: false });
