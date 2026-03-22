@@ -844,10 +844,38 @@ export async function registerRoutes(
     const user = await storage.getProUser(email);
     const isExpired = user?.expiresAt ? new Date(user.expiresAt) < new Date() : false;
     if (user && user.active && !isExpired) {
-      res.json({ email: user.email, isPro: true, foundingPlunger: user.foundingPlunger, planType: user.planType });
-    } else {
-      res.json({ email, isPro: false, foundingPlunger: false });
+      return res.json({ email: user.email, isPro: true, foundingPlunger: user.foundingPlunger, planType: user.planType });
     }
+
+    // DB shows inactive — check Stripe directly for a valid payment so restore
+    // works even if verifySession was never called (e.g. old APK without appUrlOpen)
+    try {
+      const customers = await stripe.customers.list({ email, limit: 5 });
+      for (const customer of customers.data) {
+        // Check active subscriptions
+        const subs = await stripe.subscriptions.list({ customer: customer.id, status: "active", limit: 3 });
+        if (subs.data.length > 0) {
+          const sub = subs.data[0];
+          const interval = sub.items?.data?.[0]?.plan?.interval;
+          const planType = interval === "month" ? "monthly" : "annual";
+          const expiresAt = new Date(sub.current_period_end * 1000);
+          const proUser = await storage.createProUser(email, sub.id, { planType, stripeSubscriptionId: sub.id, expiresAt });
+          return res.json({ email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType });
+        }
+        // Check recent successful one-time payments (lifetime)
+        const sessions = await stripe.checkout.sessions.list({ customer: customer.id, limit: 10 });
+        for (const session of sessions.data) {
+          if (session.payment_status === "paid" && session.mode === "payment") {
+            const proUser = await storage.createProUser(email, session.id, { planType: "lifetime" });
+            return res.json({ email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Stripe restore check failed:", err);
+    }
+
+    res.json({ email, isPro: false, foundingPlunger: false });
   });
 
   app.post("/api/promo/redeem", async (req, res) => {
