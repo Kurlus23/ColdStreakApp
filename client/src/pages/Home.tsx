@@ -3729,6 +3729,32 @@ export default function Home() {
         </div>
       )}
 
+      {/* ─── DEVICES PRO FROST OVERLAY ─── */}
+      {screen === "devices" && !isPro && (
+        <div className="absolute top-20 bottom-20 left-0 right-0 z-20 backdrop-blur-md bg-blue-950/60 flex flex-col items-center justify-center gap-5 px-8">
+          <Crown className="w-12 h-12 text-yellow-400/90" />
+          <div className="text-center">
+            <div className="text-white font-bold text-xl mb-2">Pro Feature</div>
+            <div className="text-blue-300/80 text-sm leading-relaxed">
+              Bluetooth thermometer and heart rate monitor integration requires ColdStreak Pro.
+            </div>
+          </div>
+          <button
+            data-testid="button-devices-upgrade"
+            onClick={() => setShowUpgradeModal(true)}
+            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-sm shadow-lg shadow-yellow-500/30 hover:from-yellow-400 hover:to-orange-400 transition-all active:scale-95"
+          >
+            Upgrade to Pro
+          </button>
+          <button
+            onClick={() => navTo("timer")}
+            className="text-blue-400/60 text-xs hover:text-blue-300 transition-colors"
+          >
+            Go back
+          </button>
+        </div>
+      )}
+
       {/* ─── ACHIEVEMENTS SCREEN ─── */}
       {screen === "achievements" && (() => {
         const allStates = [...new Set(PASSPORT_LOCATIONS.map((l) => l.state))].sort();
