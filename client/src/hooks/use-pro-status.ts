@@ -6,6 +6,7 @@ const PROMO_EXPIRES_KEY = "coldstreak-promo-expires";
 const PROMO_OWNER_KEY = "coldstreak-promo-owner";
 const AUTH_USER_KEY = "coldstreak-auth-user";
 const FOUNDING_PLUNGER_KEY = "coldstreak-founding-plunger";
+export const PENDING_CHECKOUT_KEY = "coldstreak-pending-checkout";
 
 function getLoggedInEmail(): string | null {
   try {
@@ -142,6 +143,9 @@ export function useProStatus() {
       });
       const data = await res.json();
       if (data.url) {
+        // Flag that we're leaving for Stripe — native app uses this to auto-restore on return
+        const emailForRestore = getLoggedInEmail();
+        localStorage.setItem(PENDING_CHECKOUT_KEY, emailForRestore ?? "unknown");
         window.location.href = data.url;
         return { success: true };
       }

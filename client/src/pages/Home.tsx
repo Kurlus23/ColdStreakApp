@@ -18,7 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { usePlunges, useCreatePlunge, useUpdatePlunge, useDeletePlunge } from "@/hooks/use-plunges";
 import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry, type LeaderboardEntryWithBadge } from "@/hooks/use-leaderboard";
-import { useProStatus } from "@/hooks/use-pro-status";
+import { useProStatus, PENDING_CHECKOUT_KEY } from "@/hooks/use-pro-status";
 import { PlungeCard, buildShareText } from "@/components/PlungeCard";
 import { BannerAd, FeedAd, InterstitialAd } from "@/components/AdUnit";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
@@ -276,6 +276,7 @@ export default function Home() {
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get("session_id");
     if (!sessionId) return;
+    localStorage.removeItem(PENDING_CHECKOUT_KEY);
     verifySession(sessionId).then((success) => {
       if (success) {
         toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "All Pro features are now unlocked." });
@@ -285,6 +286,29 @@ export default function Home() {
       window.history.replaceState({}, "", window.location.pathname);
     });
   }, []);
+
+  // Native app: auto-restore Pro when user returns from Stripe checkout in external browser
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const handleVisibility = async () => {
+      if (document.visibilityState !== "visible") return;
+      const pendingEmail = localStorage.getItem(PENDING_CHECKOUT_KEY);
+      if (!pendingEmail) return;
+      localStorage.removeItem(PENDING_CHECKOUT_KEY);
+      // If we have a real email, try to restore silently
+      if (pendingEmail !== "unknown") {
+        const success = await restorePurchase(pendingEmail);
+        if (success) {
+          toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "All Pro features are now unlocked." });
+          return;
+        }
+      }
+      // Fall back to showing the restore email prompt
+      setPendingRestoreEmail(pendingEmail === "unknown" ? "" : pendingEmail);
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [restorePurchase]);
 
   // Handle business listing verification return
   useEffect(() => {
@@ -456,6 +480,7 @@ export default function Home() {
   // Pro status
   const { isPro, proEmail, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo, clearPro, verifyProForEmail } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [pendingRestoreEmail, setPendingRestoreEmail] = useState<string | null>(null);
   const { data: fpCountData } = useQuery<{ count: number; remaining: number; limit: number }>({
     queryKey: ["/api/founding-plunger-count"],
     enabled: showUpgradeModal,
@@ -5551,6 +5576,49 @@ export default function Home() {
           adIndex={plunges.length % 3}
           onDismiss={() => setShowPostSessionAd(false)}
         />
+      )}
+
+      {/* ─── POST-CHECKOUT RESTORE PROMPT (native app return from Stripe) ─── */}
+      {pendingRestoreEmail !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-5">
+          <div className="w-full max-w-sm bg-gradient-to-b from-blue-950 to-slate-950 rounded-3xl border border-blue-700/50 shadow-2xl p-6 space-y-4">
+            <div className="text-center space-y-1">
+              <div className="text-3xl">🎉</div>
+              <h2 className="text-white font-bold text-lg">Confirm your purchase</h2>
+              <p className="text-blue-300/80 text-sm">Enter the email you used at checkout to activate Pro.</p>
+            </div>
+            <input
+              data-testid="input-restore-email"
+              type="email"
+              value={pendingRestoreEmail}
+              onChange={e => setPendingRestoreEmail(e.target.value)}
+              placeholder="Email used at Stripe checkout"
+              className="w-full rounded-xl bg-blue-900/50 border border-blue-700/50 text-white placeholder-blue-500 px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500"
+            />
+            <button
+              data-testid="button-confirm-restore"
+              disabled={proLoading || !pendingRestoreEmail.includes("@")}
+              onClick={async () => {
+                const success = await restorePurchase(pendingRestoreEmail);
+                if (success) {
+                  toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "All Pro features are now unlocked." });
+                  setPendingRestoreEmail(null);
+                } else {
+                  toast({ title: "Not found", description: "No Pro account found for that email. Check the address and try again.", variant: "destructive" });
+                }
+              }}
+              className="w-full py-3 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-bold text-sm disabled:opacity-50 transition-all active:scale-[0.98]"
+            >
+              {proLoading ? "Checking…" : "Activate Pro"}
+            </button>
+            <button
+              onClick={() => setPendingRestoreEmail(null)}
+              className="w-full text-blue-500/60 text-xs hover:text-blue-400 transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
       )}
 
       {/* ─── UPGRADE MODAL ─── */}
