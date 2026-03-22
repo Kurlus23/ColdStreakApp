@@ -573,6 +573,24 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  // ── Admin: manage pro users ─────────────────────────────────────────────
+  app.get("/api/admin/pro-users", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const users = await storage.getAllProUsers();
+    res.json(users);
+  });
+
+  app.patch("/api/admin/pro-users/:email", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const email = decodeURIComponent(req.params.email).toLowerCase();
+    const { active } = z.object({ active: z.boolean() }).parse(req.body);
+    const updated = await storage.setProUserActive(email, active);
+    if (!updated) return res.status(404).json({ message: "User not found" });
+    res.json(updated);
+  });
+
   // ── Admin: hide / unhide locations ─────────────────────────────────────
   app.patch("/api/admin/locations/:id/visibility", async (req, res) => {
     const caller = extractUser(req);

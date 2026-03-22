@@ -21,10 +21,12 @@ export interface IStorage {
   deleteLeaderboardEntry(id: number): Promise<void>;
   // Pro users
   getProUser(email: string): Promise<ProUser | null>;
+  getAllProUsers(): Promise<ProUser[]>;
   getProUserCount(): Promise<number>;
   createProUser(email: string, stripeSessionId: string, opts?: { planType?: string; stripeSubscriptionId?: string; expiresAt?: Date }): Promise<ProUser>;
   updateProUserSubscription(subscriptionId: string, expiresAt: Date): Promise<void>;
   deactivateProUserBySubscriptionId(subscriptionId: string): Promise<void>;
+  setProUserActive(email: string, active: boolean): Promise<ProUser | null>;
   // Promo codes
   getPromoCode(code: string): Promise<PromoCode | null>;
   redeemPromoCode(code: string): Promise<PromoCode | null>;
@@ -155,6 +157,19 @@ export class DatabaseStorage implements IStorage {
   async getProUser(email: string): Promise<ProUser | null> {
     const [user] = await db.select().from(proUsers).where(eq(proUsers.email, email.toLowerCase()));
     return user ?? null;
+  }
+
+  async getAllProUsers(): Promise<ProUser[]> {
+    return db.select().from(proUsers).orderBy(desc(proUsers.createdAt));
+  }
+
+  async setProUserActive(email: string, active: boolean): Promise<ProUser | null> {
+    const [updated] = await db
+      .update(proUsers)
+      .set({ active })
+      .where(eq(proUsers.email, email.toLowerCase()))
+      .returning();
+    return updated ?? null;
   }
 
   async getProUserCount(): Promise<number> {
