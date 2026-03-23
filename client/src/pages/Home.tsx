@@ -461,13 +461,14 @@ export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [pendingRestoreEmail, setPendingRestoreEmail] = useState<string | null>(null);
 
-  // Native app: handle deep link return from Stripe checkout via Android App Links
+  // Native app: handle deep link return from Stripe checkout via Android App Links.
+  // Covers both fresh-launch (getLaunchUrl) and resume (appUrlOpen) cases.
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    let listenerHandle: { remove: () => void } | null = null;
-    CapApp.addListener("appUrlOpen", async (data: { url: string }) => {
+
+    const handleStripeUrl = async (urlStr: string) => {
       try {
-        const url = new URL(data.url);
+        const url = new URL(urlStr);
         const sessionId = url.searchParams.get("session_id");
         if (sessionId) {
           localStorage.removeItem(PENDING_CHECKOUT_KEY);
@@ -491,7 +492,19 @@ export default function Home() {
         }
         setPendingRestoreEmail(pendingEmail === "unknown" ? "" : pendingEmail);
       } catch {}
+    };
+
+    // Check launch URL (app opened fresh via deep link — event fires before React mounts)
+    CapApp.getLaunchUrl().then((result) => {
+      if (result?.url) handleStripeUrl(result.url);
+    });
+
+    // Also listen for resume via deep link (app already running)
+    let listenerHandle: { remove: () => void } | null = null;
+    CapApp.addListener("appUrlOpen", (data: { url: string }) => {
+      handleStripeUrl(data.url);
     }).then((h: { remove: () => void }) => { listenerHandle = h; });
+
     return () => { listenerHandle?.remove(); };
   }, [verifySession, restorePurchase]);
 

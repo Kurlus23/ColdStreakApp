@@ -124,7 +124,7 @@ export function useProStatus() {
       return;
     }
 
-    fetch(`/api/pro-status/${encodeURIComponent(cachedEmail)}`)
+    fetch(`/api/pro-status/${encodeURIComponent(cachedEmail)}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
         if (data.isPro) {
@@ -186,7 +186,7 @@ export function useProStatus() {
   const restorePurchase = useCallback(async (email: string): Promise<boolean> => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/pro-status/${encodeURIComponent(email)}`);
+      const res = await fetch(`/api/pro-status/${encodeURIComponent(email)}`, { cache: "no-store" });
       const data = await res.json();
       if (data.isPro) {
         markPro(data.email, data.foundingPlunger ?? false, data.planType);
