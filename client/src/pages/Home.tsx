@@ -850,6 +850,7 @@ export default function Home() {
   const handleLogout = () => {
     auth.logout();
     clearPro();
+    setShowPostSessionAd(false);
     setSyncDone(false);
     localStorage.removeItem("coldstreak-username");
     localStorage.removeItem("coldstreak-body-weight");
@@ -5663,7 +5664,7 @@ export default function Home() {
 
 
       {/* ─── POST-SESSION AD ─── */}
-      {showPostSessionAd && !isPro && (
+      {showPostSessionAd && !isPro && !!auth.user && (
         <InterstitialAd
           adIndex={plunges.length % 3}
           onDismiss={() => setShowPostSessionAd(false)}
