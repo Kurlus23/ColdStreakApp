@@ -515,15 +515,20 @@ export default function Home() {
       if (document.visibilityState !== "visible") return;
       const pendingEmail = localStorage.getItem(PENDING_CHECKOUT_KEY);
       if (!pendingEmail) return;
-      localStorage.removeItem(PENDING_CHECKOUT_KEY);
       if (pendingEmail !== "unknown") {
         const success = await restorePurchase(pendingEmail);
         if (success) {
+          localStorage.removeItem(PENDING_CHECKOUT_KEY);
           toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "All Pro features are now unlocked." });
           return;
         }
+        // Restore failed — payment may not be complete yet, keep the key so
+        // the next visibilitychange can retry when the user returns after paying
+        return;
       }
-      setPendingRestoreEmail(pendingEmail === "unknown" ? "" : pendingEmail);
+      // Unknown email — show the manual entry dialog
+      localStorage.removeItem(PENDING_CHECKOUT_KEY);
+      setPendingRestoreEmail("");
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
