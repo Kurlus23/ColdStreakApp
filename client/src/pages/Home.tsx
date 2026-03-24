@@ -846,7 +846,7 @@ export default function Home() {
     localStorage.removeItem("coldstreak-body-weight");
     setUsername("");
     setBodyWeightLbs(154);
-    queryClient.invalidateQueries({ queryKey: ["/api/plunges"] });
+    queryClient.removeQueries({ queryKey: ["/api/plunges"] });
   };
 
   const exportCSV = () => {
