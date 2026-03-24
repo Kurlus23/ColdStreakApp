@@ -684,6 +684,8 @@ export async function registerRoutes(
         success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: cancelUrl,
         allow_promotion_codes: true,
+        // Pass email so Stripe reuses the same customer record instead of creating duplicates
+        ...(email ? { customer_email: email } : {}),
       });
 
       res.json({ url: session.url });
