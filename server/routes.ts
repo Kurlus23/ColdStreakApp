@@ -643,7 +643,7 @@ export async function registerRoutes(
             for (const s of sessions.data) {
               if (s.payment_status === "paid" && s.mode === "payment") {
                 const proUser = await storage.createProUser(email.toLowerCase(), s.id, { planType: "lifetime" });
-                return res.json({ activated: true, email: proUser.email, planType: proUser.planType, foundingPlunger: proUser.foundingPlunger });
+                return res.json({ activated: true, email: proUser.email, planType: proUser.planType, foundingPlunger: proUser.foundingPlunger, message: "Lifetime access activated! If Pro features aren't showing, use Restore Purchase." });
               }
             }
           }
