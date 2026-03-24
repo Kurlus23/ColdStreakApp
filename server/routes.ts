@@ -72,19 +72,34 @@ const JWT_SECRET = process.env.SESSION_SECRET || "coldstreak-dev-secret";
 const ADMIN_EMAILS = new Set(["kurlus23@gmail.com"]);
 
 // In-memory cache for pro-status Stripe lookups (avoids ~1.5s Stripe API call on every load)
-const proStatusCache = new Map<string, { result: object; expiresAt: number }>();
-const PRO_STATUS_TTL_MS = 5 * 60 * 1000; // 5 minutes
-function getProStatusCache(email: string) {
-  const cached = proStatusCache.get(email);
-  if (cached && cached.expiresAt > Date.now()) return cached.result;
-  return null;
+// Caches: customer IDs (slow lookup), subscription status (monthly/annual)
+// NOT cached: one-time payment check (needed to detect lifetime upgrades immediately)
+const customerIdCache = new Map<string, { ids: string[]; expiresAt: number }>();
+const subscriptionCache = new Map<string, { result: object; expiresAt: number }>();
+const CUSTOMER_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const SUB_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function getCachedCustomerIds(email: string): string[] | null {
+  const c = customerIdCache.get(email);
+  return c && c.expiresAt > Date.now() ? c.ids : null;
 }
-function setProStatusCache(email: string, result: object) {
-  proStatusCache.set(email, { result, expiresAt: Date.now() + PRO_STATUS_TTL_MS });
+function setCachedCustomerIds(email: string, ids: string[]) {
+  customerIdCache.set(email, { ids, expiresAt: Date.now() + CUSTOMER_TTL_MS });
+}
+function getCachedSubscription(email: string) {
+  const c = subscriptionCache.get(email);
+  return c && c.expiresAt > Date.now() ? c.result : null;
+}
+function setCachedSubscription(email: string, result: object) {
+  subscriptionCache.set(email, { result, expiresAt: Date.now() + SUB_TTL_MS });
 }
 function clearProStatusCache(email: string) {
-  proStatusCache.delete(email);
+  customerIdCache.delete(email);
+  subscriptionCache.delete(email);
 }
+// Legacy alias used in pro-status endpoint
+function setProStatusCache(email: string, result: object) { setCachedSubscription(email, result); }
+function getProStatusCache(email: string) { return getCachedSubscription(email); }
 
 interface JwtPayload { userId: number; email: string; isAdmin?: boolean; }
 
@@ -879,42 +894,59 @@ export async function registerRoutes(
 
   app.get("/api/pro-status/:email", async (req, res) => {
     const email = decodeURIComponent(req.params.email).toLowerCase();
+    const noCache = req.query.noCache === "1";
     const user = await storage.getProUser(email);
     const isExpired = user?.expiresAt ? new Date(user.expiresAt) < new Date() : false;
     const isActiveNonLifetime = user && user.active && !isExpired && user.planType !== "lifetime";
 
     // If already lifetime in DB, return immediately (no Stripe needed)
     if (user && user.active && !isExpired && user.planType === "lifetime") {
-      const cached = { email: user.email, isPro: true, foundingPlunger: user.foundingPlunger, planType: user.planType };
-      setProStatusCache(email, cached);
-      return res.json(cached);
+      const result = { email: user.email, isPro: true, foundingPlunger: user.foundingPlunger, planType: user.planType };
+      setProStatusCache(email, result);
+      return res.json(result);
     }
 
-    // Return cached Stripe result only for active monthly/annual (not for inactive/expired — always re-check)
-    if (isActiveNonLifetime) {
-      const cached = getProStatusCache(email);
-      if (cached) return res.json(cached);
+    // Resolve Stripe customer IDs — cached to avoid the slow customers.list() on every call
+    let customerIds = getCachedCustomerIds(email);
+    if (!customerIds) {
+      try {
+        const customers = await stripe.customers.list({ email, limit: 10 });
+        customerIds = customers.data.map((c) => c.id);
+        setCachedCustomerIds(email, customerIds);
+      } catch (err) {
+        console.error("Stripe customer lookup failed:", err);
+        customerIds = [];
+      }
     }
 
-    // Check Stripe directly:
-    // - Always if DB shows inactive/expired (restore)
-    // - Also if DB shows monthly/annual (may have upgraded to lifetime without verifySession)
-    try {
-      const customers = await stripe.customers.list({ email, limit: 5 });
-      for (const customer of customers.data) {
-        // Check for a one-time lifetime payment first (highest priority)
-        const sessions = await stripe.checkout.sessions.list({ customer: customer.id, limit: 10 });
+    // ALWAYS check Stripe for one-time lifetime payments (never cached — detects upgrades immediately)
+    for (const customerId of customerIds) {
+      try {
+        const sessions = await stripe.checkout.sessions.list({ customer: customerId, limit: 10 });
         for (const session of sessions.data) {
           if (session.payment_status === "paid" && session.mode === "payment") {
             const proUser = await storage.createProUser(email, session.id, { planType: "lifetime" });
             const result = { email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType };
-            setProStatusCache(email, result);
+            clearProStatusCache(email); // clear sub cache so next load reflects lifetime from DB
             return res.json(result);
           }
         }
-        // Check active subscriptions (monthly/annual)
-        if (!isActiveNonLifetime) {
-          const subs = await stripe.subscriptions.list({ customer: customer.id, status: "active", limit: 3 });
+      } catch (err) {
+        console.error("Stripe session check failed:", err);
+      }
+    }
+
+    // For subscription status: use cache to avoid repeated slow calls (skip cache with ?noCache=1)
+    if (isActiveNonLifetime && !noCache) {
+      const cached = getProStatusCache(email);
+      if (cached) return res.json(cached);
+    }
+
+    // Check active subscriptions (monthly/annual) — only if not already active in DB
+    if (!isActiveNonLifetime) {
+      for (const customerId of customerIds) {
+        try {
+          const subs = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 3 });
           if (subs.data.length > 0) {
             const sub = subs.data[0];
             const interval = sub.items?.data?.[0]?.plan?.interval;
@@ -922,19 +954,19 @@ export async function registerRoutes(
             const expiresAt = new Date(sub.current_period_end * 1000);
             const proUser = await storage.createProUser(email, sub.id, { planType, stripeSubscriptionId: sub.id, expiresAt });
             const result = { email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType };
-            setProStatusCache(email, result);
+            setCachedSubscription(email, result);
             return res.json(result);
           }
+        } catch (err) {
+          console.error("Stripe subscription check failed:", err);
         }
       }
-    } catch (err) {
-      console.error("Stripe restore check failed:", err);
     }
 
-    // Fall back to DB value if active (monthly/annual and Stripe check found nothing new)
+    // Fall back to DB value if active monthly/annual
     if (isActiveNonLifetime) {
       const result = { email: user!.email, isPro: true, foundingPlunger: user!.foundingPlunger, planType: user!.planType };
-      setProStatusCache(email, result);
+      setCachedSubscription(email, result);
       return res.json(result);
     }
 

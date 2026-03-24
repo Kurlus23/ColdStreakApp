@@ -192,7 +192,7 @@ export function useProStatus() {
   const restorePurchase = useCallback(async (email: string): Promise<{ success: boolean; planType?: string }> => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/pro-status/${encodeURIComponent(email)}`, { cache: "no-store" });
+      const res = await fetch(`/api/pro-status/${encodeURIComponent(email)}?noCache=1`, { cache: "no-store" });
       const data = await res.json();
       if (data.isPro) {
         markPro(data.email, data.foundingPlunger ?? false, data.planType);
