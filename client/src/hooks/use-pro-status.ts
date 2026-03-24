@@ -189,21 +189,21 @@ export function useProStatus() {
     return false;
   }, [markPro]);
 
-  const restorePurchase = useCallback(async (email: string): Promise<boolean> => {
+  const restorePurchase = useCallback(async (email: string): Promise<{ success: boolean; planType?: string }> => {
     setLoading(true);
     try {
       const res = await fetch(`/api/pro-status/${encodeURIComponent(email)}`, { cache: "no-store" });
       const data = await res.json();
       if (data.isPro) {
         markPro(data.email, data.foundingPlunger ?? false, data.planType);
-        return true;
+        return { success: true, planType: data.planType };
       }
     } catch (e) {
       console.error("Restore failed", e);
     } finally {
       setLoading(false);
     }
-    return false;
+    return { success: false };
   }, [markPro]);
 
   const redeemPromo = useCallback(async (code: string): Promise<{ success: boolean; durationDays?: number; error?: string }> => {

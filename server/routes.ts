@@ -71,6 +71,21 @@ const MONTHLY_PRICE_ID = TEST_MODE
 const JWT_SECRET = process.env.SESSION_SECRET || "coldstreak-dev-secret";
 const ADMIN_EMAILS = new Set(["kurlus23@gmail.com"]);
 
+// In-memory cache for pro-status Stripe lookups (avoids ~1.5s Stripe API call on every load)
+const proStatusCache = new Map<string, { result: object; expiresAt: number }>();
+const PRO_STATUS_TTL_MS = 5 * 60 * 1000; // 5 minutes
+function getProStatusCache(email: string) {
+  const cached = proStatusCache.get(email);
+  if (cached && cached.expiresAt > Date.now()) return cached.result;
+  return null;
+}
+function setProStatusCache(email: string, result: object) {
+  proStatusCache.set(email, { result, expiresAt: Date.now() + PRO_STATUS_TTL_MS });
+}
+function clearProStatusCache(email: string) {
+  proStatusCache.delete(email);
+}
+
 interface JwtPayload { userId: number; email: string; isAdmin?: boolean; }
 
 function signToken(payload: JwtPayload): string {
@@ -605,6 +620,7 @@ export async function registerRoutes(
     const { active } = z.object({ active: z.boolean() }).parse(req.body);
     const updated = await storage.setProUserActive(email, active);
     if (!updated) return res.status(404).json({ message: "User not found" });
+    clearProStatusCache(email);
     res.json(updated);
   });
 
@@ -865,9 +881,17 @@ export async function registerRoutes(
     const isExpired = user?.expiresAt ? new Date(user.expiresAt) < new Date() : false;
     const isActiveNonLifetime = user && user.active && !isExpired && user.planType !== "lifetime";
 
-    // If already lifetime in DB, return immediately
+    // If already lifetime in DB, return immediately (no Stripe needed)
     if (user && user.active && !isExpired && user.planType === "lifetime") {
-      return res.json({ email: user.email, isPro: true, foundingPlunger: user.foundingPlunger, planType: user.planType });
+      const cached = { email: user.email, isPro: true, foundingPlunger: user.foundingPlunger, planType: user.planType };
+      setProStatusCache(email, cached);
+      return res.json(cached);
+    }
+
+    // Return cached Stripe result only for active monthly/annual (not for inactive/expired — always re-check)
+    if (isActiveNonLifetime) {
+      const cached = getProStatusCache(email);
+      if (cached) return res.json(cached);
     }
 
     // Check Stripe directly:
@@ -881,7 +905,9 @@ export async function registerRoutes(
         for (const session of sessions.data) {
           if (session.payment_status === "paid" && session.mode === "payment") {
             const proUser = await storage.createProUser(email, session.id, { planType: "lifetime" });
-            return res.json({ email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType });
+            const result = { email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType };
+            setProStatusCache(email, result);
+            return res.json(result);
           }
         }
         // Check active subscriptions (monthly/annual)
@@ -893,7 +919,9 @@ export async function registerRoutes(
             const planType = interval === "month" ? "monthly" : "annual";
             const expiresAt = new Date(sub.current_period_end * 1000);
             const proUser = await storage.createProUser(email, sub.id, { planType, stripeSubscriptionId: sub.id, expiresAt });
-            return res.json({ email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType });
+            const result = { email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType };
+            setProStatusCache(email, result);
+            return res.json(result);
           }
         }
       }
@@ -903,7 +931,9 @@ export async function registerRoutes(
 
     // Fall back to DB value if active (monthly/annual and Stripe check found nothing new)
     if (isActiveNonLifetime) {
-      return res.json({ email: user!.email, isPro: true, foundingPlunger: user!.foundingPlunger, planType: user!.planType });
+      const result = { email: user!.email, isPro: true, foundingPlunger: user!.foundingPlunger, planType: user!.planType };
+      setProStatusCache(email, result);
+      return res.json(result);
     }
 
     res.json({ email, isPro: false, foundingPlunger: false });

@@ -482,14 +482,18 @@ export default function Home() {
         }
         const pendingEmail = localStorage.getItem(PENDING_CHECKOUT_KEY);
         if (!pendingEmail) return;
-        localStorage.removeItem(PENDING_CHECKOUT_KEY);
         if (pendingEmail !== "unknown") {
-          const success = await restorePurchase(pendingEmail);
-          if (success) {
-            toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "All Pro features are now unlocked." });
+          const result = await restorePurchase(pendingEmail);
+          if (result.success && result.planType === "lifetime") {
+            localStorage.removeItem(PENDING_CHECKOUT_KEY);
+            toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "Lifetime access unlocked." });
+            return;
+          } else if (result.success && result.planType !== "lifetime") {
+            // Still monthly — keep the key so we keep retrying on next return
             return;
           }
         }
+        localStorage.removeItem(PENDING_CHECKOUT_KEY);
         setPendingRestoreEmail(pendingEmail === "unknown" ? "" : pendingEmail);
       } catch {}
     };
@@ -516,14 +520,14 @@ export default function Home() {
       const pendingEmail = localStorage.getItem(PENDING_CHECKOUT_KEY);
       if (!pendingEmail) return;
       if (pendingEmail !== "unknown") {
-        const success = await restorePurchase(pendingEmail);
-        if (success) {
+        const result = await restorePurchase(pendingEmail);
+        if (result.success && result.planType === "lifetime") {
+          // Successfully upgraded to lifetime — clear key and celebrate
           localStorage.removeItem(PENDING_CHECKOUT_KEY);
-          toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "All Pro features are now unlocked." });
+          toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "Lifetime access unlocked." });
           return;
         }
-        // Restore failed — payment may not be complete yet, keep the key so
-        // the next visibilitychange can retry when the user returns after paying
+        // Either still monthly (payment in progress) or restore failed — keep key to retry
         return;
       }
       // Unknown email — show the manual entry dialog
@@ -2782,7 +2786,7 @@ export default function Home() {
                           setRestoreLoading(true);
                           const ok = await restorePurchase(settingsRestoreEmail.trim());
                           setRestoreLoading(false);
-                          if (ok) {
+                          if (ok.success) {
                             setShowSettingsRestore(false);
                             setSettingsRestoreEmail("");
                             toast({ title: "✅ Pro restored!", description: "Welcome back to ColdStreak Pro." });
@@ -5269,8 +5273,11 @@ export default function Home() {
                             score: promptPlungeRef.current.score ?? undefined,
                           });
                           await savePhoto(photoPromptId, composited).catch(() => {});
+                          // Also persist to server so photo survives app updates
+                          updatePlunge.mutate({ id: photoPromptId, patch: { photoData: composited } });
                         } catch {
                           await savePhoto(photoPromptId, promptPhotoData).catch(() => {});
+                          updatePlunge.mutate({ id: photoPromptId, patch: { photoData: promptPhotoData } });
                         }
                       }
                       // Passport badge — only for official Chill Places
@@ -5684,8 +5691,8 @@ export default function Home() {
               data-testid="button-confirm-restore"
               disabled={proLoading || !pendingRestoreEmail.includes("@")}
               onClick={async () => {
-                const success = await restorePurchase(pendingRestoreEmail);
-                if (success) {
+                const result = await restorePurchase(pendingRestoreEmail);
+                if (result.success) {
                   toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "All Pro features are now unlocked." });
                   setPendingRestoreEmail(null);
                 } else {
@@ -5850,7 +5857,7 @@ export default function Home() {
                     setRestoreLoading(true);
                     const ok = await restorePurchase(restoreEmailInput.trim());
                     setRestoreLoading(false);
-                    if (ok) {
+                    if (ok.success) {
                       setShowUpgradeModal(false);
                       toast({ title: "✅ Pro restored!", description: "Welcome back to ColdStreak Pro." });
                     } else {
