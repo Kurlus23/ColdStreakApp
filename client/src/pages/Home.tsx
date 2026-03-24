@@ -5815,7 +5815,9 @@ export default function Home() {
                   Analytics.proUpgradeStarted();
                   setShowUpgradeModal(false);
                   const result = await startCheckout("lifetime");
-                  if (!result.success) {
+                  if (result.activated) {
+                    toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "Lifetime access unlocked." });
+                  } else if (!result.success) {
                     toast({ title: "Checkout unavailable", description: result.error ?? "Please try again.", variant: "destructive" });
                   }
                 }}

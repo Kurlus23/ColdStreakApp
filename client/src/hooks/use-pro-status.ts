@@ -136,10 +136,11 @@ export function useProStatus() {
       .catch(() => {});
   }, [markPro, clearPro]);
 
-  const startCheckout = useCallback(async (plan: "lifetime" | "annual" | "monthly" = "lifetime"): Promise<{ success: boolean; error?: string }> => {
+  const startCheckout = useCallback(async (plan: "lifetime" | "annual" | "monthly" = "lifetime"): Promise<{ success: boolean; activated?: boolean; error?: string }> => {
     setLoading(true);
     try {
       const origin = window.location.origin;
+      const emailForRestore = getLoggedInEmail() ?? localStorage.getItem(PRO_EMAIL_KEY);
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -147,12 +148,17 @@ export function useProStatus() {
           successUrl: `${origin}/`,
           cancelUrl: `${origin}/`,
           plan,
+          email: emailForRestore ?? undefined,
         }),
       });
       const data = await res.json();
+      // Server found an existing lifetime payment — activate directly, no new charge
+      if (data.activated && data.email) {
+        markPro(data.email, data.foundingPlunger ?? false, data.planType ?? "lifetime");
+        return { success: true, activated: true };
+      }
       if (data.url) {
         // Flag that we're leaving for Stripe — native app uses this to auto-restore on return
-        const emailForRestore = getLoggedInEmail();
         localStorage.setItem(PENDING_CHECKOUT_KEY, emailForRestore ?? "unknown");
         window.location.href = data.url;
         return { success: true };
@@ -164,7 +170,7 @@ export function useProStatus() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [markPro]);
 
   const verifySession = useCallback(async (sessionId: string) => {
     setLoading(true);

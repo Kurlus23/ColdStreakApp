@@ -626,11 +626,31 @@ export async function registerRoutes(
 
   app.post("/api/stripe/checkout", async (req, res) => {
     try {
-      const { successUrl, cancelUrl, plan } = z.object({
+      const { successUrl, cancelUrl, plan, email } = z.object({
         successUrl: z.string().url(),
         cancelUrl: z.string().url(),
         plan: z.enum(["lifetime", "annual", "monthly"]).default("lifetime"),
+        email: z.string().email().optional(),
       }).parse(req.body);
+
+      // Guard: if upgrading to lifetime and email provided, check Stripe for an
+      // existing paid session to prevent double-charging on retry attempts
+      if (plan === "lifetime" && email) {
+        try {
+          const customers = await stripe.customers.list({ email: email.toLowerCase(), limit: 5 });
+          for (const customer of customers.data) {
+            const sessions = await stripe.checkout.sessions.list({ customer: customer.id, limit: 10 });
+            for (const s of sessions.data) {
+              if (s.payment_status === "paid" && s.mode === "payment") {
+                const proUser = await storage.createProUser(email.toLowerCase(), s.id, { planType: "lifetime" });
+                return res.json({ activated: true, email: proUser.email, planType: proUser.planType, foundingPlunger: proUser.foundingPlunger });
+              }
+            }
+          }
+        } catch (guardErr) {
+          console.error("Duplicate charge guard failed:", guardErr);
+        }
+      }
 
       const isSubscription = plan === "annual" || plan === "monthly";
       const subscriptionPriceId = plan === "monthly" ? MONTHLY_PRICE_ID : ANNUAL_PRICE_ID;
