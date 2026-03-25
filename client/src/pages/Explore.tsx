@@ -272,6 +272,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "apparel",
   },
   {
+    id: "neo-socks-capas",
+    name: "CAPAS Sand-Proof Water Socks",
+    description: "Neoprene ankle socks with a heavy-duty non-slip sole — sand-proof design keeps debris out during outdoor cold plunges and beach swims.",
+    image: "/gear-neo-socks-capas.png",
+    link: "https://amzn.to/4bxBCAR",
+    linkLabel: "View on Amazon",
+    category: "apparel",
+  },
+  {
     id: "neo-socks-blue",
     name: "Neoprene Water Socks — Blue Camo (3mm)",
     description: "Bold blue camo 3mm neoprene socks with a non-slip sole — thermal foot protection with style for cold plunges and open-water swims.",
