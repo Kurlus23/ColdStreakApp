@@ -242,6 +242,15 @@ export const GEAR_ITEMS: GearItem[] = [
     linkLabel: "View on Amazon",
     category: "devices",
   },
+  {
+    id: "apple-watch-series10",
+    name: "Apple Watch Series 10",
+    description: "Thin, lightweight Apple Watch with continuous heart rate, blood oxygen, and crash detection — 50m water resistance for plunge tracking.",
+    image: "/gear-apple-watch-series10.png",
+    link: "https://amzn.to/3Q05vRR",
+    linkLabel: "View on Amazon",
+    category: "devices",
+  },
   // ── APPAREL ──────────────────────────────────────────
   {
     id: "neo-gloves",
