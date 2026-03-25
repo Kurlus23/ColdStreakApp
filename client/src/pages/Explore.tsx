@@ -86,6 +86,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "plunges",
   },
   {
+    id: "icepod-tub",
+    name: "The Ice Pod — Round Cold Plunge Tub",
+    description: "Compact round cold plunge tub from The Pod Company — thick insulated walls with a lid included. Fits tight spaces and pairs with any chiller.",
+    image: "/gear-icepod-tub.png",
+    link: "https://amzn.to/4uRRm9w",
+    linkLabel: "View on Amazon",
+    category: "plunges",
+  },
+  {
     id: "pod-tub",
     name: "The Pod Company 110 Gallon Tub",
     description: "110-gallon insulated tub that fits up to 6'7\" — pairs perfectly with The Pod Chiller for a complete setup.",
