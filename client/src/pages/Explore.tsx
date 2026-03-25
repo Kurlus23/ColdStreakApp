@@ -244,6 +244,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "devices",
   },
   {
+    id: "amazfit-trex3",
+    name: "Amazfit T-Rex 3",
+    description: "Military-grade rugged smartwatch with HRV tracking, 10ATM water resistance, and 3-week battery life — built for serious outdoor training.",
+    image: "/gear-amazfit-trex3.png",
+    link: "https://amzn.to/3PGyoT2",
+    linkLabel: "View on Amazon",
+    category: "devices",
+  },
+  {
     id: "apple-watch-series10",
     name: "Apple Watch Series 10",
     description: "Thin, lightweight Apple Watch with continuous heart rate, blood oxygen, and crash detection — 50m water resistance for plunge tracking.",
