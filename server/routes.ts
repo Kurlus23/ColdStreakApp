@@ -1123,12 +1123,13 @@ export async function registerRoutes(
   app.get("/api/events/:code", async (req, res) => {
     const evt = await storage.getEventByCode(req.params.code.toUpperCase());
     if (!evt) return res.status(404).json({ error: "Event not found" });
-    const [participants, count, coordinators] = await Promise.all([
+    const [participants, count, coordinators, bans] = await Promise.all([
       storage.getEventParticipants(evt.id),
       storage.getEventParticipantCount(evt.id),
       storage.getEventCoordinators(evt.id),
+      storage.getEventBans(evt.id),
     ]);
-    res.json({ ...evt, participants, participantCount: count, coordinators });
+    res.json({ ...evt, participants, participantCount: count, coordinators, bans });
   });
 
   app.post("/api/events", async (req, res) => {
@@ -1137,7 +1138,7 @@ export async function registerRoutes(
     const user = await storage.getUserById(payload.userId);
     if (!user) return res.status(401).json({ error: "User not found" });
 
-    const { name, description, eventDate, endDate, locationName, locationId, plungeLat, plungeLng, accessLat, accessLng } = req.body;
+    const { name, description, eventDate, endDate, locationName, locationId, plungeLat, plungeLng, accessLat, accessLng, contactName, contactPhone, contactEmail } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: "Event name is required" });
     if (!eventDate) return res.status(400).json({ error: "Event date is required" });
 
@@ -1162,11 +1163,14 @@ export async function registerRoutes(
       plungeLng: plungeLng != null ? Number(plungeLng) : undefined,
       accessLat: accessLat != null ? Number(accessLat) : undefined,
       accessLng: accessLng != null ? Number(accessLng) : undefined,
+      contactName: contactName?.trim() || undefined,
+      contactPhone: contactPhone?.trim() || undefined,
+      contactEmail: contactEmail?.trim() || undefined,
       createdBy: user.id,
       createdByUsername: user.displayName || user.email.split("@")[0],
       shareCode: code,
     });
-    res.json({ ...evt, participantCount: 0, participants: [], coordinators: [] });
+    res.json({ ...evt, participantCount: 0, participants: [], coordinators: [], bans: [] });
   });
 
   app.post("/api/events/:id/join", async (req, res) => {
@@ -1179,8 +1183,11 @@ export async function registerRoutes(
 
     const user = await storage.getUserById(payload.userId);
     if (!user) return res.status(401).json({ error: "User not found" });
-    const username = req.body.username || user.displayName || user.email.split("@")[0];
 
+    const isBanned = await storage.isEventBanned(eventId, user.id);
+    if (isBanned) return res.status(403).json({ error: "You have been removed from this event by the organizer." });
+
+    const username = req.body.username || user.displayName || user.email.split("@")[0];
     const participant = await storage.joinEvent(eventId, user.id, username);
     res.json(participant);
   });
@@ -1191,6 +1198,117 @@ export async function registerRoutes(
     const eventId = parseInt(req.params.id);
     if (isNaN(eventId)) return res.status(400).json({ error: "Invalid event id" });
     await storage.leaveEvent(eventId, payload.userId);
+    res.json({ ok: true });
+  });
+
+  // ── Edit event ─────────────────────────────────────────────────────────────
+  app.patch("/api/events/:id", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ error: "Login required" });
+    const eventId = parseInt(req.params.id);
+    if (isNaN(eventId)) return res.status(400).json({ error: "Invalid event id" });
+    const evt = await storage.getEventById(eventId);
+    if (!evt) return res.status(404).json({ error: "Event not found" });
+    if (!(await isEventManagerUser(evt, payload.userId, eventId)))
+      return res.status(403).json({ error: "Only event coordinators can edit this event" });
+
+    const { name, description, eventDate, endDate, locationName, plungeLat, plungeLng, accessLat, accessLng, contactName, contactPhone, contactEmail } = req.body;
+    if (name !== undefined && !name?.trim()) return res.status(400).json({ error: "Event name cannot be empty" });
+
+    let parsedEventDate: Date | undefined;
+    let parsedEndDate: Date | null | undefined;
+
+    if (eventDate) {
+      parsedEventDate = new Date(eventDate);
+    }
+    if ("endDate" in req.body) {
+      if (endDate) {
+        parsedEndDate = new Date(endDate);
+        const base = parsedEventDate ?? new Date(evt.eventDate);
+        const maxEnd = new Date(base.getTime() + 7 * 24 * 60 * 60 * 1000);
+        if (parsedEndDate > maxEnd) parsedEndDate = maxEnd;
+        if (parsedEndDate < base) parsedEndDate = base;
+      } else {
+        parsedEndDate = null;
+      }
+    }
+
+    const updated = await storage.updateEvent(eventId, {
+      ...(name !== undefined ? { name: name.trim() } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(parsedEventDate ? { eventDate: parsedEventDate } : {}),
+      ...("endDate" in req.body ? { endDate: parsedEndDate } : {}),
+      ...(locationName !== undefined ? { locationName } : {}),
+      ...("plungeLat" in req.body ? { plungeLat: plungeLat != null ? Number(plungeLat) : null } : {}),
+      ...("plungeLng" in req.body ? { plungeLng: plungeLng != null ? Number(plungeLng) : null } : {}),
+      ...("accessLat" in req.body ? { accessLat: accessLat != null ? Number(accessLat) : null } : {}),
+      ...("accessLng" in req.body ? { accessLng: accessLng != null ? Number(accessLng) : null } : {}),
+      ...("contactName" in req.body ? { contactName: contactName?.trim() || null } : {}),
+      ...("contactPhone" in req.body ? { contactPhone: contactPhone?.trim() || null } : {}),
+      ...("contactEmail" in req.body ? { contactEmail: contactEmail?.trim() || null } : {}),
+    });
+    res.json(updated);
+  });
+
+  // ── Delete event ───────────────────────────────────────────────────────────
+  app.delete("/api/events/:id", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ error: "Login required" });
+    const eventId = parseInt(req.params.id);
+    if (isNaN(eventId)) return res.status(400).json({ error: "Invalid event id" });
+    const evt = await storage.getEventById(eventId);
+    if (!evt) return res.status(404).json({ error: "Event not found" });
+    if (!(await isEventManagerUser(evt, payload.userId, eventId)))
+      return res.status(403).json({ error: "Only event coordinators can delete this event" });
+    await storage.deleteEvent(eventId);
+    res.json({ ok: true });
+  });
+
+  // ── Remove participant (manager only) ──────────────────────────────────────
+  app.delete("/api/events/:id/participants/:userId", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ error: "Login required" });
+    const eventId = parseInt(req.params.id);
+    const targetUserId = parseInt(req.params.userId);
+    if (isNaN(eventId) || isNaN(targetUserId)) return res.status(400).json({ error: "Invalid id" });
+    const evt = await storage.getEventById(eventId);
+    if (!evt) return res.status(404).json({ error: "Event not found" });
+    if (!(await isEventManagerUser(evt, payload.userId, eventId)))
+      return res.status(403).json({ error: "Only event coordinators can remove participants" });
+    await storage.removeEventParticipant(eventId, targetUserId);
+    res.json({ ok: true });
+  });
+
+  // ── Ban participant (manager only) ─────────────────────────────────────────
+  app.post("/api/events/:id/bans/:userId", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ error: "Login required" });
+    const eventId = parseInt(req.params.id);
+    const targetUserId = parseInt(req.params.userId);
+    if (isNaN(eventId) || isNaN(targetUserId)) return res.status(400).json({ error: "Invalid id" });
+    const evt = await storage.getEventById(eventId);
+    if (!evt) return res.status(404).json({ error: "Event not found" });
+    if (!(await isEventManagerUser(evt, payload.userId, eventId)))
+      return res.status(403).json({ error: "Only event coordinators can ban participants" });
+    if (targetUserId === evt.createdBy) return res.status(400).json({ error: "Cannot ban the event creator" });
+    const targetUser = await storage.getUserById(targetUserId);
+    const username = req.body.username || targetUser?.displayName || `User ${targetUserId}`;
+    const ban = await storage.banEventParticipant(eventId, targetUserId, username);
+    res.json(ban);
+  });
+
+  // ── Unban participant (manager only) ───────────────────────────────────────
+  app.delete("/api/events/:id/bans/:userId", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ error: "Login required" });
+    const eventId = parseInt(req.params.id);
+    const targetUserId = parseInt(req.params.userId);
+    if (isNaN(eventId) || isNaN(targetUserId)) return res.status(400).json({ error: "Invalid id" });
+    const evt = await storage.getEventById(eventId);
+    if (!evt) return res.status(404).json({ error: "Event not found" });
+    if (!(await isEventManagerUser(evt, payload.userId, eventId)))
+      return res.status(403).json({ error: "Only event coordinators can unban participants" });
+    await storage.unbanEventParticipant(eventId, targetUserId);
     res.json({ ok: true });
   });
 

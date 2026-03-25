@@ -1,11 +1,11 @@
 import { db } from "./db";
 import {
   plunges, leaderboardEntries, proUsers, promoCodes, userLocations, businessListings, users, badgeProfiles, pushSubscriptions,
-  events, eventParticipants, eventCoordinators,
+  events, eventParticipants, eventCoordinators, eventBans,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
   type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile, type PushSubscription,
-  type BusinessListing, type Event, type EventParticipant, type EventCoordinator,
+  type BusinessListing, type Event, type EventParticipant, type EventCoordinator, type EventBan,
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and, not, lt } from "drizzle-orm";
 
@@ -75,18 +75,26 @@ export interface IStorage {
   getEvents(): Promise<Event[]>;
   getEventByCode(shareCode: string): Promise<Event | null>;
   getEventById(id: number): Promise<Event | null>;
-  createEvent(data: { name: string; description?: string; eventDate: Date; endDate?: Date; locationName?: string; locationId?: string; plungeLat?: number; plungeLng?: number; accessLat?: number; accessLng?: number; createdBy?: number; createdByUsername?: string; shareCode: string }): Promise<Event>;
+  createEvent(data: { name: string; description?: string; eventDate: Date; endDate?: Date; locationName?: string; locationId?: string; plungeLat?: number; plungeLng?: number; accessLat?: number; accessLng?: number; contactName?: string; contactPhone?: string; contactEmail?: string; createdBy?: number; createdByUsername?: string; shareCode: string }): Promise<Event>;
+  updateEvent(id: number, data: { name?: string; description?: string; eventDate?: Date; endDate?: Date | null; locationName?: string; plungeLat?: number | null; plungeLng?: number | null; accessLat?: number | null; accessLng?: number | null; contactName?: string | null; contactPhone?: string | null; contactEmail?: string | null }): Promise<Event>;
+  deleteEvent(id: number): Promise<void>;
   deleteExpiredEvents(): Promise<number>;
   getEventParticipants(eventId: number): Promise<EventParticipant[]>;
   getEventParticipantCount(eventId: number): Promise<number>;
   joinEvent(eventId: number, userId: number, username: string): Promise<EventParticipant>;
   leaveEvent(eventId: number, userId: number): Promise<void>;
+  removeEventParticipant(eventId: number, userId: number): Promise<void>;
   isEventParticipant(eventId: number, userId: number): Promise<boolean>;
   // Event coordinators
   getEventCoordinators(eventId: number): Promise<EventCoordinator[]>;
   addEventCoordinator(eventId: number, userId: number, username: string): Promise<EventCoordinator>;
   removeEventCoordinator(eventId: number, userId: number): Promise<void>;
   isEventCoordinator(eventId: number, userId: number): Promise<boolean>;
+  // Event bans
+  getEventBans(eventId: number): Promise<EventBan[]>;
+  banEventParticipant(eventId: number, userId: number, username: string): Promise<EventBan>;
+  unbanEventParticipant(eventId: number, userId: number): Promise<void>;
+  isEventBanned(eventId: number, userId: number): Promise<boolean>;
   // User lookup for coordinator assignment
   getUserByDisplayName(displayName: string): Promise<User | null>;
 }
@@ -500,7 +508,7 @@ export class DatabaseStorage implements IStorage {
     return evt ?? null;
   }
 
-  async createEvent(data: { name: string; description?: string; eventDate: Date; endDate?: Date; locationName?: string; locationId?: string; plungeLat?: number; plungeLng?: number; accessLat?: number; accessLng?: number; createdBy?: number; createdByUsername?: string; shareCode: string }): Promise<Event> {
+  async createEvent(data: { name: string; description?: string; eventDate: Date; endDate?: Date; locationName?: string; locationId?: string; plungeLat?: number; plungeLng?: number; accessLat?: number; accessLng?: number; contactName?: string; contactPhone?: string; contactEmail?: string; createdBy?: number; createdByUsername?: string; shareCode: string }): Promise<Event> {
     const [evt] = await db.insert(events).values({
       name: data.name,
       description: data.description ?? null,
@@ -512,12 +520,40 @@ export class DatabaseStorage implements IStorage {
       plungeLng: data.plungeLng != null ? String(data.plungeLng) : null,
       accessLat: data.accessLat != null ? String(data.accessLat) : null,
       accessLng: data.accessLng != null ? String(data.accessLng) : null,
+      contactName: data.contactName ?? null,
+      contactPhone: data.contactPhone ?? null,
+      contactEmail: data.contactEmail ?? null,
       createdBy: data.createdBy ?? null,
       createdByUsername: data.createdByUsername ?? null,
       shareCode: data.shareCode,
       isActive: true,
     }).returning();
     return evt;
+  }
+
+  async updateEvent(id: number, data: { name?: string; description?: string; eventDate?: Date; endDate?: Date | null; locationName?: string; plungeLat?: number | null; plungeLng?: number | null; accessLat?: number | null; accessLng?: number | null; contactName?: string | null; contactPhone?: string | null; contactEmail?: string | null }): Promise<Event> {
+    const set: Partial<typeof events.$inferInsert> = {};
+    if (data.name !== undefined) set.name = data.name;
+    if (data.description !== undefined) set.description = data.description || null;
+    if (data.eventDate !== undefined) set.eventDate = data.eventDate;
+    if ("endDate" in data) set.endDate = data.endDate ?? null;
+    if (data.locationName !== undefined) set.locationName = data.locationName || null;
+    if ("plungeLat" in data) set.plungeLat = data.plungeLat != null ? String(data.plungeLat) : null;
+    if ("plungeLng" in data) set.plungeLng = data.plungeLng != null ? String(data.plungeLng) : null;
+    if ("accessLat" in data) set.accessLat = data.accessLat != null ? String(data.accessLat) : null;
+    if ("accessLng" in data) set.accessLng = data.accessLng != null ? String(data.accessLng) : null;
+    if ("contactName" in data) set.contactName = data.contactName ?? null;
+    if ("contactPhone" in data) set.contactPhone = data.contactPhone ?? null;
+    if ("contactEmail" in data) set.contactEmail = data.contactEmail ?? null;
+    const [evt] = await db.update(events).set(set).where(eq(events.id, id)).returning();
+    return evt;
+  }
+
+  async deleteEvent(id: number): Promise<void> {
+    await db.delete(eventBans).where(eq(eventBans.eventId, id));
+    await db.delete(eventCoordinators).where(eq(eventCoordinators.eventId, id));
+    await db.delete(eventParticipants).where(eq(eventParticipants.eventId, id));
+    await db.delete(events).where(eq(events.id, id));
   }
 
   async deleteExpiredEvents(): Promise<number> {
@@ -556,6 +592,10 @@ export class DatabaseStorage implements IStorage {
     await db.delete(eventParticipants).where(and(eq(eventParticipants.eventId, eventId), eq(eventParticipants.userId, userId)));
   }
 
+  async removeEventParticipant(eventId: number, userId: number): Promise<void> {
+    await db.delete(eventParticipants).where(and(eq(eventParticipants.eventId, eventId), eq(eventParticipants.userId, userId)));
+  }
+
   async isEventParticipant(eventId: number, userId: number): Promise<boolean> {
     const [row] = await db.select({ id: eventParticipants.id }).from(eventParticipants)
       .where(and(eq(eventParticipants.eventId, eventId), eq(eventParticipants.userId, userId)));
@@ -585,6 +625,30 @@ export class DatabaseStorage implements IStorage {
   async isEventCoordinator(eventId: number, userId: number): Promise<boolean> {
     const [row] = await db.select({ id: eventCoordinators.id }).from(eventCoordinators)
       .where(and(eq(eventCoordinators.eventId, eventId), eq(eventCoordinators.userId, userId)));
+    return !!row;
+  }
+
+  async getEventBans(eventId: number): Promise<EventBan[]> {
+    return db.select().from(eventBans).where(eq(eventBans.eventId, eventId)).orderBy(desc(eventBans.bannedAt));
+  }
+
+  async banEventParticipant(eventId: number, userId: number, username: string): Promise<EventBan> {
+    // Remove from participants first
+    await db.delete(eventParticipants).where(and(eq(eventParticipants.eventId, eventId), eq(eventParticipants.userId, userId)));
+    const [ban] = await db.insert(eventBans)
+      .values({ eventId, userId, username })
+      .onConflictDoUpdate({ target: [eventBans.eventId, eventBans.userId], set: { username } })
+      .returning();
+    return ban;
+  }
+
+  async unbanEventParticipant(eventId: number, userId: number): Promise<void> {
+    await db.delete(eventBans).where(and(eq(eventBans.eventId, eventId), eq(eventBans.userId, userId)));
+  }
+
+  async isEventBanned(eventId: number, userId: number): Promise<boolean> {
+    const [row] = await db.select({ id: eventBans.id }).from(eventBans)
+      .where(and(eq(eventBans.eventId, eventId), eq(eventBans.userId, userId)));
     return !!row;
   }
 

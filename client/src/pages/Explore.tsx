@@ -15,7 +15,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { UserLocation, Event, EventParticipant } from "@shared/schema";
 
 type EventCoordinator = { id: number; eventId: number; userId: number; username: string; addedAt: string };
+type EventBan = { id: number; eventId: number; userId: number; username: string; bannedAt: string };
 type EventWithCount = Event & { participantCount: number; coordinators: EventCoordinator[] };
+type EventFullDetail = EventWithCount & { participants: EventParticipant[]; bans: EventBan[] };
 
 type BizLocation = Omit<UserLocation, "contactEmail"> & { isOwner: boolean; isAdmin: boolean };
 
@@ -397,6 +399,9 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [evtDescription, setEvtDescription] = useState("");
   const [evtDate, setEvtDate] = useState("");
   const [evtLocationName, setEvtLocationName] = useState("");
+  const [evtContactName, setEvtContactName] = useState("");
+  const [evtContactPhone, setEvtContactPhone] = useState("");
+  const [evtContactEmail, setEvtContactEmail] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [joinedEventIds, setJoinedEventIds] = useState<Set<number>>(new Set());
   const [evtEndDate, setEvtEndDate] = useState("");
@@ -407,6 +412,19 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [expandedCoordMgmt, setExpandedCoordMgmt] = useState<number | null>(null);
   const [newCoordName, setNewCoordName] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<EventWithCount | null>(null);
+  const [showEditEventModal, setShowEditEventModal] = useState(false);
+  const [editEvtName, setEditEvtName] = useState("");
+  const [editEvtDescription, setEditEvtDescription] = useState("");
+  const [editEvtDate, setEditEvtDate] = useState("");
+  const [editEvtEndDate, setEditEvtEndDate] = useState("");
+  const [editEvtLocationName, setEditEvtLocationName] = useState("");
+  const [editEvtContactName, setEditEvtContactName] = useState("");
+  const [editEvtContactPhone, setEditEvtContactPhone] = useState("");
+  const [editEvtContactEmail, setEditEvtContactEmail] = useState("");
+  const [editEvtPlungeGps, setEditEvtPlungeGps] = useState<GeoPos | null>(null);
+  const [editEvtAccessGps, setEditEvtAccessGps] = useState<GeoPos | null>(null);
+  const [editEvtPlungeGpsLoading, setEditEvtPlungeGpsLoading] = useState(false);
+  const [editEvtAccessGpsLoading, setEditEvtAccessGpsLoading] = useState(false);
 
   const { data: eventsData = [], isLoading: eventsLoading } = useQuery<EventWithCount[]>({
     queryKey: ["/api/events"],
@@ -429,6 +447,9 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       eventDate: evtDate,
       ...(evtEndDate ? { endDate: evtEndDate } : {}),
       locationName: evtLocationName.trim() || undefined,
+      contactName: evtContactName.trim() || undefined,
+      contactPhone: evtContactPhone.trim() || undefined,
+      contactEmail: evtContactEmail.trim() || undefined,
       ...(evtPlungeGps ? { plungeLat: evtPlungeGps.lat, plungeLng: evtPlungeGps.lng } : {}),
       ...(evtAccessGps ? { accessLat: evtAccessGps.lat, accessLng: evtAccessGps.lng } : {}),
     }).then((r) => r.json()),
@@ -436,6 +457,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setShowCreateModal(false);
       setEvtName(""); setEvtDescription(""); setEvtDate(""); setEvtEndDate(""); setEvtLocationName("");
+      setEvtContactName(""); setEvtContactPhone(""); setEvtContactEmail("");
       setEvtPlungeGps(null); setEvtAccessGps(null);
       toast({ title: "Event created! 🧊", description: "Share the link with your fellow plungers." });
     },
@@ -480,7 +502,69 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     onSuccess: (_data, id) => {
       setJoinedEventIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events/detail"] });
       toast({ title: "Left event" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  // Full event detail query (participants + bans) — only fetched when a modal is open
+  const { data: selectedEventDetail, refetch: refetchEventDetail } = useQuery<EventFullDetail>({
+    queryKey: ["/api/events/detail", selectedEvent?.shareCode],
+    queryFn: () => fetch(`/api/events/${selectedEvent!.shareCode}`).then((r) => r.json()),
+    enabled: !!selectedEvent,
+  });
+
+  const editEventMut = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: Record<string, unknown> }) =>
+      apiRequest("PATCH", `/api/events/${id}`, body).then((r) => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events/detail", selectedEvent?.shareCode] });
+      setShowEditEventModal(false);
+      toast({ title: "Event updated ✓" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteEventMut = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/events/${id}`).then((r) => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setSelectedEvent(null);
+      toast({ title: "Event deleted" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const removeParticipantMut = useMutation({
+    mutationFn: ({ eventId, userId }: { eventId: number; userId: number }) =>
+      apiRequest("DELETE", `/api/events/${eventId}/participants/${userId}`).then((r) => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events/detail", selectedEvent?.shareCode] });
+      toast({ title: "Participant removed" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const banParticipantMut = useMutation({
+    mutationFn: ({ eventId, userId, username }: { eventId: number; userId: number; username: string }) =>
+      apiRequest("POST", `/api/events/${eventId}/bans/${userId}`, { username }).then((r) => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events/detail", selectedEvent?.shareCode] });
+      toast({ title: "Participant banned & removed" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const unbanParticipantMut = useMutation({
+    mutationFn: ({ eventId, userId }: { eventId: number; userId: number }) =>
+      apiRequest("DELETE", `/api/events/${eventId}/bans/${userId}`).then((r) => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events/detail", selectedEvent?.shareCode] });
+      toast({ title: "Ban lifted" });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -2022,6 +2106,31 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 </div>
               )}
 
+              {/* Contact Info */}
+              {(evt.contactName || evt.contactPhone || evt.contactEmail) && (
+                <div className="bg-blue-950/60 border border-blue-700/30 rounded-2xl p-4 space-y-1.5">
+                  <p className="text-blue-500 text-[11px] uppercase tracking-wide font-semibold mb-2">Contact</p>
+                  {evt.contactName && (
+                    <div className="flex items-center gap-2 text-blue-200 text-xs">
+                      <Users className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                      <span>{evt.contactName}</span>
+                    </div>
+                  )}
+                  {evt.contactPhone && (
+                    <div className="flex items-center gap-2 text-blue-200 text-xs">
+                      <Phone className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                      <a href={`tel:${evt.contactPhone}`} className="text-cyan-300 hover:underline">{evt.contactPhone}</a>
+                    </div>
+                  )}
+                  {evt.contactEmail && (
+                    <div className="flex items-center gap-2 text-blue-200 text-xs">
+                      <Send className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                      <a href={`mailto:${evt.contactEmail}`} className="text-cyan-300 hover:underline">{evt.contactEmail}</a>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Organizers */}
               <div className="space-y-2">
                 <p className="text-blue-500 text-[11px] uppercase tracking-wide font-semibold">Organizers</p>
@@ -2088,6 +2197,74 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 </div>
               )}
 
+              {/* Participants panel (managers only) */}
+              {isManager && selectedEventDetail && (
+                <div className="space-y-2">
+                  <p className="text-blue-500 text-[11px] uppercase tracking-wide font-semibold">
+                    Attendees ({selectedEventDetail.participants.length})
+                  </p>
+                  {selectedEventDetail.participants.length === 0 ? (
+                    <p className="text-blue-600 text-xs">No sign-ups yet.</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {selectedEventDetail.participants.map((p) => (
+                        <div key={p.id} className="flex items-center gap-2.5 py-1.5 border-b border-blue-800/30 last:border-0">
+                          <div className="w-6 h-6 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-[10px] font-bold text-blue-300 flex-shrink-0">
+                            {p.username.slice(0, 1).toUpperCase()}
+                          </div>
+                          <span className="text-white text-xs font-medium flex-1">{p.username}</span>
+                          <button
+                            data-testid={`button-remove-participant-${p.userId}`}
+                            onClick={() => removeParticipantMut.mutate({ eventId: evt.id, userId: p.userId })}
+                            disabled={removeParticipantMut.isPending}
+                            className="text-[10px] text-blue-600 hover:text-amber-400 transition-colors px-1.5 py-0.5 rounded-lg hover:bg-amber-400/10"
+                            title="Remove from event"
+                          >
+                            Remove
+                          </button>
+                          <button
+                            data-testid={`button-ban-participant-${p.userId}`}
+                            onClick={() => banParticipantMut.mutate({ eventId: evt.id, userId: p.userId, username: p.username })}
+                            disabled={banParticipantMut.isPending}
+                            className="text-[10px] text-blue-600 hover:text-red-400 transition-colors px-1.5 py-0.5 rounded-lg hover:bg-red-400/10"
+                            title="Ban from event"
+                          >
+                            Ban
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Bans panel (managers only) */}
+              {isManager && selectedEventDetail && selectedEventDetail.bans.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-blue-500 text-[11px] uppercase tracking-wide font-semibold">
+                    Banned ({selectedEventDetail.bans.length})
+                  </p>
+                  <div className="space-y-1">
+                    {selectedEventDetail.bans.map((ban) => (
+                      <div key={ban.id} className="flex items-center gap-2.5 py-1.5 border-b border-blue-800/30 last:border-0">
+                        <div className="w-6 h-6 rounded-full bg-red-900/40 border border-red-700/40 flex items-center justify-center text-[10px] font-bold text-red-400 flex-shrink-0">
+                          {ban.username.slice(0, 1).toUpperCase()}
+                        </div>
+                        <span className="text-red-300 text-xs flex-1 line-through opacity-60">{ban.username}</span>
+                        <button
+                          data-testid={`button-unban-participant-${ban.userId}`}
+                          onClick={() => unbanParticipantMut.mutate({ eventId: evt.id, userId: ban.userId })}
+                          disabled={unbanParticipantMut.isPending}
+                          className="text-[10px] text-blue-600 hover:text-green-400 transition-colors px-1.5 py-0.5 rounded-lg hover:bg-green-400/10"
+                        >
+                          Unban
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Directions */}
               {(evt.plungeLat || evt.accessLat) && (
                 <div className="space-y-2">
@@ -2149,11 +2326,256 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 {copiedCode === evt.shareCode ? <Check className="w-3.5 h-3.5 text-cyan-400" /> : <Copy className="w-3.5 h-3.5" />}
                 {copiedCode === evt.shareCode ? "Link copied!" : "Copy invite link"}
               </button>
+              {isManager && (
+                <div className="flex gap-2">
+                  <button
+                    data-testid={`button-edit-event-${evt.id}`}
+                    onClick={() => {
+                      const toLocalDT = (d: string | Date | null | undefined) => {
+                        if (!d) return "";
+                        const dt = new Date(d);
+                        const pad = (n: number) => String(n).padStart(2, "0");
+                        return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+                      };
+                      setEditEvtName(evt.name);
+                      setEditEvtDescription(evt.description ?? "");
+                      setEditEvtDate(toLocalDT(evt.eventDate));
+                      setEditEvtEndDate(toLocalDT(evt.endDate));
+                      setEditEvtLocationName(evt.locationName ?? "");
+                      setEditEvtContactName(evt.contactName ?? "");
+                      setEditEvtContactPhone(evt.contactPhone ?? "");
+                      setEditEvtContactEmail(evt.contactEmail ?? "");
+                      setEditEvtPlungeGps(evt.plungeLat && evt.plungeLng ? { lat: Number(evt.plungeLat), lng: Number(evt.plungeLng) } : null);
+                      setEditEvtAccessGps(evt.accessLat && evt.accessLng ? { lat: Number(evt.accessLat), lng: Number(evt.accessLng) } : null);
+                      setShowEditEventModal(true);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl border border-blue-600/50 text-blue-300 text-xs font-semibold hover:border-blue-400 hover:text-white transition-all active:scale-95"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Edit Event
+                  </button>
+                  <button
+                    data-testid={`button-delete-event-${evt.id}`}
+                    onClick={() => {
+                      if (confirm("Delete this event? This cannot be undone and all sign-ups will be removed.")) {
+                        deleteEventMut.mutate(evt.id);
+                      }
+                    }}
+                    disabled={deleteEventMut.isPending}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl border border-red-700/40 text-red-400 text-xs font-semibold hover:border-red-500 hover:bg-red-500/10 transition-all active:scale-95 disabled:opacity-40"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete Event
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       );
     })()}
+
+    {/* ── Edit Event Modal ── */}
+    {showEditEventModal && selectedEvent && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="w-full max-w-sm bg-gradient-to-b from-blue-950 to-slate-950 border border-blue-700/50 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-blue-800/50 flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center">
+              <Pencil className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm">Edit Event</p>
+              <p className="text-blue-400 text-[11px]">Update event details</p>
+            </div>
+            <button onClick={() => setShowEditEventModal(false)} className="ml-auto text-blue-500 hover:text-white transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+            <div>
+              <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Event Name *</label>
+              <input
+                data-testid="input-edit-event-name"
+                type="text"
+                value={editEvtName}
+                onChange={(e) => setEditEvtName(e.target.value)}
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400"
+              />
+            </div>
+            <div>
+              <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Start Date & Time</label>
+              <input
+                data-testid="input-edit-event-date"
+                type="datetime-local"
+                value={editEvtDate}
+                onChange={(e) => { setEditEvtDate(e.target.value); if (editEvtEndDate && editEvtEndDate < e.target.value) setEditEvtEndDate(e.target.value); }}
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 [color-scheme:dark]"
+              />
+            </div>
+            <div>
+              <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">
+                End Date (optional) <span className="text-blue-600 normal-case font-normal">— max 7 days</span>
+              </label>
+              <input
+                data-testid="input-edit-event-end-date"
+                type="datetime-local"
+                value={editEvtEndDate}
+                min={editEvtDate || undefined}
+                max={editEvtDate ? (() => { const d = new Date(editEvtDate); d.setDate(d.getDate() + 7); return d.toISOString().slice(0, 16); })() : undefined}
+                onChange={(e) => setEditEvtEndDate(e.target.value)}
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 [color-scheme:dark]"
+              />
+            </div>
+            <div>
+              <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Location Name (optional)</label>
+              <input
+                data-testid="input-edit-event-location"
+                type="text"
+                value={editEvtLocationName}
+                onChange={(e) => setEditEvtLocationName(e.target.value)}
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+              />
+            </div>
+            {/* Contact info */}
+            <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl p-3 space-y-2">
+              <p className="text-white text-xs font-semibold">Contact Info (optional)</p>
+              <input
+                data-testid="input-edit-contact-name"
+                type="text"
+                value={editEvtContactName}
+                onChange={(e) => setEditEvtContactName(e.target.value)}
+                placeholder="Contact name"
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+              />
+              <input
+                data-testid="input-edit-contact-phone"
+                type="tel"
+                value={editEvtContactPhone}
+                onChange={(e) => setEditEvtContactPhone(e.target.value)}
+                placeholder="Phone number"
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+              />
+              <input
+                data-testid="input-edit-contact-email"
+                type="email"
+                value={editEvtContactEmail}
+                onChange={(e) => setEditEvtContactEmail(e.target.value)}
+                placeholder="Email address"
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+              />
+            </div>
+            {/* Plunge GPS */}
+            <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl p-3 space-y-2">
+              <div>
+                <p className="text-white text-xs font-semibold">📍 Plunge Spot GPS</p>
+              </div>
+              {editEvtPlungeGps ? (
+                <div className="flex items-center gap-2">
+                  <p className="text-green-400 text-[11px] font-mono flex-1">{editEvtPlungeGps.lat.toFixed(5)}, {editEvtPlungeGps.lng.toFixed(5)}</p>
+                  <button onClick={() => setEditEvtPlungeGps(null)} className="text-blue-500 hover:text-red-400 text-[10px] transition-colors">✕ Clear</button>
+                </div>
+              ) : null}
+              <button
+                data-testid="button-edit-event-plunge-gps"
+                type="button"
+                onClick={async () => {
+                  setEditEvtPlungeGpsLoading(true);
+                  try {
+                    let pos: GeolocationPosition | { coords: { latitude: number; longitude: number } };
+                    if (Capacitor.isNativePlatform()) {
+                      const r = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+                      pos = { coords: { latitude: r.coords.latitude, longitude: r.coords.longitude } };
+                    } else {
+                      pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true }));
+                    }
+                    setEditEvtPlungeGps({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                  } catch { toast({ title: "GPS unavailable", variant: "destructive" }); }
+                  finally { setEditEvtPlungeGpsLoading(false); }
+                }}
+                disabled={editEvtPlungeGpsLoading}
+                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-800/60 border border-blue-700/40 text-blue-300 text-xs font-semibold hover:border-blue-500 hover:text-white transition-all active:scale-95 disabled:opacity-50"
+              >
+                <LocateFixed className="w-3.5 h-3.5" />
+                {editEvtPlungeGpsLoading ? "Getting GPS…" : editEvtPlungeGps ? "Update GPS" : "Pin with GPS"}
+              </button>
+            </div>
+            {/* Access GPS */}
+            <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl p-3 space-y-2">
+              <div>
+                <p className="text-white text-xs font-semibold">🅿 Parking / Access GPS</p>
+              </div>
+              {editEvtAccessGps ? (
+                <div className="flex items-center gap-2">
+                  <p className="text-green-400 text-[11px] font-mono flex-1">{editEvtAccessGps.lat.toFixed(5)}, {editEvtAccessGps.lng.toFixed(5)}</p>
+                  <button onClick={() => setEditEvtAccessGps(null)} className="text-blue-500 hover:text-red-400 text-[10px] transition-colors">✕ Clear</button>
+                </div>
+              ) : null}
+              <button
+                data-testid="button-edit-event-access-gps"
+                type="button"
+                onClick={async () => {
+                  setEditEvtAccessGpsLoading(true);
+                  try {
+                    let pos: GeolocationPosition | { coords: { latitude: number; longitude: number } };
+                    if (Capacitor.isNativePlatform()) {
+                      const r = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+                      pos = { coords: { latitude: r.coords.latitude, longitude: r.coords.longitude } };
+                    } else {
+                      pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true }));
+                    }
+                    setEditEvtAccessGps({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                  } catch { toast({ title: "GPS unavailable", variant: "destructive" }); }
+                  finally { setEditEvtAccessGpsLoading(false); }
+                }}
+                disabled={editEvtAccessGpsLoading}
+                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-800/60 border border-blue-700/40 text-blue-300 text-xs font-semibold hover:border-blue-500 hover:text-white transition-all active:scale-95 disabled:opacity-50"
+              >
+                <LocateFixed className="w-3.5 h-3.5" />
+                {editEvtAccessGpsLoading ? "Getting GPS…" : editEvtAccessGps ? "Update GPS" : "Pin with GPS"}
+              </button>
+            </div>
+            <div>
+              <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Description (optional)</label>
+              <textarea
+                data-testid="input-edit-event-description"
+                value={editEvtDescription}
+                onChange={(e) => setEditEvtDescription(e.target.value)}
+                rows={2}
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500 resize-none"
+              />
+            </div>
+          </div>
+          <div className="px-5 pb-5 pt-3 border-t border-blue-800/50 flex flex-col gap-2 flex-shrink-0">
+            <button
+              data-testid="button-save-edit-event"
+              onClick={() => {
+                if (!editEvtName.trim()) { toast({ title: "Event name is required", variant: "destructive" }); return; }
+                editEventMut.mutate({
+                  id: selectedEvent.id,
+                  body: {
+                    name: editEvtName.trim(),
+                    description: editEvtDescription.trim() || null,
+                    ...(editEvtDate ? { eventDate: editEvtDate } : {}),
+                    endDate: editEvtEndDate || null,
+                    locationName: editEvtLocationName.trim() || null,
+                    contactName: editEvtContactName.trim() || null,
+                    contactPhone: editEvtContactPhone.trim() || null,
+                    contactEmail: editEvtContactEmail.trim() || null,
+                    ...(editEvtPlungeGps ? { plungeLat: editEvtPlungeGps.lat, plungeLng: editEvtPlungeGps.lng } : { plungeLat: null, plungeLng: null }),
+                    ...(editEvtAccessGps ? { accessLat: editEvtAccessGps.lat, accessLng: editEvtAccessGps.lng } : { accessLat: null, accessLng: null }),
+                  },
+                });
+              }}
+              disabled={editEventMut.isPending || !editEvtName.trim()}
+              className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-50"
+            >
+              {editEventMut.isPending ? "Saving…" : "Save Changes"}
+            </button>
+            <button onClick={() => setShowEditEventModal(false)} className="w-full py-2 text-blue-500 text-xs hover:text-blue-400 transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* ── Community Disclaimer Modal ── */}
     {showCommunityDisclaimer && (
@@ -3054,6 +3476,38 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               <LocateFixed className="w-3.5 h-3.5" />
               {evtAccessGpsLoading ? "Getting GPS…" : evtAccessGps ? "Update access/parking GPS" : "Pin parking / access with GPS"}
             </button>
+          </div>
+
+          {/* Contact info */}
+          <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl p-3 space-y-2">
+            <div>
+              <p className="text-white text-xs font-semibold">Contact Info (optional)</p>
+              <p className="text-blue-500 text-[10px]">Shown in the event detail so attendees can reach you</p>
+            </div>
+            <input
+              data-testid="input-event-contact-name"
+              type="text"
+              value={evtContactName}
+              onChange={(e) => setEvtContactName(e.target.value)}
+              placeholder="Contact name"
+              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+            />
+            <input
+              data-testid="input-event-contact-phone"
+              type="tel"
+              value={evtContactPhone}
+              onChange={(e) => setEvtContactPhone(e.target.value)}
+              placeholder="Phone number"
+              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+            />
+            <input
+              data-testid="input-event-contact-email"
+              type="email"
+              value={evtContactEmail}
+              onChange={(e) => setEvtContactEmail(e.target.value)}
+              placeholder="Email address"
+              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+            />
           </div>
 
           <div>

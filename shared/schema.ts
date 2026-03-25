@@ -194,6 +194,10 @@ export const events = pgTable("events", {
   // Parking / access point coordinates (where directions navigate to)
   accessLat: numeric("access_lat", { precision: 9, scale: 6 }),
   accessLng: numeric("access_lng", { precision: 9, scale: 6 }),
+  // Organizer contact info (optional, shown in event detail)
+  contactName: text("contact_name"),
+  contactPhone: text("contact_phone"),
+  contactEmail: text("contact_email"),
   createdBy: integer("created_by"),
   createdByUsername: text("created_by_username"),
   shareCode: text("share_code").notNull().unique(),
@@ -224,3 +228,13 @@ export const eventCoordinators = pgTable("event_coordinators", {
 }, (t) => [uniqueIndex("event_coordinator_idx").on(t.eventId, t.userId)]);
 
 export type EventCoordinator = typeof eventCoordinators.$inferSelect;
+
+export const eventBans = pgTable("event_bans", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").notNull(),
+  userId: integer("user_id").notNull(),
+  username: text("username").notNull(),
+  bannedAt: timestamp("banned_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("event_ban_idx").on(t.eventId, t.userId)]);
+
+export type EventBan = typeof eventBans.$inferSelect;
