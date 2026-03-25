@@ -184,6 +184,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "diy",
   },
   {
+    id: "filter-cartridges",
+    name: "Pleated Filter Cartridges (4-Pack)",
+    description: "Universal 10\" pleated sediment filter cartridges — keep your cold plunge water clear by trapping debris before it reaches your pump or chiller.",
+    image: "/gear-filter-cartridges.png",
+    link: "https://amzn.to/4lSmuSe",
+    linkLabel: "View on Amazon",
+    category: "diy",
+  },
+  {
     id: "yolink-leak-detector",
     name: "YoLink Leak Sensor Kit (4-Pack + Hub)",
     description: "Long-range YoLink water leak sensors with hub — 4 sensors cover your whole cold plunge area with app alerts and up to 1000ft wireless range.",
