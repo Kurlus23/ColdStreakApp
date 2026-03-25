@@ -471,6 +471,12 @@ export default function Home() {
     const handleStripeUrl = async (urlStr: string) => {
       try {
         const url = new URL(urlStr);
+        // Handle event deep links: /event/:code
+        if (url.pathname.startsWith("/event/")) {
+          window.history.pushState({}, "", url.pathname);
+          window.dispatchEvent(new PopStateEvent("popstate"));
+          return;
+        }
         const sessionId = url.searchParams.get("session_id");
         if (sessionId) {
           localStorage.removeItem(PENDING_CHECKOUT_KEY);

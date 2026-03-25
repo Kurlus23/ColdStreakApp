@@ -177,3 +177,32 @@ export type UpdatePlunge = z.infer<typeof updatePlungeSchema>;
 export type Plunge = typeof plunges.$inferSelect;
 export type InsertLeaderboardEntry = z.infer<typeof insertLeaderboardEntrySchema>;
 export type LeaderboardEntry = typeof leaderboardEntries.$inferSelect;
+
+// ── Events ────────────────────────────────────────────────────────────────────
+export const events = pgTable("events", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  eventDate: timestamp("event_date").notNull(),
+  locationName: text("location_name"),
+  locationId: text("location_id"),
+  createdBy: integer("created_by"),
+  createdByUsername: text("created_by_username"),
+  shareCode: text("share_code").notNull().unique(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true });
+export type Event = typeof events.$inferSelect;
+export type InsertEvent = z.infer<typeof insertEventSchema>;
+
+export const eventParticipants = pgTable("event_participants", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").notNull(),
+  userId: integer("user_id").notNull(),
+  username: text("username").notNull(),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("event_participant_idx").on(t.eventId, t.userId)]);
+
+export type EventParticipant = typeof eventParticipants.$inferSelect;

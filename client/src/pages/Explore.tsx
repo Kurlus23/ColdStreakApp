@@ -4,13 +4,17 @@ import { Capacitor } from "@capacitor/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   MapPin, Compass, Search, X, ChevronDown, Lock,
-  Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, Building2, CheckCircle2, BadgeCheck, Phone, ExternalLink, Pencil, LocateFixed, Trash2, Eye, EyeOff
+  Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, Building2, CheckCircle2, BadgeCheck, Phone, ExternalLink, Pencil, LocateFixed, Trash2, Eye, EyeOff,
+  CalendarDays, Users, Copy, Check, Snowflake, Calendar
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useProStatus } from "@/hooks/use-pro-status";
+import { useAuth } from "@/hooks/use-auth";
 import { PASSPORT_LOCATIONS, usePassportBadges, distanceMiles, DIFFICULTY_META, type Difficulty } from "@/lib/passport";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { UserLocation } from "@shared/schema";
+import type { UserLocation, Event, EventParticipant } from "@shared/schema";
+
+type EventWithCount = Event & { participantCount: number };
 
 type BizLocation = Omit<UserLocation, "contactEmail"> & { isOwner: boolean; isAdmin: boolean };
 
@@ -380,7 +384,72 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
 }) {
   const { toast } = useToast();
   const { isPro } = useProStatus();
+  const auth = useAuth();
   const { badges, awardBadge, hasBadge } = usePassportBadges();
+
+  // ── Top-level tab ──
+  const [exploreTab, setExploreTab] = useState<"locations" | "events">("locations");
+
+  // ── Events state ──
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [evtName, setEvtName] = useState("");
+  const [evtDescription, setEvtDescription] = useState("");
+  const [evtDate, setEvtDate] = useState("");
+  const [evtLocationName, setEvtLocationName] = useState("");
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [joinedEventIds, setJoinedEventIds] = useState<Set<number>>(new Set());
+
+  const { data: eventsData = [], isLoading: eventsLoading } = useQuery<EventWithCount[]>({
+    queryKey: ["/api/events"],
+    queryFn: () => fetch("/api/events").then((r) => r.json()),
+    enabled: exploreTab === "events",
+  });
+
+  const createEventMut = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/events", {
+      name: evtName.trim(),
+      description: evtDescription.trim() || undefined,
+      eventDate: evtDate,
+      locationName: evtLocationName.trim() || undefined,
+    }).then((r) => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setShowCreateModal(false);
+      setEvtName(""); setEvtDescription(""); setEvtDate(""); setEvtLocationName("");
+      toast({ title: "Event created! 🧊", description: "Share the link with your fellow plungers." });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const joinEventMut = useMutation({
+    mutationFn: (id: number) => apiRequest("POST", `/api/events/${id}/join`, {
+      username: auth.user?.displayName || auth.user?.email?.split("@")[0] || "Anon",
+    }).then((r) => r.json()),
+    onSuccess: (_data, id) => {
+      setJoinedEventIds((prev) => new Set([...prev, id]));
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      toast({ title: "You're in! ❄️" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const leaveEventMut = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/events/${id}/join`).then((r) => r.json()),
+    onSuccess: (_data, id) => {
+      setJoinedEventIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      toast({ title: "Left event" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  function handleCopyEventLink(code: string) {
+    const url = `${window.location.origin}/event/${code}`;
+    navigator.clipboard.writeText(url).catch(() => {});
+    setCopiedCode(code);
+    toast({ title: "Link copied!", description: url });
+    setTimeout(() => setCopiedCode(null), 2500);
+  }
 
   // ── Shared filter state ──
   const [geoPos, setGeoPos] = useState<GeoPos | null>(null);
@@ -897,6 +966,34 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
           className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
         >✕</button>
       </div>
+
+      {/* ── Tab bar ── */}
+      <div className="flex gap-1 bg-blue-900/50 border border-blue-700/40 rounded-2xl p-1">
+        <button
+          data-testid="tab-explore-locations"
+          onClick={() => setExploreTab("locations")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-semibold transition-all ${
+            exploreTab === "locations"
+              ? "bg-cyan-500 text-white shadow shadow-cyan-500/30"
+              : "text-blue-400 hover:text-white"
+          }`}
+        >
+          <MapPin className="w-3.5 h-3.5" /> Locations
+        </button>
+        <button
+          data-testid="tab-explore-events"
+          onClick={() => setExploreTab("events")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-semibold transition-all ${
+            exploreTab === "events"
+              ? "bg-cyan-500 text-white shadow shadow-cyan-500/30"
+              : "text-blue-400 hover:text-white"
+          }`}
+        >
+          <CalendarDays className="w-3.5 h-3.5" /> Events
+        </button>
+      </div>
+
+      {exploreTab === "locations" && (<>
 
       {/* ── Filter bar ── */}
       <div className="bg-blue-900/50 border border-blue-700/40 rounded-2xl p-3 space-y-2">
@@ -1717,6 +1814,102 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
         )}
 
       </div>
+      </>)}
+
+      {exploreTab === "events" && (
+        <div className="space-y-3">
+          {/* Header row */}
+          <div className="flex items-center justify-between">
+            <p className="text-blue-300 text-xs">Community cold plunge gatherings</p>
+            {auth.user ? (
+              <button
+                data-testid="button-create-event"
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" /> Create
+              </button>
+            ) : (
+              <p className="text-blue-500 text-xs">Log in to create events</p>
+            )}
+          </div>
+
+          {/* Event list */}
+          {eventsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Snowflake className="w-8 h-8 text-cyan-400 animate-spin" />
+            </div>
+          ) : eventsData.length === 0 ? (
+            <div className="text-center py-12 space-y-2">
+              <Calendar className="w-10 h-10 text-blue-600 mx-auto" />
+              <p className="text-blue-400 text-sm font-semibold">No upcoming events</p>
+              <p className="text-blue-600 text-xs">Be the first to organize a cold plunge!</p>
+            </div>
+          ) : (
+            eventsData.map((evt) => {
+              const isJoined = joinedEventIds.has(evt.id);
+              return (
+                <div key={evt.id} className="bg-blue-900/50 border border-blue-700/40 rounded-2xl p-4 space-y-3">
+                  <div>
+                    <h3 className="text-white font-bold text-sm">{evt.name}</h3>
+                    {evt.description && <p className="text-blue-300 text-xs mt-0.5 line-clamp-2">{evt.description}</p>}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-blue-400 text-xs">
+                      <CalendarDays className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                      {new Date(evt.eventDate).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+                    </div>
+                    {evt.locationName && (
+                      <div className="flex items-center gap-2 text-blue-400 text-xs">
+                        <MapPin className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                        {evt.locationName}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-blue-400 text-xs">
+                      <Users className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                      {evt.participantCount} attending
+                    </div>
+                  </div>
+                  {evt.createdByUsername && (
+                    <p className="text-blue-600 text-[11px]">by {evt.createdByUsername}</p>
+                  )}
+                  <div className="flex gap-2">
+                    {auth.user ? (
+                      isJoined ? (
+                        <button
+                          data-testid={`button-leave-event-${evt.id}`}
+                          onClick={() => leaveEventMut.mutate(evt.id)}
+                          disabled={leaveEventMut.isPending}
+                          className="flex-1 py-2 rounded-xl border border-blue-600/60 text-blue-300 text-xs font-semibold hover:border-blue-400 transition-all active:scale-95 disabled:opacity-40"
+                        >
+                          {leaveEventMut.isPending ? "Leaving…" : "✓ Attending"}
+                        </button>
+                      ) : (
+                        <button
+                          data-testid={`button-join-event-${evt.id}`}
+                          onClick={() => joinEventMut.mutate(evt.id)}
+                          disabled={joinEventMut.isPending}
+                          className="flex-1 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all active:scale-95 disabled:opacity-40"
+                        >
+                          {joinEventMut.isPending ? "Joining…" : "❄️ Join"}
+                        </button>
+                      )
+                    ) : null}
+                    <button
+                      data-testid={`button-share-event-${evt.id}`}
+                      onClick={() => handleCopyEventLink(evt.shareCode)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-700/50 text-blue-400 text-xs font-semibold hover:border-blue-500 hover:text-blue-300 transition-all active:scale-95"
+                    >
+                      {copiedCode === evt.shareCode ? <Check className="w-3.5 h-3.5 text-cyan-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedCode === evt.shareCode ? "Copied" : "Share"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
     </div>
 
     {/* ── Community Disclaimer Modal ── */}
@@ -2504,6 +2697,87 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
         </div>
       </div>
     )}
+
+  {/* ── Create Event Modal ── */}
+  {showCreateModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="w-full max-w-sm bg-gradient-to-b from-blue-950 to-slate-950 border border-blue-700/50 rounded-2xl shadow-2xl overflow-hidden">
+        <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-blue-800/50">
+          <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center">
+            <CalendarDays className="w-5 h-5 text-cyan-400" />
+          </div>
+          <div>
+            <p className="text-white font-bold text-sm">Create Event</p>
+            <p className="text-blue-400 text-[11px]">Organize a community cold plunge</p>
+          </div>
+          <button onClick={() => setShowCreateModal(false)} className="ml-auto text-blue-500 hover:text-white transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="px-5 py-4 space-y-3">
+          <div>
+            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Event Name *</label>
+            <input
+              data-testid="input-event-name"
+              type="text"
+              value={evtName}
+              onChange={(e) => setEvtName(e.target.value)}
+              placeholder="Saturday Morning Plunge"
+              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+            />
+          </div>
+          <div>
+            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Date & Time *</label>
+            <input
+              data-testid="input-event-date"
+              type="datetime-local"
+              value={evtDate}
+              onChange={(e) => setEvtDate(e.target.value)}
+              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 [color-scheme:dark]"
+            />
+          </div>
+          <div>
+            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Location (optional)</label>
+            <input
+              data-testid="input-event-location"
+              type="text"
+              value={evtLocationName}
+              onChange={(e) => setEvtLocationName(e.target.value)}
+              placeholder="Barton Springs Pool, Austin TX"
+              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+            />
+          </div>
+          <div>
+            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Description (optional)</label>
+            <textarea
+              data-testid="input-event-description"
+              value={evtDescription}
+              onChange={(e) => setEvtDescription(e.target.value)}
+              placeholder="Any details about the plunge, what to bring, etc."
+              rows={2}
+              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500 resize-none"
+            />
+          </div>
+        </div>
+        <div className="px-5 pb-5 flex flex-col gap-2">
+          <button
+            data-testid="button-submit-event"
+            onClick={() => { if (!evtName.trim() || !evtDate) { toast({ title: "Name and date required", variant: "destructive" }); return; } createEventMut.mutate(); }}
+            disabled={createEventMut.isPending || !evtName.trim() || !evtDate}
+            className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-50"
+          >
+            {createEventMut.isPending ? "Creating…" : "Create Event ❄️"}
+          </button>
+          <button
+            onClick={() => setShowCreateModal(false)}
+            className="w-full py-2 text-blue-500 text-xs hover:text-blue-400 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
     </>
   );
 }

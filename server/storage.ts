@@ -1,10 +1,11 @@
 import { db } from "./db";
 import {
   plunges, leaderboardEntries, proUsers, promoCodes, userLocations, businessListings, users, badgeProfiles, pushSubscriptions,
+  events, eventParticipants,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
   type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile, type PushSubscription,
-  type BusinessListing,
+  type BusinessListing, type Event, type EventParticipant,
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and, not } from "drizzle-orm";
 
@@ -70,6 +71,16 @@ export interface IStorage {
   updatePushSubscriptionSentAt(endpoint: string): Promise<void>;
   deletePushSubscription(endpoint: string): Promise<void>;
   getAllPushSubscriptions(): Promise<PushSubscription[]>;
+  // Events
+  getEvents(): Promise<Event[]>;
+  getEventByCode(shareCode: string): Promise<Event | null>;
+  getEventById(id: number): Promise<Event | null>;
+  createEvent(data: { name: string; description?: string; eventDate: Date; locationName?: string; locationId?: string; createdBy?: number; createdByUsername?: string; shareCode: string }): Promise<Event>;
+  getEventParticipants(eventId: number): Promise<EventParticipant[]>;
+  getEventParticipantCount(eventId: number): Promise<number>;
+  joinEvent(eventId: number, userId: number, username: string): Promise<EventParticipant>;
+  leaveEvent(eventId: number, userId: number): Promise<void>;
+  isEventParticipant(eventId: number, userId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -465,6 +476,64 @@ export class DatabaseStorage implements IStorage {
 
   async getAllPushSubscriptions(): Promise<PushSubscription[]> {
     return db.select().from(pushSubscriptions);
+  }
+
+  async getEvents(): Promise<Event[]> {
+    return db.select().from(events).where(eq(events.isActive, true)).orderBy(desc(events.eventDate));
+  }
+
+  async getEventByCode(shareCode: string): Promise<Event | null> {
+    const [evt] = await db.select().from(events).where(eq(events.shareCode, shareCode));
+    return evt ?? null;
+  }
+
+  async getEventById(id: number): Promise<Event | null> {
+    const [evt] = await db.select().from(events).where(eq(events.id, id));
+    return evt ?? null;
+  }
+
+  async createEvent(data: { name: string; description?: string; eventDate: Date; locationName?: string; locationId?: string; createdBy?: number; createdByUsername?: string; shareCode: string }): Promise<Event> {
+    const [evt] = await db.insert(events).values({
+      name: data.name,
+      description: data.description ?? null,
+      eventDate: data.eventDate,
+      locationName: data.locationName ?? null,
+      locationId: data.locationId ?? null,
+      createdBy: data.createdBy ?? null,
+      createdByUsername: data.createdByUsername ?? null,
+      shareCode: data.shareCode,
+      isActive: true,
+    }).returning();
+    return evt;
+  }
+
+  async getEventParticipants(eventId: number): Promise<EventParticipant[]> {
+    return db.select().from(eventParticipants)
+      .where(eq(eventParticipants.eventId, eventId))
+      .orderBy(desc(eventParticipants.joinedAt));
+  }
+
+  async getEventParticipantCount(eventId: number): Promise<number> {
+    const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(eventParticipants).where(eq(eventParticipants.eventId, eventId));
+    return Number(count);
+  }
+
+  async joinEvent(eventId: number, userId: number, username: string): Promise<EventParticipant> {
+    const [participant] = await db.insert(eventParticipants)
+      .values({ eventId, userId, username })
+      .onConflictDoUpdate({ target: [eventParticipants.eventId, eventParticipants.userId], set: { username } })
+      .returning();
+    return participant;
+  }
+
+  async leaveEvent(eventId: number, userId: number): Promise<void> {
+    await db.delete(eventParticipants).where(and(eq(eventParticipants.eventId, eventId), eq(eventParticipants.userId, userId)));
+  }
+
+  async isEventParticipant(eventId: number, userId: number): Promise<boolean> {
+    const [row] = await db.select({ id: eventParticipants.id }).from(eventParticipants)
+      .where(and(eq(eventParticipants.eventId, eventId), eq(eventParticipants.userId, userId)));
+    return !!row;
   }
 }
 
