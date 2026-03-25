@@ -271,6 +271,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "apparel",
   },
   {
+    id: "neo-socks-black",
+    name: "Neoprene Water Socks — Black (3mm)",
+    description: "Sleek all-black 3mm neoprene socks with a non-slip sole — thermal protection for your feet during cold plunges.",
+    image: "/gear-neo-socks-black.png",
+    link: "https://amzn.to/4s09rzv",
+    linkLabel: "View on Amazon",
+    category: "apparel",
+  },
+  {
     id: "neo-socks",
     name: "Neoprene Water Socks (3mm)",
     description: "3mm neoprene water socks for cold plunging — keep your feet warm so the cold doesn't cut your session short.",
