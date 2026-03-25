@@ -99,7 +99,7 @@ export const GEAR_ITEMS: GearItem[] = [
     name: "The Pod Company Long Pod — 126 Gallon",
     description: "Extra-long 126-gallon tub for taller plungers up to 6'9\" — wide rectangular shape for full-body immersion.",
     image: "/gear-pod-long.png",
-    link: "https://amzn.to/4rA3VDA",
+    link: "https://amzn.to/4d8OKOb",
     linkLabel: "View on Amazon",
     category: "plunges",
   },
