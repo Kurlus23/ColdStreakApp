@@ -288,6 +288,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "apparel",
   },
   {
+    id: "sherpa-shawl-robe",
+    name: "Sherpa Shawl-Collar Robe",
+    description: "Luxuriously thick shawl-collar sherpa robe — stay toasty after your plunge with deep pockets and a belt to lock in warmth.",
+    image: "/gear-sherpa-shawl-robe.png",
+    link: "https://amzn.to/4bLH5mx",
+    linkLabel: "View on Amazon",
+    category: "apparel",
+  },
+  {
     id: "plaid-sherpa-robe",
     name: "Plaid Sherpa-Lined Robe",
     description: "Cozy plaid flannel robe with a warm sherpa lining — perfect for wrapping up after a cold plunge and staying warm while you recover.",
