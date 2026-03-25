@@ -202,6 +202,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "devices",
   },
   {
+    id: "yolink-thermometer",
+    name: "YoLink WiFi Water Thermometer",
+    description: "Long-range WiFi temp sensor with a waterproof probe — monitor your cold plunge temperature from anywhere in the house via the YoLink app.",
+    image: "/gear-yolink-thermometer.png",
+    link: "https://amzn.to/48au1Gb",
+    linkLabel: "View on Amazon",
+    category: "devices",
+  },
+  {
     id: "thermopro-tp25",
     name: "ThermoPro TP25 BLE Thermometer",
     description: "4-probe Bluetooth thermometer — pairs with ColdStreak for live water temp readings during your plunge. ±0.9°F accuracy.",
