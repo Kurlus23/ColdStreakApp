@@ -79,6 +79,7 @@ Plunges use a `clientId` (UUID stored in localStorage) for anonymous tracking. W
 | `client/src/hooks/use-auth.ts` | Auth state hook (login/register/logout/sync) |
 | `client/src/hooks/use-plunges.ts` | Plunge CRUD hooks (includes auth headers) |
 | `client/src/lib/analytics.ts` | PostHog event tracking |
+| `client/src/lib/cameraRoll.ts` | Auto-save plunge photos to camera roll + EXIF tagging with plunge metadata (duration, temp, score, date) for restore-from-photos recovery. Uses `@capacitor-community/media` + `piexifjs`. |
 | `client/src/lib/monitoring.ts` | Sentry error monitoring |
 | `client/src/lib/queryClient.ts` | TanStack Query client (includes auth header injection) |
 | `client/src/pages/Explore.tsx` | Business listings (verified/free), Chill Places, community locations |

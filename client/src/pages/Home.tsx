@@ -4,13 +4,15 @@ import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
 import { BleClient } from "@capacitor-community/bluetooth-le";
 import { savePhoto } from "@/lib/photoStore";
+import { tagAndSaveToRoll, readPlungeMetaFromPhoto, type PlungePhotoMeta } from "@/lib/cameraRoll";
 import icebergBg from "@assets/image_1773152998246.png";
 import {
   Play, Pause, RotateCcw, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2, FileText,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff, Heart, X
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff, Heart, X,
+  Image as ImageIcon
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -560,6 +562,7 @@ export default function Home() {
   const [scoreView, setScoreView] = useState<"today" | "week" | "kcal" | "kcal-week">("today");
   const [scoreInfoOpen, setScoreInfoOpen] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
+  const [restoreFromPhotoMeta, setRestoreFromPhotoMeta] = useState<PlungePhotoMeta | null>(null);
   const todayDateStr = new Date().toISOString().slice(0, 10);
   const nowTimeStr = new Date().toTimeString().slice(0, 5);
   const [manualDate, setManualDate] = useState(todayDateStr);
@@ -656,6 +659,30 @@ export default function Home() {
   const promptPlungeRef = useRef<{ score: string; duration: number; temperature: number; timerUsed: boolean } | null>(null);
 
   const { toast } = useToast();
+
+  // Restore-from-photos: open photo picker, read EXIF tag, offer to re-import
+  const handleRestoreFromPhotos = useCallback(async () => {
+    try {
+      const photo = await CapCamera.getPhoto({
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Photos,
+        quality: 100,
+      });
+      if (!photo.dataUrl) return;
+      const meta = readPlungeMetaFromPhoto(photo.dataUrl);
+      if (!meta) {
+        toast({ title: "No plunge data found", description: "This photo doesn't have a ColdStreak session embedded. Only photos taken inside the app are tagged.", variant: "destructive" });
+        return;
+      }
+      setRestoreFromPhotoMeta(meta);
+    } catch (err: any) {
+      const msg = String(err ?? "");
+      if (!msg.includes("cancel") && !msg.includes("dismiss") && !msg.includes("User cancelled")) {
+        toast({ title: "Photo error", description: msg || "Could not read photo", variant: "destructive" });
+      }
+    }
+  }, [toast]);
+
   const { data: plunges = [], isLoading } = usePlunges();
   const createPlunge = useCreatePlunge();
   const updatePlunge = useUpdatePlunge();
@@ -2244,6 +2271,16 @@ export default function Home() {
                     Export CSV
                   </button>
                 )}
+                {Capacitor.isNativePlatform() && (
+                  <button
+                    data-testid="button-restore-from-photos"
+                    onClick={handleRestoreFromPhotos}
+                    title="Recover a plunge from a tagged photo"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-700/50 border border-blue-600/50 text-blue-200 text-xs font-semibold hover:bg-blue-600/60 transition-all active:scale-95"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" /> Restore from Photo
+                  </button>
+                )}
                 <button
                   data-testid="button-manual-plunge"
                   onClick={() => {
@@ -2554,6 +2591,93 @@ export default function Home() {
                   {createPlunge.isPending ? "Saving…" : "Save Plunge"}
                 </button>
               </div>
+              );
+            })()}
+
+            {/* Restore from photo confirmation modal */}
+            {restoreFromPhotoMeta && (() => {
+              const m = restoreFromPhotoMeta;
+              const mins = Math.floor(m.duration / 60);
+              const secs = m.duration % 60;
+              const dateStr = new Date(m.date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+              return (
+                <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm pb-6 px-4">
+                  <div className="w-full max-w-md bg-blue-950 border border-blue-700/60 rounded-3xl p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-white font-bold text-base flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-cyan-400" /> Restore Plunge?
+                      </h3>
+                      <button onClick={() => setRestoreFromPhotoMeta(null)} className="text-blue-400 hover:text-white text-lg leading-none">✕</button>
+                    </div>
+                    <p className="text-blue-300 text-sm">This photo contains the following session data:</p>
+                    <div className="bg-blue-900/60 rounded-2xl px-4 py-3 space-y-1.5 border border-blue-700/40">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-blue-400">Date</span>
+                        <span className="text-white font-semibold">{dateStr}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-blue-400">Duration</span>
+                        <span className="text-white font-semibold">{mins}m {secs}s</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-blue-400">Temperature</span>
+                        <span className="text-white font-semibold">{m.temp}°F</span>
+                      </div>
+                      {m.score !== undefined && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-blue-400">Cold Score</span>
+                          <span className="text-cyan-300 font-bold">{Math.round(m.score)}</span>
+                        </div>
+                      )}
+                      {m.locationName && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-blue-400">Location</span>
+                          <span className="text-white font-semibold truncate ml-4">{m.locationName}</span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-blue-400 text-xs">This will add a new entry to your history. It won't duplicate if the session was already synced from another device.</p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setRestoreFromPhotoMeta(null)}
+                        className="flex-1 py-2.5 rounded-2xl border border-blue-700/60 text-blue-300 text-sm font-semibold hover:border-blue-500 transition-all active:scale-95"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        data-testid="button-confirm-restore-from-photo"
+                        onClick={() => {
+                          createPlunge.mutate(
+                            {
+                              duration: m.duration,
+                              temperature: m.temp,
+                              score: m.score !== undefined ? String(Math.round(m.score)) : "0",
+                              hrAvg: null,
+                              spo2Avg: null,
+                              createdAt: m.date,
+                              locationId: m.locationId ?? undefined,
+                              locationName: m.locationName ?? undefined,
+                              calories: Math.round(estimateCalories(m.duration, m.temp, Number(localStorage.getItem("coldstreak-body-weight") || 150))),
+                            },
+                            {
+                              onSuccess: () => {
+                                setRestoreFromPhotoMeta(null);
+                                toast({ title: "Plunge restored! ❄️", description: `Session from ${dateStr} added to your history.` });
+                              },
+                              onError: () => {
+                                toast({ title: "Restore failed", description: "Could not save the plunge. Please try again.", variant: "destructive" });
+                              },
+                            }
+                          );
+                        }}
+                        disabled={createPlunge.isPending}
+                        className="flex-1 py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white text-sm font-bold transition-all active:scale-95"
+                      >
+                        {createPlunge.isPending ? "Saving…" : "Restore Plunge"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               );
             })()}
 
@@ -5299,6 +5423,18 @@ export default function Home() {
                   {
                     onSuccess: async () => {
                       if (promptPhotoData && photoPromptId && promptPlungeRef.current) {
+                        const rollMeta = {
+                          v: 1 as const,
+                          id: photoPromptId,
+                          duration: promptPlungeRef.current.duration,
+                          temp: promptPlungeRef.current.temperature,
+                          score: promptPlungeRef.current.score ? parseFloat(promptPlungeRef.current.score) : undefined,
+                          date: new Date().toISOString(),
+                          userId: auth.user?.id,
+                          locationName: finalLocationName ?? undefined,
+                          locationId: finalLocationId ?? undefined,
+                          streak,
+                        };
                         try {
                           const composited = await buildShareImage({
                             photoDataUrl: promptPhotoData,
@@ -5310,10 +5446,14 @@ export default function Home() {
                             score: promptPlungeRef.current.score ?? undefined,
                           });
                           await savePhoto(photoPromptId, composited).catch(() => {});
+                          // Save composited photo (with stats overlay) to device camera roll
+                          tagAndSaveToRoll(composited, rollMeta).catch(() => {});
                           // Also persist to server so photo survives app updates
                           updatePlunge.mutate({ id: photoPromptId, patch: { photoData: composited } });
                         } catch {
                           await savePhoto(photoPromptId, promptPhotoData).catch(() => {});
+                          // Fall back to saving raw photo to camera roll if compositing failed
+                          tagAndSaveToRoll(promptPhotoData, rollMeta).catch(() => {});
                           updatePlunge.mutate({ id: photoPromptId, patch: { photoData: promptPhotoData } });
                         }
                       }
