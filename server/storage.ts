@@ -75,7 +75,7 @@ export interface IStorage {
   getEvents(): Promise<Event[]>;
   getEventByCode(shareCode: string): Promise<Event | null>;
   getEventById(id: number): Promise<Event | null>;
-  createEvent(data: { name: string; description?: string; eventDate: Date; locationName?: string; locationId?: string; createdBy?: number; createdByUsername?: string; shareCode: string }): Promise<Event>;
+  createEvent(data: { name: string; description?: string; eventDate: Date; locationName?: string; locationId?: string; plungeLat?: number; plungeLng?: number; accessLat?: number; accessLng?: number; createdBy?: number; createdByUsername?: string; shareCode: string }): Promise<Event>;
   getEventParticipants(eventId: number): Promise<EventParticipant[]>;
   getEventParticipantCount(eventId: number): Promise<number>;
   joinEvent(eventId: number, userId: number, username: string): Promise<EventParticipant>;
@@ -492,13 +492,17 @@ export class DatabaseStorage implements IStorage {
     return evt ?? null;
   }
 
-  async createEvent(data: { name: string; description?: string; eventDate: Date; locationName?: string; locationId?: string; createdBy?: number; createdByUsername?: string; shareCode: string }): Promise<Event> {
+  async createEvent(data: { name: string; description?: string; eventDate: Date; locationName?: string; locationId?: string; plungeLat?: number; plungeLng?: number; accessLat?: number; accessLng?: number; createdBy?: number; createdByUsername?: string; shareCode: string }): Promise<Event> {
     const [evt] = await db.insert(events).values({
       name: data.name,
       description: data.description ?? null,
       eventDate: data.eventDate,
       locationName: data.locationName ?? null,
       locationId: data.locationId ?? null,
+      plungeLat: data.plungeLat != null ? String(data.plungeLat) : null,
+      plungeLng: data.plungeLng != null ? String(data.plungeLng) : null,
+      accessLat: data.accessLat != null ? String(data.accessLat) : null,
+      accessLng: data.accessLng != null ? String(data.accessLng) : null,
       createdBy: data.createdBy ?? null,
       createdByUsername: data.createdByUsername ?? null,
       shareCode: data.shareCode,

@@ -398,6 +398,10 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [evtLocationName, setEvtLocationName] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [joinedEventIds, setJoinedEventIds] = useState<Set<number>>(new Set());
+  const [evtPlungeGps, setEvtPlungeGps] = useState<GeoPos | null>(null);
+  const [evtAccessGps, setEvtAccessGps] = useState<GeoPos | null>(null);
+  const [evtPlungeGpsLoading, setEvtPlungeGpsLoading] = useState(false);
+  const [evtAccessGpsLoading, setEvtAccessGpsLoading] = useState(false);
 
   const { data: eventsData = [], isLoading: eventsLoading } = useQuery<EventWithCount[]>({
     queryKey: ["/api/events"],
@@ -411,11 +415,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       description: evtDescription.trim() || undefined,
       eventDate: evtDate,
       locationName: evtLocationName.trim() || undefined,
+      ...(evtPlungeGps ? { plungeLat: evtPlungeGps.lat, plungeLng: evtPlungeGps.lng } : {}),
+      ...(evtAccessGps ? { accessLat: evtAccessGps.lat, accessLng: evtAccessGps.lng } : {}),
     }).then((r) => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setShowCreateModal(false);
       setEvtName(""); setEvtDescription(""); setEvtDate(""); setEvtLocationName("");
+      setEvtPlungeGps(null); setEvtAccessGps(null);
       toast({ title: "Event created! 🧊", description: "Share the link with your fellow plungers." });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -442,6 +449,21 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
+
+  async function grabEventGps(target: "plunge" | "access") {
+    if (target === "plunge") setEvtPlungeGpsLoading(true); else setEvtAccessGpsLoading(true);
+    try {
+      const coords = Capacitor.isNativePlatform()
+        ? (await Geolocation.getCurrentPosition({ enableHighAccuracy: true })).coords
+        : await new Promise<GeolocationCoordinates>((res, rej) =>
+            navigator.geolocation.getCurrentPosition((p) => res(p.coords), rej, { enableHighAccuracy: true, timeout: 10000 })
+          );
+      const pos: GeoPos = { lat: Number(coords.latitude.toFixed(6)), lng: Number(coords.longitude.toFixed(6)) };
+      if (target === "plunge") setEvtPlungeGps(pos); else setEvtAccessGps(pos);
+      toast({ title: target === "access" ? "🅿 Parking point pinned ✓" : "📍 Plunge spot pinned ✓" });
+    } catch { toast({ title: "GPS unavailable", variant: "destructive" }); }
+    if (target === "plunge") setEvtPlungeGpsLoading(false); else setEvtAccessGpsLoading(false);
+  }
 
   function handleCopyEventLink(code: string) {
     const url = `${window.location.origin}/event/${code}`;
@@ -1870,6 +1892,29 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                       {evt.participantCount} attending
                     </div>
                   </div>
+                  {/* Directions buttons */}
+                  {(evt.plungeLat || evt.accessLat) && (
+                    <div className="flex gap-2">
+                      {evt.plungeLat && evt.plungeLng && (
+                        <button
+                          data-testid={`button-directions-plunge-${evt.id}`}
+                          onClick={() => openDirections(evt.plungeLat!, evt.plungeLng!)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold hover:bg-cyan-500/25 transition-all active:scale-95"
+                        >
+                          <Navigation className="w-3 h-3" /> Plunge Spot
+                        </button>
+                      )}
+                      {evt.accessLat && evt.accessLng && (
+                        <button
+                          data-testid={`button-directions-parking-${evt.id}`}
+                          onClick={() => openDirections(evt.accessLat!, evt.accessLng!)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-700/30 border border-blue-600/40 text-blue-300 text-[11px] font-semibold hover:bg-blue-700/50 transition-all active:scale-95"
+                        >
+                          <Navigation className="w-3 h-3" /> 🅿 Parking
+                        </button>
+                      )}
+                    </div>
+                  )}
                   {evt.createdByUsername && (
                     <p className="text-blue-600 text-[11px]">by {evt.createdByUsername}</p>
                   )}
@@ -2737,7 +2782,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             />
           </div>
           <div>
-            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Location (optional)</label>
+            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Location Name (optional)</label>
             <input
               data-testid="input-event-location"
               type="text"
@@ -2747,13 +2792,62 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
             />
           </div>
+
+          {/* Plunge Spot GPS */}
+          <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl p-3 space-y-2">
+            <div>
+              <p className="text-white text-xs font-semibold">📍 Plunge Spot</p>
+              <p className="text-blue-500 text-[10px]">Pin the exact water entry point</p>
+            </div>
+            {evtPlungeGps ? (
+              <div className="flex items-center gap-2">
+                <p className="text-green-400 text-[11px] font-mono flex-1">{evtPlungeGps.lat.toFixed(5)}, {evtPlungeGps.lng.toFixed(5)}</p>
+                <button onClick={() => setEvtPlungeGps(null)} className="text-blue-500 hover:text-red-400 text-[10px] transition-colors">✕ Clear</button>
+              </div>
+            ) : null}
+            <button
+              data-testid="button-event-plunge-gps"
+              type="button"
+              onClick={() => grabEventGps("plunge")}
+              disabled={evtPlungeGpsLoading}
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-800/60 border border-blue-700/40 text-blue-300 text-xs font-semibold hover:border-blue-500 hover:text-white transition-all active:scale-95 disabled:opacity-50"
+            >
+              <LocateFixed className="w-3.5 h-3.5" />
+              {evtPlungeGpsLoading ? "Getting GPS…" : evtPlungeGps ? "Update plunge spot GPS" : "Pin plunge spot with GPS"}
+            </button>
+          </div>
+
+          {/* Access / Parking GPS */}
+          <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl p-3 space-y-2">
+            <div>
+              <p className="text-white text-xs font-semibold">🅿 Parking / Access Point</p>
+              <p className="text-blue-500 text-[10px]">Trailhead, parking lot, or access gate — where directions navigate to</p>
+            </div>
+            {evtAccessGps ? (
+              <div className="flex items-center gap-2">
+                <p className="text-green-400 text-[11px] font-mono flex-1">{evtAccessGps.lat.toFixed(5)}, {evtAccessGps.lng.toFixed(5)}</p>
+                <button onClick={() => setEvtAccessGps(null)} className="text-blue-500 hover:text-red-400 text-[10px] transition-colors">✕ Clear</button>
+              </div>
+            ) : null}
+            <button
+              data-testid="button-event-access-gps"
+              type="button"
+              onClick={() => grabEventGps("access")}
+              disabled={evtAccessGpsLoading}
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-800/60 border border-blue-700/40 text-blue-300 text-xs font-semibold hover:border-blue-500 hover:text-white transition-all active:scale-95 disabled:opacity-50"
+            >
+              <LocateFixed className="w-3.5 h-3.5" />
+              {evtAccessGpsLoading ? "Getting GPS…" : evtAccessGps ? "Update access/parking GPS" : "Pin parking / access with GPS"}
+            </button>
+          </div>
+
           <div>
             <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Description (optional)</label>
             <textarea
               data-testid="input-event-description"
               value={evtDescription}
               onChange={(e) => setEvtDescription(e.target.value)}
-              placeholder="Any details about the plunge, what to bring, etc."
+              placeholder="What to bring, carpool details, any notes…"
               rows={2}
               className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500 resize-none"
             />

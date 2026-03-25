@@ -186,6 +186,12 @@ export const events = pgTable("events", {
   eventDate: timestamp("event_date").notNull(),
   locationName: text("location_name"),
   locationId: text("location_id"),
+  // Plunge spot coordinates
+  plungeLat: numeric("plunge_lat", { precision: 9, scale: 6 }),
+  plungeLng: numeric("plunge_lng", { precision: 9, scale: 6 }),
+  // Parking / access point coordinates (where directions navigate to)
+  accessLat: numeric("access_lat", { precision: 9, scale: 6 }),
+  accessLng: numeric("access_lng", { precision: 9, scale: 6 }),
   createdBy: integer("created_by"),
   createdByUsername: text("created_by_username"),
   shareCode: text("share_code").notNull().unique(),

@@ -3,9 +3,13 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarDays, MapPin, Users, Snowflake, ExternalLink, Copy, Check } from "lucide-react";
+import { CalendarDays, MapPin, Users, Snowflake, ExternalLink, Copy, Check, Navigation } from "lucide-react";
 import { useState } from "react";
 import type { Event, EventParticipant } from "@shared/schema";
+
+function openDirections(lat: number | string, lng: number | string) {
+  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank", "noopener,noreferrer");
+}
 
 type EventDetail = Event & { participants: EventParticipant[]; participantCount: number };
 
@@ -110,6 +114,33 @@ export default function EventPage() {
             <span>{evt.participantCount} attending</span>
           </div>
         </div>
+
+        {/* Directions */}
+        {(evt.plungeLat || evt.accessLat) && (
+          <div className="space-y-2">
+            <p className="text-blue-500 text-xs font-semibold uppercase tracking-wide">Directions</p>
+            <div className="flex gap-2 flex-wrap">
+              {evt.plungeLat && evt.plungeLng && (
+                <button
+                  data-testid="button-directions-plunge"
+                  onClick={() => openDirections(evt.plungeLat!, evt.plungeLng!)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all active:scale-95"
+                >
+                  <Navigation className="w-3.5 h-3.5" /> 📍 Plunge Spot
+                </button>
+              )}
+              {evt.accessLat && evt.accessLng && (
+                <button
+                  data-testid="button-directions-parking"
+                  onClick={() => openDirections(evt.accessLat!, evt.accessLng!)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-700/40 border border-blue-600/50 text-blue-300 text-xs font-semibold hover:bg-blue-700/60 transition-all active:scale-95"
+                >
+                  <Navigation className="w-3.5 h-3.5" /> 🅿 Parking
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {evt.createdByUsername && (
           <p className="text-blue-500 text-xs">Organized by {evt.createdByUsername}</p>

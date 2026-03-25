@@ -1129,7 +1129,7 @@ export async function registerRoutes(
     const user = await storage.getUserById(payload.userId);
     if (!user) return res.status(401).json({ error: "User not found" });
 
-    const { name, description, eventDate, locationName, locationId } = req.body;
+    const { name, description, eventDate, locationName, locationId, plungeLat, plungeLng, accessLat, accessLng } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: "Event name is required" });
     if (!eventDate) return res.status(400).json({ error: "Event date is required" });
 
@@ -1140,6 +1140,10 @@ export async function registerRoutes(
       eventDate: new Date(eventDate),
       locationName: locationName?.trim() || undefined,
       locationId: locationId?.trim() || undefined,
+      plungeLat: plungeLat != null ? Number(plungeLat) : undefined,
+      plungeLng: plungeLng != null ? Number(plungeLng) : undefined,
+      accessLat: accessLat != null ? Number(accessLat) : undefined,
+      accessLng: accessLng != null ? Number(accessLng) : undefined,
       createdBy: user.id,
       createdByUsername: user.displayName || user.email.split("@")[0],
       shareCode: code,
