@@ -202,6 +202,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "devices",
   },
   {
+    id: "inkbird-floating",
+    name: "Inkbird Floating Wireless Thermometer",
+    description: "Float-in-place wireless thermometer with an indoor base station display — see your cold plunge water temp at a glance from across the room.",
+    image: "/gear-inkbird-floating-thermometer.png",
+    link: "https://amzn.to/4rT5zAg",
+    linkLabel: "View on Amazon",
+    category: "devices",
+  },
+  {
     id: "yolink-floating",
     name: "YoLink Floating WiFi Thermometer",
     description: "Drop-in floating WiFi thermometer that sits directly in your cold plunge — monitor water temp remotely via the YoLink app with long-range signal.",
