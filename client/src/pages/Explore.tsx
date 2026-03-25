@@ -202,6 +202,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "devices",
   },
   {
+    id: "yolink-floating",
+    name: "YoLink Floating WiFi Thermometer",
+    description: "Drop-in floating WiFi thermometer that sits directly in your cold plunge — monitor water temp remotely via the YoLink app with long-range signal.",
+    image: "/gear-yolink-floating-thermometer.png",
+    link: "https://amzn.to/4uOc9L2",
+    linkLabel: "View on Amazon",
+    category: "devices",
+  },
+  {
     id: "yolink-thermometer",
     name: "YoLink WiFi Water Thermometer",
     description: "Long-range WiFi temp sensor with a waterproof probe — monitor your cold plunge temperature from anywhere in the house via the YoLink app.",
