@@ -265,8 +265,9 @@ export const GEAR_ITEMS: GearItem[] = [
   {
     id: "neo-gloves",
     name: "Neoprene Gloves (3mm)",
-    description: "3mm neoprene water sports gloves — protect your hands from the cold so you can extend your plunge time.",
-    link: "https://www.amazon.com/s?k=3mm+neoprene+gloves+cold+plunge",
+    description: "3mm neoprene water sports gloves with anti-slip grip and velcro wrist strap — protect your hands from the cold so you can extend your plunge time.",
+    image: "/gear-neo-gloves.png",
+    link: "https://amzn.to/4uW7GGo",
     linkLabel: "View on Amazon",
     category: "apparel",
   },
