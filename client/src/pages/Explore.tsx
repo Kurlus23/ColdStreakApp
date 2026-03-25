@@ -184,6 +184,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "diy",
   },
   {
+    id: "leak-detector",
+    name: "WiFi Leak Detector Kit (3-Pack + Hub)",
+    description: "Smart water leak sensors with WiFi hub — place around your cold plunge setup to get instant phone alerts if your tub or chiller lines ever spring a leak.",
+    image: "/gear-leak-detector.png",
+    link: "https://amzn.to/47jF2Vw",
+    linkLabel: "View on Amazon",
+    category: "diy",
+  },
+  {
     id: "stock-tank",
     name: "Galvanized Stock Tank (300 Gallon)",
     description: "The classic DIY cold plunge vessel — durable galvanized steel, available at farm supply stores. Add ice or pair with a chiller.",
