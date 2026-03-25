@@ -280,9 +280,10 @@ export const GEAR_ITEMS: GearItem[] = [
   },
   {
     id: "warmup-robe",
-    name: "Hooded Sherpa Warm-Up Robe",
-    description: "Post-plunge recovery robe — wrap up immediately after your plunge to rewarm safely and comfortably.",
-    link: "https://www.amazon.com/s?k=hooded+sherpa+robe+warm+up",
+    name: "Hooded Fleece Warm-Up Robe",
+    description: "Post-plunge recovery robe — ultra-soft hooded fleece to wrap up immediately after your plunge and rewarm comfortably.",
+    image: "/gear-fleece-robe.png",
+    link: "https://amzn.to/41s21tT",
     linkLabel: "View on Amazon",
     category: "apparel",
   },
