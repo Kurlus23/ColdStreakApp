@@ -288,6 +288,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "apparel",
   },
   {
+    id: "mens-hooded-robe2",
+    name: "Men's Plush Hooded Robe",
+    description: "Mid-length men's plush fleece robe with a generous hood and waist belt — quick to throw on after stepping out of the cold.",
+    image: "/gear-mens-hooded-robe2.png",
+    link: "https://amzn.to/4by3mFF",
+    linkLabel: "View on Amazon",
+    category: "apparel",
+  },
+  {
     id: "mens-fleece-robe",
     name: "Men's Hooded Fleece Robe",
     description: "Full-length men's fleece robe with a hood and deep pockets — ideal for post-plunge recovery and staying warm after cold immersion.",
