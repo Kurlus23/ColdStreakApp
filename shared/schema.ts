@@ -184,6 +184,8 @@ export const events = pgTable("events", {
   name: text("name").notNull(),
   description: text("description"),
   eventDate: timestamp("event_date").notNull(),
+  // Optional end date — max 7 days after eventDate. Event auto-deletes after endDate (or eventDate + 7d if null).
+  endDate: timestamp("end_date"),
   locationName: text("location_name"),
   locationId: text("location_id"),
   // Plunge spot coordinates
@@ -212,3 +214,13 @@ export const eventParticipants = pgTable("event_participants", {
 }, (t) => [uniqueIndex("event_participant_idx").on(t.eventId, t.userId)]);
 
 export type EventParticipant = typeof eventParticipants.$inferSelect;
+
+export const eventCoordinators = pgTable("event_coordinators", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").notNull(),
+  userId: integer("user_id").notNull(),
+  username: text("username").notNull(),
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("event_coordinator_idx").on(t.eventId, t.userId)]);
+
+export type EventCoordinator = typeof eventCoordinators.$inferSelect;

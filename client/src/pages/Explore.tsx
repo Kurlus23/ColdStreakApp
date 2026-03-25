@@ -14,7 +14,8 @@ import { PASSPORT_LOCATIONS, usePassportBadges, distanceMiles, DIFFICULTY_META, 
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { UserLocation, Event, EventParticipant } from "@shared/schema";
 
-type EventWithCount = Event & { participantCount: number };
+type EventCoordinator = { id: number; eventId: number; userId: number; username: string; addedAt: string };
+type EventWithCount = Event & { participantCount: number; coordinators: EventCoordinator[] };
 
 type BizLocation = Omit<UserLocation, "contactEmail"> & { isOwner: boolean; isAdmin: boolean };
 
@@ -398,10 +399,13 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [evtLocationName, setEvtLocationName] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [joinedEventIds, setJoinedEventIds] = useState<Set<number>>(new Set());
+  const [evtEndDate, setEvtEndDate] = useState("");
   const [evtPlungeGps, setEvtPlungeGps] = useState<GeoPos | null>(null);
   const [evtAccessGps, setEvtAccessGps] = useState<GeoPos | null>(null);
   const [evtPlungeGpsLoading, setEvtPlungeGpsLoading] = useState(false);
   const [evtAccessGpsLoading, setEvtAccessGpsLoading] = useState(false);
+  const [expandedCoordMgmt, setExpandedCoordMgmt] = useState<number | null>(null);
+  const [newCoordName, setNewCoordName] = useState("");
 
   const { data: eventsData = [], isLoading: eventsLoading } = useQuery<EventWithCount[]>({
     queryKey: ["/api/events"],
@@ -414,6 +418,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       name: evtName.trim(),
       description: evtDescription.trim() || undefined,
       eventDate: evtDate,
+      ...(evtEndDate ? { endDate: evtEndDate } : {}),
       locationName: evtLocationName.trim() || undefined,
       ...(evtPlungeGps ? { plungeLat: evtPlungeGps.lat, plungeLng: evtPlungeGps.lng } : {}),
       ...(evtAccessGps ? { accessLat: evtAccessGps.lat, accessLng: evtAccessGps.lng } : {}),
@@ -421,9 +426,30 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setShowCreateModal(false);
-      setEvtName(""); setEvtDescription(""); setEvtDate(""); setEvtLocationName("");
+      setEvtName(""); setEvtDescription(""); setEvtDate(""); setEvtEndDate(""); setEvtLocationName("");
       setEvtPlungeGps(null); setEvtAccessGps(null);
       toast({ title: "Event created! 🧊", description: "Share the link with your fellow plungers." });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const addCoordMut = useMutation({
+    mutationFn: ({ eventId, displayName }: { eventId: number; displayName: string }) =>
+      apiRequest("POST", `/api/events/${eventId}/coordinators`, { displayName }).then((r) => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setNewCoordName("");
+      toast({ title: "Co-coordinator added ✓" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const removeCoordMut = useMutation({
+    mutationFn: ({ eventId, userId }: { eventId: number; userId: number }) =>
+      apiRequest("DELETE", `/api/events/${eventId}/coordinators/${userId}`).then((r) => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      toast({ title: "Coordinator removed" });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -1879,7 +1905,9 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-blue-400 text-xs">
                       <CalendarDays className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-                      {new Date(evt.eventDate).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+                      {evt.endDate && new Date(evt.endDate).toDateString() !== new Date(evt.eventDate).toDateString()
+                        ? `${new Date(evt.eventDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${new Date(evt.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+                        : new Date(evt.eventDate).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
                     </div>
                     {evt.locationName && (
                       <div className="flex items-center gap-2 text-blue-400 text-xs">
@@ -1915,8 +1943,74 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                       )}
                     </div>
                   )}
-                  {evt.createdByUsername && (
-                    <p className="text-blue-600 text-[11px]">by {evt.createdByUsername}</p>
+                  {/* Organizer + coordinators */}
+                  {(evt.createdByUsername || evt.coordinators.length > 0) && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {evt.createdByUsername && (
+                        <span className="text-blue-600 text-[11px]">by {evt.createdByUsername}</span>
+                      )}
+                      {evt.coordinators.map((c) => (
+                        <span key={c.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-800/60 border border-blue-700/40 text-blue-300 text-[10px] font-semibold">
+                          ⚡ {c.username}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {/* Coordinator management (creator / co-coordinators only) */}
+                  {auth.user && (evt.createdBy === auth.user.id || evt.coordinators.some((c) => c.userId === auth.user!.id)) && (
+                    <div>
+                      <button
+                        data-testid={`button-manage-coords-${evt.id}`}
+                        onClick={() => { setExpandedCoordMgmt(expandedCoordMgmt === evt.id ? null : evt.id); setNewCoordName(""); }}
+                        className="text-blue-500 text-[11px] hover:text-blue-400 transition-colors flex items-center gap-1"
+                      >
+                        {expandedCoordMgmt === evt.id ? "▲ Hide co-coordinators" : "▼ Manage co-coordinators"}
+                      </button>
+                      {expandedCoordMgmt === evt.id && (
+                        <div className="mt-2 space-y-2 bg-blue-950/60 border border-blue-700/30 rounded-xl p-3">
+                          {evt.coordinators.length === 0 ? (
+                            <p className="text-blue-600 text-[11px]">No co-coordinators yet.</p>
+                          ) : (
+                            <div className="space-y-1.5">
+                              {evt.coordinators.map((c) => (
+                                <div key={c.id} className="flex items-center gap-2">
+                                  <span className="text-blue-300 text-xs flex-1">⚡ {c.username}</span>
+                                  {evt.createdBy === auth.user!.id && (
+                                    <button
+                                      data-testid={`button-remove-coord-${c.userId}`}
+                                      onClick={() => removeCoordMut.mutate({ eventId: evt.id, userId: c.userId })}
+                                      disabled={removeCoordMut.isPending}
+                                      className="text-[10px] text-blue-600 hover:text-red-400 transition-colors"
+                                    >
+                                      Remove
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex gap-2 mt-2">
+                            <input
+                              data-testid={`input-coord-name-${evt.id}`}
+                              type="text"
+                              value={newCoordName}
+                              onChange={(e) => setNewCoordName(e.target.value)}
+                              placeholder="Display name of user to add"
+                              className="flex-1 bg-blue-900/60 border border-blue-700/40 text-white text-[11px] rounded-xl px-2.5 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-600"
+                            />
+                            <button
+                              data-testid={`button-add-coord-${evt.id}`}
+                              onClick={() => { if (newCoordName.trim()) addCoordMut.mutate({ eventId: evt.id, displayName: newCoordName.trim() }); }}
+                              disabled={addCoordMut.isPending || !newCoordName.trim()}
+                              className="px-3 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-[11px] font-semibold hover:bg-cyan-500/30 transition-all active:scale-95 disabled:opacity-40"
+                            >
+                              {addCoordMut.isPending ? "…" : "Add"}
+                            </button>
+                          </div>
+                          <p className="text-blue-600 text-[10px]">Co-coordinators can also add/remove coordinators.</p>
+                        </div>
+                      )}
+                    </div>
                   )}
                   <div className="flex gap-2">
                     {auth.user ? (
@@ -2772,12 +2866,26 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             />
           </div>
           <div>
-            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Date & Time *</label>
+            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Start Date & Time *</label>
             <input
               data-testid="input-event-date"
               type="datetime-local"
               value={evtDate}
-              onChange={(e) => setEvtDate(e.target.value)}
+              onChange={(e) => { setEvtDate(e.target.value); if (evtEndDate && evtEndDate < e.target.value) setEvtEndDate(e.target.value); }}
+              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 [color-scheme:dark]"
+            />
+          </div>
+          <div>
+            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">
+              End Date (optional) <span className="text-blue-600 normal-case font-normal">— max 7 days, auto-deletes after</span>
+            </label>
+            <input
+              data-testid="input-event-end-date"
+              type="datetime-local"
+              value={evtEndDate}
+              min={evtDate || undefined}
+              max={evtDate ? (() => { const d = new Date(evtDate); d.setDate(d.getDate() + 7); return d.toISOString().slice(0, 16); })() : undefined}
+              onChange={(e) => setEvtEndDate(e.target.value)}
               className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 [color-scheme:dark]"
             />
           </div>

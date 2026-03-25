@@ -11,10 +11,18 @@ function openDirections(lat: number | string, lng: number | string) {
   window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank", "noopener,noreferrer");
 }
 
-type EventDetail = Event & { participants: EventParticipant[]; participantCount: number };
+type EventCoordinator = { id: number; eventId: number; userId: number; username: string; addedAt: string };
+type EventDetail = Event & { participants: EventParticipant[]; participantCount: number; coordinators: EventCoordinator[] };
 
 function fmtDate(d: string | Date) {
   return new Date(d).toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric", year: "numeric" });
+}
+
+function fmtDateRange(start: string | Date, end: string | Date | null | undefined) {
+  if (!end || new Date(end).toDateString() === new Date(start).toDateString()) return fmtDate(start);
+  const s = new Date(start).toLocaleDateString(undefined, { month: "long", day: "numeric" });
+  const e = new Date(end).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+  return `${s} – ${e}`;
 }
 
 export default function EventPage() {
@@ -101,7 +109,7 @@ export default function EventPage() {
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-blue-300 text-sm">
             <CalendarDays className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-            <span>{fmtDate(evt.eventDate)}</span>
+            <span>{fmtDateRange(evt.eventDate, evt.endDate)}</span>
           </div>
           {evt.locationName && (
             <div className="flex items-center gap-2 text-blue-300 text-sm">
@@ -142,8 +150,17 @@ export default function EventPage() {
           </div>
         )}
 
-        {evt.createdByUsername && (
-          <p className="text-blue-500 text-xs">Organized by {evt.createdByUsername}</p>
+        {(evt.createdByUsername || evt.coordinators.length > 0) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {evt.createdByUsername && (
+              <p className="text-blue-500 text-xs">Organized by {evt.createdByUsername}</p>
+            )}
+            {evt.coordinators.map((c) => (
+              <span key={c.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-800/60 border border-blue-700/40 text-blue-300 text-[11px] font-semibold">
+                ⚡ {c.username}
+              </span>
+            ))}
+          </div>
         )}
 
         {/* Join / Leave */}

@@ -1104,23 +1104,31 @@ export async function registerRoutes(
     return code;
   }
 
+  // ── Helper: is user a coordinator (creator or co-coordinator) ─────────────────
+  async function isEventManagerUser(evt: { createdBy: number | null }, userId: number, eventId: number): Promise<boolean> {
+    if (evt.createdBy === userId) return true;
+    return storage.isEventCoordinator(eventId, userId);
+  }
+
   app.get("/api/events", async (_req, res) => {
     const evts = await storage.getEvents();
-    const withCounts = await Promise.all(evts.map(async (e) => ({
+    const withDetails = await Promise.all(evts.map(async (e) => ({
       ...e,
       participantCount: await storage.getEventParticipantCount(e.id),
+      coordinators: await storage.getEventCoordinators(e.id),
     })));
-    res.json(withCounts);
+    res.json(withDetails);
   });
 
   app.get("/api/events/:code", async (req, res) => {
     const evt = await storage.getEventByCode(req.params.code.toUpperCase());
     if (!evt) return res.status(404).json({ error: "Event not found" });
-    const [participants, count] = await Promise.all([
+    const [participants, count, coordinators] = await Promise.all([
       storage.getEventParticipants(evt.id),
       storage.getEventParticipantCount(evt.id),
+      storage.getEventCoordinators(evt.id),
     ]);
-    res.json({ ...evt, participants, participantCount: count });
+    res.json({ ...evt, participants, participantCount: count, coordinators });
   });
 
   app.post("/api/events", async (req, res) => {
@@ -1129,15 +1137,25 @@ export async function registerRoutes(
     const user = await storage.getUserById(payload.userId);
     if (!user) return res.status(401).json({ error: "User not found" });
 
-    const { name, description, eventDate, locationName, locationId, plungeLat, plungeLng, accessLat, accessLng } = req.body;
+    const { name, description, eventDate, endDate, locationName, locationId, plungeLat, plungeLng, accessLat, accessLng } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: "Event name is required" });
     if (!eventDate) return res.status(400).json({ error: "Event date is required" });
+
+    const startDate = new Date(eventDate);
+    let parsedEndDate: Date | undefined;
+    if (endDate) {
+      parsedEndDate = new Date(endDate);
+      const maxEnd = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+      if (parsedEndDate > maxEnd) parsedEndDate = maxEnd;
+      if (parsedEndDate < startDate) parsedEndDate = startDate;
+    }
 
     const code = genShareCode();
     const evt = await storage.createEvent({
       name: name.trim(),
       description: description?.trim() || undefined,
-      eventDate: new Date(eventDate),
+      eventDate: startDate,
+      endDate: parsedEndDate,
       locationName: locationName?.trim() || undefined,
       locationId: locationId?.trim() || undefined,
       plungeLat: plungeLat != null ? Number(plungeLat) : undefined,
@@ -1148,7 +1166,7 @@ export async function registerRoutes(
       createdByUsername: user.displayName || user.email.split("@")[0],
       shareCode: code,
     });
-    res.json({ ...evt, participantCount: 0, participants: [] });
+    res.json({ ...evt, participantCount: 0, participants: [], coordinators: [] });
   });
 
   app.post("/api/events/:id/join", async (req, res) => {
@@ -1174,6 +1192,55 @@ export async function registerRoutes(
     if (isNaN(eventId)) return res.status(400).json({ error: "Invalid event id" });
     await storage.leaveEvent(eventId, payload.userId);
     res.json({ ok: true });
+  });
+
+  // ── Event coordinators ─────────────────────────────────────────────────────
+  app.post("/api/events/:id/coordinators", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ error: "Login required" });
+    const eventId = parseInt(req.params.id);
+    if (isNaN(eventId)) return res.status(400).json({ error: "Invalid event id" });
+    const evt = await storage.getEventById(eventId);
+    if (!evt) return res.status(404).json({ error: "Event not found" });
+    if (!(await isEventManagerUser(evt, payload.userId, eventId)))
+      return res.status(403).json({ error: "Only event coordinators can add coordinators" });
+
+    const { displayName } = req.body;
+    if (!displayName?.trim()) return res.status(400).json({ error: "Display name is required" });
+
+    const targetUser = await storage.getUserByDisplayName(displayName.trim());
+    if (!targetUser) return res.status(404).json({ error: `No user found with display name "${displayName.trim()}"` });
+    if (targetUser.id === evt.createdBy) return res.status(400).json({ error: "That user is already the event creator" });
+
+    const username = targetUser.displayName || targetUser.email.split("@")[0];
+    const coord = await storage.addEventCoordinator(eventId, targetUser.id, username);
+    res.json(coord);
+  });
+
+  app.delete("/api/events/:id/coordinators/:userId", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ error: "Login required" });
+    const eventId = parseInt(req.params.id);
+    const targetUserId = parseInt(req.params.userId);
+    if (isNaN(eventId) || isNaN(targetUserId)) return res.status(400).json({ error: "Invalid id" });
+    const evt = await storage.getEventById(eventId);
+    if (!evt) return res.status(404).json({ error: "Event not found" });
+    if (!(await isEventManagerUser(evt, payload.userId, eventId)))
+      return res.status(403).json({ error: "Only event coordinators can remove coordinators" });
+
+    await storage.removeEventCoordinator(eventId, targetUserId);
+    res.json({ ok: true });
+  });
+
+  // ── User lookup (for adding coordinators) ─────────────────────────────────
+  app.get("/api/users/lookup", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ error: "Login required" });
+    const name = req.query.name as string;
+    if (!name?.trim()) return res.status(400).json({ error: "name query param required" });
+    const user = await storage.getUserByDisplayName(name.trim());
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json({ id: user.id, displayName: user.displayName, email: user.email.split("@")[0] + "@…" });
   });
 
   // Daily streak-at-risk push notifications — server-side scheduler
@@ -1252,6 +1319,18 @@ export async function registerRoutes(
       sendDailyStreakReminders();
     }
   }, 60 * 1000);
+
+  // Hourly cleanup — delete events whose end window has passed
+  setInterval(async () => {
+    try {
+      const n = await storage.deleteExpiredEvents();
+      if (n > 0) console.log(`[events] Deleted ${n} expired event(s)`);
+    } catch (err) {
+      console.error("[events] Error during expiry cleanup:", err);
+    }
+  }, 60 * 60 * 1000);
+  // Run once at startup too
+  storage.deleteExpiredEvents().catch(() => {});
 
   return httpServer;
 }

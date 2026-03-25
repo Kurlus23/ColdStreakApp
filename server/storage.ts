@@ -1,13 +1,13 @@
 import { db } from "./db";
 import {
   plunges, leaderboardEntries, proUsers, promoCodes, userLocations, businessListings, users, badgeProfiles, pushSubscriptions,
-  events, eventParticipants,
+  events, eventParticipants, eventCoordinators,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
   type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile, type PushSubscription,
-  type BusinessListing, type Event, type EventParticipant,
+  type BusinessListing, type Event, type EventParticipant, type EventCoordinator,
 } from "@shared/schema";
-import { desc, eq, sql, or, isNull, and, not } from "drizzle-orm";
+import { desc, eq, sql, or, isNull, and, not, lt } from "drizzle-orm";
 
 export interface IStorage {
   // Plunges
@@ -75,12 +75,20 @@ export interface IStorage {
   getEvents(): Promise<Event[]>;
   getEventByCode(shareCode: string): Promise<Event | null>;
   getEventById(id: number): Promise<Event | null>;
-  createEvent(data: { name: string; description?: string; eventDate: Date; locationName?: string; locationId?: string; plungeLat?: number; plungeLng?: number; accessLat?: number; accessLng?: number; createdBy?: number; createdByUsername?: string; shareCode: string }): Promise<Event>;
+  createEvent(data: { name: string; description?: string; eventDate: Date; endDate?: Date; locationName?: string; locationId?: string; plungeLat?: number; plungeLng?: number; accessLat?: number; accessLng?: number; createdBy?: number; createdByUsername?: string; shareCode: string }): Promise<Event>;
+  deleteExpiredEvents(): Promise<number>;
   getEventParticipants(eventId: number): Promise<EventParticipant[]>;
   getEventParticipantCount(eventId: number): Promise<number>;
   joinEvent(eventId: number, userId: number, username: string): Promise<EventParticipant>;
   leaveEvent(eventId: number, userId: number): Promise<void>;
   isEventParticipant(eventId: number, userId: number): Promise<boolean>;
+  // Event coordinators
+  getEventCoordinators(eventId: number): Promise<EventCoordinator[]>;
+  addEventCoordinator(eventId: number, userId: number, username: string): Promise<EventCoordinator>;
+  removeEventCoordinator(eventId: number, userId: number): Promise<void>;
+  isEventCoordinator(eventId: number, userId: number): Promise<boolean>;
+  // User lookup for coordinator assignment
+  getUserByDisplayName(displayName: string): Promise<User | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -492,11 +500,12 @@ export class DatabaseStorage implements IStorage {
     return evt ?? null;
   }
 
-  async createEvent(data: { name: string; description?: string; eventDate: Date; locationName?: string; locationId?: string; plungeLat?: number; plungeLng?: number; accessLat?: number; accessLng?: number; createdBy?: number; createdByUsername?: string; shareCode: string }): Promise<Event> {
+  async createEvent(data: { name: string; description?: string; eventDate: Date; endDate?: Date; locationName?: string; locationId?: string; plungeLat?: number; plungeLng?: number; accessLat?: number; accessLng?: number; createdBy?: number; createdByUsername?: string; shareCode: string }): Promise<Event> {
     const [evt] = await db.insert(events).values({
       name: data.name,
       description: data.description ?? null,
       eventDate: data.eventDate,
+      endDate: data.endDate ?? null,
       locationName: data.locationName ?? null,
       locationId: data.locationId ?? null,
       plungeLat: data.plungeLat != null ? String(data.plungeLat) : null,
@@ -509,6 +518,19 @@ export class DatabaseStorage implements IStorage {
       isActive: true,
     }).returning();
     return evt;
+  }
+
+  async deleteExpiredEvents(): Promise<number> {
+    const now = new Date();
+    // Expired = endDate < now, OR (endDate IS NULL AND eventDate + 7 days < now)
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const deleted = await db.delete(events).where(
+      or(
+        lt(events.endDate, now),
+        and(isNull(events.endDate), lt(events.eventDate, sevenDaysAgo))
+      )
+    ).returning({ id: events.id });
+    return deleted.length;
   }
 
   async getEventParticipants(eventId: number): Promise<EventParticipant[]> {
@@ -538,6 +560,38 @@ export class DatabaseStorage implements IStorage {
     const [row] = await db.select({ id: eventParticipants.id }).from(eventParticipants)
       .where(and(eq(eventParticipants.eventId, eventId), eq(eventParticipants.userId, userId)));
     return !!row;
+  }
+
+  async getEventCoordinators(eventId: number): Promise<EventCoordinator[]> {
+    return db.select().from(eventCoordinators)
+      .where(eq(eventCoordinators.eventId, eventId))
+      .orderBy(eventCoordinators.addedAt);
+  }
+
+  async addEventCoordinator(eventId: number, userId: number, username: string): Promise<EventCoordinator> {
+    const [row] = await db.insert(eventCoordinators)
+      .values({ eventId, userId, username })
+      .onConflictDoUpdate({ target: [eventCoordinators.eventId, eventCoordinators.userId], set: { username } })
+      .returning();
+    return row;
+  }
+
+  async removeEventCoordinator(eventId: number, userId: number): Promise<void> {
+    await db.delete(eventCoordinators).where(
+      and(eq(eventCoordinators.eventId, eventId), eq(eventCoordinators.userId, userId))
+    );
+  }
+
+  async isEventCoordinator(eventId: number, userId: number): Promise<boolean> {
+    const [row] = await db.select({ id: eventCoordinators.id }).from(eventCoordinators)
+      .where(and(eq(eventCoordinators.eventId, eventId), eq(eventCoordinators.userId, userId)));
+    return !!row;
+  }
+
+  async getUserByDisplayName(displayName: string): Promise<User | null> {
+    const [user] = await db.select().from(users)
+      .where(sql`lower(${users.displayName}) = lower(${displayName})`);
+    return user ?? null;
   }
 }
 
