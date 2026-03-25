@@ -121,6 +121,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "plunges",
   },
   {
+    id: "as-coldplunge",
+    name: "AS ColdPlunge Tub + Chiller Bundle",
+    description: "All-in-one cold plunge bundle — insulated oval tub with a built-in chiller that cools to 42°F, includes a lid and filtration. No ice needed.",
+    image: "/gear-as-coldplunge.png",
+    link: "https://amzn.to/3Py1nZc",
+    linkLabel: "View on Amazon",
+    category: "plunges",
+  },
+  {
     id: "polar-monger",
     name: "Polar Monger Cold Plunge Tub",
     description: "Budget-friendly insulated inflatable cold plunge with a thick liner — great entry-level setup before committing to a chiller.",
