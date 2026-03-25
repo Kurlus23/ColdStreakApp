@@ -184,6 +184,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "diy",
   },
   {
+    id: "yolink-leak-detector",
+    name: "YoLink Leak Sensor Kit (4-Pack + Hub)",
+    description: "Long-range YoLink water leak sensors with hub — 4 sensors cover your whole cold plunge area with app alerts and up to 1000ft wireless range.",
+    image: "/gear-yolink-leak-detector.png",
+    link: "https://amzn.to/3Q0igvG",
+    linkLabel: "View on Amazon",
+    category: "diy",
+  },
+  {
     id: "leak-detector",
     name: "WiFi Leak Detector Kit (3-Pack + Hub)",
     description: "Smart water leak sensors with WiFi hub — place around your cold plunge setup to get instant phone alerts if your tub or chiller lines ever spring a leak.",
