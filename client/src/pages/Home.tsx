@@ -5521,12 +5521,7 @@ export default function Home() {
       {/* ─── ACTIVE TIMER OVERLAY ─── */}
       {isActive && isPro && screen === "timer" && (
         <div
-          className={`fixed z-[60] bg-blue-950/98 backdrop-blur-md flex flex-col items-center justify-center gap-8 transition-all duration-300 ${
-            isLandscape
-              ? "inset-0"
-              : "inset-x-0 bottom-0 rounded-t-3xl border-t border-blue-700/50 animate-in slide-in-from-bottom duration-300"
-          }`}
-          style={isLandscape ? {} : { height: "82vh" }}
+          className="fixed inset-0 z-[60] bg-blue-950/98 backdrop-blur-md flex flex-col items-center justify-center gap-8 transition-all duration-300 animate-in fade-in"
         >
           {/* Mode label */}
           <div className="text-blue-400 text-xs font-semibold uppercase tracking-widest -mb-4">
