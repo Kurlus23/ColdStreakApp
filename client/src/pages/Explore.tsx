@@ -272,9 +272,10 @@ export const GEAR_ITEMS: GearItem[] = [
   },
   {
     id: "neo-socks",
-    name: "Neoprene Socks/Boots (3mm)",
-    description: "Neoprene water socks for cold plunging — keep your feet warm so the cold doesn't cut your session short.",
-    link: "https://www.amazon.com/s?k=3mm+neoprene+socks+water+sports",
+    name: "Neoprene Water Socks (3mm)",
+    description: "3mm neoprene water socks for cold plunging — keep your feet warm so the cold doesn't cut your session short.",
+    image: "/gear-neo-socks.png",
+    link: "https://amzn.to/4tsUqHN",
     linkLabel: "View on Amazon",
     category: "apparel",
   },
