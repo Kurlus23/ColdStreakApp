@@ -288,6 +288,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "apparel",
   },
   {
+    id: "plaid-sherpa-robe",
+    name: "Plaid Sherpa-Lined Robe",
+    description: "Cozy plaid flannel robe with a warm sherpa lining — perfect for wrapping up after a cold plunge and staying warm while you recover.",
+    image: "/gear-plaid-sherpa-robe.png",
+    link: "https://amzn.to/4bwqMuW",
+    linkLabel: "View on Amazon",
+    category: "apparel",
+  },
+  {
     id: "neo-beanie",
     name: "Neoprene Thermal Beanie",
     description: "Thermal neoprene swim cap / beanie — keeps heat in during cold water immersion and open-water swims.",
