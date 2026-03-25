@@ -2165,27 +2165,30 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               <ShieldAlert className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <p className="text-white font-bold text-sm">Community Location Disclaimer</p>
-              <p className="text-slate-400 text-[11px]">Please read before exploring</p>
+              <p className="text-white font-bold text-sm">Community Safety Disclaimer</p>
+              <p className="text-slate-400 text-[11px]">Locations &amp; Events — please read</p>
             </div>
           </div>
 
           {/* Body */}
           <div className="px-5 py-4 space-y-3 text-sm text-slate-300 leading-relaxed">
             <p>
-              Community Spots are submitted by ColdStreak users and <span className="text-white font-semibold">have not been verified</span> for safety, accuracy, or accessibility by ColdStreak.
+              <span className="text-white font-semibold">Community Spots and Events</span> are submitted and organized by ColdStreak users and have <span className="text-white font-semibold">not been verified</span> by ColdStreak for safety, accuracy, or accessibility.
             </p>
             <p>
-              Cold water immersion carries <span className="text-white font-semibold">serious risks</span> including hypothermia, cold shock, and cardiac events. Conditions at any location — water temperature, currents, accessibility — can change without notice.
+              Cold water immersion carries <span className="text-white font-semibold">serious risks</span> including hypothermia, cold shock, and cardiac events. Conditions at any location — water temperature, currents, depth, accessibility — can change without notice.
             </p>
             <p>
               Always assess conditions yourself before entering any body of water, never plunge alone, and <span className="text-white font-semibold">consult a physician</span> if you have any heart, respiratory, or circulatory conditions.
             </p>
             <p>
-              <span className="text-white font-semibold">No Trespassing:</span> Always verify you have legal access to a location before visiting. Many natural bodies of water are on private property. Respect all posted signs and local laws. ColdStreak does not verify the legal accessibility of any community-submitted location.
+              <span className="text-white font-semibold">No Trespassing:</span> Always verify you have legal access to a location before visiting. Many natural bodies of water are on private property. Respect all posted signs and local laws.
+            </p>
+            <p>
+              <span className="text-white font-semibold">Events:</span> ColdStreak does not organize, vet, or endorse any community event. Event organizers are solely responsible for safety at their events. By attending any event, you assume all associated risks.
             </p>
             <p className="text-slate-500 text-[11px]">
-              ColdStreak is not liable for any injury, loss, damages, or legal consequences arising from use of community-submitted locations.
+              ColdStreak is not liable for any injury, loss, damages, or legal consequences arising from community-submitted locations or events. See our <a href="/terms" className="text-slate-400 underline">Terms of Service</a> for full details.
             </p>
           </div>
 
@@ -2196,7 +2199,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               onClick={handleAcknowledgeDisclaimer}
               className="w-full py-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-sm transition-all active:scale-95"
             >
-              I Understand — Show Community Spots
+              I Understand — Explore Community
             </button>
             {!localStorage.getItem(DISCLAIMER_KEY) && (
               <button

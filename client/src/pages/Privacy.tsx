@@ -45,7 +45,10 @@ export default function Privacy() {
                 <span className="font-semibold text-slate-800">Business listing submissions</span> — if you submit a business listing, we collect the information you provide: business name, city, state, full address, phone number, website and social media URLs, and a contact email address. Your contact email is used solely for administrative purposes and is never displayed publicly. The business name, city, state, description, and any links you provide may be displayed publicly within the App. Verified business listings require a paid monthly subscription processed through Stripe; Stripe handles all payment data and ColdStreak does not store your credit card information.
               </li>
               <li>
-                <span className="font-semibold text-slate-800">Device location (GPS)</span> — only requested with your explicit permission. When granted, your device coordinates are used locally to suggest nearby community locations and to auto-detect your city and state for session logging. Precise coordinates are not stored on our servers; only the resolved city/state name may be saved as part of a plunge session at your direction. Location data is never used for advertising or shared with third parties.
+                <span className="font-semibold text-slate-800">Community event data</span> — if you create an event, we store the event name, description, date(s), location name, and any GPS coordinates you pin (plunge spot and parking/access point). This information is visible to all users of the App. Your display name is shown as the event organizer. We also store the list of users who sign up for an event (display names and account IDs) and any co-coordinator relationships you establish. Events are automatically deleted after their end window (up to seven days from the start date).
+              </li>
+              <li>
+                <span className="font-semibold text-slate-800">Device location (GPS)</span> — only requested with your explicit permission. When granted, your device coordinates are used locally to suggest nearby community locations, to auto-detect your city and state for session logging, and to pin GPS coordinates when creating an event or community location. Precise coordinates are not stored on our servers beyond what you explicitly choose to attach to a submitted location or event. Location data is never used for advertising or shared with third parties.
               </li>
               <li>
                 <span className="font-semibold text-slate-800">Device settings and preferences</span> — stored locally on your device only (body weight, home location label, alarm preferences, private spots). Not transmitted to our servers.
@@ -56,7 +59,7 @@ export default function Privacy() {
           <section>
             <h2 className="text-base font-bold text-slate-900 mb-2">Information We Do Not Collect</h2>
             <ul className="list-disc pl-5 space-y-2 text-slate-600">
-              <li>We do not collect your precise GPS location without your explicit permission, and we do not store raw GPS coordinates on our servers.</li>
+              <li>We do not collect your precise GPS location without your explicit permission, and we do not store raw GPS coordinates on our servers beyond what you explicitly choose to attach to a submitted location or event.</li>
               <li>We do not collect health data beyond what you manually enter.</li>
               <li>We do not use advertising tracking identifiers or third-party ad tracking SDKs.</li>
               <li>We do not sell, rent, or share your personal data with third parties for their marketing purposes.</li>
@@ -71,9 +74,27 @@ export default function Privacy() {
               <li>To display public leaderboard entries as opted in by you.</li>
               <li>To operate the community location feature, including displaying submitted spots to all users and attributing edits to the submitter's account.</li>
               <li>To display verified business listing information to users of the Explore feature.</li>
-              <li>To resolve a city/state name from your device coordinates when you enable GPS (location data is not stored beyond the resolved place name).</li>
+              <li>To operate the community Events feature — displaying event details, organizer names, and sign-up lists to all users of the App, and enforcing automatic event expiry.</li>
+              <li>To resolve a city/state name from your device coordinates when you enable GPS (location data is not stored beyond the resolved place name or coordinates you explicitly choose to pin).</li>
               <li>To detect and fix errors in the App through anonymous crash reports.</li>
             </ul>
+          </section>
+
+          <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">Public Visibility of Event Data</h2>
+            <p className="text-slate-600 mb-2">
+              When you create an event, the following information is visible to all users of ColdStreak and to anyone who accesses the event's shareable link:
+            </p>
+            <ul className="list-disc pl-5 space-y-1.5 text-slate-600">
+              <li>Event name, description, and date(s)</li>
+              <li>Location name and any GPS coordinates you pin</li>
+              <li>Your display name as the event organizer</li>
+              <li>The display names of any co-coordinators you add</li>
+              <li>The display names of users who sign up</li>
+            </ul>
+            <p className="text-slate-600 mt-2">
+              By creating an event or signing up for one, you consent to this information being publicly visible. If you wish to remove your event, you may do so through the App; events also expire automatically after their scheduled end window.
+            </p>
           </section>
 
           <section>
@@ -99,6 +120,9 @@ export default function Privacy() {
                 <span className="font-semibold text-slate-800">Nominatim / OpenStreetMap</span> — reverse geocoding. When you grant location permission, your device coordinates are sent to the Nominatim public API to resolve a city and state name. No personal account is created and the OpenStreetMap Foundation does not retain coordinates for longer than required for the request. Subject to the <a href="https://osmfoundation.org/wiki/Privacy_Policy" className="text-cyan-600 hover:underline" target="_blank" rel="noopener noreferrer">OSMF Privacy Policy</a>.
               </li>
               <li>
+                <span className="font-semibold text-slate-800">Google Maps</span> — when you tap a "Get Directions" button on a community location or event, your device opens Google Maps with the destination coordinates. ColdStreak does not transmit your location to Google; Google's own privacy policy applies to any navigation session you initiate. Subject to <a href="https://policies.google.com/privacy" className="text-cyan-600 hover:underline" target="_blank" rel="noopener noreferrer">Google's Privacy Policy</a>.
+              </li>
+              <li>
                 <span className="font-semibold text-slate-800">Advertising</span> — free users may see advertisements served by third-party networks. These networks may use cookies or device identifiers in accordance with their own privacy policies. ColdStreak Pro users do not see ads.
               </li>
             </ul>
@@ -110,7 +134,7 @@ export default function Privacy() {
             <ul className="list-disc pl-5 space-y-2 text-slate-600">
               <li>Access to the personal data we hold about you.</li>
               <li>Correction of inaccurate data.</li>
-              <li>Deletion of your account and associated data.</li>
+              <li>Deletion of your account and associated data, including any events you have created.</li>
             </ul>
             <p className="text-slate-600 mt-2">
               To exercise these rights, email us at <a href="mailto:ColdStreakApp17@gmail.com" className="text-blue-600 underline">ColdStreakApp17@gmail.com</a> or contact us via the App Store or Google Play listing for ColdStreak.

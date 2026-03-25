@@ -25,13 +25,14 @@ export default function Terms() {
 
           <section>
             <h2 className="text-base font-bold text-slate-900 mb-2">Use of the App</h2>
-            <p className="text-slate-600 mb-2">ColdStreak is provided for personal health tracking purposes. Business owners may also use the App to submit and manage a business listing through the Verified Business Listing feature. You agree not to:</p>
+            <p className="text-slate-600 mb-2">ColdStreak is provided for personal health tracking purposes. Business owners may also use the App to submit and manage a business listing through the Verified Business Listing feature. Registered users may create and manage community events through the Events feature. You agree not to:</p>
             <ul className="list-disc pl-5 space-y-2 text-slate-600">
               <li>Use the App in any way that violates applicable laws or regulations.</li>
               <li>Attempt to reverse engineer, modify, or create derivative works of the App.</li>
-              <li>Submit false, misleading, or harmful content to community features.</li>
+              <li>Submit false, misleading, or harmful content to community features, including events.</li>
               <li>Use automated means to access or scrape data from the App.</li>
               <li>Share your account credentials with others.</li>
+              <li>Create events for illegal gatherings, trespassing activities, or with the intent to harm or defraud attendees.</li>
             </ul>
           </section>
 
@@ -62,15 +63,37 @@ export default function Terms() {
           </section>
 
           <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">Community Events</h2>
+            <p className="text-slate-600 mb-2">
+              The Events feature allows registered ColdStreak users to create, share, and sign up for community cold plunge gatherings. <strong className="text-slate-800">ColdStreak does not organize, host, sponsor, oversee, or endorse any event created through this feature.</strong> All events are independently organized by the user who created them and any co-coordinators they designate.
+            </p>
+            <p className="text-slate-600 mb-2">
+              <strong className="text-slate-800">No Verification:</strong> ColdStreak does not verify the accuracy, safety, legality, or any other aspect of any event, its listed location, its organizers, or the activities planned. GPS-pinned plunge spot and access/parking coordinates are provided by the event creator and carry the same risks as community location data — conditions may differ from what is described, access may be restricted, and coordinates may be inaccurate.
+            </p>
+            <p className="text-slate-600 mb-2">
+              <strong className="text-slate-800">Organizer Responsibility:</strong> Event creators and co-coordinators are solely responsible for the events they create, including ensuring the safety of the chosen location, obtaining any required permits or landowner permission, communicating risks to attendees, and complying with all applicable laws. By creating an event, you represent that you have the authority to organize the activity at the stated location.
+            </p>
+            <p className="text-slate-600 mb-2">
+              <strong className="text-slate-800">Attendee Assumption of Risk:</strong> By signing up for or attending any event found through ColdStreak, you acknowledge that cold water immersion carries serious health risks (including hypothermia, cold shock, and cardiac events), that you are voluntarily participating, and that you assume all risks associated with attendance, including travel to and from the event location. You are responsible for assessing the event location's safety and your own fitness to participate.
+            </p>
+            <p className="text-slate-600 mb-2">
+              <strong className="text-slate-800">No Guarantee of Persistence:</strong> Events are automatically removed after their scheduled end window (a maximum of seven days from the event start date). ColdStreak does not guarantee that any event will remain available on the platform. Cancellations, changes, and removals are solely the responsibility of the event organizers; ColdStreak has no obligation to notify attendees of changes.
+            </p>
+            <p className="text-slate-600">
+              ColdStreak is not liable for any injury, loss, damages, claims, or legal consequences arising from your creation of, coordination of, attendance at, or inability to attend any community event.
+            </p>
+          </section>
+
+          <section>
             <h2 className="text-base font-bold text-slate-900 mb-2">User-Submitted Content</h2>
             <p className="text-slate-600">
-              By submitting a community spot, leaderboard entry, or any other content, you confirm that the information is accurate to the best of your knowledge, that you are not disclosing a location on private land without authorization, and you grant ColdStreak a non-exclusive, worldwide, royalty-free license to display it within the App. You may edit or remove your own submitted locations at any time through the App. ColdStreak reserves the right to remove or hide any content that is inaccurate, inappropriate, offensive, or in violation of these terms, without notice.
+              By submitting a community spot, event, leaderboard entry, or any other content, you confirm that the information is accurate to the best of your knowledge, that you are not disclosing a location on private land without authorization, and you grant ColdStreak a non-exclusive, worldwide, royalty-free license to display it within the App. You may edit or remove your own submitted locations at any time through the App. ColdStreak reserves the right to remove or hide any content that is inaccurate, inappropriate, offensive, or in violation of these terms, without notice.
             </p>
           </section>
 
           <section>
             <h2 className="text-base font-bold text-slate-900 mb-2">Content Standards</h2>
-            <p className="text-slate-600 mb-2">When using any sharing, photo, or community features within ColdStreak, you agree not to share, upload, or transmit content that:</p>
+            <p className="text-slate-600 mb-2">When using any sharing, photo, event, or community features within ColdStreak, you agree not to share, upload, or transmit content that:</p>
             <ul className="list-disc pl-5 space-y-2 text-slate-600">
               <li>Contains nudity, sexually explicit material, or pornographic content of any kind.</li>
               <li>Depicts or promotes violence, self-harm, or abuse.</li>
@@ -78,6 +101,7 @@ export default function Terms() {
               <li>Is defamatory, hateful, or discriminatory based on race, gender, religion, sexual orientation, or any other protected characteristic.</li>
               <li>Violates the privacy or intellectual property rights of any person.</li>
               <li>Is spam, deceptive, or contains malicious links or software.</li>
+              <li>Promotes illegal activity or creates events for illegal gatherings.</li>
             </ul>
             <p className="text-slate-600 mt-2">
               ColdStreak reserves the right to remove any content that violates these standards and to suspend or terminate accounts that repeatedly violate this policy, without notice.
@@ -116,14 +140,14 @@ export default function Terms() {
           <section>
             <h2 className="text-base font-bold text-slate-900 mb-2">Availability and Changes</h2>
             <p className="text-slate-600">
-              We reserve the right to modify, suspend, or discontinue the App or any of its features at any time without notice. We are not liable to you or any third party for any such modification, suspension, or discontinuation.
+              We reserve the right to modify, suspend, or discontinue the App or any of its features — including the Events feature — at any time without notice. We are not liable to you or any third party for any such modification, suspension, or discontinuation.
             </p>
           </section>
 
           <section>
             <h2 className="text-base font-bold text-slate-900 mb-2">Limitation of Liability</h2>
             <p className="text-slate-600">
-              To the fullest extent permitted by applicable law, ColdStreak and its developers shall not be liable for any indirect, incidental, special, punitive, or consequential damages — including but not limited to personal injury, property damage, loss of data, or loss of revenue — arising from your use of the App, cold plunge activities undertaken in connection with it, trespassing or access violations in connection with community-submitted locations, or reliance on community-submitted location data or directions. Our total liability to you for any claim arising from use of the App shall not exceed the total amount you paid to ColdStreak in the twelve months preceding the claim. Your sole remedy for dissatisfaction with the App is to stop using it.
+              To the fullest extent permitted by applicable law, ColdStreak and its developers shall not be liable for any indirect, incidental, special, punitive, or consequential damages — including but not limited to personal injury, property damage, loss of data, or loss of revenue — arising from your use of the App, cold plunge activities undertaken in connection with it, trespassing or access violations in connection with community-submitted locations, your creation of or attendance at any community event, reliance on event location data, GPS coordinates, or directions provided through the Events feature, or any act or omission of an event organizer or co-coordinator. Our total liability to you for any claim arising from use of the App shall not exceed the total amount you paid to ColdStreak in the twelve months preceding the claim. Your sole remedy for dissatisfaction with the App is to stop using it.
             </p>
           </section>
 
