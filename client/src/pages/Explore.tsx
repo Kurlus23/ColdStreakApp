@@ -3,7 +3,7 @@ import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
-  MapPin, Compass, Search, X, ChevronDown, Lock,
+  MapPin, Compass, Search, X, ChevronDown, ChevronRight, Lock,
   Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, Building2, CheckCircle2, BadgeCheck, Phone, ExternalLink, Pencil, LocateFixed, Trash2, Eye, EyeOff,
   CalendarDays, Users, Copy, Check, Snowflake, Calendar
 } from "lucide-react";
@@ -406,12 +406,21 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [evtAccessGpsLoading, setEvtAccessGpsLoading] = useState(false);
   const [expandedCoordMgmt, setExpandedCoordMgmt] = useState<number | null>(null);
   const [newCoordName, setNewCoordName] = useState("");
+  const [selectedEvent, setSelectedEvent] = useState<EventWithCount | null>(null);
 
   const { data: eventsData = [], isLoading: eventsLoading } = useQuery<EventWithCount[]>({
     queryKey: ["/api/events"],
     queryFn: () => fetch("/api/events").then((r) => r.json()),
     enabled: exploreTab === "events",
   });
+
+  // Keep the open event detail modal in sync with live data
+  useEffect(() => {
+    if (selectedEvent) {
+      const updated = eventsData.find((e) => e.id === selectedEvent.id);
+      if (updated) setSelectedEvent(updated);
+    }
+  }, [eventsData]);
 
   const createEventMut = useMutation({
     mutationFn: () => apiRequest("POST", "/api/events", {
@@ -1897,159 +1906,254 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             eventsData.map((evt) => {
               const isJoined = joinedEventIds.has(evt.id);
               return (
-                <div key={evt.id} className="bg-blue-900/50 border border-blue-700/40 rounded-2xl p-4 space-y-3">
-                  <div>
-                    <h3 className="text-white font-bold text-sm">{evt.name}</h3>
-                    {evt.description && <p className="text-blue-300 text-xs mt-0.5 line-clamp-2">{evt.description}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-blue-400 text-xs">
-                      <CalendarDays className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-                      {evt.endDate && new Date(evt.endDate).toDateString() !== new Date(evt.eventDate).toDateString()
-                        ? `${new Date(evt.eventDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${new Date(evt.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
-                        : new Date(evt.eventDate).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
-                    </div>
-                    {evt.locationName && (
-                      <div className="flex items-center gap-2 text-blue-400 text-xs">
-                        <MapPin className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-                        {evt.locationName}
+                <button
+                  key={evt.id}
+                  data-testid={`card-event-${evt.id}`}
+                  onClick={() => setSelectedEvent(evt)}
+                  className="w-full text-left bg-blue-900/50 border border-blue-700/40 rounded-2xl p-4 hover:border-blue-500/60 hover:bg-blue-900/70 transition-all active:scale-[0.99] cursor-pointer"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-white font-bold text-sm truncate">{evt.name}</h3>
+                        {isJoined && (
+                          <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-[10px] font-semibold">✓ Going</span>
+                        )}
                       </div>
-                    )}
-                    <div className="flex items-center gap-2 text-blue-400 text-xs">
-                      <Users className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-                      {evt.participantCount} attending
-                    </div>
-                  </div>
-                  {/* Directions buttons */}
-                  {(evt.plungeLat || evt.accessLat) && (
-                    <div className="flex gap-2">
-                      {evt.plungeLat && evt.plungeLng && (
-                        <button
-                          data-testid={`button-directions-plunge-${evt.id}`}
-                          onClick={() => openDirections(evt.plungeLat!, evt.plungeLng!)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold hover:bg-cyan-500/25 transition-all active:scale-95"
-                        >
-                          <Navigation className="w-3 h-3" /> Plunge Spot
-                        </button>
-                      )}
-                      {evt.accessLat && evt.accessLng && (
-                        <button
-                          data-testid={`button-directions-parking-${evt.id}`}
-                          onClick={() => openDirections(evt.accessLat!, evt.accessLng!)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-700/30 border border-blue-600/40 text-blue-300 text-[11px] font-semibold hover:bg-blue-700/50 transition-all active:scale-95"
-                        >
-                          <Navigation className="w-3 h-3" /> 🅿 Parking
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {/* Organizer + coordinators */}
-                  {(evt.createdByUsername || evt.coordinators.length > 0) && (
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {evt.createdByUsername && (
-                        <span className="text-blue-600 text-[11px]">by {evt.createdByUsername}</span>
-                      )}
-                      {evt.coordinators.map((c) => (
-                        <span key={c.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-800/60 border border-blue-700/40 text-blue-300 text-[10px] font-semibold">
-                          ⚡ {c.username}
+                      <div className="flex items-center gap-1.5 text-blue-400 text-xs">
+                        <CalendarDays className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                        <span className="truncate">
+                          {evt.endDate && new Date(evt.endDate).toDateString() !== new Date(evt.eventDate).toDateString()
+                            ? `${new Date(evt.eventDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${new Date(evt.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+                            : new Date(evt.eventDate).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
                         </span>
-                      ))}
-                    </div>
-                  )}
-                  {/* Coordinator management (creator / co-coordinators only) */}
-                  {auth.user && (evt.createdBy === auth.user.id || evt.coordinators.some((c) => c.userId === auth.user!.id)) && (
-                    <div>
-                      <button
-                        data-testid={`button-manage-coords-${evt.id}`}
-                        onClick={() => { setExpandedCoordMgmt(expandedCoordMgmt === evt.id ? null : evt.id); setNewCoordName(""); }}
-                        className="text-blue-500 text-[11px] hover:text-blue-400 transition-colors flex items-center gap-1"
-                      >
-                        {expandedCoordMgmt === evt.id ? "▲ Hide co-coordinators" : "▼ Manage co-coordinators"}
-                      </button>
-                      {expandedCoordMgmt === evt.id && (
-                        <div className="mt-2 space-y-2 bg-blue-950/60 border border-blue-700/30 rounded-xl p-3">
-                          {evt.coordinators.length === 0 ? (
-                            <p className="text-blue-600 text-[11px]">No co-coordinators yet.</p>
-                          ) : (
-                            <div className="space-y-1.5">
-                              {evt.coordinators.map((c) => (
-                                <div key={c.id} className="flex items-center gap-2">
-                                  <span className="text-blue-300 text-xs flex-1">⚡ {c.username}</span>
-                                  {evt.createdBy === auth.user!.id && (
-                                    <button
-                                      data-testid={`button-remove-coord-${c.userId}`}
-                                      onClick={() => removeCoordMut.mutate({ eventId: evt.id, userId: c.userId })}
-                                      disabled={removeCoordMut.isPending}
-                                      className="text-[10px] text-blue-600 hover:text-red-400 transition-colors"
-                                    >
-                                      Remove
-                                    </button>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          <div className="flex gap-2 mt-2">
-                            <input
-                              data-testid={`input-coord-name-${evt.id}`}
-                              type="text"
-                              value={newCoordName}
-                              onChange={(e) => setNewCoordName(e.target.value)}
-                              placeholder="Display name of user to add"
-                              className="flex-1 bg-blue-900/60 border border-blue-700/40 text-white text-[11px] rounded-xl px-2.5 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-600"
-                            />
-                            <button
-                              data-testid={`button-add-coord-${evt.id}`}
-                              onClick={() => { if (newCoordName.trim()) addCoordMut.mutate({ eventId: evt.id, displayName: newCoordName.trim() }); }}
-                              disabled={addCoordMut.isPending || !newCoordName.trim()}
-                              className="px-3 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-[11px] font-semibold hover:bg-cyan-500/30 transition-all active:scale-95 disabled:opacity-40"
-                            >
-                              {addCoordMut.isPending ? "…" : "Add"}
-                            </button>
-                          </div>
-                          <p className="text-blue-600 text-[10px]">Co-coordinators can also add/remove coordinators.</p>
+                      </div>
+                      {evt.locationName && (
+                        <div className="flex items-center gap-1.5 text-blue-400 text-xs">
+                          <MapPin className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                          <span className="truncate">{evt.locationName}</span>
                         </div>
                       )}
+                      <div className="flex items-center gap-1.5 text-blue-500 text-xs">
+                        <Users className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span>{evt.participantCount} attending</span>
+                        {evt.coordinators.length > 0 && (
+                          <span className="text-blue-600">· {evt.coordinators.length + 1} organizer{evt.coordinators.length > 0 ? "s" : ""}</span>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  <div className="flex gap-2">
-                    {auth.user ? (
-                      isJoined ? (
-                        <button
-                          data-testid={`button-leave-event-${evt.id}`}
-                          onClick={() => leaveEventMut.mutate(evt.id)}
-                          disabled={leaveEventMut.isPending}
-                          className="flex-1 py-2 rounded-xl border border-blue-600/60 text-blue-300 text-xs font-semibold hover:border-blue-400 transition-all active:scale-95 disabled:opacity-40"
-                        >
-                          {leaveEventMut.isPending ? "Leaving…" : "✓ Attending"}
-                        </button>
-                      ) : (
-                        <button
-                          data-testid={`button-join-event-${evt.id}`}
-                          onClick={() => joinEventMut.mutate(evt.id)}
-                          disabled={joinEventMut.isPending}
-                          className="flex-1 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all active:scale-95 disabled:opacity-40"
-                        >
-                          {joinEventMut.isPending ? "Joining…" : "❄️ Join"}
-                        </button>
-                      )
-                    ) : null}
-                    <button
-                      data-testid={`button-share-event-${evt.id}`}
-                      onClick={() => handleCopyEventLink(evt.shareCode)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-700/50 text-blue-400 text-xs font-semibold hover:border-blue-500 hover:text-blue-300 transition-all active:scale-95"
-                    >
-                      {copiedCode === evt.shareCode ? <Check className="w-3.5 h-3.5 text-cyan-400" /> : <Copy className="w-3.5 h-3.5" />}
-                      {copiedCode === evt.shareCode ? "Copied" : "Share"}
-                    </button>
+                    <ChevronRight className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
                   </div>
-                </div>
+                </button>
               );
             })
           )}
         </div>
       )}
     </div>
+
+    {/* ── Event Detail Pop-up ── */}
+    {selectedEvent && (() => {
+      const evt = selectedEvent;
+      const isJoined = joinedEventIds.has(evt.id);
+      const isManager = !!auth.user && (evt.createdBy === auth.user.id || evt.coordinators.some((c) => c.userId === auth.user!.id));
+      const dateLabel = evt.endDate && new Date(evt.endDate).toDateString() !== new Date(evt.eventDate).toDateString()
+        ? `${new Date(evt.eventDate).toLocaleDateString(undefined, { month: "long", day: "numeric" })} – ${new Date(evt.endDate).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}`
+        : new Date(evt.eventDate).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+      return (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setSelectedEvent(null)}
+        >
+          <div
+            className="w-full max-w-sm bg-gradient-to-b from-blue-950 to-slate-950 border border-blue-700/50 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[88vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drag handle (mobile) */}
+            <div className="w-10 h-1 rounded-full bg-blue-700/60 mx-auto mt-3 mb-1 sm:hidden" />
+
+            {/* Header */}
+            <div className="flex items-start gap-3 px-5 pt-4 pb-4 border-b border-blue-800/50">
+              <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <CalendarDays className="w-5 h-5 text-cyan-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-white font-bold text-base leading-snug">{evt.name}</h2>
+                {isJoined && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-[10px] font-semibold mt-1">✓ You're attending</span>
+                )}
+              </div>
+              <button
+                data-testid="button-close-event-detail"
+                onClick={() => setSelectedEvent(null)}
+                className="text-blue-500 hover:text-white transition-colors flex-shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+
+              {/* Date */}
+              <div className="flex items-center gap-3 text-blue-200 text-sm">
+                <CalendarDays className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                <span>{dateLabel}</span>
+              </div>
+
+              {/* Location */}
+              {evt.locationName && (
+                <div className="flex items-center gap-3 text-blue-200 text-sm">
+                  <MapPin className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                  <span>{evt.locationName}</span>
+                </div>
+              )}
+
+              {/* Attendee count */}
+              <div className="flex items-center gap-3 text-blue-400 text-sm">
+                <Users className="w-4 h-4 flex-shrink-0" />
+                <span>{evt.participantCount} attending</span>
+              </div>
+
+              {/* Description */}
+              {evt.description && (
+                <div className="bg-blue-900/40 border border-blue-700/30 rounded-2xl p-4">
+                  <p className="text-blue-200 text-sm leading-relaxed">{evt.description}</p>
+                </div>
+              )}
+
+              {/* Organizers */}
+              <div className="space-y-2">
+                <p className="text-blue-500 text-[11px] uppercase tracking-wide font-semibold">Organizers</p>
+                <div className="space-y-2">
+                  {evt.createdByUsername && (
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-xs font-bold text-cyan-300 flex-shrink-0">
+                        {evt.createdByUsername.slice(0, 1).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-white text-xs font-semibold">{evt.createdByUsername}</p>
+                        <p className="text-blue-500 text-[10px]">Creator</p>
+                      </div>
+                    </div>
+                  )}
+                  {evt.coordinators.map((c) => (
+                    <div key={c.id} className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-xs font-bold text-blue-300 flex-shrink-0">
+                        {c.username.slice(0, 1).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-white text-xs font-semibold">{c.username}</p>
+                        <p className="text-blue-500 text-[10px]">⚡ Co-coordinator</p>
+                      </div>
+                      {isManager && evt.createdBy === auth.user!.id && (
+                        <button
+                          data-testid={`button-remove-coord-${c.userId}`}
+                          onClick={() => removeCoordMut.mutate({ eventId: evt.id, userId: c.userId })}
+                          disabled={removeCoordMut.isPending}
+                          className="text-[10px] text-blue-600 hover:text-red-400 transition-colors"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Add co-coordinator (managers only) */}
+              {isManager && (
+                <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl p-3 space-y-2">
+                  <p className="text-blue-400 text-[11px] font-semibold">Add Co-coordinator</p>
+                  <div className="flex gap-2">
+                    <input
+                      data-testid="input-coord-name-modal"
+                      type="text"
+                      value={newCoordName}
+                      onChange={(e) => setNewCoordName(e.target.value)}
+                      placeholder="Their display name"
+                      className="flex-1 bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-2.5 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-600"
+                      onKeyDown={(e) => { if (e.key === "Enter" && newCoordName.trim()) addCoordMut.mutate({ eventId: evt.id, displayName: newCoordName.trim() }); }}
+                    />
+                    <button
+                      data-testid="button-add-coord-modal"
+                      onClick={() => { if (newCoordName.trim()) addCoordMut.mutate({ eventId: evt.id, displayName: newCoordName.trim() }); }}
+                      disabled={addCoordMut.isPending || !newCoordName.trim()}
+                      className="px-3 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all disabled:opacity-40"
+                    >
+                      {addCoordMut.isPending ? "…" : "Add"}
+                    </button>
+                  </div>
+                  <p className="text-blue-600 text-[10px]">Must match the user's exact display name.</p>
+                </div>
+              )}
+
+              {/* Directions */}
+              {(evt.plungeLat || evt.accessLat) && (
+                <div className="space-y-2">
+                  <p className="text-blue-500 text-[11px] uppercase tracking-wide font-semibold">Directions</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {evt.plungeLat && evt.plungeLng && (
+                      <button
+                        data-testid={`button-directions-plunge-${evt.id}`}
+                        onClick={() => openDirections(evt.plungeLat!, evt.plungeLng!)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/25 transition-all active:scale-95"
+                      >
+                        <Navigation className="w-3.5 h-3.5" /> 📍 Plunge Spot
+                      </button>
+                    )}
+                    {evt.accessLat && evt.accessLng && (
+                      <button
+                        data-testid={`button-directions-parking-${evt.id}`}
+                        onClick={() => openDirections(evt.accessLat!, evt.accessLng!)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-700/30 border border-blue-600/40 text-blue-300 text-xs font-semibold hover:bg-blue-700/50 transition-all active:scale-95"
+                      >
+                        <Navigation className="w-3.5 h-3.5" /> 🅿 Parking
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action footer */}
+            <div className="px-5 pb-6 pt-3 border-t border-blue-800/50 space-y-2.5">
+              {auth.user ? (
+                isJoined ? (
+                  <button
+                    data-testid={`button-leave-event-${evt.id}`}
+                    onClick={() => { leaveEventMut.mutate(evt.id); }}
+                    disabled={leaveEventMut.isPending}
+                    className="w-full py-3 rounded-2xl border border-blue-600/60 text-blue-300 font-semibold text-sm hover:border-red-400/60 hover:text-red-300 transition-all active:scale-95 disabled:opacity-40"
+                  >
+                    {leaveEventMut.isPending ? "Removing you…" : "✕ Remove Me"}
+                  </button>
+                ) : (
+                  <button
+                    data-testid={`button-join-event-${evt.id}`}
+                    onClick={() => { joinEventMut.mutate(evt.id); }}
+                    disabled={joinEventMut.isPending}
+                    className="w-full py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-40 shadow-lg shadow-cyan-500/25"
+                  >
+                    {joinEventMut.isPending ? "Signing up…" : "❄️ Sign Up"}
+                  </button>
+                )
+              ) : (
+                <p className="text-center text-blue-500 text-xs">Log in to sign up for this event</p>
+              )}
+              <button
+                data-testid={`button-share-event-${evt.id}`}
+                onClick={() => handleCopyEventLink(evt.shareCode)}
+                className="w-full py-2.5 rounded-2xl border border-blue-700/50 text-blue-400 text-xs font-semibold flex items-center justify-center gap-1.5 hover:border-blue-500 hover:text-blue-300 transition-all"
+              >
+                {copiedCode === evt.shareCode ? <Check className="w-3.5 h-3.5 text-cyan-400" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedCode === evt.shareCode ? "Link copied!" : "Copy invite link"}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    })()}
 
     {/* ── Community Disclaimer Modal ── */}
     {showCommunityDisclaimer && (
