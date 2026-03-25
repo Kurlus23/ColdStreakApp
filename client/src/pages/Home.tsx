@@ -29,7 +29,7 @@ import { getClientId } from "@/hooks/use-plunges";
 import { buildShareImage, dataUrlToBlob, loadImage, buildShareBlobFromPreloaded } from "@/lib/shareImage";
 import { isNative, nativeShare } from "@/lib/nativeShare";
 import { saveCustomAlarmUrl, loadCustomAlarmUrl, clearCustomAlarmUrl } from "@/lib/alarm-storage";
-import { Explore, GEAR_ITEMS } from "@/pages/Explore";
+import { Explore, GEAR_ITEMS, type GearCategory } from "@/pages/Explore";
 import {
   PASSPORT_LOCATIONS, usePassportBadges, distanceMiles,
   DIFFICULTY_META, STATE_EMOJI,
@@ -553,6 +553,7 @@ export default function Home() {
   const lifetimePhase = lifetimePriceData?.phase ?? 1;
   const lifetimeNextPrice = lifetimePriceData?.nextPrice ?? null;
   const [showPostSessionAd, setShowPostSessionAd] = useState(false);
+  const [gearCategory, setGearCategory] = useState<GearCategory>("plunges");
   const [showAchievements, setShowAchievements] = useState(() => {
     return localStorage.getItem("coldstreak-achievements-open") !== "false";
   });
@@ -3376,46 +3377,81 @@ export default function Home() {
 
       {/* ─── GEAR SCREEN ─── */}
       {screen === "gear" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-white font-bold text-lg flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-cyan-400" /> Cold Plunge Gear
-              </h2>
-              <div className="flex items-center gap-2">
-                <span className="text-blue-500 text-xs">{GEAR_ITEMS.length} items</span>
-                <button
-                  data-testid="button-close-gear"
-                  onClick={() => navTo("timer")}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
-                >✕</button>
-              </div>
-            </div>
-            {GEAR_ITEMS.map((item) => (
-              <div key={item.id} className="bg-blue-950/80 rounded-2xl overflow-hidden border border-blue-800/50">
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-full h-44 object-contain bg-white/5 px-4 pt-3"
-                />
-                <div className="px-4 pb-4 pt-2 space-y-1.5">
-                  <div className="text-white font-semibold text-sm leading-snug">{item.name}</div>
-                  <div className="text-blue-300 text-[11px] leading-relaxed">{item.description}</div>
-                  <div className="pt-1">
+        <div className="absolute top-20 bottom-20 left-0 right-0 flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0">
+            <h2 className="text-white font-bold text-lg flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5 text-cyan-400" /> Cold Plunge Gear
+            </h2>
+            <button
+              data-testid="button-close-gear"
+              onClick={() => navTo("timer")}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
+            >✕</button>
+          </div>
+
+          {/* 4 Category Tabs */}
+          <div className="grid grid-cols-4 gap-1.5 px-4 pb-3 shrink-0">
+            {([ 
+              { key: "plunges" as GearCategory, emoji: "🛁", label: "Plunges" },
+              { key: "diy"     as GearCategory, emoji: "🔧", label: "DIY" },
+              { key: "devices" as GearCategory, emoji: "📡", label: "Devices" },
+              { key: "apparel" as GearCategory, emoji: "🧤", label: "Apparel" },
+            ] as const).map(({ key, emoji, label }) => (
+              <button
+                key={key}
+                data-testid={`tab-gear-${key}`}
+                onClick={() => setGearCategory(key)}
+                className={`flex flex-col items-center gap-0.5 py-2 rounded-xl border transition-all active:scale-95 ${
+                  gearCategory === key
+                    ? "bg-cyan-500/20 border-cyan-500/60 text-white"
+                    : "bg-blue-900/40 border-blue-700/30 text-blue-400 hover:border-blue-500/50"
+                }`}
+              >
+                <span className="text-lg leading-none">{emoji}</span>
+                <span className="text-[10px] font-semibold">{label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Item Grid */}
+          <div className="flex-1 overflow-y-auto px-4 pb-2">
+            <div className="grid grid-cols-2 gap-3">
+              {GEAR_ITEMS.filter(i => i.category === gearCategory).map((item) => (
+                <div key={item.id} className="bg-blue-950/80 rounded-2xl overflow-hidden border border-blue-800/50 flex flex-col">
+                  {item.image ? (
+                    <div className="bg-white/5 h-28 flex items-center justify-center px-3 pt-2">
+                      <img src={item.image} alt={item.name} className="max-h-full max-w-full object-contain" />
+                    </div>
+                  ) : (
+                    <div className="bg-blue-900/40 h-28 flex items-center justify-center text-4xl">
+                      { gearCategory === "plunges" ? "🛁"
+                      : gearCategory === "diy"     ? "🔧"
+                      : gearCategory === "devices" ? "📡"
+                      : "🧤" }
+                    </div>
+                  )}
+                  <div className="px-2.5 py-2 flex flex-col gap-1.5 flex-1">
+                    <div className="text-white font-semibold text-[11px] leading-snug">{item.name}</div>
+                    <div className="text-blue-400 text-[10px] leading-relaxed line-clamp-3 flex-1">{item.description}</div>
                     <a
                       data-testid={`link-gear-${item.id}`}
                       href={item.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 active:scale-95 transition-all text-white font-bold text-xs px-3 py-1.5 rounded-lg w-fit"
+                      className={`mt-0.5 flex items-center justify-center gap-1 text-white font-bold text-[10px] px-2 py-1.5 rounded-lg transition-all active:scale-95 ${
+                        item.linkLabel === "View on Amazon"
+                          ? "bg-amber-500 hover:bg-amber-400"
+                          : "bg-cyan-600 hover:bg-cyan-500"
+                      }`}
                     >
-                      View on Amazon
+                      {item.linkLabel}
                     </a>
                   </div>
                 </div>
-              </div>
-            ))}
-            <p className="text-blue-600 text-[10px] text-center pb-1">
+              ))}
+            </div>
+            <p className="text-blue-700 text-[10px] text-center mt-3 pb-1">
               As an Amazon Associate, ColdStreak earns from qualifying purchases.
             </p>
           </div>
