@@ -288,6 +288,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "apparel",
   },
   {
+    id: "mens-fleece-robe",
+    name: "Men's Hooded Fleece Robe",
+    description: "Full-length men's fleece robe with a hood and deep pockets — ideal for post-plunge recovery and staying warm after cold immersion.",
+    image: "/gear-mens-fleece-robe.png",
+    link: "https://amzn.to/47opUGf",
+    linkLabel: "View on Amazon",
+    category: "apparel",
+  },
+  {
     id: "sherpa-shawl-robe",
     name: "Sherpa Shawl-Collar Robe",
     description: "Luxuriously thick shawl-collar sherpa robe — stay toasty after your plunge with deep pockets and a belt to lock in warmth.",
