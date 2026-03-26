@@ -172,14 +172,14 @@ export function useProStatus() {
     }
   }, [markPro]);
 
-  const verifySession = useCallback(async (sessionId: string) => {
+  const verifySession = useCallback(async (sessionId: string): Promise<string | false> => {
     setLoading(true);
     try {
       const res = await fetch(`/api/stripe/verify?session_id=${sessionId}`);
       const data = await res.json();
       if (data.isPro && data.email) {
         markPro(data.email, data.foundingPlunger ?? false, data.planType);
-        return true;
+        return (data.planType as string) || "lifetime";
       }
     } catch (e) {
       console.error("Verify failed", e);

@@ -280,9 +280,9 @@ export default function Home() {
     const sessionId = params.get("session_id");
     if (!sessionId) return;
     localStorage.removeItem(PENDING_CHECKOUT_KEY);
-    verifySession(sessionId).then((success) => {
-      if (success) {
-        toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "All Pro features are now unlocked." });
+    verifySession(sessionId).then((planType) => {
+      if (planType) {
+        triggerProCelebration(planType);
       } else {
         toast({ title: "Payment not confirmed", description: "If you completed payment, try Restore Purchase.", variant: "destructive" });
       }
@@ -463,6 +463,18 @@ export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [pendingRestoreEmail, setPendingRestoreEmail] = useState<string | null>(null);
 
+  // Pro purchase celebration
+  const [showProCelebration, setShowProCelebration] = useState(false);
+  const [celebrationPlan, setCelebrationPlan] = useState<string>("lifetime");
+
+  const triggerProCelebration = useCallback((planType: string) => {
+    setCelebrationPlan(planType);
+    setShowProCelebration(true);
+    confetti({ particleCount: 140, spread: 80, origin: { y: 0.55 }, colors: ["#06b6d4", "#3b82f6", "#ffffff", "#fbbf24"] });
+    setTimeout(() => confetti({ particleCount: 80, spread: 60, origin: { y: 0.4 }, colors: ["#06b6d4", "#a5f3fc", "#ffffff"] }), 600);
+    setTimeout(() => setShowProCelebration(false), 6000);
+  }, []);
+
   // Native app: handle deep link return from Stripe checkout via Android App Links.
   // Covers both fresh-launch (getLaunchUrl) and resume (appUrlOpen) cases.
   useEffect(() => {
@@ -480,9 +492,9 @@ export default function Home() {
         const sessionId = url.searchParams.get("session_id");
         if (sessionId) {
           localStorage.removeItem(PENDING_CHECKOUT_KEY);
-          const success = await verifySession(sessionId);
-          if (success) {
-            toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "All Pro features are now unlocked." });
+          const planType = await verifySession(sessionId);
+          if (planType) {
+            triggerProCelebration(planType);
           } else {
             toast({ title: "Payment not confirmed", description: "If you completed payment, try Restore Purchase.", variant: "destructive" });
           }
@@ -518,7 +530,7 @@ export default function Home() {
     }).then((h: { remove: () => void }) => { listenerHandle = h; });
 
     return () => { listenerHandle?.remove(); };
-  }, [verifySession, restorePurchase]);
+  }, [verifySession, restorePurchase, triggerProCelebration]);
 
   // Native app: fallback restore via visibility change (for non-App-Link returns)
   useEffect(() => {
@@ -2834,7 +2846,17 @@ export default function Home() {
             {isPro ? (
               <div className="bg-gradient-to-r from-cyan-900/60 to-blue-900/60 rounded-2xl p-4 border border-cyan-600/50 space-y-3">
                 <div className="flex items-center gap-2 text-white font-bold">
-                  <Crown className="w-4 h-4 text-yellow-400" /> ColdStreak Pro
+                  <Crown className="w-4 h-4 text-yellow-400" />
+                  <span>ColdStreak Pro</span>
+                  {proPlan === "lifetime" && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-yellow-500/30 to-amber-500/30 border border-yellow-400/50 text-yellow-300 tracking-wide uppercase">Lifetime</span>
+                  )}
+                  {proPlan === "monthly" && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 tracking-wide uppercase">Monthly</span>
+                  )}
+                  {proPlan === "annual" && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/40 text-blue-300 tracking-wide uppercase">Annual</span>
+                  )}
                   <CheckCircle2 className="w-4 h-4 text-green-400 ml-auto" />
                 </div>
                 <div className="text-cyan-300 text-xs">Active · {proEmail}</div>
@@ -5887,6 +5909,38 @@ export default function Home() {
             >
               Dismiss
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── PRO PURCHASE CELEBRATION ─── */}
+      {showProCelebration && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center"
+          onClick={() => setShowProCelebration(false)}
+        >
+          <div className="absolute inset-0 bg-blue-950/80 backdrop-blur-sm" />
+          <div className="relative flex flex-col items-center gap-5 px-8 py-10 max-w-xs w-full mx-4 rounded-3xl bg-gradient-to-b from-blue-900/90 to-slate-900/90 border border-cyan-500/40 shadow-2xl shadow-cyan-500/20 text-center animate-in zoom-in-95 duration-300">
+            <div className="text-6xl animate-bounce">❄️</div>
+            <div>
+              <p className="text-cyan-300 text-xs font-semibold uppercase tracking-widest mb-1">You're in the cold club</p>
+              <h2 className="text-white font-bold text-2xl leading-tight">
+                ColdStreak Pro
+                {celebrationPlan === "lifetime" && <span className="block text-yellow-300 text-xl mt-0.5">Lifetime ✓</span>}
+                {celebrationPlan === "monthly" && <span className="block text-cyan-300 text-xl mt-0.5">Monthly ✓</span>}
+                {celebrationPlan === "annual" && <span className="block text-blue-300 text-xl mt-0.5">Annual ✓</span>}
+              </h2>
+            </div>
+            <p className="text-blue-300 text-sm leading-relaxed">
+              {celebrationPlan === "lifetime"
+                ? "You now have permanent access to every Pro feature. Welcome to the streak."
+                : "All Pro features are now unlocked. Stay cold."}
+            </p>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/15 border border-cyan-400/30">
+              <Crown className="w-4 h-4 text-yellow-400" />
+              <span className="text-cyan-200 text-xs font-semibold">All features unlocked</span>
+            </div>
+            <p className="text-blue-600 text-[11px]">Tap anywhere to continue</p>
           </div>
         </div>
       )}
