@@ -130,6 +130,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "plunges",
   },
   {
+    id: "nuvio-pod",
+    name: "Nuvio Inflatable Cold Plunge Pod (Round + Lid)",
+    description: "Nuvio's round cold plunge pod with an insulated clip-on lid — thick woven walls, compact upright design, and a drain valve. Pairs with any chiller or ice.",
+    image: "/gear-nuvio-pod.png",
+    link: "https://amzn.to/3PvYFUa",
+    linkLabel: "View on Amazon",
+    category: "plunges",
+  },
+  {
     id: "nuvio-tub",
     name: "Nuvio Inflatable Cold Plunge Tub",
     description: "Nuvio's compact inflatable cold plunge tub — thick insulated walls with a carbon-fiber-style exterior, open-top design, and a sturdy build. Pairs with any chiller.",
