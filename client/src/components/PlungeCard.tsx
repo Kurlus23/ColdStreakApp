@@ -224,10 +224,10 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
       return;
     }
 
-    // ── Web browser: text has no URL; url passed separately for link preview
+    // ── Web browser: text-only, no separate url — prevents platforms from doubling content
     if (navigator.share) {
       try {
-        await navigator.share({ text, url });
+        await navigator.share({ text: textWithUrl });
         return;
       } catch (e: any) {
         if (e?.name !== "AbortError") {
