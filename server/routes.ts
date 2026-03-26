@@ -1010,6 +1010,14 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
+  app.get("/api/badge-profiles/batch", async (req, res) => {
+    const raw = req.query.usernames;
+    if (!raw || typeof raw !== "string") return res.json([]);
+    const usernames = raw.split(",").map((u) => u.trim()).filter(Boolean).slice(0, 60);
+    const profiles = await Promise.all(usernames.map((u) => storage.getBadgeProfile(u)));
+    res.json(profiles.filter(Boolean));
+  });
+
   app.get("/api/badge-profile/:username", async (req, res) => {
     const profile = await storage.getBadgeProfile(req.params.username);
     if (!profile) return res.status(404).json({ error: "Profile not found" });

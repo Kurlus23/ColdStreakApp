@@ -4,8 +4,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { CalendarDays, MapPin, Users, Snowflake, ExternalLink, Copy, Check, Navigation, Send } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { Event, EventParticipant } from "@shared/schema";
+import { TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
 
 function openDirections(lat: number | string, lng: number | string) {
   window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank", "noopener,noreferrer");
@@ -25,6 +26,8 @@ function fmtDateRange(start: string | Date, end: string | Date | null | undefine
   return `${s} – ${e}`;
 }
 
+type MiniBadgeProfile = { username: string; featuredBadges: string; foundingPlunger: boolean };
+
 export default function EventPage() {
   const { code } = useParams<{ code: string }>();
   const [, navigate] = useLocation();
@@ -37,6 +40,49 @@ export default function EventPage() {
     queryFn: () => fetch(`/api/events/${code}`).then((r) => { if (!r.ok) throw new Error("Event not found"); return r.json(); }),
     retry: false,
   });
+
+  // Collect all usernames in the event for badge lookups
+  const eventUsernames = useMemo(() => {
+    if (!evt) return [];
+    const names = new Set<string>();
+    if (evt.createdByUsername) names.add(evt.createdByUsername);
+    evt.coordinators.forEach((c) => names.add(c.username));
+    evt.participants.forEach((p) => names.add(p.username));
+    return [...names].filter(Boolean);
+  }, [evt]);
+
+  const { data: eventBadgeProfiles } = useQuery<MiniBadgeProfile[]>({
+    queryKey: ["/api/badge-profiles/batch", eventUsernames.join(",")],
+    queryFn: () => fetch(`/api/badge-profiles/batch?usernames=${encodeURIComponent(eventUsernames.join(","))}`).then((r) => r.json()),
+    enabled: eventUsernames.length > 0,
+    staleTime: 60_000,
+  });
+
+  const badgeEmojiLookup = useMemo<Record<string, string>>(() => {
+    const m: Record<string, string> = {};
+    TEMP_TIERS.forEach((t) => { m[t.id] = t.emoji; });
+    DAYS_TIERS.forEach((t) => { m[t.id] = t.emoji; });
+    Object.entries(STATE_EMOJI).forEach(([k, v]) => { m[`state-${k}`] = v; });
+    return m;
+  }, []);
+
+  const eventBadgeMap = useMemo<Record<string, MiniBadgeProfile>>(() => {
+    if (!eventBadgeProfiles) return {};
+    return Object.fromEntries(eventBadgeProfiles.map((p) => [p.username, p]));
+  }, [eventBadgeProfiles]);
+
+  function renderEventBadges(username: string) {
+    const profile = eventBadgeMap[username];
+    if (!profile) return null;
+    const chips: string[] = [];
+    if (profile.foundingPlunger) chips.push("🎖️");
+    try {
+      const ids: string[] = JSON.parse(profile.featuredBadges);
+      ids.slice(0, 3).forEach((id) => { const e = badgeEmojiLookup[id]; if (e) chips.push(e); });
+    } catch { /* ignore */ }
+    if (!chips.length) return null;
+    return <span className="text-sm leading-none" title="Badges">{chips.join("")}</span>;
+  }
 
   const isJoined = evt?.participants.some((p) => p.userId === auth.user?.id) ?? false;
 
@@ -160,12 +206,22 @@ export default function EventPage() {
         {(evt.createdByUsername || evt.coordinators.length > 0) && (
           <div className="flex flex-wrap items-center gap-2">
             {evt.createdByUsername && (
-              <p className="text-blue-500 text-xs">Organized by {evt.createdByUsername}</p>
+              <button
+                onClick={() => navigate(`/profile/${encodeURIComponent(evt.createdByUsername!)}`)}
+                className="flex items-center gap-1 text-blue-500 text-xs hover:text-cyan-300 transition-colors"
+              >
+                Organized by <span className="font-semibold">{evt.createdByUsername}</span>
+                {renderEventBadges(evt.createdByUsername)}
+              </button>
             )}
             {evt.coordinators.map((c) => (
-              <span key={c.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-800/60 border border-blue-700/40 text-blue-300 text-[11px] font-semibold">
-                ⚡ {c.username}
-              </span>
+              <button
+                key={c.id}
+                onClick={() => navigate(`/profile/${encodeURIComponent(c.username)}`)}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-800/60 border border-blue-700/40 text-blue-300 text-[11px] font-semibold hover:border-cyan-500/50 hover:text-cyan-300 transition-colors"
+              >
+                ⚡ {c.username}{renderEventBadges(c.username)}
+              </button>
             ))}
           </div>
         )}
@@ -224,10 +280,13 @@ export default function EventPage() {
             {evt.participants.map((p, i) => (
               <div key={p.id} className="flex items-center gap-3 py-1.5">
                 <span className="text-blue-500 text-xs w-5 text-right">{i + 1}</span>
-                <div className="w-7 h-7 rounded-full bg-blue-700/60 border border-blue-600/40 flex items-center justify-center text-xs font-bold text-cyan-300">
+                <button onClick={() => navigate(`/profile/${encodeURIComponent(p.username)}`)} className="w-7 h-7 rounded-full bg-blue-700/60 border border-blue-600/40 flex items-center justify-center text-xs font-bold text-cyan-300 hover:opacity-80 transition-opacity flex-shrink-0">
                   {p.username.slice(0, 1).toUpperCase()}
-                </div>
-                <span className="text-white text-sm font-medium flex-1">{p.username}</span>
+                </button>
+                <button onClick={() => navigate(`/profile/${encodeURIComponent(p.username)}`)} className="flex items-center gap-1 text-white text-sm font-medium flex-1 hover:text-cyan-300 transition-colors text-left">
+                  {p.username}
+                  {renderEventBadges(p.username)}
+                </button>
                 <span className="text-blue-500 text-xs">
                   {new Date(p.joinedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                 </span>

@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useLocation } from "wouter";
 import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -10,7 +11,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useProStatus } from "@/hooks/use-pro-status";
 import { useAuth } from "@/hooks/use-auth";
-import { PASSPORT_LOCATIONS, usePassportBadges, distanceMiles, DIFFICULTY_META, type Difficulty } from "@/lib/passport";
+import { PASSPORT_LOCATIONS, usePassportBadges, distanceMiles, DIFFICULTY_META, type Difficulty, TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { UserLocation, Event, EventParticipant } from "@shared/schema";
 
@@ -524,6 +525,16 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const { isPro } = useProStatus();
   const auth = useAuth();
   const { badges, awardBadge, hasBadge } = usePassportBadges();
+  const [, navigate] = useLocation();
+
+  // ── Badge emoji lookup ──
+  const badgeEmojiLookup = useMemo<Record<string, string>>(() => {
+    const m: Record<string, string> = {};
+    TEMP_TIERS.forEach((t) => { m[t.id] = t.emoji; });
+    DAYS_TIERS.forEach((t) => { m[t.id] = t.emoji; });
+    Object.entries(STATE_EMOJI).forEach(([k, v]) => { m[`state-${k}`] = v; });
+    return m;
+  }, []);
 
   // ── Top-level tab ──
   const [exploreTab, setExploreTab] = useState<"locations" | "events">("locations");
@@ -649,6 +660,42 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     queryFn: () => fetch(`/api/events/${selectedEvent!.shareCode}`).then((r) => r.json()),
     enabled: !!selectedEvent,
   });
+
+  // Batch badge profile query — fetches badges for all users visible in the event detail modal
+  type MiniBadgeProfile = { username: string; featuredBadges: string; foundingPlunger: boolean };
+  const eventUsernames = useMemo(() => {
+    if (!selectedEvent) return [];
+    const names = new Set<string>();
+    if (selectedEvent.createdByUsername) names.add(selectedEvent.createdByUsername);
+    selectedEvent.coordinators.forEach((c) => names.add(c.username));
+    (selectedEventDetail?.participants ?? []).forEach((p) => names.add(p.username));
+    return [...names].filter(Boolean);
+  }, [selectedEvent, selectedEventDetail?.participants]);
+
+  const { data: eventBadgeProfiles } = useQuery<MiniBadgeProfile[]>({
+    queryKey: ["/api/badge-profiles/batch", eventUsernames.join(",")],
+    queryFn: () => fetch(`/api/badge-profiles/batch?usernames=${encodeURIComponent(eventUsernames.join(","))}`).then((r) => r.json()),
+    enabled: eventUsernames.length > 0,
+    staleTime: 60_000,
+  });
+
+  const eventBadgeMap = useMemo<Record<string, MiniBadgeProfile>>(() => {
+    if (!eventBadgeProfiles) return {};
+    return Object.fromEntries(eventBadgeProfiles.map((p) => [p.username, p]));
+  }, [eventBadgeProfiles]);
+
+  function renderEventBadges(username: string) {
+    const profile = eventBadgeMap[username];
+    if (!profile) return null;
+    const chips: string[] = [];
+    if (profile.foundingPlunger) chips.push("🎖️");
+    try {
+      const ids: string[] = JSON.parse(profile.featuredBadges);
+      ids.slice(0, 3).forEach((id) => { const e = badgeEmojiLookup[id]; if (e) chips.push(e); });
+    } catch { /* ignore */ }
+    if (!chips.length) return null;
+    return <span className="text-sm leading-none" title="Badges">{chips.join("")}</span>;
+  }
 
   const editEventMut = useMutation({
     mutationFn: ({ id, body }: { id: number; body: Record<string, unknown> }) =>
@@ -2280,22 +2327,28 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 <div className="space-y-2">
                   {evt.createdByUsername && (
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-xs font-bold text-cyan-300 flex-shrink-0">
+                      <button onClick={() => navigate(`/profile/${encodeURIComponent(evt.createdByUsername!)}`)} className="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-xs font-bold text-cyan-300 flex-shrink-0 hover:opacity-80 transition-opacity">
                         {evt.createdByUsername.slice(0, 1).toUpperCase()}
-                      </div>
+                      </button>
                       <div>
-                        <p className="text-white text-xs font-semibold">{evt.createdByUsername}</p>
+                        <button onClick={() => navigate(`/profile/${encodeURIComponent(evt.createdByUsername!)}`)} className="flex items-center gap-1 text-white text-xs font-semibold hover:text-cyan-300 transition-colors text-left">
+                          {evt.createdByUsername}
+                          {renderEventBadges(evt.createdByUsername)}
+                        </button>
                         <p className="text-blue-500 text-[10px]">Creator</p>
                       </div>
                     </div>
                   )}
                   {evt.coordinators.map((c) => (
                     <div key={c.id} className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-xs font-bold text-blue-300 flex-shrink-0">
+                      <button onClick={() => navigate(`/profile/${encodeURIComponent(c.username)}`)} className="w-7 h-7 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-xs font-bold text-blue-300 flex-shrink-0 hover:opacity-80 transition-opacity">
                         {c.username.slice(0, 1).toUpperCase()}
-                      </div>
+                      </button>
                       <div className="flex-1">
-                        <p className="text-white text-xs font-semibold">{c.username}</p>
+                        <button onClick={() => navigate(`/profile/${encodeURIComponent(c.username)}`)} className="flex items-center gap-1 text-white text-xs font-semibold hover:text-cyan-300 transition-colors text-left">
+                          {c.username}
+                          {renderEventBadges(c.username)}
+                        </button>
                         <p className="text-blue-500 text-[10px]">⚡ Co-coordinator</p>
                       </div>
                       {isManager && evt.createdBy === auth.user!.id && (
@@ -2352,10 +2405,13 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     <div className="space-y-1">
                       {selectedEventDetail.participants.map((p) => (
                         <div key={p.id} className="flex items-center gap-2.5 py-1.5 border-b border-blue-800/30 last:border-0">
-                          <div className="w-6 h-6 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-[10px] font-bold text-blue-300 flex-shrink-0">
+                          <button onClick={() => navigate(`/profile/${encodeURIComponent(p.username)}`)} className="w-6 h-6 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-[10px] font-bold text-blue-300 flex-shrink-0 hover:opacity-80 transition-opacity">
                             {p.username.slice(0, 1).toUpperCase()}
-                          </div>
-                          <span className="text-white text-xs font-medium flex-1">{p.username}</span>
+                          </button>
+                          <button onClick={() => navigate(`/profile/${encodeURIComponent(p.username)}`)} className="flex items-center gap-1 text-white text-xs font-medium flex-1 hover:text-cyan-300 transition-colors text-left">
+                            {p.username}
+                            {renderEventBadges(p.username)}
+                          </button>
                           <button
                             data-testid={`button-remove-participant-${p.userId}`}
                             onClick={() => removeParticipantMut.mutate({ eventId: evt.id, userId: p.userId })}
@@ -2390,10 +2446,10 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   <div className="space-y-1">
                     {selectedEventDetail.bans.map((ban) => (
                       <div key={ban.id} className="flex items-center gap-2.5 py-1.5 border-b border-blue-800/30 last:border-0">
-                        <div className="w-6 h-6 rounded-full bg-red-900/40 border border-red-700/40 flex items-center justify-center text-[10px] font-bold text-red-400 flex-shrink-0">
+                        <button onClick={() => navigate(`/profile/${encodeURIComponent(ban.username)}`)} className="w-6 h-6 rounded-full bg-red-900/40 border border-red-700/40 flex items-center justify-center text-[10px] font-bold text-red-400 flex-shrink-0 hover:opacity-80 transition-opacity">
                           {ban.username.slice(0, 1).toUpperCase()}
-                        </div>
-                        <span className="text-red-300 text-xs flex-1 line-through opacity-60">{ban.username}</span>
+                        </button>
+                        <button onClick={() => navigate(`/profile/${encodeURIComponent(ban.username)}`)} className="text-red-300 text-xs flex-1 line-through opacity-60 hover:opacity-100 hover:text-cyan-300 transition-colors text-left">{ban.username}</button>
                         <button
                           data-testid={`button-unban-participant-${ban.userId}`}
                           onClick={() => unbanParticipantMut.mutate({ eventId: evt.id, userId: ban.userId })}
