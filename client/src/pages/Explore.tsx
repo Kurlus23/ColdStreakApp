@@ -584,8 +584,16 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     if (target === "plunge") setEvtPlungeGpsLoading(false); else setEvtAccessGpsLoading(false);
   }
 
-  function handleCopyEventLink(code: string) {
+  async function handleShareEvent(code: string, name: string) {
     const url = `${window.location.origin}/event/${code}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Join me at ${name}`, text: `You're invited to "${name}" — a cold plunge event! Sign up here:`, url });
+        return;
+      } catch {
+        // user cancelled or share failed — fall through to clipboard
+      }
+    }
     navigator.clipboard.writeText(url).catch(() => {});
     setCopiedCode(code);
     toast({ title: "Link copied!", description: url });
@@ -2320,11 +2328,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               )}
               <button
                 data-testid={`button-share-event-${evt.id}`}
-                onClick={() => handleCopyEventLink(evt.shareCode)}
+                onClick={() => handleShareEvent(evt.shareCode, evt.name)}
                 className="w-full py-2.5 rounded-2xl border border-blue-700/50 text-blue-400 text-xs font-semibold flex items-center justify-center gap-1.5 hover:border-blue-500 hover:text-blue-300 transition-all"
               >
-                {copiedCode === evt.shareCode ? <Check className="w-3.5 h-3.5 text-cyan-400" /> : <Copy className="w-3.5 h-3.5" />}
-                {copiedCode === evt.shareCode ? "Link copied!" : "Copy invite link"}
+                {copiedCode === evt.shareCode ? <Check className="w-3.5 h-3.5 text-cyan-400" /> : <Send className="w-3.5 h-3.5" />}
+                {copiedCode === evt.shareCode ? "Link copied!" : "Invite Friends"}
               </button>
               {isManager && (
                 <div className="flex gap-2">
