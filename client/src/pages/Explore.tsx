@@ -203,6 +203,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "diy",
   },
   {
+    id: "safeflow-filter",
+    name: "SafeFlow Cold Plunge Filter Cartridges (4-Pack)",
+    description: "20-micron pleated cold plunge filter cartridges — BPA-free, removes dirt, sand, silt, rust, and bacteria. 7.87×4.5in replacement cartridges, pack of 4.",
+    image: "/gear-safeflow-filter.png",
+    link: "https://amzn.to/4bOxZW7",
+    linkLabel: "View on Amazon",
+    category: "diy",
+  },
+  {
     id: "filter-cartridges",
     name: "Pleated Filter Cartridges (4-Pack)",
     description: "Universal 10\" pleated sediment filter cartridges — keep your cold plunge water clear by trapping debris before it reaches your pump or chiller.",
