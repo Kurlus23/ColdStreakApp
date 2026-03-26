@@ -49,3 +49,9 @@ The system uses a `clientId` for anonymous plunge tracking, which can be synced 
 - **`bcryptjs`**: For hashing user passwords securely.
 - **`@capacitor-community/media`**: For camera roll interactions (saving plunge photos).
 - **`piexifjs`**: For embedding EXIF data into images.
+
+## Avatar / Profile Photos
+Profile avatars currently use a URL field — users paste a link to an image hosted elsewhere (e.g. a profile photo URL). This keeps the app free of file storage requirements and avoids privacy/moderation obligations.
+
+## v2.0 Roadmap Notes
+- **Bitmoji / device photo upload for avatars** — Allow users to upload an image directly from their device (including Bitmoji screenshots). Requires cloud image storage (Cloudinary or similar), privacy policy updates to cover image data collection, ToS clause for user-generated content, and a content moderation plan for App Store / Play Store compliance. Current URL-paste approach intentionally deferred until v2.0.
