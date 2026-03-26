@@ -56,6 +56,7 @@ export interface IStorage {
 
   upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null; foundingPlunger?: boolean }): Promise<void>;
   getBadgeProfile(username: string): Promise<BadgeProfile | null>;
+  getFoundingPlungerBatch(displayNames: string[]): Promise<Record<string, boolean>>;
 
   // Business listings
   createBusinessListing(data: { locationId: number; email: string; stripeSessionId?: string; stripeSubscriptionId?: string; expiresAt?: Date }): Promise<BusinessListing>;
@@ -422,6 +423,20 @@ export class DatabaseStorage implements IStorage {
   async getBadgeProfile(username: string): Promise<BadgeProfile | null> {
     const [profile] = await db.select().from(badgeProfiles).where(eq(badgeProfiles.username, username));
     return profile ?? null;
+  }
+
+  async getFoundingPlungerBatch(displayNames: string[]): Promise<Record<string, boolean>> {
+    if (!displayNames.length) return {};
+    const rows = await db
+      .select({ displayName: users.displayName, foundingPlunger: proUsers.foundingPlunger })
+      .from(users)
+      .innerJoin(proUsers, eq(proUsers.email, users.email))
+      .where(sql`lower(${users.displayName}) IN (${sql.join(displayNames.map((n) => sql`lower(${n})`), sql`, `)})`);
+    const map: Record<string, boolean> = {};
+    for (const row of rows) {
+      if (row.displayName) map[row.displayName.toLowerCase()] = row.foundingPlunger ?? false;
+    }
+    return map;
   }
 
   async createBusinessListing(data: { locationId: number; email: string; stripeSessionId?: string; stripeSubscriptionId?: string; expiresAt?: Date }): Promise<BusinessListing> {

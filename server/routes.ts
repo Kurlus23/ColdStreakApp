@@ -1014,8 +1014,29 @@ export async function registerRoutes(
     const raw = req.query.usernames;
     if (!raw || typeof raw !== "string") return res.json([]);
     const usernames = raw.split(",").map((u) => u.trim()).filter(Boolean).slice(0, 60);
-    const profiles = await Promise.all(usernames.map((u) => storage.getBadgeProfile(u)));
-    res.json(profiles.filter(Boolean));
+
+    const profileResults = await Promise.all(usernames.map((u) => storage.getBadgeProfile(u)));
+    const published: typeof profileResults[number][] = [];
+    const missingUsernames: string[] = [];
+    profileResults.forEach((p, i) => {
+      if (p) { published.push(p); } else { missingUsernames.push(usernames[i]); }
+    });
+
+    // For users without a published badge profile, still surface their foundingPlunger status
+    const fpMap = missingUsernames.length > 0 ? await storage.getFoundingPlungerBatch(missingUsernames) : {};
+    const computed = missingUsernames
+      .filter((u) => fpMap[u.toLowerCase()])
+      .map((u) => ({
+        username: u,
+        featuredBadges: "[]",
+        plungeCount: 0,
+        uniqueDays: 0,
+        coldestTemp: null,
+        foundingPlunger: true,
+        updatedAt: new Date().toISOString(),
+      }));
+
+    res.json([...published, ...computed]);
   });
 
   app.get("/api/badge-profile/:username", async (req, res) => {
