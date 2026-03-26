@@ -130,6 +130,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "plunges",
   },
   {
+    id: "barrel-tub",
+    name: "Vertical Barrel Cold Plunge Tub with Lid",
+    description: "Upright barrel-style cold plunge tub with a fitted lid — compact footprint, durable hard-sided shell, and a drain port. Pairs with any chiller or ice.",
+    image: "/gear-barrel-tub.png",
+    link: "https://amzn.to/4sCIIKz",
+    linkLabel: "View on Amazon",
+    category: "plunges",
+  },
+  {
     id: "plunge-steps-tub",
     name: "Hard-Sided Cold Plunge Tub with Built-In Steps",
     description: "Premium hard-sided cold plunge with integrated entry steps, a removable insulated lid, and a durable molded shell — built for daily use and easy entry.",
