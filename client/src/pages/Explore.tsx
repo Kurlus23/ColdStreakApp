@@ -130,6 +130,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "plunges",
   },
   {
+    id: "solstice-plunge",
+    name: "Solstice Plunge Inflatable Cold Plunge Tub",
+    description: "Solstice Plunge inflatable tub with insulated lid, carry bag, and hand pump included — works for both hot and cold therapy. Full-body oval design for easy immersion.",
+    image: "/gear-solstice-plunge.png",
+    link: "https://amzn.to/4mbUF7H",
+    linkLabel: "View on Amazon",
+    category: "plunges",
+  },
+  {
     id: "barrel-tub",
     name: "Vertical Barrel Cold Plunge Tub with Lid",
     description: "Upright barrel-style cold plunge tub with a fitted lid — compact footprint, durable hard-sided shell, and a drain port. Pairs with any chiller or ice.",
