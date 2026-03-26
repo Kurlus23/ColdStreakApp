@@ -22,7 +22,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { usePlunges, useCreatePlunge, useUpdatePlunge, useDeletePlunge } from "@/hooks/use-plunges";
 import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry, type LeaderboardEntryWithBadge } from "@/hooks/use-leaderboard";
 import { useProStatus, PENDING_CHECKOUT_KEY } from "@/hooks/use-pro-status";
-import { PlungeCard, buildShareText } from "@/components/PlungeCard";
+import { PlungeCard, buildShareText, buildShareUrl } from "@/components/PlungeCard";
 import { BannerAd, FeedAd, InterstitialAd } from "@/components/AdUnit";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
 import { Analytics } from "@/lib/analytics";
@@ -5653,6 +5653,7 @@ export default function Home() {
                     locationName,
                     locationId: promptLocationId,
                   });
+                  const shareUrl = buildShareUrl(username);
 
                   // ── Native Android/iOS: use Capacitor Share (avoids WebView doubling bug)
                   if (isNative()) {
@@ -5663,7 +5664,7 @@ export default function Home() {
                   // ── Web browser: use navigator.share (no title — prevents iOS iMessage subject bubble)
                   if (navigator.share) {
                     try {
-                      await navigator.share({ text });
+                      await navigator.share({ text, url: shareUrl });
                       done(); return;
                     } catch (e: any) {
                       if (e?.name === "AbortError") { done(); return; }

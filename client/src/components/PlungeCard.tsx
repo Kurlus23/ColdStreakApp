@@ -52,6 +52,7 @@ async function dataUrlToFile(dataUrl: string, filename: string): Promise<File> {
 }
 
 export function buildShareText({
+  username,
   temperature,
   duration,
   streak,
@@ -66,14 +67,23 @@ export function buildShareText({
   locationId?: string | null;
 }): string {
   const lines: string[] = [
-    `I just completed a ${temperature}°F plunge!`,
+    `I just completed a ${temperature}°F plunge! 🧊`,
     `⏱️ Duration: ${formatTime(duration)}`,
   ];
   if (streak && streak > 0) lines.push(`🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}`);
   if (locationId === "home") lines.push(`📍 Home`);
   else if (locationName) lines.push(`📍 ${locationName}`);
-  lines.push(`Tracked with ColdStreak`);
+  const profileUrl = username
+    ? `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`
+    : `https://coldstreakapp.com`;
+  lines.push(`Track your plunges on ColdStreak → ${profileUrl}`);
   return lines.join("\n");
+}
+
+export function buildShareUrl(username?: string): string {
+  return username
+    ? `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`
+    : `https://coldstreakapp.com`;
 }
 
 function resolveLocationDisplay(locId: string | null | undefined, locName: string | null | undefined, communityLocs: UserLocation[], homeLabel?: string) {
@@ -209,6 +219,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
       locationName: plunge.locationName,
       locationId: plunge.locationId,
     });
+    const url = buildShareUrl(username);
 
     // ── Native Android/iOS: use Capacitor Share plugin
     if (isNative()) {
@@ -219,7 +230,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
     // ── Web browser: use navigator.share
     if (navigator.share) {
       try {
-        await navigator.share({ title: "ColdStreak Plunge", text });
+        await navigator.share({ text, url });
         return;
       } catch (e: any) {
         if (e?.name !== "AbortError") {
