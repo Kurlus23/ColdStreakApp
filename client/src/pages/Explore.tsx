@@ -158,6 +158,15 @@ export const GEAR_ITEMS: GearItem[] = [
   },
   // ── DIY ──────────────────────────────────────────────
   {
+    id: "pondmaster-pump",
+    name: "Pondmaster Submersible Pump",
+    description: "Heavy-duty submersible pump with magnetic drive — a popular workhorse for DIY cold plunge circulation setups. Durable, energy-efficient, and easy to plumb.",
+    image: "/gear-pondmaster-pump.png",
+    link: "https://amzn.to/41tkTIW",
+    linkLabel: "View on Amazon",
+    category: "diy",
+  },
+  {
     id: "danner-950",
     name: "Danner Aqua-Mag 950 GPH Pump",
     description: "Magnetic drive submersible pump — popular choice for circulating and chilling cold plunge tub water.",
