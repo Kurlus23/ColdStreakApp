@@ -1075,7 +1075,9 @@ export async function registerRoutes(
     const caller = extractUser(req);
     if (!caller) return res.status(401).json({ error: "Not authenticated" });
     const { avatarUrl, bio, socialLinks } = req.body;
-    if (!caller.displayName) return res.status(400).json({ error: "No display name set" });
+    const callerUser = await storage.getUserById(caller.userId);
+    if (!callerUser?.displayName) return res.status(400).json({ error: "No display name set" });
+    const displayName = callerUser.displayName;
 
     // Validate avatarUrl is a URL or null
     if (avatarUrl !== undefined && avatarUrl !== null) {
@@ -1094,7 +1096,7 @@ export async function registerRoutes(
       } catch { return res.status(400).json({ error: "Invalid social links" }); }
     }
 
-    await storage.updateBadgeProfileMeta(caller.displayName, {
+    await storage.updateBadgeProfileMeta(displayName, {
       avatarUrl: avatarUrl ?? undefined,
       bio: typeof bio === "string" ? bio.slice(0, 200) : undefined,
       socialLinks: socialLinks !== undefined ? JSON.stringify(parsedLinks) : undefined,

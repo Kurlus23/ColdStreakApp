@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
 import { X, Pencil, Share2, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { SiInstagram, SiSnapchat, SiFacebook, SiTiktok, SiX, SiYoutube } from "react-icons/si";
-import { useAuth } from "@/hooks/use-auth";
+import { getAuthToken } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 
@@ -82,9 +82,11 @@ function Avatar({ username, avatarUrl }: { username: string; avatarUrl?: string 
 export default function BadgeProfile() {
   const { username } = useParams<{ username: string }>();
   const [, navigate] = useLocation();
-  const auth = useAuth();
   const queryClient = useQueryClient();
-  const myUsername = auth.user?.displayName ?? null;
+  // Display name is stored in localStorage as "coldstreak-username"; auth token confirms they're logged in
+  const myUsername = getAuthToken()
+    ? (localStorage.getItem("coldstreak-username") ?? null)
+    : null;
 
   const [showEdit, setShowEdit] = useState(false);
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
