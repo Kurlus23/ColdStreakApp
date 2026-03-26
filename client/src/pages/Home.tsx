@@ -4893,11 +4893,11 @@ export default function Home() {
         const dirLng = passportLoc?.lng ?? (communityLocEntry?.longitude ? Number(communityLocEntry.longitude) : null);
         const resolvedFlag = communityLocEntry?.isBusiness ? "🏢" : (passportLoc?.flag ?? "📍");
         return (
-          <div className="fixed inset-0 z-40 flex items-end justify-center">
+          <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/70" onClick={() => setLeaderboardLocationId(null)} />
             <div
               data-testid="sheet-leaderboard"
-              className="relative z-10 w-full max-w-lg bg-blue-950 border border-blue-700/60 rounded-t-3xl p-5 pb-8 shadow-2xl max-h-[80vh] flex flex-col"
+              className="relative z-10 w-full max-w-lg bg-blue-950 border border-blue-700/60 rounded-3xl p-5 shadow-2xl max-h-[85vh] flex flex-col"
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-4 shrink-0">
