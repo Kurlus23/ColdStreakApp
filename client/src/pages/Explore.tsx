@@ -176,6 +176,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "diy",
   },
   {
+    id: "nuvio-chiller",
+    name: "Nuvio Recovery Chiller Pro",
+    description: "App-controlled cold plunge chiller with LED display, scheduling, purify mode, and timer — cools to 37°F and pairs with any tub via included hoses.",
+    image: "/gear-nuvio-chiller.png",
+    link: "https://amzn.to/4t19wni",
+    linkLabel: "View on Amazon",
+    category: "diy",
+  },
+  {
     id: "pod-chiller",
     name: "The Pod Chiller (0.33HP)",
     description: "Purpose-built cold plunge chiller with built-in filtration — cools to 42°F and designed specifically for cold plunge tubs.",
