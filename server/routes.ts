@@ -1040,18 +1040,21 @@ export async function registerRoutes(
   });
 
   app.get("/api/badge-profile/:username", async (req, res) => {
-    const profile = await storage.getBadgeProfile(req.params.username);
-    if (profile) return res.json(profile);
-
-    // Auto-compute a profile from plunge data when the user hasn't explicitly published one yet
     const user = await storage.getUserByDisplayName(req.params.username);
     if (!user) return res.status(404).json({ error: "Profile not found" });
 
+    // Always freshen plunge stats from live data
     const userPlunges = await storage.getPlunges(undefined, user.id);
     const plungeCount = userPlunges.length;
     const uniqueDays = new Set(userPlunges.map((p) => new Date(p.createdAt).toLocaleDateString())).size;
     const coldestTemp = userPlunges.length > 0 ? Math.min(...userPlunges.map((p) => p.temperature)) : null;
 
+    const profile = await storage.getBadgeProfile(req.params.username);
+    if (profile) {
+      return res.json({ ...profile, plungeCount, uniqueDays, coldestTemp });
+    }
+
+    // Auto-compute when no published profile exists yet
     return res.json({
       username: req.params.username,
       featuredBadges: "[]",
@@ -1060,8 +1063,43 @@ export async function registerRoutes(
       coldestTemp,
       updatedAt: new Date().toISOString(),
       foundingPlunger: false,
+      avatarUrl: null,
+      bio: null,
+      socialLinks: "{}",
       computed: true,
     });
+  });
+
+  // Update avatar, bio, and social links (profile owner only)
+  app.patch("/api/badge-profile", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller) return res.status(401).json({ error: "Not authenticated" });
+    const { avatarUrl, bio, socialLinks } = req.body;
+    if (!caller.displayName) return res.status(400).json({ error: "No display name set" });
+
+    // Validate avatarUrl is a URL or null
+    if (avatarUrl !== undefined && avatarUrl !== null) {
+      try { new URL(avatarUrl); } catch { return res.status(400).json({ error: "Invalid avatar URL" }); }
+    }
+
+    // Validate socialLinks keys
+    const allowedKeys = ["instagram", "snapchat", "facebook", "tiktok", "twitter", "youtube"];
+    let parsedLinks: Record<string, string> = {};
+    if (socialLinks) {
+      try {
+        parsedLinks = JSON.parse(socialLinks);
+        for (const k of Object.keys(parsedLinks)) {
+          if (!allowedKeys.includes(k)) delete parsedLinks[k];
+        }
+      } catch { return res.status(400).json({ error: "Invalid social links" }); }
+    }
+
+    await storage.updateBadgeProfileMeta(caller.displayName, {
+      avatarUrl: avatarUrl ?? undefined,
+      bio: typeof bio === "string" ? bio.slice(0, 200) : undefined,
+      socialLinks: socialLinks !== undefined ? JSON.stringify(parsedLinks) : undefined,
+    });
+    res.json({ ok: true });
   });
 
   app.get("/api/founding-plunger-count", async (_req, res) => {

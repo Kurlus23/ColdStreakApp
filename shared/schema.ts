@@ -155,6 +155,9 @@ export const badgeProfiles = pgTable("badge_profiles", {
   coldestTemp: integer("coldest_temp"),
   foundingPlunger: boolean("founding_plunger").default(false).notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  avatarUrl: text("avatar_url"),
+  bio: text("bio"),
+  socialLinks: text("social_links").default("{}").notNull(),
 });
 
 export type BadgeProfile = typeof badgeProfiles.$inferSelect;

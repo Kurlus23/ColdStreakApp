@@ -54,7 +54,8 @@ export interface IStorage {
   updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number }): Promise<User>;
   getUserCount(): Promise<number>;
 
-  upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null; foundingPlunger?: boolean }): Promise<void>;
+  upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null; foundingPlunger?: boolean; avatarUrl?: string | null; bio?: string | null; socialLinks?: string }): Promise<void>;
+  updateBadgeProfileMeta(username: string, data: { avatarUrl?: string | null; bio?: string | null; socialLinks?: string }): Promise<void>;
   getBadgeProfile(username: string): Promise<BadgeProfile | null>;
   getFoundingPlungerBatch(displayNames: string[]): Promise<Record<string, boolean>>;
 
@@ -410,14 +411,46 @@ export class DatabaseStorage implements IStorage {
     return count;
   }
 
-  async upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null; foundingPlunger?: boolean }): Promise<void> {
+  async upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null; foundingPlunger?: boolean; avatarUrl?: string | null; bio?: string | null; socialLinks?: string }): Promise<void> {
     const fp = data.foundingPlunger ?? false;
+    const existing = await this.getBadgeProfile(data.username);
     await db.insert(badgeProfiles)
-      .values({ username: data.username, featuredBadges: data.featuredBadges, plungeCount: data.plungeCount, uniqueDays: data.uniqueDays, coldestTemp: data.coldestTemp, foundingPlunger: fp, updatedAt: new Date() })
+      .values({
+        username: data.username,
+        featuredBadges: data.featuredBadges,
+        plungeCount: data.plungeCount,
+        uniqueDays: data.uniqueDays,
+        coldestTemp: data.coldestTemp,
+        foundingPlunger: fp,
+        updatedAt: new Date(),
+        avatarUrl: data.avatarUrl ?? existing?.avatarUrl ?? null,
+        bio: data.bio ?? existing?.bio ?? null,
+        socialLinks: data.socialLinks ?? existing?.socialLinks ?? "{}",
+      })
       .onConflictDoUpdate({
         target: badgeProfiles.username,
-        set: { featuredBadges: data.featuredBadges, plungeCount: data.plungeCount, uniqueDays: data.uniqueDays, coldestTemp: data.coldestTemp, foundingPlunger: fp, updatedAt: new Date() },
+        set: {
+          featuredBadges: data.featuredBadges,
+          plungeCount: data.plungeCount,
+          uniqueDays: data.uniqueDays,
+          coldestTemp: data.coldestTemp,
+          foundingPlunger: fp,
+          updatedAt: new Date(),
+          ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
+          ...(data.bio !== undefined ? { bio: data.bio } : {}),
+          ...(data.socialLinks !== undefined ? { socialLinks: data.socialLinks } : {}),
+        },
       });
+  }
+
+  async updateBadgeProfileMeta(username: string, data: { avatarUrl?: string | null; bio?: string | null; socialLinks?: string }): Promise<void> {
+    const set: Record<string, unknown> = { updatedAt: new Date() };
+    if (data.avatarUrl !== undefined) set.avatarUrl = data.avatarUrl;
+    if (data.bio !== undefined) set.bio = data.bio;
+    if (data.socialLinks !== undefined) set.socialLinks = data.socialLinks;
+    await db.insert(badgeProfiles)
+      .values({ username, featuredBadges: "[]", plungeCount: 0, uniqueDays: 0, coldestTemp: null, foundingPlunger: false, ...set })
+      .onConflictDoUpdate({ target: badgeProfiles.username, set });
   }
 
   async getBadgeProfile(username: string): Promise<BadgeProfile | null> {

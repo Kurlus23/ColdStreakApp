@@ -1,8 +1,11 @@
 import { useParams, Link, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
-import { X, Pencil, Share2 } from "lucide-react";
+import { X, Pencil, Share2, ChevronDown, ChevronUp, Check } from "lucide-react";
+import { SiInstagram, SiSnapchat, SiFacebook, SiTiktok, SiX, SiYoutube } from "react-icons/si";
 import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/queryClient";
+import { useState } from "react";
 
 interface BadgeProfile {
   username: string;
@@ -13,7 +16,28 @@ interface BadgeProfile {
   updatedAt: string;
   foundingPlunger: boolean;
   computed?: boolean;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  socialLinks?: string;
 }
+
+interface SocialLinks {
+  instagram?: string;
+  snapchat?: string;
+  facebook?: string;
+  tiktok?: string;
+  twitter?: string;
+  youtube?: string;
+}
+
+const SOCIAL_META: { key: keyof SocialLinks; label: string; Icon: React.ElementType; color: string; placeholder: string; prefix: string }[] = [
+  { key: "instagram", label: "Instagram", Icon: SiInstagram, color: "text-pink-400", placeholder: "yourhandle", prefix: "https://instagram.com/" },
+  { key: "snapchat", label: "Snapchat", Icon: SiSnapchat, color: "text-yellow-300", placeholder: "yourhandle", prefix: "https://snapchat.com/add/" },
+  { key: "tiktok", label: "TikTok", Icon: SiTiktok, color: "text-white", placeholder: "yourhandle", prefix: "https://tiktok.com/@" },
+  { key: "facebook", label: "Facebook", Icon: SiFacebook, color: "text-blue-400", placeholder: "yourhandle", prefix: "https://facebook.com/" },
+  { key: "twitter", label: "X / Twitter", Icon: SiX, color: "text-white", placeholder: "yourhandle", prefix: "https://x.com/" },
+  { key: "youtube", label: "YouTube", Icon: SiYoutube, color: "text-red-400", placeholder: "yourhandle", prefix: "https://youtube.com/@" },
+];
 
 function computeEarnedTempTiers(coldestTemp: number | null): Set<string> {
   if (coldestTemp === null) return new Set();
@@ -27,11 +51,46 @@ function computeEarnedTempTiers(coldestTemp: number | null): Set<string> {
   return earned;
 }
 
+function Avatar({ username, avatarUrl }: { username: string; avatarUrl?: string | null }) {
+  const initials = username.slice(0, 2).toUpperCase();
+  const colors = [
+    "from-cyan-500 to-blue-600",
+    "from-violet-500 to-purple-700",
+    "from-emerald-500 to-teal-700",
+    "from-amber-400 to-orange-600",
+    "from-rose-500 to-pink-700",
+  ];
+  const gradient = colors[username.charCodeAt(0) % colors.length];
+
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={`${username}'s avatar`}
+        className="w-20 h-20 rounded-full object-cover border-2 border-blue-500/60 shadow-lg"
+        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+      />
+    );
+  }
+  return (
+    <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold text-2xl shadow-lg border-2 border-white/10`}>
+      {initials}
+    </div>
+  );
+}
+
 export default function BadgeProfile() {
   const { username } = useParams<{ username: string }>();
   const [, navigate] = useLocation();
   const auth = useAuth();
+  const queryClient = useQueryClient();
   const myUsername = auth.user?.displayName ?? null;
+
+  const [showEdit, setShowEdit] = useState(false);
+  const [editAvatarUrl, setEditAvatarUrl] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editLinks, setEditLinks] = useState<SocialLinks>({});
+  const [saved, setSaved] = useState(false);
 
   const { data: profile, isLoading, isError } = useQuery<BadgeProfile>({
     queryKey: ["/api/badge-profile", username],
@@ -43,6 +102,37 @@ export default function BadgeProfile() {
     enabled: !!username,
     retry: false,
   });
+
+  const updateMeta = useMutation({
+    mutationFn: (body: { avatarUrl?: string | null; bio: string; socialLinks: string }) =>
+      apiRequest("PATCH", "/api/badge-profile", body).then((r) => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/badge-profile", username] });
+      setSaved(true);
+      setTimeout(() => { setSaved(false); setShowEdit(false); }, 1500);
+    },
+  });
+
+  function openEdit() {
+    if (!profile) return;
+    setEditAvatarUrl(profile.avatarUrl ?? "");
+    setEditBio(profile.bio ?? "");
+    try { setEditLinks(JSON.parse(profile.socialLinks ?? "{}")); } catch { setEditLinks({}); }
+    setShowEdit(true);
+  }
+
+  function saveEdit() {
+    const links: SocialLinks = {};
+    for (const { key } of SOCIAL_META) {
+      const val = (editLinks[key] ?? "").trim();
+      if (val) links[key] = val;
+    }
+    updateMeta.mutate({
+      avatarUrl: editAvatarUrl.trim() || null,
+      bio: editBio.trim(),
+      socialLinks: JSON.stringify(links),
+    });
+  }
 
   if (isLoading) {
     return (
@@ -61,7 +151,7 @@ export default function BadgeProfile() {
         <p className="text-5xl mb-4">🌊</p>
         <h1 className="text-white font-bold text-xl mb-2">Profile not found</h1>
         <p className="text-blue-400 text-sm mb-6">
-          <strong>{username}</strong> hasn't published their badge profile yet.
+          <strong>{username}</strong> doesn't have a ColdStreak profile yet.
         </p>
         <Link href="/" className="bg-cyan-500 text-blue-950 font-bold px-6 py-3 rounded-xl text-sm">
           Open ColdStreak
@@ -72,6 +162,10 @@ export default function BadgeProfile() {
 
   const featuredIds: string[] = (() => {
     try { return JSON.parse(profile.featuredBadges) as string[]; } catch { return []; }
+  })();
+
+  const socialLinks: SocialLinks = (() => {
+    try { return JSON.parse(profile.socialLinks ?? "{}"); } catch { return {}; }
   })();
 
   const earnedTempTierIds = computeEarnedTempTiers(profile.coldestTemp);
@@ -89,10 +183,12 @@ export default function BadgeProfile() {
   const updatedStr = new Date(profile.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const isOwner = !!myUsername && myUsername.toLowerCase() === profile.username.toLowerCase();
 
+  const activeSocials = SOCIAL_META.filter(({ key }) => socialLinks[key]);
+
   const handleShare = async () => {
     const url = `https://coldstreakapp.com/profile/${encodeURIComponent(profile.username)}`;
     if (navigator.share) {
-      try { await navigator.share({ title: `${profile.username}'s Badge Profile on ColdStreak`, url }); } catch {}
+      try { await navigator.share({ title: `${profile.username}'s ColdStreak Profile`, url }); } catch {}
     } else {
       try { await navigator.clipboard.writeText(url); } catch {}
     }
@@ -117,29 +213,20 @@ export default function BadgeProfile() {
           <span className="text-cyan-400 font-bold text-lg tracking-wide">🧊 ColdStreak</span>
         </div>
 
-        {/* Owner actions */}
-        {isOwner && (
-          <div className="flex gap-2">
-            <button
-              data-testid="button-edit-badge-profile"
-              onClick={() => navigate("/")}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all active:scale-95"
-            >
-              <Pencil className="w-3.5 h-3.5" /> Edit Featured Badges
-            </button>
-            <button
-              data-testid="button-share-profile"
-              onClick={handleShare}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-800/60 border border-blue-600/40 text-blue-200 text-xs font-semibold hover:bg-blue-700/60 transition-all active:scale-95"
-            >
-              <Share2 className="w-3.5 h-3.5" /> Share Profile
-            </button>
-          </div>
-        )}
-
         {/* Profile Header */}
         <div className="bg-blue-900/70 rounded-3xl px-5 pt-5 pb-4 border border-blue-700/50 text-center">
+          {/* Avatar */}
+          <div className="flex justify-center mb-3">
+            <Avatar username={profile.username} avatarUrl={profile.avatarUrl} />
+          </div>
+
           <h1 data-testid="text-profile-username" className="text-white font-bold text-2xl mb-0.5">{profile.username}</h1>
+
+          {/* Bio */}
+          {profile.bio && (
+            <p className="text-blue-300 text-sm leading-relaxed mb-2 px-2">{profile.bio}</p>
+          )}
+
           {profile.foundingPlunger && (
             <div className="flex justify-center mb-2">
               <span
@@ -148,15 +235,31 @@ export default function BadgeProfile() {
               >🎖️ Founding Plunger</span>
             </div>
           )}
-          <p className="text-blue-400 text-xs mb-4">
-            {profile.computed ? "Auto-generated profile" : `Badge Profile · Updated ${updatedStr}`}
-          </p>
-          {isOwner && profile.computed && (
-            <p className="text-blue-500 text-[11px] mb-3 leading-relaxed">
-              This is your auto-generated profile. Open the Badges section in Settings to set your featured badges.
-            </p>
+
+          {/* Social Links */}
+          {activeSocials.length > 0 && (
+            <div className="flex justify-center gap-3 mb-3">
+              {activeSocials.map(({ key, label, Icon, color, prefix }) => (
+                <a
+                  key={key}
+                  href={`${prefix}${socialLinks[key]}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`${label}: ${socialLinks[key]}`}
+                  data-testid={`link-social-${key}`}
+                  className={`${color} hover:opacity-80 transition-opacity active:scale-90`}
+                >
+                  <Icon className="w-5 h-5" />
+                </a>
+              ))}
+            </div>
           )}
 
+          <p className="text-blue-500 text-[11px] mb-4">
+            {profile.computed ? "ColdStreak Profile" : `Updated ${updatedStr}`}
+          </p>
+
+          {/* Featured badges */}
           {featuredIds.length > 0 && (
             <div className="flex justify-center flex-wrap gap-1 mb-4">
               {featuredIds.map((id) => (
@@ -166,7 +269,7 @@ export default function BadgeProfile() {
           )}
 
           {/* Stats */}
-          <div className="flex justify-center gap-5 text-center mt-1">
+          <div className="flex justify-center gap-5 text-center">
             <div>
               <div data-testid="stat-plunge-count" className="text-white font-bold text-xl">{profile.plungeCount}</div>
               <div className="text-blue-400 text-[11px]">plunges</div>
@@ -187,6 +290,109 @@ export default function BadgeProfile() {
             )}
           </div>
         </div>
+
+        {/* Owner action bar */}
+        {isOwner && (
+          <div className="flex gap-2">
+            <button
+              data-testid="button-edit-badge-profile"
+              onClick={() => (showEdit ? setShowEdit(false) : openEdit())}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all active:scale-95"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              {showEdit ? "Cancel" : "Edit Profile"}
+              {showEdit ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+            <button
+              data-testid="button-share-profile"
+              onClick={handleShare}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-800/60 border border-blue-600/40 text-blue-200 text-xs font-semibold hover:bg-blue-700/60 transition-all active:scale-95"
+            >
+              <Share2 className="w-3.5 h-3.5" /> Share Profile
+            </button>
+          </div>
+        )}
+
+        {/* Inline edit panel */}
+        {isOwner && showEdit && (
+          <div className="bg-blue-900/80 rounded-2xl border border-blue-700/50 px-4 py-4 space-y-4">
+            <p className="text-white font-semibold text-sm">Edit Your Profile</p>
+
+            {/* Avatar URL */}
+            <div>
+              <label className="text-blue-300 text-xs font-semibold block mb-1">Avatar Image URL</label>
+              <input
+                data-testid="input-avatar-url"
+                type="url"
+                placeholder="https://… (Snapchat, Instagram, any image URL)"
+                value={editAvatarUrl}
+                onChange={(e) => setEditAvatarUrl(e.target.value)}
+                className="w-full bg-blue-950/70 border border-blue-700 rounded-xl px-3 py-2 text-white text-xs placeholder:text-blue-600 focus:outline-none focus:border-cyan-500"
+              />
+              {editAvatarUrl && (
+                <div className="mt-2 flex items-center gap-2">
+                  <img
+                    src={editAvatarUrl}
+                    alt="Preview"
+                    className="w-10 h-10 rounded-full object-cover border border-blue-600"
+                    onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }}
+                  />
+                  <span className="text-blue-500 text-[10px]">Preview</span>
+                </div>
+              )}
+            </div>
+
+            {/* Bio */}
+            <div>
+              <label className="text-blue-300 text-xs font-semibold block mb-1">Bio <span className="text-blue-500">({editBio.length}/200)</span></label>
+              <textarea
+                data-testid="input-bio"
+                placeholder="Tell the community about your cold plunge journey…"
+                value={editBio}
+                maxLength={200}
+                rows={3}
+                onChange={(e) => setEditBio(e.target.value)}
+                className="w-full bg-blue-950/70 border border-blue-700 rounded-xl px-3 py-2 text-white text-xs placeholder:text-blue-600 focus:outline-none focus:border-cyan-500 resize-none"
+              />
+            </div>
+
+            {/* Social handles */}
+            <div>
+              <label className="text-blue-300 text-xs font-semibold block mb-2">Social Handles <span className="text-blue-600 font-normal">(username only, no @)</span></label>
+              <div className="space-y-2">
+                {SOCIAL_META.map(({ key, label, Icon, color, placeholder }) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <Icon className={`w-4 h-4 shrink-0 ${color}`} />
+                    <input
+                      data-testid={`input-social-${key}`}
+                      type="text"
+                      placeholder={placeholder}
+                      value={editLinks[key] ?? ""}
+                      onChange={(e) => setEditLinks((l) => ({ ...l, [key]: e.target.value.replace(/^@/, "") }))}
+                      className="flex-1 bg-blue-950/70 border border-blue-700 rounded-lg px-3 py-1.5 text-white text-xs placeholder:text-blue-600 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Featured badges note */}
+            <div className="bg-blue-950/60 rounded-xl px-3 py-2 border border-blue-800/50">
+              <p className="text-blue-400 text-[11px] leading-relaxed">
+                To change your <strong className="text-blue-300">featured badges</strong>, go to the <strong className="text-blue-300">Badges</strong> tab in the app.
+              </p>
+            </div>
+
+            <button
+              data-testid="button-save-profile"
+              onClick={saveEdit}
+              disabled={updateMeta.isPending}
+              className="w-full py-2.5 rounded-xl bg-cyan-500 text-blue-950 font-bold text-sm flex items-center justify-center gap-2 hover:bg-cyan-400 transition-all active:scale-95 disabled:opacity-60"
+            >
+              {saved ? <><Check className="w-4 h-4" /> Saved!</> : updateMeta.isPending ? "Saving…" : "Save Profile"}
+            </button>
+          </div>
+        )}
 
         {/* Temperature Tiers */}
         {totalEarnedTemp > 0 && (
@@ -234,7 +440,7 @@ export default function BadgeProfile() {
 
         {totalEarned === 0 && (
           <div className="bg-blue-900/40 rounded-2xl border border-blue-800/40 px-4 py-5 text-center">
-            <p className="text-blue-400 text-sm">No badges earned yet — stay cold!</p>
+            <p className="text-blue-400 text-sm">No temperature or days badges yet — keep plunging! 🥶</p>
           </div>
         )}
 
