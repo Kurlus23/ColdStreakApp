@@ -1,7 +1,8 @@
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
-import { X } from "lucide-react";
+import { X, Pencil, Share2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 interface BadgeProfile {
   username: string;
@@ -11,6 +12,7 @@ interface BadgeProfile {
   coldestTemp: number | null;
   updatedAt: string;
   foundingPlunger: boolean;
+  computed?: boolean;
 }
 
 function computeEarnedTempTiers(coldestTemp: number | null): Set<string> {
@@ -28,6 +30,8 @@ function computeEarnedTempTiers(coldestTemp: number | null): Set<string> {
 export default function BadgeProfile() {
   const { username } = useParams<{ username: string }>();
   const [, navigate] = useLocation();
+  const auth = useAuth();
+  const myUsername = auth.user?.displayName ?? null;
 
   const { data: profile, isLoading, isError } = useQuery<BadgeProfile>({
     queryKey: ["/api/badge-profile", username],
@@ -83,6 +87,16 @@ export default function BadgeProfile() {
   const totalEarned = totalEarnedTemp + totalEarnedDays;
 
   const updatedStr = new Date(profile.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const isOwner = !!myUsername && myUsername.toLowerCase() === profile.username.toLowerCase();
+
+  const handleShare = async () => {
+    const url = `https://coldstreakapp.com/profile/${encodeURIComponent(profile.username)}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: `${profile.username}'s Badge Profile on ColdStreak`, url }); } catch {}
+    } else {
+      try { await navigator.clipboard.writeText(url); } catch {}
+    }
+  };
 
   return (
     <div className="min-h-screen bg-blue-950 px-4 py-8 flex flex-col items-center">
@@ -103,6 +117,26 @@ export default function BadgeProfile() {
           <span className="text-cyan-400 font-bold text-lg tracking-wide">🧊 ColdStreak</span>
         </div>
 
+        {/* Owner actions */}
+        {isOwner && (
+          <div className="flex gap-2">
+            <button
+              data-testid="button-edit-badge-profile"
+              onClick={() => navigate("/")}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all active:scale-95"
+            >
+              <Pencil className="w-3.5 h-3.5" /> Edit Featured Badges
+            </button>
+            <button
+              data-testid="button-share-profile"
+              onClick={handleShare}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-800/60 border border-blue-600/40 text-blue-200 text-xs font-semibold hover:bg-blue-700/60 transition-all active:scale-95"
+            >
+              <Share2 className="w-3.5 h-3.5" /> Share Profile
+            </button>
+          </div>
+        )}
+
         {/* Profile Header */}
         <div className="bg-blue-900/70 rounded-3xl px-5 pt-5 pb-4 border border-blue-700/50 text-center">
           <h1 data-testid="text-profile-username" className="text-white font-bold text-2xl mb-0.5">{profile.username}</h1>
@@ -114,7 +148,14 @@ export default function BadgeProfile() {
               >🎖️ Founding Plunger</span>
             </div>
           )}
-          <p className="text-blue-400 text-xs mb-4">Badge Profile · Updated {updatedStr}</p>
+          <p className="text-blue-400 text-xs mb-4">
+            {profile.computed ? "Auto-generated profile" : `Badge Profile · Updated ${updatedStr}`}
+          </p>
+          {isOwner && profile.computed && (
+            <p className="text-blue-500 text-[11px] mb-3 leading-relaxed">
+              This is your auto-generated profile. Open the Badges section in Settings to set your featured badges.
+            </p>
+          )}
 
           {featuredIds.length > 0 && (
             <div className="flex justify-center flex-wrap gap-1 mb-4">

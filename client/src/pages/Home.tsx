@@ -4117,21 +4117,30 @@ export default function Home() {
                   />
                 </div>
                 {username && (
-                  <button
-                    data-testid="button-share-badge-profile"
-                    onClick={async () => {
-                      const url = `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`;
-                      if (navigator.share) {
-                        try { await navigator.share({ title: `${username}'s Badge Profile`, url }); } catch {}
-                      } else {
-                        await navigator.clipboard.writeText(url);
-                        toast({ title: "Profile link copied!", description: "Share it with friends." });
-                      }
-                    }}
-                    className="mt-3 w-full flex items-center justify-center gap-2 bg-blue-800/60 border border-blue-600/40 text-blue-200 text-sm font-medium py-2 rounded-xl active:scale-95 transition-transform"
-                  >
-                    <Share2 className="w-3.5 h-3.5" /> Share My Badge Profile
-                  </button>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      data-testid="button-view-badge-profile"
+                      onClick={() => window.open(`/profile/${encodeURIComponent(username)}`, "_blank")}
+                      className="flex-1 flex items-center justify-center gap-2 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-sm font-medium py-2 rounded-xl active:scale-95 transition-transform hover:bg-cyan-500/30"
+                    >
+                      <User className="w-3.5 h-3.5" /> View My Profile
+                    </button>
+                    <button
+                      data-testid="button-share-badge-profile"
+                      onClick={async () => {
+                        const url = `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`;
+                        if (navigator.share) {
+                          try { await navigator.share({ title: `${username}'s Badge Profile`, url }); } catch {}
+                        } else {
+                          await navigator.clipboard.writeText(url);
+                          toast({ title: "Profile link copied!", description: "Share it with friends." });
+                        }
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 bg-blue-800/60 border border-blue-600/40 text-blue-200 text-sm font-medium py-2 rounded-xl active:scale-95 transition-transform"
+                    >
+                      <Share2 className="w-3.5 h-3.5" /> Share
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -4966,14 +4975,18 @@ export default function Home() {
                               )}
                               {isMyEntry && StreakBadge}
                               {isMyEntry && !streak && DaysBadge}
-                              {isMyEntry && featuredBadgeIds.length > 0 && (() => {
+                              {(() => {
+                                const badges = isMyEntry ? featuredBadgeIds : (() => {
+                                  try { return JSON.parse((entry as LeaderboardEntryWithBadge).featuredBadges) as string[]; } catch { return []; }
+                                })();
+                                if (!badges.length) return null;
                                 const lookup: Record<string, string> = {};
                                 TEMP_TIERS.forEach(t => { lookup[t.id] = t.emoji; });
                                 DAYS_TIERS.forEach(t => { lookup[t.id] = t.emoji; });
                                 Object.entries(STATE_EMOJI).forEach(([s, e]) => { lookup[s] = e as string; });
                                 return (
                                   <span className="text-base leading-none tracking-tight shrink-0">
-                                    {featuredBadgeIds.map(id => lookup[id] ?? "").join("")}
+                                    {badges.slice(0, 3).map(id => lookup[id] ?? "").join("")}
                                   </span>
                                 );
                               })()}

@@ -148,13 +148,14 @@ export class DatabaseStorage implements IStorage {
         locationVerified: leaderboardEntries.locationVerified,
         createdAt: leaderboardEntries.createdAt,
         foundingPlunger: badgeProfiles.foundingPlunger,
+        featuredBadges: badgeProfiles.featuredBadges,
       })
       .from(leaderboardEntries)
       .leftJoin(badgeProfiles, eq(leaderboardEntries.username, badgeProfiles.username))
       .where(eq(leaderboardEntries.locationId, locationId))
       .orderBy(desc(leaderboardEntries.score))
       .limit(limit);
-    return rows.map((r) => ({ ...r, foundingPlunger: r.foundingPlunger ?? false }));
+    return rows.map((r) => ({ ...r, foundingPlunger: r.foundingPlunger ?? false, featuredBadges: r.featuredBadges ?? "[]" }));
   }
 
   async addLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry> {

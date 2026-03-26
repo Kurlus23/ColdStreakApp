@@ -1020,8 +1020,27 @@ export async function registerRoutes(
 
   app.get("/api/badge-profile/:username", async (req, res) => {
     const profile = await storage.getBadgeProfile(req.params.username);
-    if (!profile) return res.status(404).json({ error: "Profile not found" });
-    res.json(profile);
+    if (profile) return res.json(profile);
+
+    // Auto-compute a profile from plunge data when the user hasn't explicitly published one yet
+    const user = await storage.getUserByDisplayName(req.params.username);
+    if (!user) return res.status(404).json({ error: "Profile not found" });
+
+    const userPlunges = await storage.getPlunges(undefined, user.id);
+    const plungeCount = userPlunges.length;
+    const uniqueDays = new Set(userPlunges.map((p) => new Date(p.createdAt).toLocaleDateString())).size;
+    const coldestTemp = userPlunges.length > 0 ? Math.min(...userPlunges.map((p) => p.temperature)) : null;
+
+    return res.json({
+      username: req.params.username,
+      featuredBadges: "[]",
+      plungeCount,
+      uniqueDays,
+      coldestTemp,
+      updatedAt: new Date().toISOString(),
+      foundingPlunger: false,
+      computed: true,
+    });
   });
 
   app.get("/api/founding-plunger-count", async (_req, res) => {
