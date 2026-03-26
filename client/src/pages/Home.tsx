@@ -4169,10 +4169,11 @@ export default function Home() {
                       data-testid="button-share-badge-profile"
                       onClick={async () => {
                         const url = `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`;
+                        const text = `Check me out on ColdStreak! 🧊❄️`;
                         if (navigator.share) {
-                          try { await navigator.share({ title: `${username}'s Badge Profile`, url }); } catch {}
+                          try { await navigator.share({ title: `${username} on ColdStreak`, text, url }); } catch {}
                         } else {
-                          await navigator.clipboard.writeText(url);
+                          await navigator.clipboard.writeText(`${text}\n${url}`);
                           toast({ title: "Profile link copied!", description: "Share it with friends." });
                         }
                       }}
