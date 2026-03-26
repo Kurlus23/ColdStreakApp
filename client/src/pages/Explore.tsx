@@ -129,6 +129,15 @@ export const GEAR_ITEMS: GearItem[] = [
     linkLabel: "View on Amazon",
     category: "plunges",
   },
+  {
+    id: "polar-revive",
+    name: "Polar Revive Inflatable Cold Plunge + Chiller Bundle",
+    description: "Complete Polar Revive bundle — insulated inflatable oval tub with a dedicated chiller unit, lid, carry bag, and cover. Cools to 38°F with no ice needed.",
+    image: "/gear-polar-revive.png",
+    link: "https://amzn.to/3PAGhcI",
+    linkLabel: "View on Amazon",
+    category: "plunges",
+  },
   // ── DIY ──────────────────────────────────────────────
   {
     id: "danner-950",
