@@ -229,79 +229,80 @@ export default function BadgeProfile() {
         </div>
 
         {/* Profile Header */}
-        <div className="bg-blue-900/70 rounded-3xl px-5 pt-5 pb-4 border border-blue-700/50 text-center">
-          {/* Avatar */}
-          <div className="flex justify-center mb-4">
-            <div className="relative inline-block">
-              <Avatar username={profile.username} avatarUrl={profile.avatarUrl} />
-              {/* Fallback initials ring shown when image fails to load */}
+        <div className="bg-blue-900/70 rounded-3xl px-5 pt-5 pb-4 border border-blue-700/50">
+          {/* Avatar left + info right */}
+          <div className="flex items-center gap-4 mb-4">
+            {/* Avatar column */}
+            <div className="relative flex-shrink-0">
+              <Avatar username={profile.username} avatarUrl={profile.avatarUrl} size="sm" />
+              {/* Fallback initials shown when image fails */}
               {profile.avatarUrl && (
                 <div
-                  className="w-28 h-28 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 items-center justify-center text-white font-bold text-3xl shadow-xl border-2 border-white/10 hidden"
+                  className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 items-center justify-center text-white font-bold text-2xl shadow-xl border-2 border-white/10 hidden"
                   aria-hidden="true"
                 >
                   {profile.username.slice(0, 2).toUpperCase()}
                 </div>
               )}
-              {/* Owner shortcut: tap avatar to open edit panel */}
+              {/* Owner pencil shortcut */}
               {isOwner && (
                 <button
                   onClick={() => (showEdit ? setShowEdit(false) : openEdit())}
-                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-cyan-500 border-2 border-blue-950 flex items-center justify-center shadow-lg hover:bg-cyan-400 transition-colors active:scale-90"
+                  className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-cyan-500 border-2 border-blue-950 flex items-center justify-center shadow-lg hover:bg-cyan-400 transition-colors active:scale-90"
                   title="Edit avatar"
                 >
-                  <Pencil className="w-3.5 h-3.5 text-blue-950" />
+                  <Pencil className="w-3 h-3 text-blue-950" />
                 </button>
               )}
+            </div>
+
+            {/* Info column */}
+            <div className="flex-1 min-w-0">
+              <h1 data-testid="text-profile-username" className="text-white font-bold text-xl leading-tight mb-1 truncate">{profile.username}</h1>
+
+              {profile.foundingPlunger && (
+                <div className="mb-1.5">
+                  <span
+                    data-testid="badge-founding-plunger"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[11px] font-bold"
+                  >🎖️ Founding Plunger</span>
+                </div>
+              )}
+
+              {/* Social Links */}
+              {activeSocials.length > 0 && (
+                <div className="flex flex-wrap gap-2.5 mb-1">
+                  {activeSocials.map(({ key, label, Icon, color, prefix }) => (
+                    <a
+                      key={key}
+                      href={`${prefix}${socialLinks[key]}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`${label}: ${socialLinks[key]}`}
+                      data-testid={`link-social-${key}`}
+                      className={`${color} hover:opacity-80 transition-opacity active:scale-90`}
+                    >
+                      <Icon className="w-5 h-5" />
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              <p className="text-blue-500 text-[10px]">
+                {profile.computed ? "ColdStreak Profile" : `Updated ${updatedStr}`}
+              </p>
+
               {/* "Add photo" nudge for owners with no avatar */}
               {isOwner && !profile.avatarUrl && (
-                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                  <span className="text-cyan-400 text-[10px] font-semibold">tap ✎ to add photo</span>
-                </div>
+                <p className="text-cyan-400 text-[10px] font-semibold mt-0.5">tap ✎ to add photo</p>
               )}
             </div>
           </div>
-          {/* Spacer when nudge text is shown */}
-          {isOwner && !profile.avatarUrl && <div className="h-5" />}
 
-          <h1 data-testid="text-profile-username" className="text-white font-bold text-2xl mb-0.5">{profile.username}</h1>
-
-          {/* Bio */}
+          {/* Bio — full width below the row */}
           {profile.bio && (
-            <p className="text-blue-300 text-sm leading-relaxed mb-2 px-2">{profile.bio}</p>
+            <p className="text-blue-300 text-sm leading-relaxed mb-3">{profile.bio}</p>
           )}
-
-          {profile.foundingPlunger && (
-            <div className="flex justify-center mb-2">
-              <span
-                data-testid="badge-founding-plunger"
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-bold"
-              >🎖️ Founding Plunger</span>
-            </div>
-          )}
-
-          {/* Social Links */}
-          {activeSocials.length > 0 && (
-            <div className="flex justify-center gap-3 mb-3">
-              {activeSocials.map(({ key, label, Icon, color, prefix }) => (
-                <a
-                  key={key}
-                  href={`${prefix}${socialLinks[key]}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={`${label}: ${socialLinks[key]}`}
-                  data-testid={`link-social-${key}`}
-                  className={`${color} hover:opacity-80 transition-opacity active:scale-90`}
-                >
-                  <Icon className="w-5 h-5" />
-                </a>
-              ))}
-            </div>
-          )}
-
-          <p className="text-blue-500 text-[11px] mb-4">
-            {profile.computed ? "ColdStreak Profile" : `Updated ${updatedStr}`}
-          </p>
 
           {/* Featured badges */}
           {featuredIds.length > 0 && (
