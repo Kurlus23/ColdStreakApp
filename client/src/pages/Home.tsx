@@ -5662,10 +5662,11 @@ export default function Home() {
                     done(); return;
                   }
 
-                  // ── Web browser: text-only, no separate url — prevents platforms from doubling content
+                  // ── Web browser: stats as text, URL as separate param (mirrors profile share)
+                  // This prevents iMessage from doubling — URL in text body triggers an extra link preview bubble
                   if (navigator.share) {
                     try {
-                      await navigator.share({ text: textWithUrl });
+                      await navigator.share({ text, url: shareUrl });
                       done(); return;
                     } catch (e: any) {
                       if (e?.name === "AbortError") { done(); return; }
