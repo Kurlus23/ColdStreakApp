@@ -51,7 +51,7 @@ function computeEarnedTempTiers(coldestTemp: number | null): Set<string> {
   return earned;
 }
 
-function Avatar({ username, avatarUrl }: { username: string; avatarUrl?: string | null }) {
+function Avatar({ username, avatarUrl, size = "lg" }: { username: string; avatarUrl?: string | null; size?: "lg" | "sm" }) {
   const initials = username.slice(0, 2).toUpperCase();
   const colors = [
     "from-cyan-500 to-blue-600",
@@ -61,19 +61,24 @@ function Avatar({ username, avatarUrl }: { username: string; avatarUrl?: string 
     "from-rose-500 to-pink-700",
   ];
   const gradient = colors[username.charCodeAt(0) % colors.length];
+  const sizeClass = size === "lg" ? "w-28 h-28 text-3xl" : "w-20 h-20 text-2xl";
 
   if (avatarUrl) {
     return (
       <img
         src={avatarUrl}
         alt={`${username}'s avatar`}
-        className="w-20 h-20 rounded-full object-cover border-2 border-blue-500/60 shadow-lg"
-        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+        className={`${sizeClass} rounded-full object-cover border-2 border-cyan-400/60 shadow-xl`}
+        onError={(e) => {
+          const el = e.target as HTMLImageElement;
+          el.style.display = "none";
+          (el.nextElementSibling as HTMLElement | null)?.style.setProperty("display", "flex");
+        }}
       />
     );
   }
   return (
-    <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold text-2xl shadow-lg border-2 border-white/10`}>
+    <div className={`${sizeClass} rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold shadow-xl border-2 border-white/10`}>
       {initials}
     </div>
   );
@@ -226,9 +231,38 @@ export default function BadgeProfile() {
         {/* Profile Header */}
         <div className="bg-blue-900/70 rounded-3xl px-5 pt-5 pb-4 border border-blue-700/50 text-center">
           {/* Avatar */}
-          <div className="flex justify-center mb-3">
-            <Avatar username={profile.username} avatarUrl={profile.avatarUrl} />
+          <div className="flex justify-center mb-4">
+            <div className="relative inline-block">
+              <Avatar username={profile.username} avatarUrl={profile.avatarUrl} />
+              {/* Fallback initials ring shown when image fails to load */}
+              {profile.avatarUrl && (
+                <div
+                  className="w-28 h-28 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 items-center justify-center text-white font-bold text-3xl shadow-xl border-2 border-white/10 hidden"
+                  aria-hidden="true"
+                >
+                  {profile.username.slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              {/* Owner shortcut: tap avatar to open edit panel */}
+              {isOwner && (
+                <button
+                  onClick={() => (showEdit ? setShowEdit(false) : openEdit())}
+                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-cyan-500 border-2 border-blue-950 flex items-center justify-center shadow-lg hover:bg-cyan-400 transition-colors active:scale-90"
+                  title="Edit avatar"
+                >
+                  <Pencil className="w-3.5 h-3.5 text-blue-950" />
+                </button>
+              )}
+              {/* "Add photo" nudge for owners with no avatar */}
+              {isOwner && !profile.avatarUrl && (
+                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                  <span className="text-cyan-400 text-[10px] font-semibold">tap ✎ to add photo</span>
+                </div>
+              )}
+            </div>
           </div>
+          {/* Spacer when nudge text is shown */}
+          {isOwner && !profile.avatarUrl && <div className="h-5" />}
 
           <h1 data-testid="text-profile-username" className="text-white font-bold text-2xl mb-0.5">{profile.username}</h1>
 
@@ -339,16 +373,16 @@ export default function BadgeProfile() {
                 onChange={(e) => setEditAvatarUrl(e.target.value)}
                 className="w-full bg-blue-950/70 border border-blue-700 rounded-xl px-3 py-2 text-white text-xs placeholder:text-blue-600 focus:outline-none focus:border-cyan-500"
               />
-              <div className="mt-2 space-y-1">
-                <p className="text-blue-400 text-[10px] font-semibold uppercase tracking-wide">Works directly:</p>
-                <ul className="text-blue-400 text-[10px] space-y-0.5 list-none">
-                  <li>• <span className="text-blue-200">GitHub</span> — github.com/yourusername.png</li>
-                  <li>• <span className="text-blue-200">Discord</span> — open Discord → click your avatar → right-click → "Open image in new tab" → copy that URL</li>
-                  <li>• <span className="text-blue-200">Gravatar</span> — gravatar.com (tied to your email)</li>
-                  <li>• <span className="text-blue-200">Imgur</span> — any image you upload at imgur.com</li>
-                  <li>• <span className="text-blue-200">Any direct .jpg / .png / .webp URL</span></li>
-                </ul>
-                <p className="text-amber-400/80 text-[10px] mt-1">📸 Bitmoji or Snapchat avatar? Screenshot it, upload to <span className="underline">imgur.com</span>, then paste the link here.</p>
+              <div className="mt-2 bg-blue-950/60 rounded-xl px-3 py-2.5 border border-blue-700/40 space-y-1.5">
+                <p className="text-blue-300 text-[10px] font-semibold">How to get your Imgur link:</p>
+                <ol className="text-blue-400 text-[10px] space-y-0.5 list-none">
+                  <li>1. Go to <span className="text-cyan-300 font-medium">imgur.com</span> and upload your photo</li>
+                  <li>2. Click on the uploaded image to open it</li>
+                  <li>3. Right-click the image → <span className="text-white">"Copy image address"</span></li>
+                  <li>4. The link will start with <span className="text-white font-mono">https://i.imgur.com/</span></li>
+                  <li>5. Paste it in the field above</li>
+                </ol>
+                <p className="text-blue-500 text-[10px]">Works with any photo — including a Bitmoji or Snapchat screenshot.</p>
               </div>
               {editAvatarUrl && (
                 <div className="mt-2 flex items-center gap-2">
