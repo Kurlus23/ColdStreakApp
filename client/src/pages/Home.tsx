@@ -5654,28 +5654,28 @@ export default function Home() {
                     locationId: promptLocationId,
                   });
                   const shareUrl = buildShareUrl(username);
-                  const textWithUrl = `${text}\nJoin me on ColdStreak → ${shareUrl}`;
 
                   // ── Native Android/iOS: use Capacitor Share (avoids WebView doubling bug)
+                  // No URL in text — URL in text body causes Messenger to unfurl and double-print
                   if (isNative()) {
-                    await nativeShare({ text: textWithUrl });
+                    await nativeShare({ text });
                     done(); return;
                   }
 
-                  // ── Web browser: stats as text, URL as separate param (mirrors profile share)
-                  // This prevents iMessage from doubling — URL in text body triggers an extra link preview bubble
+                  // ── Web browser: text-only, no URL param
+                  // URL as separate param doubles in iMessage; URL in text doubles in Messenger — omit entirely
                   if (navigator.share) {
                     try {
-                      await navigator.share({ text, url: shareUrl });
+                      await navigator.share({ text });
                       done(); return;
                     } catch (e: any) {
                       if (e?.name === "AbortError") { done(); return; }
                     }
                   }
 
-                  // ── Clipboard fallback
+                  // ── Clipboard fallback: include the link so they can paste it
                   try {
-                    await navigator.clipboard.writeText(textWithUrl);
+                    await navigator.clipboard.writeText(`${text}\nJoin me on ColdStreak → ${shareUrl}`);
                     toast({ title: "Copied!", description: "Paste to share with friends." });
                   } catch {
                     toast({ title: "Could not copy", variant: "destructive" });

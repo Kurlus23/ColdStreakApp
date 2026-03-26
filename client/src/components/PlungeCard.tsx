@@ -216,19 +216,19 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
       locationId: plunge.locationId,
     });
     const url = buildShareUrl(username);
-    const textWithUrl = `${text}\nJoin me on ColdStreak → ${url}`;
 
     // ── Native Android/iOS: use Capacitor Share plugin
+    // No URL in text — URL in text body causes Messenger to unfurl and double-print
     if (isNative()) {
-      await nativeShare({ title: "ColdStreak Plunge", text: textWithUrl });
+      await nativeShare({ title: "ColdStreak Plunge", text });
       return;
     }
 
-    // ── Web browser: stats as text, URL as separate param (mirrors profile share)
-    // This prevents iMessage from doubling — URL in text body triggers an extra link preview bubble
+    // ── Web browser: text-only, no URL param
+    // URL as separate param doubles in iMessage; URL in text doubles in Messenger — omit entirely
     if (navigator.share) {
       try {
-        await navigator.share({ text, url });
+        await navigator.share({ text });
         return;
       } catch (e: any) {
         if (e?.name !== "AbortError") {
@@ -238,8 +238,9 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
       }
     }
 
+    // ── Clipboard fallback: include the link so they can paste it
     try {
-      await navigator.clipboard.writeText(textWithUrl);
+      await navigator.clipboard.writeText(`${text}\nJoin me on ColdStreak → ${url}`);
       toast({ title: "Copied to clipboard!", description: "Paste to share with friends." });
     } catch {
       toast({ title: "Could not copy", variant: "destructive" });
