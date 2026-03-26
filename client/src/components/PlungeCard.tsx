@@ -76,7 +76,7 @@ export function buildShareText({
   const profileUrl = username
     ? `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`
     : `https://coldstreakapp.com`;
-  lines.push(`Track your plunges on ColdStreak → ${profileUrl}`);
+  lines.push(`Join me on ColdStreak → ${profileUrl}`);
   return lines.join("\n");
 }
 
