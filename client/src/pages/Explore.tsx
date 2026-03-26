@@ -304,6 +304,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "apparel",
   },
   {
+    id: "neo-gloves-xuker",
+    name: "XUKER Neoprene Gloves — Black/Purple",
+    description: "XUKER 3mm neoprene dive gloves with textured anti-slip palm, purple accent trim, and adjustable velcro cuff — built for cold plunges and open-water swims.",
+    image: "/gear-neo-gloves-xuker.png",
+    link: "https://amzn.to/4rUDnwK",
+    linkLabel: "View on Amazon",
+    category: "apparel",
+  },
+  {
     id: "neo-socks-capas",
     name: "CAPAS Sand-Proof Water Socks",
     description: "Neoprene ankle socks with a heavy-duty non-slip sole — sand-proof design keeps debris out during outdoor cold plunges and beach swims.",
