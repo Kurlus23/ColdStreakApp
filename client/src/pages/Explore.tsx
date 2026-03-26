@@ -230,6 +230,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "diy",
   },
   {
+    id: "plungecrafters-sleeve",
+    name: "Plunge Crafters Filter Housing Insulation Sleeve",
+    description: "Neoprene insulation sleeve by Plunge Crafters — wraps your filter housing to prevent condensation and protect against temperature loss in your DIY cold plunge setup.",
+    image: "/gear-plungecrafters-sleeve.png",
+    link: "https://amzn.to/40Rdp2m",
+    linkLabel: "View on Amazon",
+    category: "diy",
+  },
+  {
     id: "safeflow-filter",
     name: "SafeFlow Cold Plunge Filter Cartridges (4-Pack)",
     description: "20-micron pleated cold plunge filter cartridges — BPA-free, removes dirt, sand, silt, rust, and bacteria. 7.87×4.5in replacement cartridges, pack of 4.",
