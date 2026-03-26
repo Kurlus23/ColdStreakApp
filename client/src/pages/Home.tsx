@@ -3354,6 +3354,44 @@ export default function Home() {
                     </div>
                   </div>
 
+                  {/* Streak Reminders (push notifications) */}
+                  {notifPermission !== "unsupported" && (
+                    <div>
+                      <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                        <Bell className="w-3 h-3 text-cyan-400" /> Streak Reminders
+                      </label>
+                      <div className="flex items-center justify-between gap-3 bg-blue-800/50 border border-blue-700/50 rounded-xl px-3 py-3">
+                        <div className="min-w-0">
+                          {notifPermission === "granted" ? (
+                            <>
+                              <p className="text-emerald-300 text-xs font-semibold">Push notifications enabled ✓</p>
+                              <p className="text-blue-500 text-[10px] mt-0.5">Your device will alert you if you miss a plunge day.</p>
+                            </>
+                          ) : notifPermission === "denied" ? (
+                            <>
+                              <p className="text-red-400 text-xs font-semibold">Notifications blocked</p>
+                              <p className="text-blue-500 text-[10px] mt-0.5">Enable in your browser / device Settings → Notifications.</p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-blue-200 text-xs font-semibold">Get daily push reminders</p>
+                              <p className="text-blue-500 text-[10px] mt-0.5">Sent to your device when your streak is at risk.</p>
+                            </>
+                          )}
+                        </div>
+                        {notifPermission === "default" && (
+                          <button
+                            data-testid="button-enable-notifications"
+                            onClick={enableNotifications}
+                            className="shrink-0 px-3 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all active:scale-95"
+                          >
+                            Enable
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Est. Calories Burned */}
                   <div>
                     <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
@@ -5849,33 +5887,6 @@ export default function Home() {
           </button>
         </div>
       </div>
-
-      {/* ─── STREAK NOTIFICATION BANNER ─── */}
-      {screen === "timer" && streak > 0 && notifPermission === "default" && !notifDismissed && (
-        <div
-          className="fixed left-0 right-0 px-3"
-          style={{ bottom: "84px", zIndex: 31 }}
-        >
-          <div className="flex items-center gap-2 bg-yellow-900/40 border border-yellow-600/30 rounded-xl px-3 py-2.5">
-            <Bell className="w-4 h-4 text-yellow-400 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-yellow-200 text-xs font-semibold">Protect your {streak}-day streak 🔥</p>
-              <p className="text-yellow-500/80 text-[10px]">Get a daily reminder if you forget to plunge</p>
-            </div>
-            <button
-              data-testid="button-enable-notifications"
-              onClick={enableNotifications}
-              className="text-yellow-300 text-xs font-semibold px-2.5 py-1 bg-yellow-700/40 rounded-lg border border-yellow-600/30 shrink-0"
-            >Enable</button>
-            <button
-              data-testid="button-dismiss-notifications"
-              onClick={() => { setNotifDismissed(true); localStorage.setItem("coldstreak-notif-dismissed", "1"); }}
-              className="text-yellow-600 text-xs px-1 shrink-0"
-            >✕</button>
-          </div>
-        </div>
-      )}
-
 
       {/* ─── POST-SESSION AD ─── */}
       {showPostSessionAd && !isPro && !!auth.user && (
