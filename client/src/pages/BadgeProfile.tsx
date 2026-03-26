@@ -334,11 +334,22 @@ export default function BadgeProfile() {
               <input
                 data-testid="input-avatar-url"
                 type="url"
-                placeholder="https://… (Snapchat, Instagram, any image URL)"
+                placeholder="https://… paste a direct image link"
                 value={editAvatarUrl}
                 onChange={(e) => setEditAvatarUrl(e.target.value)}
                 className="w-full bg-blue-950/70 border border-blue-700 rounded-xl px-3 py-2 text-white text-xs placeholder:text-blue-600 focus:outline-none focus:border-cyan-500"
               />
+              <div className="mt-2 space-y-1">
+                <p className="text-blue-400 text-[10px] font-semibold uppercase tracking-wide">Works directly:</p>
+                <ul className="text-blue-400 text-[10px] space-y-0.5 list-none">
+                  <li>• <span className="text-blue-200">GitHub</span> — github.com/yourusername.png</li>
+                  <li>• <span className="text-blue-200">Discord</span> — open Discord → click your avatar → right-click → "Open image in new tab" → copy that URL</li>
+                  <li>• <span className="text-blue-200">Gravatar</span> — gravatar.com (tied to your email)</li>
+                  <li>• <span className="text-blue-200">Imgur</span> — any image you upload at imgur.com</li>
+                  <li>• <span className="text-blue-200">Any direct .jpg / .png / .webp URL</span></li>
+                </ul>
+                <p className="text-amber-400/80 text-[10px] mt-1">📸 Bitmoji or Snapchat avatar? Screenshot it, upload to <span className="underline">imgur.com</span>, then paste the link here.</p>
+              </div>
               {editAvatarUrl && (
                 <div className="mt-2 flex items-center gap-2">
                   <img
