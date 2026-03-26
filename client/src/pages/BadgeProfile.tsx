@@ -201,7 +201,15 @@ export default function BadgeProfile() {
       {/* Close button */}
       <button
         data-testid="button-close-profile"
-        onClick={() => { if (window.history.length > 1) { window.history.back(); } else { navigate("/"); } }}
+        onClick={() => {
+          if (window.opener) {
+            window.close();
+          } else if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            navigate("/");
+          }
+        }}
         className="fixed top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-blue-800/80 border border-blue-600/60 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-90 z-50"
         title="Close"
       >

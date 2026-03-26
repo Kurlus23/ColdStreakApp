@@ -925,6 +925,9 @@ export async function registerRoutes(
         const sessions = await stripe.checkout.sessions.list({ customer: customerId, limit: 10 });
         for (const session of sessions.data) {
           if (session.payment_status === "paid" && session.mode === "payment") {
+            // Respect manual deactivation: if this exact session is already in the DB and was
+            // set inactive (e.g. for testing), don't automatically re-grant Pro.
+            if (user && !user.active && user.stripeSessionId === session.id) continue;
             const proUser = await storage.createProUser(email, session.id, { planType: "lifetime" });
             const result = { email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType };
             clearProStatusCache(email); // clear sub cache so next load reflects lifetime from DB
