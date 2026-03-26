@@ -185,6 +185,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "diy",
   },
   {
+    id: "hydrogen-peroxide",
+    name: "Food Grade 12% Hydrogen Peroxide (1 Gallon)",
+    description: "Epic Medical Supply food-grade 12% hydrogen peroxide — additive and stabilizer free. A popular chemical-free sanitizer for keeping cold plunge water clean and clear.",
+    image: "/gear-hydrogen-peroxide.png",
+    link: "https://amzn.to/4sGpHqG",
+    linkLabel: "View on Amazon",
+    category: "diy",
+  },
+  {
     id: "durabasics-cleaner",
     name: "Durabasics Cold Plunge Water Treatment (64 oz)",
     description: "USA-made 64 oz cold plunge water treatment — reduces oils, residue, and buildup to keep your water clear and fresh between changes. Easy pour formula.",
