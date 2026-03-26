@@ -130,6 +130,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "plunges",
   },
   {
+    id: "plunge-steps-tub",
+    name: "Hard-Sided Cold Plunge Tub with Built-In Steps",
+    description: "Premium hard-sided cold plunge with integrated entry steps, a removable insulated lid, and a durable molded shell — built for daily use and easy entry.",
+    image: "/gear-plunge-steps-tub.png",
+    link: "https://amzn.to/3Pt0XU5",
+    linkLabel: "View on Amazon",
+    category: "plunges",
+  },
+  {
     id: "polar-revive",
     name: "Polar Revive Inflatable Cold Plunge + Chiller Bundle",
     description: "Complete Polar Revive bundle — insulated inflatable oval tub with a dedicated chiller unit, lid, carry bag, and cover. Cools to 38°F with no ice needed.",
