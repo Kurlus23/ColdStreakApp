@@ -2267,60 +2267,62 @@ export default function Home() {
 
       {/* ─── HISTORY SCREEN ─── */}
       {screen === "history" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
-          <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-4 border border-blue-800/50 min-h-full">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold text-lg flex items-center gap-2">
-                <History className="w-5 h-5 text-cyan-400" /> Plunge History
+        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
+          <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-4 border border-blue-800/50 min-h-full min-w-0">
+            {/* Header row: title + close */}
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-white font-bold text-lg flex items-center gap-2 min-w-0">
+                <History className="w-5 h-5 text-cyan-400 shrink-0" /> Plunge History
               </h2>
-              <div className="flex items-center gap-2">
-                {plunges.length > 0 && (
-                  <button
-                    data-testid="button-export-csv"
-                    onClick={isPro ? exportCSV : () => setShowUpgradeModal(true)}
-                    title={isPro ? "Export plunge history as CSV" : "Pro feature — upgrade to export"}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all active:scale-95 ${
-                      isPro
-                        ? "bg-blue-700/50 border-blue-600/50 text-blue-200 hover:bg-blue-600/60"
-                        : "bg-blue-900/30 border-blue-700/30 text-blue-500 opacity-70 hover:opacity-90"
-                    }`}
-                  >
-                    {isPro ? <Download className="w-3.5 h-3.5" /> : <Lock className="w-3 h-3" />}
-                    Export CSV
-                  </button>
-                )}
-                {Capacitor.isNativePlatform() && (
-                  <button
-                    data-testid="button-restore-from-photos"
-                    onClick={handleRestoreFromPhotos}
-                    title="Recover a plunge from a tagged photo"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-700/50 border border-blue-600/50 text-blue-200 text-xs font-semibold hover:bg-blue-600/60 transition-all active:scale-95"
-                  >
-                    <ImageIcon className="w-3.5 h-3.5" /> Restore from Photo
-                  </button>
-                )}
+              <button
+                data-testid="button-close-history"
+                onClick={() => navTo("timer")}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold shrink-0 ml-2"
+              >✕</button>
+            </div>
+            {/* Action buttons row — wraps on narrow screens */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              {plunges.length > 0 && (
                 <button
-                  data-testid="button-manual-plunge"
-                  onClick={() => {
-                    setManualDate(new Date().toISOString().slice(0, 10));
-                    setManualTime(new Date().toTimeString().slice(0, 5));
-                    setManualMins(3);
-                    setManualSecs(0);
-                    setManualTempF(50);
-                    setManualLocSel("home"); setManualLocCustom(""); setManualLocGeo(null);
-                    setManualNewName(""); setManualNewCountry("USA"); setManualNewState(""); setManualNewCity("");
-                    setShowManualEntry(true);
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-600/50 border border-cyan-500/50 text-cyan-200 text-xs font-semibold hover:bg-cyan-500/60 transition-all active:scale-95"
+                  data-testid="button-export-csv"
+                  onClick={isPro ? exportCSV : () => setShowUpgradeModal(true)}
+                  title={isPro ? "Export plunge history as CSV" : "Pro feature — upgrade to export"}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all active:scale-95 ${
+                    isPro
+                      ? "bg-blue-700/50 border-blue-600/50 text-blue-200 hover:bg-blue-600/60"
+                      : "bg-blue-900/30 border-blue-700/30 text-blue-500 opacity-70 hover:opacity-90"
+                  }`}
                 >
-                  <Plus className="w-3.5 h-3.5" /> Log Manually
+                  {isPro ? <Download className="w-3.5 h-3.5" /> : <Lock className="w-3 h-3" />}
+                  Export CSV
                 </button>
+              )}
+              {Capacitor.isNativePlatform() && (
                 <button
-                  data-testid="button-close-history"
-                  onClick={() => navTo("timer")}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
-                >✕</button>
-              </div>
+                  data-testid="button-restore-from-photos"
+                  onClick={handleRestoreFromPhotos}
+                  title="Recover a plunge from a tagged photo"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-700/50 border border-blue-600/50 text-blue-200 text-xs font-semibold hover:bg-blue-600/60 transition-all active:scale-95"
+                >
+                  <ImageIcon className="w-3.5 h-3.5" /> Restore from Photo
+                </button>
+              )}
+              <button
+                data-testid="button-manual-plunge"
+                onClick={() => {
+                  setManualDate(new Date().toISOString().slice(0, 10));
+                  setManualTime(new Date().toTimeString().slice(0, 5));
+                  setManualMins(3);
+                  setManualSecs(0);
+                  setManualTempF(50);
+                  setManualLocSel("home"); setManualLocCustom(""); setManualLocGeo(null);
+                  setManualNewName(""); setManualNewCountry("USA"); setManualNewState(""); setManualNewCity("");
+                  setShowManualEntry(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-600/50 border border-cyan-500/50 text-cyan-200 text-xs font-semibold hover:bg-cyan-500/60 transition-all active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" /> Log Manually
+              </button>
             </div>
 
             {/* Manual entry modal */}
@@ -3612,8 +3614,8 @@ export default function Home() {
 
       {/* ─── DEVICES SCREEN ─── */}
       {screen === "devices" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
-          <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-4 border border-blue-800/50 min-h-full space-y-4">
+        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
+          <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-4 border border-blue-800/50 min-h-full min-w-0 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-white font-bold text-lg flex items-center gap-2">
                 <Bluetooth className="w-5 h-5 text-cyan-400" /> Bluetooth Devices
@@ -4071,8 +4073,8 @@ export default function Home() {
 
 
         return (
-          <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
-            <div className="space-y-3">
+          <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
+            <div className="space-y-3 min-w-0">
 
               {/* Header */}
               <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl px-5 pt-5 pb-4 border border-blue-800/50">
@@ -4462,8 +4464,8 @@ export default function Home() {
 
       {/* ─── LEGAL SCREEN ─── */}
       {screen === "legal" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
-          <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-5 border border-blue-800/50 space-y-4 min-h-full">
+        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
+          <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-5 border border-blue-800/50 space-y-4 min-h-full min-w-0">
             <div className="flex items-center justify-between">
               <h2 className="text-white font-bold text-lg flex items-center gap-2">
                 <FileText className="w-5 h-5 text-cyan-400" /> Legal &amp; Safety
