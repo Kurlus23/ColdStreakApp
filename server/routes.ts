@@ -1040,23 +1040,38 @@ export async function registerRoutes(
   });
 
   app.get("/api/badge-profile/:username", async (req, res) => {
-    const user = await storage.getUserByDisplayName(req.params.username);
-    if (!user) return res.status(404).json({ error: "Profile not found" });
+    const requestedUsername = req.params.username;
 
-    // Always freshen plunge stats from live data
-    const userPlunges = await storage.getPlunges(undefined, user.id);
-    const plungeCount = userPlunges.length;
-    const uniqueDays = new Set(userPlunges.map((p) => new Date(p.createdAt).toLocaleDateString())).size;
-    const coldestTemp = userPlunges.length > 0 ? Math.min(...userPlunges.map((p) => p.temperature)) : null;
+    // Look up stored profile and user account in parallel
+    const [storedProfile, user] = await Promise.all([
+      storage.getBadgeProfile(requestedUsername),
+      storage.getUserByDisplayName(requestedUsername),
+    ]);
 
-    const profile = await storage.getBadgeProfile(req.params.username);
-    if (profile) {
-      return res.json({ ...profile, plungeCount, uniqueDays, coldestTemp });
+    // If neither a published profile nor a user account exists, 404
+    if (!storedProfile && !user) {
+      return res.status(404).json({ error: "Profile not found" });
     }
 
-    // Auto-compute when no published profile exists yet
+    // Freshen plunge stats from live data if we can find the user account
+    let plungeCount = storedProfile?.plungeCount ?? 0;
+    let uniqueDays = storedProfile?.uniqueDays ?? 0;
+    let coldestTemp = storedProfile?.coldestTemp ?? null;
+
+    if (user) {
+      const userPlunges = await storage.getPlunges(undefined, user.id);
+      plungeCount = userPlunges.length;
+      uniqueDays = new Set(userPlunges.map((p) => new Date(p.createdAt).toLocaleDateString())).size;
+      coldestTemp = userPlunges.length > 0 ? Math.min(...userPlunges.map((p) => p.temperature)) : null;
+    }
+
+    if (storedProfile) {
+      return res.json({ ...storedProfile, plungeCount, uniqueDays, coldestTemp });
+    }
+
+    // Auto-compute when no published profile exists yet (but user account found)
     return res.json({
-      username: req.params.username,
+      username: requestedUsername,
       featuredBadges: "[]",
       plungeCount,
       uniqueDays,
