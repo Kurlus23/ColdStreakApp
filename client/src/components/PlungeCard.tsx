@@ -73,10 +73,6 @@ export function buildShareText({
   if (streak && streak > 0) lines.push(`🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}`);
   if (locationId === "home") lines.push(`📍 Home`);
   else if (locationName) lines.push(`📍 ${locationName}`);
-  const profileUrl = username
-    ? `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`
-    : `https://coldstreakapp.com`;
-  lines.push(`Join me on ColdStreak → ${profileUrl}`);
   return lines.join("\n");
 }
 
@@ -220,14 +216,15 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
       locationId: plunge.locationId,
     });
     const url = buildShareUrl(username);
+    const textWithUrl = `${text}\nJoin me on ColdStreak → ${url}`;
 
     // ── Native Android/iOS: use Capacitor Share plugin
     if (isNative()) {
-      await nativeShare({ title: "ColdStreak Plunge", text });
+      await nativeShare({ title: "ColdStreak Plunge", text: textWithUrl });
       return;
     }
 
-    // ── Web browser: use navigator.share
+    // ── Web browser: text has no URL; url passed separately for link preview
     if (navigator.share) {
       try {
         await navigator.share({ text, url });
@@ -241,7 +238,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
     }
 
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(textWithUrl);
       toast({ title: "Copied to clipboard!", description: "Paste to share with friends." });
     } catch {
       toast({ title: "Could not copy", variant: "destructive" });

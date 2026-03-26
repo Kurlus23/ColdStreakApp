@@ -5654,14 +5654,15 @@ export default function Home() {
                     locationId: promptLocationId,
                   });
                   const shareUrl = buildShareUrl(username);
+                  const textWithUrl = `${text}\nJoin me on ColdStreak → ${shareUrl}`;
 
                   // ── Native Android/iOS: use Capacitor Share (avoids WebView doubling bug)
                   if (isNative()) {
-                    await nativeShare({ text });
+                    await nativeShare({ text: textWithUrl });
                     done(); return;
                   }
 
-                  // ── Web browser: use navigator.share (no title — prevents iOS iMessage subject bubble)
+                  // ── Web browser: text has no URL; url passed separately for link preview
                   if (navigator.share) {
                     try {
                       await navigator.share({ text, url: shareUrl });
@@ -5673,7 +5674,7 @@ export default function Home() {
 
                   // ── Clipboard fallback
                   try {
-                    await navigator.clipboard.writeText(text);
+                    await navigator.clipboard.writeText(textWithUrl);
                     toast({ title: "Copied!", description: "Paste to share with friends." });
                   } catch {
                     toast({ title: "Could not copy", variant: "destructive" });
