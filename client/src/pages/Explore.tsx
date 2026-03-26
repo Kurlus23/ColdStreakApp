@@ -130,6 +130,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "plunges",
   },
   {
+    id: "nuvio-tub",
+    name: "Nuvio Inflatable Cold Plunge Tub",
+    description: "Nuvio's compact inflatable cold plunge tub — thick insulated walls with a carbon-fiber-style exterior, open-top design, and a sturdy build. Pairs with any chiller.",
+    image: "/gear-nuvio-tub.png",
+    link: "https://amzn.to/4sERdEQ",
+    linkLabel: "View on Amazon",
+    category: "plunges",
+  },
+  {
     id: "solstice-plunge",
     name: "Solstice Plunge Inflatable Cold Plunge Tub",
     description: "Solstice Plunge inflatable tub with insulated lid, carry bag, and hand pump included — works for both hot and cold therapy. Full-body oval design for easy immersion.",
