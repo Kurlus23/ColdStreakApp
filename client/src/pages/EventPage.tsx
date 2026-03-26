@@ -207,7 +207,7 @@ export default function EventPage() {
           <div className="flex flex-wrap items-center gap-2">
             {evt.createdByUsername && (
               <button
-                onClick={() => navigate(`/profile/${encodeURIComponent(evt.createdByUsername!)}`)}
+                onClick={() => window.open(`/profile/${encodeURIComponent(evt.createdByUsername!)}`, '_blank')}
                 className="flex items-center gap-1 text-blue-500 text-xs hover:text-cyan-300 transition-colors"
               >
                 Organized by <span className="font-semibold">{evt.createdByUsername}</span>
@@ -217,7 +217,7 @@ export default function EventPage() {
             {evt.coordinators.map((c) => (
               <button
                 key={c.id}
-                onClick={() => navigate(`/profile/${encodeURIComponent(c.username)}`)}
+                onClick={() => window.open(`/profile/${encodeURIComponent(c.username)}`, '_blank')}
                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-800/60 border border-blue-700/40 text-blue-300 text-[11px] font-semibold hover:border-cyan-500/50 hover:text-cyan-300 transition-colors"
               >
                 ⚡ {c.username}{renderEventBadges(c.username)}
@@ -280,10 +280,10 @@ export default function EventPage() {
             {evt.participants.map((p, i) => (
               <div key={p.id} className="flex items-center gap-3 py-1.5">
                 <span className="text-blue-500 text-xs w-5 text-right">{i + 1}</span>
-                <button onClick={() => navigate(`/profile/${encodeURIComponent(p.username)}`)} className="w-7 h-7 rounded-full bg-blue-700/60 border border-blue-600/40 flex items-center justify-center text-xs font-bold text-cyan-300 hover:opacity-80 transition-opacity flex-shrink-0">
+                <button onClick={() => window.open(`/profile/${encodeURIComponent(p.username)}`, '_blank')} className="w-7 h-7 rounded-full bg-blue-700/60 border border-blue-600/40 flex items-center justify-center text-xs font-bold text-cyan-300 hover:opacity-80 transition-opacity flex-shrink-0">
                   {p.username.slice(0, 1).toUpperCase()}
                 </button>
-                <button onClick={() => navigate(`/profile/${encodeURIComponent(p.username)}`)} className="flex items-center gap-1 text-white text-sm font-medium flex-1 hover:text-cyan-300 transition-colors text-left">
+                <button onClick={() => window.open(`/profile/${encodeURIComponent(p.username)}`, '_blank')} className="flex items-center gap-1 text-white text-sm font-medium flex-1 hover:text-cyan-300 transition-colors text-left">
                   {p.username}
                   {renderEventBadges(p.username)}
                 </button>

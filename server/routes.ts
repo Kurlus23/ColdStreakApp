@@ -1016,15 +1016,36 @@ export async function registerRoutes(
     const usernames = raw.split(",").map((u) => u.trim()).filter(Boolean).slice(0, 60);
 
     const profileResults = await Promise.all(usernames.map((u) => storage.getBadgeProfile(u)));
-    const published: typeof profileResults[number][] = [];
+    // Map: requestedUsername → profile (keyed by the username as requested, not stored username)
+    const found: { username: string; profile: Awaited<ReturnType<typeof storage.getBadgeProfile>> }[] = [];
     const missingUsernames: string[] = [];
     profileResults.forEach((p, i) => {
-      if (p) { published.push(p); } else { missingUsernames.push(usernames[i]); }
+      if (p) { found.push({ username: usernames[i], profile: p }); }
+      else { missingUsernames.push(usernames[i]); }
     });
 
-    // For users without a published badge profile, still surface their foundingPlunger status
-    const fpMap = missingUsernames.length > 0 ? await storage.getFoundingPlungerBatch(missingUsernames) : {};
-    const computed = missingUsernames
+    // For missed usernames, try email-prefix fallback (e.g. "kurlus23" → kurlus23@gmail.com → "Kurlus" profile)
+    const emailFallbackResults = await Promise.all(
+      missingUsernames.map(async (u) => {
+        const user = await storage.getUserByEmailPrefix(u);
+        if (!user) return null;
+        const profile = user.displayName ? await storage.getBadgeProfile(user.displayName) : null;
+        return { requestedUsername: u, profile };
+      })
+    );
+    const stillMissing: string[] = [];
+    emailFallbackResults.forEach((r, i) => {
+      if (r?.profile) {
+        // Return the profile but keyed by the requested username so the frontend map lookup works
+        found.push({ username: missingUsernames[i], profile: { ...r.profile, username: missingUsernames[i] } });
+      } else {
+        stillMissing.push(missingUsernames[i]);
+      }
+    });
+
+    // For users still without a badge profile, surface founding plunger status
+    const fpMap = stillMissing.length > 0 ? await storage.getFoundingPlungerBatch(stillMissing) : {};
+    const computed = stillMissing
       .filter((u) => fpMap[u.toLowerCase()])
       .map((u) => ({
         username: u,
@@ -1036,7 +1057,7 @@ export async function registerRoutes(
         updatedAt: new Date().toISOString(),
       }));
 
-    res.json([...published, ...computed]);
+    res.json([...found.map((f) => f.profile!), ...computed]);
   });
 
   app.get("/api/badge-profile/:username", async (req, res) => {
