@@ -553,6 +553,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [evtEndDate, setEvtEndDate] = useState("");
   const [evtPlungeGps, setEvtPlungeGps] = useState<GeoPos | null>(null);
   const [evtAccessGps, setEvtAccessGps] = useState<GeoPos | null>(null);
+  const [evtMaxAttendees, setEvtMaxAttendees] = useState<string>("");
   const [evtPlungeGpsLoading, setEvtPlungeGpsLoading] = useState(false);
   const [evtAccessGpsLoading, setEvtAccessGpsLoading] = useState(false);
   const [expandedCoordMgmt, setExpandedCoordMgmt] = useState<number | null>(null);
@@ -567,6 +568,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [editEvtContactName, setEditEvtContactName] = useState("");
   const [editEvtContactPhone, setEditEvtContactPhone] = useState("");
   const [editEvtContactEmail, setEditEvtContactEmail] = useState("");
+  const [editEvtMaxAttendees, setEditEvtMaxAttendees] = useState<string>("");
   const [editEvtPlungeGps, setEditEvtPlungeGps] = useState<GeoPos | null>(null);
   const [editEvtAccessGps, setEditEvtAccessGps] = useState<GeoPos | null>(null);
   const [editEvtPlungeGpsLoading, setEditEvtPlungeGpsLoading] = useState(false);
@@ -598,12 +600,13 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       contactEmail: evtContactEmail.trim() || undefined,
       ...(evtPlungeGps ? { plungeLat: evtPlungeGps.lat, plungeLng: evtPlungeGps.lng } : {}),
       ...(evtAccessGps ? { accessLat: evtAccessGps.lat, accessLng: evtAccessGps.lng } : {}),
+      ...(evtMaxAttendees ? { maxAttendees: Number(evtMaxAttendees) } : {}),
     }).then((r) => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setShowCreateModal(false);
       setEvtName(""); setEvtDescription(""); setEvtDate(""); setEvtEndDate(""); setEvtLocationName("");
-      setEvtContactName(""); setEvtContactPhone(""); setEvtContactEmail("");
+      setEvtContactName(""); setEvtContactPhone(""); setEvtContactEmail(""); setEvtMaxAttendees("");
       setEvtPlungeGps(null); setEvtAccessGps(null);
       toast({ title: "Event created! 🧊", description: "Share the link with your fellow plungers." });
     },
@@ -2210,7 +2213,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                       )}
                       <div className="flex items-center gap-1.5 text-blue-500 text-xs">
                         <Users className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span>{evt.participantCount} attending</span>
+                        <span>
+                          {evt.maxAttendees != null
+                            ? `${evt.participantCount} / ${evt.maxAttendees} attending${evt.participantCount >= evt.maxAttendees ? " · FULL" : ""}`
+                            : `${evt.participantCount} attending`}
+                        </span>
                         {evt.coordinators.length > 0 && (
                           <span className="text-blue-600">· {evt.coordinators.length + 1} organizer{evt.coordinators.length > 0 ? "s" : ""}</span>
                         )}
@@ -2286,7 +2293,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               {/* Attendee count */}
               <div className="flex items-center gap-3 text-blue-400 text-sm">
                 <Users className="w-4 h-4 flex-shrink-0" />
-                <span>{evt.participantCount} attending</span>
+                <span>
+                  {evt.maxAttendees != null
+                    ? `${evt.participantCount} / ${evt.maxAttendees} attending${evt.participantCount >= evt.maxAttendees ? " · FULL" : ""}`
+                    : `${evt.participantCount} attending`}
+                </span>
               </div>
 
               {/* Description */}
@@ -2544,6 +2555,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                       setEditEvtContactName(evt.contactName ?? "");
                       setEditEvtContactPhone(evt.contactPhone ?? "");
                       setEditEvtContactEmail(evt.contactEmail ?? "");
+                      setEditEvtMaxAttendees(evt.maxAttendees != null ? String(evt.maxAttendees) : "");
                       setEditEvtPlungeGps(evt.plungeLat && evt.plungeLng ? { lat: Number(evt.plungeLat), lng: Number(evt.plungeLng) } : null);
                       setEditEvtAccessGps(evt.accessLat && evt.accessLng ? { lat: Number(evt.accessLat), lng: Number(evt.accessLng) } : null);
                       setShowEditEventModal(true);
@@ -2661,6 +2673,18 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
               />
             </div>
+            <div>
+              <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Max Attendees (optional)</label>
+              <input
+                data-testid="input-edit-max-attendees"
+                type="number"
+                min="1"
+                value={editEvtMaxAttendees}
+                onChange={(e) => setEditEvtMaxAttendees(e.target.value)}
+                placeholder="Leave blank for unlimited"
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+              />
+            </div>
             {/* Plunge GPS */}
             <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl p-3 space-y-2">
               <div>
@@ -2758,6 +2782,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     contactName: editEvtContactName.trim() || null,
                     contactPhone: editEvtContactPhone.trim() || null,
                     contactEmail: editEvtContactEmail.trim() || null,
+                    maxAttendees: editEvtMaxAttendees ? Number(editEvtMaxAttendees) : null,
                     ...(editEvtPlungeGps ? { plungeLat: editEvtPlungeGps.lat, plungeLng: editEvtPlungeGps.lng } : { plungeLat: null, plungeLng: null }),
                     ...(editEvtAccessGps ? { accessLat: editEvtAccessGps.lat, accessLng: editEvtAccessGps.lng } : { accessLat: null, accessLng: null }),
                   },
@@ -3705,6 +3730,19 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               value={evtContactEmail}
               onChange={(e) => setEvtContactEmail(e.target.value)}
               placeholder="Email address"
+              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Max Attendees (optional)</label>
+            <input
+              data-testid="input-event-max-attendees"
+              type="number"
+              min="1"
+              value={evtMaxAttendees}
+              onChange={(e) => setEvtMaxAttendees(e.target.value)}
+              placeholder="Leave blank for unlimited"
               className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
             />
           </div>

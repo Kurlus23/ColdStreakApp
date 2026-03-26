@@ -172,7 +172,11 @@ export default function EventPage() {
           )}
           <div className="flex items-center gap-2 text-blue-300 text-sm">
             <Users className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-            <span>{evt.participantCount} attending</span>
+            <span>
+              {evt.maxAttendees != null
+                ? `${evt.participantCount} / ${evt.maxAttendees} attending${evt.participantCount >= evt.maxAttendees ? " · FULL" : ""}`
+                : `${evt.participantCount} attending`}
+            </span>
           </div>
         </div>
 

@@ -206,6 +206,7 @@ export const events = pgTable("events", {
   shareCode: text("share_code").notNull().unique(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  maxAttendees: integer("max_attendees"),
 });
 
 export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true });

@@ -1278,7 +1278,7 @@ export async function registerRoutes(
     const user = await storage.getUserById(payload.userId);
     if (!user) return res.status(401).json({ error: "User not found" });
 
-    const { name, description, eventDate, endDate, locationName, locationId, plungeLat, plungeLng, accessLat, accessLng, contactName, contactPhone, contactEmail } = req.body;
+    const { name, description, eventDate, endDate, locationName, locationId, plungeLat, plungeLng, accessLat, accessLng, contactName, contactPhone, contactEmail, maxAttendees } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: "Event name is required" });
     if (!eventDate) return res.status(400).json({ error: "Event date is required" });
 
@@ -1309,6 +1309,7 @@ export async function registerRoutes(
       createdBy: user.id,
       createdByUsername: user.displayName || user.email.split("@")[0],
       shareCode: code,
+      maxAttendees: maxAttendees != null && Number(maxAttendees) > 0 ? Number(maxAttendees) : null,
     });
     res.json({ ...evt, participantCount: 0, participants: [], coordinators: [], bans: [] });
   });
@@ -1326,6 +1327,14 @@ export async function registerRoutes(
 
     const isBanned = await storage.isEventBanned(eventId, user.id);
     if (isBanned) return res.status(403).json({ error: "You have been removed from this event by the organizer." });
+
+    // Enforce attendee cap (organizer always allowed)
+    if (evt.maxAttendees != null && evt.createdBy !== user.id) {
+      const currentCount = await storage.getEventParticipantCount(eventId);
+      if (currentCount >= evt.maxAttendees) {
+        return res.status(409).json({ error: `This event is full (${evt.maxAttendees} attendee limit reached).` });
+      }
+    }
 
     const username = req.body.username || user.displayName || user.email.split("@")[0];
     const participant = await storage.joinEvent(eventId, user.id, username);
@@ -1352,7 +1361,7 @@ export async function registerRoutes(
     if (!(await isEventManagerUser(evt, payload.userId, eventId)))
       return res.status(403).json({ error: "Only event coordinators can edit this event" });
 
-    const { name, description, eventDate, endDate, locationName, plungeLat, plungeLng, accessLat, accessLng, contactName, contactPhone, contactEmail } = req.body;
+    const { name, description, eventDate, endDate, locationName, plungeLat, plungeLng, accessLat, accessLng, contactName, contactPhone, contactEmail, maxAttendees } = req.body;
     if (name !== undefined && !name?.trim()) return res.status(400).json({ error: "Event name cannot be empty" });
 
     let parsedEventDate: Date | undefined;
@@ -1386,6 +1395,7 @@ export async function registerRoutes(
       ...("contactName" in req.body ? { contactName: contactName?.trim() || null } : {}),
       ...("contactPhone" in req.body ? { contactPhone: contactPhone?.trim() || null } : {}),
       ...("contactEmail" in req.body ? { contactEmail: contactEmail?.trim() || null } : {}),
+      ...("maxAttendees" in req.body ? { maxAttendees: maxAttendees != null && Number(maxAttendees) > 0 ? Number(maxAttendees) : null } : {}),
     });
     res.json(updated);
   });
