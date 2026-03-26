@@ -222,6 +222,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "devices",
   },
   {
+    id: "oura-ring3",
+    name: "Oura Ring 3",
+    description: "The original Oura Ring — HRV, sleep stages, body temperature, and readiness scores in a lightweight titanium band. Waterproof and plunge-safe.",
+    image: "/gear-oura-ring3.png",
+    link: "https://amzn.to/3PAFTLi",
+    linkLabel: "View on Amazon",
+    category: "devices",
+  },
+  {
     id: "inkbird-floating",
     name: "Inkbird Floating Wireless Thermometer",
     description: "Float-in-place wireless thermometer with an indoor base station display — see your cold plunge water temp at a glance from across the room.",
