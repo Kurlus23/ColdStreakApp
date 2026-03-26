@@ -185,6 +185,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "diy",
   },
   {
+    id: "durabasics-cleaner",
+    name: "Durabasics Cold Plunge Water Treatment (64 oz)",
+    description: "USA-made 64 oz cold plunge water treatment — reduces oils, residue, and buildup to keep your water clear and fresh between changes. Easy pour formula.",
+    image: "/gear-durabasics-cleaner.png",
+    link: "https://amzn.to/4lSMIE9",
+    linkLabel: "View on Amazon",
+    category: "diy",
+  },
+  {
     id: "filter-cartridges",
     name: "Pleated Filter Cartridges (4-Pack)",
     description: "Universal 10\" pleated sediment filter cartridges — keep your cold plunge water clear by trapping debris before it reaches your pump or chiller.",
