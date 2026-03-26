@@ -1043,12 +1043,26 @@ export async function registerRoutes(
     const requestedUsername = req.params.username;
 
     // Look up stored profile and user account in parallel
-    const [storedProfile, user] = await Promise.all([
+    let [storedProfile, user] = await Promise.all([
       storage.getBadgeProfile(requestedUsername),
       storage.getUserByDisplayName(requestedUsername),
     ]);
 
-    // If neither a published profile nor a user account exists, 404
+    // Fallback: find user by email prefix (e.g. "kurlus23" matches "kurlus23@gmail.com")
+    // This covers events created before the user set a display name
+    if (!storedProfile && !user) {
+      const userByEmail = await storage.getUserByEmailPrefix(requestedUsername);
+      if (userByEmail) {
+        user = userByEmail;
+        // If they have a profile under their display name, use that
+        if (userByEmail.displayName) {
+          const profileByDisplayName = await storage.getBadgeProfile(userByEmail.displayName);
+          if (profileByDisplayName) storedProfile = profileByDisplayName;
+        }
+      }
+    }
+
+    // If nothing found at all, 404
     if (!storedProfile && !user) {
       return res.status(404).json({ error: "Profile not found" });
     }
@@ -1070,8 +1084,10 @@ export async function registerRoutes(
     }
 
     // Auto-compute when no published profile exists yet (but user account found)
+    // Prefer the user's display name if different from the URL param (e.g. email-prefix fallback)
+    const resolvedUsername = user?.displayName || requestedUsername;
     return res.json({
-      username: requestedUsername,
+      username: resolvedUsername,
       featuredBadges: "[]",
       plungeCount,
       uniqueDays,

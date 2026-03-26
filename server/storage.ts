@@ -99,6 +99,7 @@ export interface IStorage {
   isEventBanned(eventId: number, userId: number): Promise<boolean>;
   // User lookup for coordinator assignment
   getUserByDisplayName(displayName: string): Promise<User | null>;
+  getUserByEmailPrefix(prefix: string): Promise<User | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -704,6 +705,13 @@ export class DatabaseStorage implements IStorage {
   async getUserByDisplayName(displayName: string): Promise<User | null> {
     const [user] = await db.select().from(users)
       .where(sql`lower(${users.displayName}) = lower(${displayName})`);
+    return user ?? null;
+  }
+
+  async getUserByEmailPrefix(prefix: string): Promise<User | null> {
+    // Matches users whose email starts with prefix@ (case-insensitive)
+    const [user] = await db.select().from(users)
+      .where(sql`lower(split_part(${users.email}, '@', 1)) = lower(${prefix})`);
     return user ?? null;
   }
 }
