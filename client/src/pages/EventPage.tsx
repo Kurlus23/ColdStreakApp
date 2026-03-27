@@ -258,7 +258,6 @@ export default function EventPage() {
             if (evt.locationName) lines.push(`📍 ${evt.locationName}`);
             lines.push(`📅 ${fmtDate(evt.eventDate)}`);
             lines.push("");
-            lines.push("Let's get after it:");
             lines.push("https://coldstreakapp.com/events");
             await shareContent({
               title: evt.name,

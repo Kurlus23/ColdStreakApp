@@ -211,6 +211,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
         `⏱️ ${durationStr} | 🔥 ${streak}-day streak`,
         "",
         "Think you can beat me?",
+        "",
         "https://coldstreakapp.com",
       ].join("\n"),
     });

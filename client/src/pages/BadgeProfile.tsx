@@ -346,7 +346,7 @@ export default function BadgeProfile() {
               onClick={async () => {
                 await shareContent({
                   title: `${profile.username} on ColdStreak`,
-                  text: `Check out ${profile.username}'s cold plunge streak on ColdStreak 🧊🔥\nThey're on a ${profile.streak}-day streak!\n\nThink you can beat them?\nhttps://coldstreakapp.com/profile/${encodeURIComponent(profile.username)}`,
+                  text: `Check out ${profile.username}'s cold plunge streak on ColdStreak 🧊🔥\nThey're on a ${profile.streak}-day streak!\n\nThink you can beat them?\n\nhttps://coldstreakapp.com/profile/${encodeURIComponent(profile.username)}`,
                 });
               }}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-800/60 border border-blue-600/40 text-blue-200 text-xs font-semibold hover:bg-blue-700/60 transition-all active:scale-95"

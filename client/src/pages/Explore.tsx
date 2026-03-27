@@ -775,7 +775,6 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     if (evt.locationName) lines.push(`📍 ${evt.locationName}`);
     if (evt.eventDate) lines.push(`📅 ${new Date(evt.eventDate).toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric", year: "numeric" })}`);
     lines.push("");
-    lines.push("Let's get after it:");
     lines.push("https://coldstreakapp.com/events");
     await shareContent({
       title: `Join me at ${evt.name}`,
