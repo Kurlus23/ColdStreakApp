@@ -87,6 +87,9 @@ function getCachedCustomerIds(email: string): string[] | null {
   return c && c.expiresAt > Date.now() ? c.ids : null;
 }
 function setCachedCustomerIds(email: string, ids: string[]) {
+  // Never cache an empty list — the user may not have a Stripe customer yet but could create one
+  // immediately via checkout. An empty cache hit would block detection for 10 minutes.
+  if (ids.length === 0) return;
   customerIdCache.set(email, { ids, expiresAt: Date.now() + CUSTOMER_TTL_MS });
 }
 function getCachedSubscription(email: string) {
@@ -850,6 +853,11 @@ export async function registerRoutes(
         const phase = getLifetimePhase(fpRemaining);
         lifetimePriceId = LIFETIME_PRICE_IDS[phase];
       }
+      // Bust the customer ID cache so the first pro-status check after returning from
+      // Stripe always re-fetches. Without this, a stale empty-array cache would prevent
+      // the subscription from being detected for up to 10 minutes.
+      if (email) clearProStatusCache(email.toLowerCase());
+
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         line_items: [{ price: isSubscription ? subscriptionPriceId : lifetimePriceId, quantity: 1 }],
