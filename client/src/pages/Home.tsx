@@ -5641,7 +5641,6 @@ export default function Home() {
                     text: [
                       `I just completed a ${p.temperature}°F cold plunge 🧊`,
                       `⏱️ ${durationStr} | 🔥 ${streak}-day streak`,
-                      "",
                       "Think you can beat me?",
                     ].join("\n"),
                   });

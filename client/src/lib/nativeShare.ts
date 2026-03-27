@@ -61,8 +61,11 @@ export async function nativeShare({
         return "shared";
       }
     }
-    // Pass text + optional url as separate fields so platforms treat them as distinct items
-    await Share.share({ text, ...(url ? { url } : {}) });
+    // Always consolidate into a single `text` field on native iOS —
+    // passing `url` as a separate field causes iMessage to render two bubbles
+    // (one for the URL text and one for the link preview card)
+    const shareText = text && url ? `${text}\n${url}` : (text || url || "");
+    await Share.share({ text: shareText });
     return "shared";
   } catch (e: any) {
     if (e?.message?.includes("cancel") || e?.errorMessage?.includes("cancel")) {
