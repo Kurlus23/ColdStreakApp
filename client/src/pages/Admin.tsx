@@ -41,7 +41,7 @@ interface LookupResult {
 }
 
 type UserFlag = "active" | "expiring-soon" | "orange" | "red";
-type SortMode = "default" | "issues-first" | "active-first";
+type SortMode = "default" | "issues-first" | "active-first" | "lifetime-first" | "monthly-first";
 
 function getUserFlag(u: ProUser): UserFlag {
   const now = Date.now();
@@ -91,11 +91,11 @@ const FLAG_BADGE: Record<UserFlag, string> = {
 function getPlanStyle(planType: string, active: boolean): string {
   if (!active) return "bg-gray-900/70 border border-gray-700/50";
   switch (planType) {
-    case "lifetime": return "bg-amber-950/70 border border-amber-700/40";
+    case "lifetime": return "bg-amber-950/70 border border-amber-700/50";
     case "annual":   return "bg-green-950/70 border border-green-700/40";
     case "promo":    return "bg-purple-950/70 border border-purple-700/40";
-    case "monthly":  return "bg-cyan-950/70 border border-cyan-700/40";
-    default:         return "bg-blue-900/60";
+    case "monthly":  return "bg-blue-900/60 border border-blue-700/40";
+    default:         return "bg-blue-900/60 border border-blue-700/30";
   }
 }
 
@@ -299,6 +299,20 @@ export default function Admin() {
     }
     if (sortMode === "active-first") {
       return [...withFlags].sort((a, b) => FLAG_PRIORITY[b.flag] - FLAG_PRIORITY[a.flag]);
+    }
+    if (sortMode === "lifetime-first") {
+      return [...withFlags].sort((a, b) => {
+        if (a.planType === "lifetime" && b.planType !== "lifetime") return -1;
+        if (b.planType === "lifetime" && a.planType !== "lifetime") return 1;
+        return 0;
+      });
+    }
+    if (sortMode === "monthly-first") {
+      return [...withFlags].sort((a, b) => {
+        if (a.planType === "monthly" && b.planType !== "monthly") return -1;
+        if (b.planType === "monthly" && a.planType !== "monthly") return 1;
+        return 0;
+      });
     }
     return withFlags;
   }, [proUsers, sortMode]);
@@ -576,18 +590,30 @@ export default function Admin() {
             </div>
 
             <div className="ml-auto flex items-center gap-1 bg-blue-900/60 rounded-lg p-1">
-              {(["issues-first", "default", "active-first"] as SortMode[]).map((mode) => (
+              {(["issues-first", "default", "active-first", "lifetime-first", "monthly-first"] as SortMode[]).map((mode) => (
                 <button
                   key={mode}
                   data-testid={`sort-${mode}`}
                   onClick={() => setSortMode(mode)}
                   className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                     sortMode === mode
-                      ? "bg-blue-600 text-white"
+                      ? mode === "lifetime-first"
+                        ? "bg-amber-600 text-white"
+                        : mode === "monthly-first"
+                          ? "bg-blue-600 text-white"
+                          : "bg-blue-600 text-white"
                       : "text-blue-400 hover:text-blue-200"
                   }`}
                 >
-                  {mode === "issues-first" ? "Issues first" : mode === "active-first" ? "Active first" : "Default"}
+                  {mode === "issues-first"
+                    ? "Issues"
+                    : mode === "active-first"
+                      ? "Active"
+                      : mode === "lifetime-first"
+                        ? "⭐ Lifetime"
+                        : mode === "monthly-first"
+                          ? "Monthly"
+                          : "Default"}
                 </button>
               ))}
             </div>
@@ -705,7 +731,7 @@ export default function Admin() {
                     className={`rounded-xl px-4 py-3 flex flex-col gap-2 border ${
                       u.isDisabled
                         ? "bg-gray-900/60 border-gray-700/40 opacity-70"
-                        : "bg-slate-800/50 border-slate-700/40"
+                        : "bg-blue-900/60 border-blue-700/30"
                     }`}
                   >
                     {/* Top row: info + badges */}
