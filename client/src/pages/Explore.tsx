@@ -635,6 +635,18 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  const { data: joinedEventIdsData } = useQuery<number[]>({
+    queryKey: ["/api/events/joined"],
+    enabled: !!auth.user,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (joinedEventIdsData) {
+      setJoinedEventIds(new Set(joinedEventIdsData));
+    }
+  }, [joinedEventIdsData]);
+
   const joinEventMut = useMutation({
     mutationFn: (id: number) => apiRequest("POST", `/api/events/${id}/join`, {
       username: auth.user?.displayName || auth.user?.email?.split("@")[0] || "Anon",
@@ -642,6 +654,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     onSuccess: (_data, id) => {
       setJoinedEventIds((prev) => new Set([...prev, id]));
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events/joined"] });
       toast({ title: "You're in! ❄️" });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -653,6 +666,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       setJoinedEventIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       queryClient.invalidateQueries({ queryKey: ["/api/events/detail"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events/joined"] });
       toast({ title: "Left event" });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),

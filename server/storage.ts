@@ -85,6 +85,7 @@ export interface IStorage {
   getEventParticipantCount(eventId: number): Promise<number>;
   joinEvent(eventId: number, userId: number, username: string): Promise<EventParticipant>;
   leaveEvent(eventId: number, userId: number): Promise<void>;
+  getJoinedEventIds(userId: number): Promise<number[]>;
   removeEventParticipant(eventId: number, userId: number): Promise<void>;
   isEventParticipant(eventId: number, userId: number): Promise<boolean>;
   // Event coordinators
@@ -642,6 +643,12 @@ export class DatabaseStorage implements IStorage {
 
   async leaveEvent(eventId: number, userId: number): Promise<void> {
     await db.delete(eventParticipants).where(and(eq(eventParticipants.eventId, eventId), eq(eventParticipants.userId, userId)));
+  }
+
+  async getJoinedEventIds(userId: number): Promise<number[]> {
+    const rows = await db.select({ eventId: eventParticipants.eventId }).from(eventParticipants)
+      .where(eq(eventParticipants.userId, userId));
+    return rows.map((r) => r.eventId);
   }
 
   async removeEventParticipant(eventId: number, userId: number): Promise<void> {

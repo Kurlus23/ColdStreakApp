@@ -1353,6 +1353,13 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
+  app.get("/api/events/joined", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.json([]);
+    const ids = await storage.getJoinedEventIds(payload.userId);
+    res.json(ids);
+  });
+
   // ── Edit event ─────────────────────────────────────────────────────────────
   app.patch("/api/events/:id", async (req, res) => {
     const payload = extractUser(req);
