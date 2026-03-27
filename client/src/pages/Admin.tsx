@@ -189,7 +189,7 @@ export default function Admin() {
                       disabled={deleteMutation.isPending}
                       onClick={() => deleteMutation.mutate(u.email)}
                     >
-                      {deleteMutation.isPending ? "Deleting…" : "Confirm Delete"}
+                      {deleteMutation.isPending ? "Cancelling & Deleting…" : "Yes, Cancel & Delete"}
                     </Button>
                     <Button
                       size="sm"

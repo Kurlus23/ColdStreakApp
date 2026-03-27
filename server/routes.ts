@@ -673,10 +673,30 @@ export async function registerRoutes(
       if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
       const email = decodeURIComponent(req.params.email).toLowerCase();
       console.log(`[admin] Deleting pro-user: ${email}`);
+
+      // Cancel any active Stripe subscriptions for this email so the pro-status
+      // check can't find them and silently re-grant access after the DB record is gone.
+      try {
+        const customers = await stripe.customers.list({ email, limit: 5 });
+        for (const customer of customers.data) {
+          const subs = await stripe.subscriptions.list({ customer: customer.id, status: "active", limit: 5 });
+          for (const sub of subs.data) {
+            await stripe.subscriptions.cancel(sub.id);
+            console.log(`[admin] Cancelled Stripe sub ${sub.id} for ${email}`);
+          }
+        }
+      } catch (stripeErr) {
+        console.error("[admin] Stripe cleanup error (continuing):", stripeErr);
+      }
+
       const deleted = await storage.deleteProUser(email);
-      if (!deleted) return res.status(404).json({ message: "No pro record found for that email" });
       clearProStatusCache(email);
-      console.log(`[admin] Deleted pro-user: ${email}`);
+      if (!deleted) {
+        // Record may not have existed but Stripe was cleaned up — still a success
+        console.log(`[admin] No DB record found for ${email} (Stripe still cleaned up)`);
+      } else {
+        console.log(`[admin] Deleted pro-user DB record: ${email}`);
+      }
       res.json({ success: true });
     } catch (err) {
       console.error("[admin] Delete pro-user error:", err);
