@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -18,11 +20,15 @@ interface ProUser {
 
 export default function Admin() {
   const { toast } = useToast();
-  const token = localStorage.getItem("coldstreak-token");
+  const auth = useAuth();
+
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
 
   const { data: proUsers, isLoading, error } = useQuery<ProUser[]>({
     queryKey: ["/api/admin/pro-users"],
-    enabled: !!token,
+    enabled: !!auth.user,
   });
 
   const toggleMutation = useMutation({
@@ -37,10 +43,52 @@ export default function Admin() {
     },
   });
 
-  if (!token) {
+  const handleLogin = async () => {
+    setLoginError("");
+    const ok = await auth.login(username, password);
+    if (!ok) setLoginError(auth.error ?? "Login failed. Check credentials.");
+  };
+
+  if (!auth.user) {
     return (
-      <div className="min-h-screen bg-blue-950 flex items-center justify-center text-white">
-        <p>Not logged in.</p>
+      <div className="min-h-screen bg-blue-950 flex items-center justify-center px-5">
+        <div className="w-full max-w-sm bg-blue-900/80 rounded-2xl border border-blue-700/50 p-6 space-y-4">
+          <h1 className="text-xl font-extrabold italic text-white text-center">ColdStreak Admin</h1>
+          <p className="text-blue-400 text-sm text-center">Sign in to continue</p>
+
+          <input
+            data-testid="input-admin-username"
+            type="text"
+            placeholder="Username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && document.getElementById("admin-password")?.focus()}
+            className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+          />
+          <input
+            id="admin-password"
+            data-testid="input-admin-password"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+            className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+          />
+
+          {loginError && <p className="text-red-400 text-xs">{loginError}</p>}
+
+          <button
+            data-testid="button-admin-login"
+            onClick={handleLogin}
+            disabled={auth.loading || !username || !password}
+            className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-blue-950 text-sm font-bold transition-colors disabled:opacity-50"
+          >
+            {auth.loading ? "Signing in…" : "Sign In"}
+          </button>
+        </div>
       </div>
     );
   }
@@ -48,14 +96,27 @@ export default function Admin() {
   if (error) {
     return (
       <div className="min-h-screen bg-blue-950 flex items-center justify-center text-white">
-        <p>Access denied or server error.</p>
+        <div className="text-center space-y-3">
+          <p className="text-red-400">Access denied — admin accounts only.</p>
+          <button
+            onClick={() => { auth.logout(); }}
+            className="text-blue-400 text-sm underline hover:text-blue-300"
+          >Sign out</button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-blue-950 text-white p-6">
-      <h1 className="text-2xl font-bold mb-6">Admin — Pro Users</h1>
+      <div className="flex items-center justify-between mb-6 max-w-2xl">
+        <h1 className="text-2xl font-bold">Admin — Pro Users</h1>
+        <button
+          data-testid="button-admin-signout"
+          onClick={() => auth.logout()}
+          className="text-blue-400 text-xs hover:text-red-400 transition-colors"
+        >Sign out</button>
+      </div>
 
       {isLoading && <p className="text-blue-300">Loading…</p>}
 
