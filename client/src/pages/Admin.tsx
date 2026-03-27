@@ -32,19 +32,40 @@ export default function Admin() {
   });
 
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [grantEmail, setGrantEmail] = useState("");
-  const [grantPlan, setGrantPlan] = useState<"monthly" | "annual" | "lifetime" | "promo">("monthly");
+  const [verifySessionId, setVerifySessionId] = useState("");
+  const [overrideEmail, setOverrideEmail] = useState("");
+  const [overridePlan, setOverridePlan] = useState<"monthly" | "annual" | "lifetime" | "promo">("monthly");
+  const [showOverride, setShowOverride] = useState(false);
 
-  const grantMutation = useMutation({
+  const verifySessionMutation = useMutation({
+    mutationFn: async (sessionId: string) => {
+      const res = await fetch(`/api/stripe/verify?session_id=${encodeURIComponent(sessionId)}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pro-users"] });
+      setVerifySessionId("");
+      toast({ title: "Payment verified ✓", description: `${data.email} granted ${data.planType} pro.` });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Verification failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const overrideMutation = useMutation({
     mutationFn: ({ email, planType }: { email: string; planType: string }) =>
       apiRequest("POST", "/api/admin/pro-users", { email, planType }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/pro-users"] });
-      setGrantEmail("");
-      toast({ title: "Pro granted!", description: `${grantEmail} now has ${grantPlan} access.` });
+      setOverrideEmail("");
+      toast({ title: "Override applied", description: `${overrideEmail} granted ${overridePlan} (no payment check).` });
     },
     onError: (err: any) => {
-      toast({ title: "Failed to grant", description: err?.message ?? "Server error", variant: "destructive" });
+      toast({ title: "Override failed", description: err?.message ?? "Server error", variant: "destructive" });
     },
   });
 
@@ -157,39 +178,74 @@ export default function Admin() {
         >Sign out</button>
       </div>
 
-      {/* Grant Pro manually */}
-      <div className="mb-6 max-w-2xl bg-blue-900/60 rounded-xl p-4">
-        <p className="text-sm font-semibold text-blue-200 mb-3">Grant Pro Access</p>
+      {/* Verify Stripe payment and grant Pro */}
+      <div className="mb-4 max-w-2xl bg-blue-900/60 rounded-xl p-4">
+        <p className="text-sm font-semibold text-blue-200 mb-1">Verify Stripe Payment → Grant Pro</p>
+        <p className="text-xs text-blue-400 mb-3">Paste the Stripe session ID (cs_…) from the Stripe dashboard. Pro is only granted if Stripe confirms payment.</p>
         <div className="flex gap-2 flex-wrap">
           <input
-            data-testid="input-grant-email"
-            type="email"
-            placeholder="user@example.com"
-            value={grantEmail}
-            onChange={(e) => setGrantEmail(e.target.value)}
-            className="flex-1 min-w-0 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+            data-testid="input-verify-session"
+            type="text"
+            placeholder="cs_test_… or cs_live_…"
+            value={verifySessionId}
+            onChange={(e) => setVerifySessionId(e.target.value.trim())}
+            className="flex-1 min-w-0 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400 font-mono"
           />
-          <select
-            data-testid="select-grant-plan"
-            value={grantPlan}
-            onChange={(e) => setGrantPlan(e.target.value as typeof grantPlan)}
-            className="bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-400"
-          >
-            <option value="monthly">Monthly</option>
-            <option value="annual">Annual</option>
-            <option value="lifetime">Lifetime</option>
-            <option value="promo">Promo</option>
-          </select>
           <Button
-            data-testid="button-grant-pro"
+            data-testid="button-verify-session"
             size="sm"
             className="bg-cyan-600 hover:bg-cyan-500 text-white"
-            disabled={grantMutation.isPending || !grantEmail.includes("@")}
-            onClick={() => grantMutation.mutate({ email: grantEmail.trim(), planType: grantPlan })}
+            disabled={verifySessionMutation.isPending || !verifySessionId.startsWith("cs_")}
+            onClick={() => verifySessionMutation.mutate(verifySessionId)}
           >
-            {grantMutation.isPending ? "Granting…" : "Grant Pro"}
+            {verifySessionMutation.isPending ? "Verifying…" : "Verify & Grant"}
           </Button>
         </div>
+      </div>
+
+      {/* Admin override — no Stripe check */}
+      <div className="mb-6 max-w-2xl">
+        <button
+          className="text-xs text-yellow-500/70 hover:text-yellow-400 underline"
+          onClick={() => setShowOverride((v) => !v)}
+        >
+          {showOverride ? "Hide" : "Show"} admin override (no payment verification)
+        </button>
+        {showOverride && (
+          <div className="mt-3 bg-yellow-900/30 border border-yellow-600/40 rounded-xl p-4">
+            <p className="text-xs text-yellow-400 mb-3">⚠️ Bypass Stripe — use only for refunds, gifts, or support cases where payment is confirmed externally.</p>
+            <div className="flex gap-2 flex-wrap">
+              <input
+                data-testid="input-override-email"
+                type="email"
+                placeholder="user@example.com"
+                value={overrideEmail}
+                onChange={(e) => setOverrideEmail(e.target.value)}
+                className="flex-1 min-w-0 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+              />
+              <select
+                data-testid="select-override-plan"
+                value={overridePlan}
+                onChange={(e) => setOverridePlan(e.target.value as typeof overridePlan)}
+                className="bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-400"
+              >
+                <option value="monthly">Monthly</option>
+                <option value="annual">Annual</option>
+                <option value="lifetime">Lifetime</option>
+                <option value="promo">Promo</option>
+              </select>
+              <Button
+                data-testid="button-override-grant"
+                size="sm"
+                className="bg-yellow-600 hover:bg-yellow-500 text-white"
+                disabled={overrideMutation.isPending || !overrideEmail.includes("@")}
+                onClick={() => overrideMutation.mutate({ email: overrideEmail.trim(), planType: overridePlan })}
+              >
+                {overrideMutation.isPending ? "Applying…" : "Override Grant"}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {isLoading && <p className="text-blue-300">Loading…</p>}
