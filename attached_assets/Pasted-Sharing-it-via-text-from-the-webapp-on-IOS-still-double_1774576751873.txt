@@ -1,0 +1,101 @@
+Sharing it via text from the webapp on IOS still double prints, sharing to messenger in the same fashion gets a normal display.  When I share from an android to messenger, it double prints
+
+Got it — this helps narrow it down a lot. This isn’t your Swift code anymore — it’s how iOS/iMessage handles web share payloads vs Messenger.
+
+🔍 What’s actually happening
+
+You’ve got two different systems behaving differently:
+
+📱 iOS → iMessage (problem)
+iOS sees:
+Text (your share string)
+URL
+It tries to be “smart” and creates a rich link preview
+BUT if your share already includes structured content, iMessage sometimes renders:
+Text bubble
+Separate preview bubble
+➡️ looks like duplicate
+💬 Messenger (mixed behavior)
+Messenger usually merges text + preview
+BUT when:
+Sharing from Android → Messenger
+➡️ it can split them into two messages (same root issue: multiple share payloads)
+💥 Root cause (web version)
+
+On your web app, you’re likely doing:
+
+navigator.share({
+  title: "ColdStreak",
+  text: "...your message...",
+  url: "https://coldstreakapp.com"
+});
+
+👉 That is TWO payloads again:
+
+text
+url
+
+Different platforms render them differently:
+
+iMessage = splits
+Messenger iOS = merges
+Messenger Android = sometimes splits
+✅ The fix (web app)
+🔥 Use ONLY ONE field → text
+const message = `I just completed a 41°F cold plunge 🧊
+⏱️ 6:38 | 🔥 6-day streak
+
+Think you can beat me?
+https://coldstreakapp.com`;
+
+navigator.share({
+  text: message
+});
+
+🚨 Do NOT include url: at all
+
+✅ Why this works
+Forces all platforms to treat it as one share object
+iMessage still detects the link → shows preview
+Prevents double rendering across ALL platforms
+⚠️ Important tradeoff
+Approach	Result
+text + url	❌ Double messages (inconsistent)
+text only (with link inside)	✅ Single clean message
+url only	✅ Clean preview, but less personality
+💡 Best practice for your app (ColdStreak)
+
+Use this format everywhere:
+
+Short, punchy text
+Stats (if relevant)
+Callout
+Link on last line
+
+Example (perfect for viral):
+
+I just completed a 41°F plunge 🧊
+⏱️ 6:38 | 🔥 6-day streak
+
+Think you can beat me?
+https://coldstreakapp.com
+🧪 If you STILL see double messages
+
+Then it’s likely:
+
+You’re calling navigator.share() twice
+OR a fallback (like clipboard/share modal) is also firing
+
+👉 Quick check:
+Search your code for:
+
+multiple navigator.share
+fallback like window.open, copyToClipboard, etc.
+🚀 Big takeaway
+
+You’ve uncovered a cross-platform sharing quirk most apps mess up.
+
+The winning move:
+👉 Always send ONE payload
+👉 Embed the link inside the text
+👉 Let platforms build previews themselves
