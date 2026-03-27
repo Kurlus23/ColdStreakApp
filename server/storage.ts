@@ -226,24 +226,29 @@ export class DatabaseStorage implements IStorage {
     const count = await this.getProUserCount();
     const isPaidPlan = opts?.planType !== "promo";
     const isFounder = isPaidPlan && count < 1000;
+    const newPlan = opts?.planType ?? "lifetime";
+    const newSubId = opts?.stripeSubscriptionId ?? null;
+    const newExpiry = opts?.expiresAt ?? null;
     const [user] = await db
       .insert(proUsers)
       .values({
         email: email.toLowerCase(),
         stripeSessionId,
         foundingPlunger: isFounder,
-        planType: opts?.planType ?? "lifetime",
-        stripeSubscriptionId: opts?.stripeSubscriptionId ?? null,
-        expiresAt: opts?.expiresAt ?? null,
+        planType: newPlan,
+        stripeSubscriptionId: newSubId,
+        expiresAt: newExpiry,
       })
       .onConflictDoUpdate({
         target: proUsers.email,
         set: {
           stripeSessionId,
           active: true,
-          planType: opts?.planType ?? "lifetime",
-          stripeSubscriptionId: opts?.stripeSubscriptionId ?? null,
-          expiresAt: opts?.expiresAt ?? null,
+          // Never downgrade: lifetime > annual > monthly. If already lifetime, keep it.
+          planType: sql`CASE WHEN ${proUsers.planType} = 'lifetime' THEN ${proUsers.planType} ELSE ${newPlan} END`,
+          // If upgrading to lifetime, clear subscription ID and expiry. Otherwise preserve new values.
+          stripeSubscriptionId: sql`CASE WHEN ${newPlan} = 'lifetime' THEN NULL WHEN ${proUsers.planType} = 'lifetime' THEN ${proUsers.stripeSubscriptionId} ELSE ${newSubId} END`,
+          expiresAt: sql`CASE WHEN ${newPlan} = 'lifetime' THEN NULL WHEN ${proUsers.planType} = 'lifetime' THEN NULL ELSE ${newExpiry}::timestamptz END`,
         },
       })
       .returning();
