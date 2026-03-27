@@ -184,6 +184,7 @@ export default function Home() {
   const [forgotMode, setForgotMode] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
   const [resendSent, setResendSent] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const [screen, setScreen] = useState<Screen>(
     () => (localStorage.getItem("defaultScreen") as Screen) || "timer"
@@ -251,6 +252,16 @@ export default function Home() {
   const [weeklyGoalMinutes, setWeeklyGoalMinutes] = useState<number>(
     () => Number(localStorage.getItem("weeklyGoalMinutes") ?? 11)
   );
+
+  // Auto-open login modal on first load when not signed in
+  useEffect(() => {
+    if (!auth.user) setShowLoginModal(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close login modal automatically once user is authenticated
+  useEffect(() => {
+    if (auth.user) setShowLoginModal(false);
+  }, [auth.user]);
 
   useEffect(() => {
     localStorage.setItem("coldstreak-temperature", String(temperature));
@@ -2026,14 +2037,26 @@ export default function Home() {
       <div className="absolute inset-0 bg-gradient-to-b from-blue-950/60 via-blue-900/20 to-blue-950/80" />
 
       {/* Header */}
-      <header className="absolute z-10 inset-x-0 top-0 flex items-center justify-center px-5 pt-6 pb-2 pointer-events-none">
+      <header className="absolute z-10 inset-x-0 top-0 flex items-center justify-between px-5 pt-6 pb-2">
+        <div className="w-20" />
         <h1
-          className="text-2xl font-extrabold italic tracking-wide text-white/90"
+          className="text-2xl font-extrabold italic tracking-wide text-white/90 pointer-events-none"
           style={{ textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}
           data-testid="header-title"
         >
           ColdStreak
         </h1>
+        <div className="w-20 flex justify-end">
+          {!auth.user && (
+            <button
+              data-testid="button-header-signin"
+              onClick={() => { setShowLoginModal(true); setForgotMode(false); setForgotSent(false); auth.clearError(); }}
+              className="px-3 py-1.5 rounded-xl bg-cyan-500/90 hover:bg-cyan-400 text-blue-950 text-xs font-bold transition-colors active:scale-95"
+            >
+              Sign In
+            </button>
+          )}
+        </div>
       </header>
 
       {/* ─── TIMER SCREEN ─── */}
@@ -3148,7 +3171,7 @@ export default function Home() {
                         <input
                           data-testid="input-auth-email"
                           type={authMode === "register" ? "email" : "text"}
-                          placeholder={authMode === "register" ? "Email" : "Email or Username"}
+                          placeholder={authMode === "register" ? "Email" : "Username"}
                           autoCapitalize="none"
                           autoCorrect="off"
                           value={authEmail}
@@ -5907,6 +5930,129 @@ export default function Home() {
             >
               Dismiss
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── LOGIN MODAL ─── */}
+      {showLoginModal && !auth.user && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center px-5">
+          <div className="absolute inset-0 bg-blue-950/80 backdrop-blur-sm" onClick={() => setShowLoginModal(false)} />
+          <div className="relative w-full max-w-sm bg-gradient-to-b from-blue-900/95 to-slate-900/95 rounded-3xl border border-blue-700/50 shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200">
+            {/* Close */}
+            <button
+              data-testid="button-close-login-modal"
+              onClick={() => setShowLoginModal(false)}
+              className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full bg-blue-800/60 text-blue-300 hover:text-white transition-colors text-sm font-bold"
+            >✕</button>
+
+            <div className="text-center">
+              <p className="text-xl font-extrabold italic text-white">ColdStreak</p>
+              <p className="text-blue-300 text-xs mt-1">
+                {forgotMode ? "Reset password" : authMode === "login" ? "Sign in to your account" : "Create an account"}
+              </p>
+            </div>
+
+            {/* Forgot-password flow */}
+            {forgotMode ? (
+              <div className="space-y-3">
+                {forgotSent ? (
+                  <div className="bg-green-900/30 border border-green-600/30 rounded-xl px-4 py-3 text-center">
+                    <p className="text-green-300 text-sm font-semibold">Check your inbox</p>
+                    <p className="text-green-400/80 text-xs mt-1">A reset link was sent to {authEmail}</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-blue-300 text-xs">Enter your account email and we'll send a reset link.</p>
+                    <input
+                      data-testid="input-modal-forgot-email"
+                      type="email"
+                      placeholder="Your account email"
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail(e.target.value)}
+                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                    />
+                    <button
+                      data-testid="button-modal-forgot-submit"
+                      onClick={handleForgotPassword}
+                      disabled={auth.loading || !authEmail}
+                      className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-blue-950 text-sm font-bold transition-colors disabled:opacity-50"
+                    >
+                      {auth.loading ? "Sending…" : "Send Reset Link"}
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() => { setForgotMode(false); setForgotSent(false); auth.clearError(); }}
+                  className="w-full py-1 text-blue-400 text-xs hover:text-blue-300 transition-colors"
+                >← Back to sign in</button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Sign In / Create Account toggle */}
+                <div className="flex rounded-xl overflow-hidden border border-blue-700/50">
+                  <button
+                    data-testid="button-modal-mode-login"
+                    onClick={() => { setAuthMode("login"); auth.clearError(); }}
+                    className={`flex-1 py-2 text-xs font-semibold transition-colors ${authMode === "login" ? "bg-cyan-500 text-blue-950" : "bg-blue-800/60 text-blue-300"}`}
+                  >Sign In</button>
+                  <button
+                    data-testid="button-modal-mode-register"
+                    onClick={() => { setAuthMode("register"); auth.clearError(); }}
+                    className={`flex-1 py-2 text-xs font-semibold transition-colors ${authMode === "register" ? "bg-cyan-500 text-blue-950" : "bg-blue-800/60 text-blue-300"}`}
+                  >Create Account</button>
+                </div>
+
+                <input
+                  data-testid="input-modal-username"
+                  type={authMode === "register" ? "email" : "text"}
+                  placeholder={authMode === "register" ? "Email" : "Username"}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && document.getElementById("modal-password-input")?.focus()}
+                  className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                />
+                <div className="space-y-1">
+                  <input
+                    id="modal-password-input"
+                    data-testid="input-modal-password"
+                    type="password"
+                    placeholder={authMode === "register" ? "Password (min 6 chars)" : "Password"}
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleAuthSubmit(); }}
+                    className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                  />
+                  {authMode === "login" && (
+                    <button
+                      data-testid="button-modal-forgot"
+                      onClick={() => { setForgotMode(true); setForgotSent(false); auth.clearError(); }}
+                      className="text-blue-500 text-xs hover:text-cyan-400 transition-colors px-1"
+                    >Forgot password?</button>
+                  )}
+                </div>
+
+                {auth.error && <p className="text-red-400 text-xs px-1">{auth.error}</p>}
+
+                <button
+                  data-testid="button-modal-submit"
+                  onClick={handleAuthSubmit}
+                  disabled={auth.loading || !authEmail || !authPassword}
+                  className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-blue-950 text-sm font-bold transition-colors disabled:opacity-50"
+                >
+                  {auth.loading ? "Please wait…" : authMode === "login" ? "Sign In" : "Create Account"}
+                </button>
+
+                <button
+                  onClick={() => setShowLoginModal(false)}
+                  className="w-full py-1.5 text-blue-500 text-xs hover:text-blue-300 transition-colors"
+                >
+                  Continue without signing in
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
