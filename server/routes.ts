@@ -940,38 +940,42 @@ export async function registerRoutes(
       }
     }
 
-    // For subscription status: use cache to avoid repeated slow calls (skip cache with ?noCache=1)
-    if (isActiveNonLifetime && !noCache) {
+    // Always verify subscription status with Stripe (cached for 5 min to keep it fast).
+    // This ensures cancellations are detected on the next page load without requiring sign-out.
+    // Skip cache when ?noCache=1 (used by restore-purchase flow).
+    if (!noCache) {
       const cached = getProStatusCache(email);
       if (cached) return res.json(cached);
     }
 
-    // Check active subscriptions (monthly/annual) — only if not already active in DB
-    if (!isActiveNonLifetime) {
-      for (const customerId of customerIds) {
-        try {
-          const subs = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 3 });
-          if (subs.data.length > 0) {
-            const sub = subs.data[0];
-            const interval = sub.items?.data?.[0]?.plan?.interval;
-            const planType = interval === "month" ? "monthly" : "annual";
-            const expiresAt = new Date(sub.current_period_end * 1000);
-            const proUser = await storage.createProUser(email, sub.id, { planType, stripeSubscriptionId: sub.id, expiresAt });
-            const result = { email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType };
-            setCachedSubscription(email, result);
-            return res.json(result);
-          }
-        } catch (err) {
-          console.error("Stripe subscription check failed:", err);
+    let foundActiveSub = false;
+    for (const customerId of customerIds) {
+      try {
+        const subs = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 3 });
+        if (subs.data.length > 0) {
+          const sub = subs.data[0];
+          const interval = sub.items?.data?.[0]?.plan?.interval;
+          const planType = interval === "month" ? "monthly" : "annual";
+          const expiresAt = new Date(sub.current_period_end * 1000);
+          const proUser = await storage.createProUser(email, sub.id, { planType, stripeSubscriptionId: sub.id, expiresAt });
+          const result = { email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType };
+          setCachedSubscription(email, result);
+          foundActiveSub = true;
+          return res.json(result);
+        }
+      } catch (err) {
+        console.error("Stripe subscription check failed:", err);
+        // On Stripe error, fall back to DB value so a temporary outage doesn't yank access
+        if (isActiveNonLifetime) {
+          const result = { email: user!.email, isPro: true, foundingPlunger: user!.foundingPlunger, planType: user!.planType };
+          return res.json(result);
         }
       }
     }
 
-    // Fall back to DB value if active monthly/annual
-    if (isActiveNonLifetime) {
-      const result = { email: user!.email, isPro: true, foundingPlunger: user!.foundingPlunger, planType: user!.planType };
-      setCachedSubscription(email, result);
-      return res.json(result);
+    // No active subscription found in Stripe — if DB still shows active, deactivate it
+    if (!foundActiveSub && isActiveNonLifetime) {
+      await storage.setProUserActive(email, false);
     }
 
     res.json({ email, isPro: false, foundingPlunger: false });

@@ -113,27 +113,46 @@ export function useProStatus() {
     setIsPro(false);
   }, [markPro]);
 
-  // On mount, verify cached pro status with the backend
+  // Verify cached pro status with the backend — runs on mount and whenever the
+  // page becomes visible again (tab focus, app foreground). This ensures
+  // subscription cancellations are detected without requiring a sign-out.
   useEffect(() => {
-    const cachedEmail = localStorage.getItem(PRO_EMAIL_KEY);
-    if (!cachedEmail) return;
+    let lastCheck = 0;
+    const MIN_CHECK_INTERVAL_MS = 5 * 60 * 1000; // don't re-check more than once per 5 min
 
-    const currentEmail = getLoggedInEmail();
-    if (currentEmail && currentEmail.toLowerCase() !== cachedEmail.toLowerCase()) {
-      clearPro();
-      return;
+    function verify() {
+      const cachedEmail = localStorage.getItem(PRO_EMAIL_KEY);
+      if (!cachedEmail) return;
+
+      const currentEmail = getLoggedInEmail();
+      if (currentEmail && currentEmail.toLowerCase() !== cachedEmail.toLowerCase()) {
+        clearPro();
+        return;
+      }
+
+      const now = Date.now();
+      if (now - lastCheck < MIN_CHECK_INTERVAL_MS) return;
+      lastCheck = now;
+
+      fetch(`/api/pro-status/${encodeURIComponent(cachedEmail)}`, { cache: "no-store" })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.isPro) {
+            markPro(data.email, data.foundingPlunger ?? false, data.planType);
+          } else {
+            clearPro();
+          }
+        })
+        .catch(() => {});
     }
 
-    fetch(`/api/pro-status/${encodeURIComponent(cachedEmail)}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.isPro) {
-          markPro(data.email, data.foundingPlunger ?? false, data.planType);
-        } else {
-          clearPro();
-        }
-      })
-      .catch(() => {});
+    verify();
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") verify();
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   }, [markPro, clearPro]);
 
   const startCheckout = useCallback(async (plan: "lifetime" | "annual" | "monthly" = "lifetime"): Promise<{ success: boolean; activated?: boolean; error?: string }> => {
