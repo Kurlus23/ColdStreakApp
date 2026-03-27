@@ -655,6 +655,26 @@ export async function registerRoutes(
     res.json(users);
   });
 
+  // Admin: manually grant pro to any email (no Stripe required)
+  app.post("/api/admin/pro-users", async (req, res) => {
+    try {
+      const caller = extractUser(req);
+      if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+      const { email, planType } = z.object({
+        email: z.string().email(),
+        planType: z.enum(["monthly", "annual", "lifetime", "promo"]).default("monthly"),
+      }).parse(req.body);
+      const expiresAt = planType === "lifetime" ? undefined : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+      const proUser = await storage.createProUser(email.toLowerCase(), `admin-grant-${Date.now()}`, { planType, expiresAt });
+      clearProStatusCache(email.toLowerCase());
+      console.log(`[admin] Manually granted ${planType} pro to ${email} by ${caller?.email}`);
+      res.json(proUser);
+    } catch (err: any) {
+      console.error("[admin] Grant pro error:", err);
+      res.status(500).json({ message: err?.message ?? "Failed to grant pro" });
+    }
+  });
+
   app.patch("/api/admin/pro-users/:email", async (req, res) => {
     const caller = extractUser(req);
     if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
@@ -1049,9 +1069,13 @@ export async function registerRoutes(
     let foundActiveSub = false;
     for (const customerId of customerIds) {
       try {
-        const subs = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 3 });
-        if (subs.data.length > 0) {
-          const sub = subs.data[0];
+        // Accept both active and trialing subscriptions (trialing = paid setup, trial not yet expired)
+        const [activeSubs, trialingSubs] = await Promise.all([
+          stripe.subscriptions.list({ customer: customerId, status: "active", limit: 3 }),
+          stripe.subscriptions.list({ customer: customerId, status: "trialing", limit: 3 }),
+        ]);
+        const sub = activeSubs.data[0] ?? trialingSubs.data[0];
+        if (sub) {
           const interval = sub.items?.data?.[0]?.plan?.interval;
           const planType = interval === "month" ? "monthly" : "annual";
           const expiresAt = new Date(sub.current_period_end * 1000);

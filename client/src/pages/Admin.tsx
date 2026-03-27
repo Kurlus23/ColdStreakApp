@@ -32,6 +32,21 @@ export default function Admin() {
   });
 
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [grantEmail, setGrantEmail] = useState("");
+  const [grantPlan, setGrantPlan] = useState<"monthly" | "annual" | "lifetime" | "promo">("monthly");
+
+  const grantMutation = useMutation({
+    mutationFn: ({ email, planType }: { email: string; planType: string }) =>
+      apiRequest("POST", "/api/admin/pro-users", { email, planType }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pro-users"] });
+      setGrantEmail("");
+      toast({ title: "Pro granted!", description: `${grantEmail} now has ${grantPlan} access.` });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to grant", description: err?.message ?? "Server error", variant: "destructive" });
+    },
+  });
 
   const toggleMutation = useMutation({
     mutationFn: ({ email, active }: { email: string; active: boolean }) =>
@@ -140,6 +155,41 @@ export default function Admin() {
           onClick={() => auth.logout()}
           className="text-blue-400 text-xs hover:text-red-400 transition-colors"
         >Sign out</button>
+      </div>
+
+      {/* Grant Pro manually */}
+      <div className="mb-6 max-w-2xl bg-blue-900/60 rounded-xl p-4">
+        <p className="text-sm font-semibold text-blue-200 mb-3">Grant Pro Access</p>
+        <div className="flex gap-2 flex-wrap">
+          <input
+            data-testid="input-grant-email"
+            type="email"
+            placeholder="user@example.com"
+            value={grantEmail}
+            onChange={(e) => setGrantEmail(e.target.value)}
+            className="flex-1 min-w-0 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+          />
+          <select
+            data-testid="select-grant-plan"
+            value={grantPlan}
+            onChange={(e) => setGrantPlan(e.target.value as typeof grantPlan)}
+            className="bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-400"
+          >
+            <option value="monthly">Monthly</option>
+            <option value="annual">Annual</option>
+            <option value="lifetime">Lifetime</option>
+            <option value="promo">Promo</option>
+          </select>
+          <Button
+            data-testid="button-grant-pro"
+            size="sm"
+            className="bg-cyan-600 hover:bg-cyan-500 text-white"
+            disabled={grantMutation.isPending || !grantEmail.includes("@")}
+            onClick={() => grantMutation.mutate({ email: grantEmail.trim(), planType: grantPlan })}
+          >
+            {grantMutation.isPending ? "Granting…" : "Grant Pro"}
+          </Button>
+        </div>
       </div>
 
       {isLoading && <p className="text-blue-300">Loading…</p>}
