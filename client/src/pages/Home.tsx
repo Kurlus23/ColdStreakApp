@@ -4161,24 +4161,9 @@ export default function Home() {
                     <button
                       data-testid="button-view-badge-profile"
                       onClick={() => window.open(`/profile/${encodeURIComponent(username)}`, "_blank")}
-                      className="flex-1 flex items-center justify-center gap-2 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-sm font-medium py-2 rounded-xl active:scale-95 transition-transform hover:bg-cyan-500/30"
+                      className="w-full flex items-center justify-center gap-2 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-sm font-medium py-2 rounded-xl active:scale-95 transition-transform hover:bg-cyan-500/30"
                     >
                       <User className="w-3.5 h-3.5" /> View My Profile
-                    </button>
-                    <button
-                      data-testid="button-share-badge-profile"
-                      onClick={async () => {
-                        const url = `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`;
-                        if (navigator.share) {
-                          try { await navigator.share({ title: `${username}'s Badge Profile`, url }); } catch {}
-                        } else {
-                          await navigator.clipboard.writeText(url);
-                          toast({ title: "Profile link copied!", description: "Share it with friends." });
-                        }
-                      }}
-                      className="flex-1 flex items-center justify-center gap-2 bg-blue-800/60 border border-blue-600/40 text-blue-200 text-sm font-medium py-2 rounded-xl active:scale-95 transition-transform"
-                    >
-                      <Share2 className="w-3.5 h-3.5" /> Share
                     </button>
                   </div>
                 )}
@@ -5622,67 +5607,6 @@ export default function Home() {
               {promptSaving ? "Saving…" : "Save"}
             </button>
 
-            {/* Share button */}
-            {promptPlungeRef.current && (
-              <button
-                data-testid="button-share-after-plunge"
-                disabled={promptSharing}
-                onClick={async () => {
-                  // Synchronous ref lock — prevents double-fire before React re-renders
-                  if (!promptPlungeRef.current || sharingLockRef.current) return;
-                  sharingLockRef.current = true;
-                  setPromptSharing(true);
-                  let doneCalled = false;
-                  const done = () => { if (doneCalled) return; doneCalled = true; sharingLockRef.current = false; setPromptSharing(false); };
-
-                  let locationName: string | undefined;
-                  if (promptLocationId === "custom") {
-                    locationName = promptCustomLocation.trim() || undefined;
-                  } else if (promptLocationId.startsWith("community-")) {
-                    const cid = Number(promptLocationId.replace("community-", ""));
-                    locationName = communityLocs.find((l) => l.id === cid)?.name;
-                  } else if (promptLocationId) {
-                    locationName = PASSPORT_LOCATIONS.find((l) => l.id === promptLocationId)?.name;
-                  }
-                  const text = buildShareText({
-                    username,
-                    temperature: promptPlungeRef.current.temperature,
-                    duration: promptPlungeRef.current.duration,
-                    streak,
-                    locationName,
-                    locationId: promptLocationId,
-                  });
-
-                  // ── Native Android/iOS: use Capacitor Share (avoids WebView doubling bug)
-                  if (isNative()) {
-                    await nativeShare({ text });
-                    done(); return;
-                  }
-
-                  // ── Web browser: use navigator.share (no title — prevents iOS iMessage subject bubble)
-                  if (navigator.share) {
-                    try {
-                      await navigator.share({ text });
-                      done(); return;
-                    } catch (e: any) {
-                      if (e?.name === "AbortError") { done(); return; }
-                    }
-                  }
-
-                  // ── Clipboard fallback
-                  try {
-                    await navigator.clipboard.writeText(text);
-                    toast({ title: "Copied!", description: "Paste to share with friends." });
-                  } catch {
-                    toast({ title: "Could not copy", variant: "destructive" });
-                  }
-                  done();
-                }}
-                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-blue-600/60 text-sm font-semibold transition-all active:scale-95 ${promptSharing ? "opacity-50 cursor-not-allowed text-blue-500" : "text-blue-300 hover:border-cyan-500/60 hover:text-cyan-300"}`}
-              >
-                <Share2 className="w-4 h-4" /> {promptSharing ? "Sharing…" : "Share with friends"}
-              </button>
-            )}
 
             {/* Discard */}
             <button

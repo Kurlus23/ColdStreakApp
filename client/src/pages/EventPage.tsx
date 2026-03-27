@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarDays, MapPin, Users, Snowflake, ExternalLink, Copy, Check, Navigation, Send } from "lucide-react";
+import { CalendarDays, MapPin, Users, Snowflake, ExternalLink, Copy, Navigation } from "lucide-react";
 import { useState, useMemo } from "react";
 import type { Event, EventParticipant } from "@shared/schema";
 import { TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
@@ -33,7 +33,6 @@ export default function EventPage() {
   const [, navigate] = useLocation();
   const auth = useAuth();
   const { toast } = useToast();
-  const [copied, setCopied] = useState(false);
 
   const { data: evt, isLoading, error } = useQuery<EventDetail>({
     queryKey: ["/api/events", code],
@@ -98,20 +97,6 @@ export default function EventPage() {
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const handleShareEvent = async () => {
-    const url = `${window.location.origin}/event/${code}`;
-    const name = evt?.name ?? "a cold plunge event";
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `Join me at ${name}`, text: `You're invited to "${name}" — a cold plunge event! Sign up here:`, url });
-        return;
-      } catch { /* cancelled or unsupported — fall through */ }
-    }
-    try { await navigator.clipboard.writeText(url); } catch { /* ignore */ }
-    setCopied(true);
-    toast({ title: "Link copied!" });
-    setTimeout(() => setCopied(false), 2500);
-  };
 
   if (isLoading) {
     return (
@@ -263,15 +248,6 @@ export default function EventPage() {
           </div>
         )}
 
-        {/* Share */}
-        <button
-          data-testid="button-share-event-link"
-          onClick={handleShareEvent}
-          className="w-full py-2.5 rounded-2xl border border-blue-700/50 text-blue-300 text-xs font-semibold flex items-center justify-center gap-1.5 hover:border-blue-500 transition-all"
-        >
-          {copied ? <Check className="w-3.5 h-3.5 text-cyan-400" /> : <Send className="w-3.5 h-3.5" />}
-          {copied ? "Link copied!" : "Invite Friends"}
-        </button>
       </div>
 
       {/* Attendees */}
