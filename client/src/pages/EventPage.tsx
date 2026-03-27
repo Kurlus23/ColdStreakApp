@@ -3,8 +3,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarDays, MapPin, Users, Snowflake, ExternalLink, Copy, Navigation } from "lucide-react";
+import { CalendarDays, MapPin, Users, Snowflake, ExternalLink, Copy, Navigation, Send, Check } from "lucide-react";
 import { useState, useMemo } from "react";
+import { shareContent } from "@/lib/share";
 import type { Event, EventParticipant } from "@shared/schema";
 import { TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
 
@@ -33,6 +34,7 @@ export default function EventPage() {
   const [, navigate] = useLocation();
   const auth = useAuth();
   const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
 
   const { data: evt, isLoading, error } = useQuery<EventDetail>({
     queryKey: ["/api/events", code],
@@ -248,6 +250,31 @@ export default function EventPage() {
           </div>
         )}
 
+        {/* Share */}
+        <button
+          data-testid="button-share-event-link"
+          onClick={async () => {
+            const lines = [
+              `🧊 Join me at ${evt.name}`,
+              `📅 ${fmtDate(evt.eventDate)}`,
+            ];
+            if (evt.locationName) lines.push(`📍 ${evt.locationName}`);
+            lines.push(`👥 ${evt.participantCount} people going`);
+            lines.push("");
+            lines.push("You in?");
+            await shareContent({
+              title: evt.name,
+              text: lines.join("\n"),
+              url: `${window.location.origin}/event/${code}`,
+            });
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2500);
+          }}
+          className="w-full py-2.5 rounded-2xl border border-blue-700/50 text-blue-300 text-xs font-semibold flex items-center justify-center gap-1.5 hover:border-blue-500 transition-all"
+        >
+          {copied ? <Check className="w-3.5 h-3.5 text-cyan-400" /> : <Send className="w-3.5 h-3.5" />}
+          {copied ? "Link copied!" : "Invite Friends"}
+        </button>
       </div>
 
       {/* Attendees */}

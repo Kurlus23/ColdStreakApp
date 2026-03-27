@@ -30,6 +30,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { getClientId } from "@/hooks/use-plunges";
 import { buildShareImage, dataUrlToBlob, loadImage, buildShareBlobFromPreloaded } from "@/lib/shareImage";
 import { isNative, nativeShare } from "@/lib/nativeShare";
+import { shareContent } from "@/lib/share";
 import { saveCustomAlarmUrl, loadCustomAlarmUrl, clearCustomAlarmUrl } from "@/lib/alarm-storage";
 import { Explore, GEAR_ITEMS, type GearCategory } from "@/pages/Explore";
 import {
@@ -4161,9 +4162,22 @@ export default function Home() {
                     <button
                       data-testid="button-view-badge-profile"
                       onClick={() => window.open(`/profile/${encodeURIComponent(username)}`, "_blank")}
-                      className="w-full flex items-center justify-center gap-2 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-sm font-medium py-2 rounded-xl active:scale-95 transition-transform hover:bg-cyan-500/30"
+                      className="flex-1 flex items-center justify-center gap-2 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-sm font-medium py-2 rounded-xl active:scale-95 transition-transform hover:bg-cyan-500/30"
                     >
                       <User className="w-3.5 h-3.5" /> View My Profile
+                    </button>
+                    <button
+                      data-testid="button-share-badge-profile"
+                      onClick={async () => {
+                        await shareContent({
+                          title: `${username} on ColdStreak`,
+                          text: `Check out ${username}'s cold plunge streak on ColdStreak 🧊🔥\nThey're on a ${streak}-day streak!\n\nJoin the grind →`,
+                          url: `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`,
+                        });
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 bg-blue-800/60 border border-blue-600/40 text-blue-200 text-sm font-medium py-2 rounded-xl active:scale-95 transition-transform"
+                    >
+                      <Share2 className="w-3.5 h-3.5" /> Share
                     </button>
                   </div>
                 )}
@@ -5607,6 +5621,56 @@ export default function Home() {
               {promptSaving ? "Saving…" : "Save"}
             </button>
 
+
+            {/* Share plunge */}
+            {promptPlungeRef.current && (
+              <button
+                data-testid="button-share-after-plunge"
+                disabled={promptSharing}
+                onClick={async () => {
+                  if (!promptPlungeRef.current || sharingLockRef.current) return;
+                  sharingLockRef.current = true;
+                  setPromptSharing(true);
+
+                  const p = promptPlungeRef.current;
+                  const s = p.duration;
+                  const m = Math.floor(s / 60);
+                  const durationStr = m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
+
+                  let locationName: string | undefined;
+                  if (promptLocationId === "custom") {
+                    locationName = promptCustomLocation.trim() || undefined;
+                  } else if (promptLocationId === "home") {
+                    locationName = "Home";
+                  } else if (promptLocationId.startsWith("community-")) {
+                    const cid = Number(promptLocationId.replace("community-", ""));
+                    locationName = communityLocs.find((l) => l.id === cid)?.name;
+                  } else if (promptLocationId) {
+                    locationName = PASSPORT_LOCATIONS.find((l) => l.id === promptLocationId)?.name;
+                  }
+
+                  const lines = [
+                    `I just completed a ${p.temperature}°F plunge! 🧊`,
+                    `⏱️ Duration: ${durationStr}`,
+                  ];
+                  if (streak > 0) lines.push(`🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}`);
+                  if (locationName) lines.push(`📍 ${locationName}`);
+                  lines.push("Join me on ColdStreak →");
+
+                  await shareContent({
+                    title: "ColdStreak Plunge",
+                    text: lines.join("\n"),
+                    url: `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`,
+                  });
+
+                  sharingLockRef.current = false;
+                  setPromptSharing(false);
+                }}
+                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-blue-600/60 text-sm font-semibold transition-all active:scale-95 ${promptSharing ? "opacity-50 cursor-not-allowed text-blue-500" : "text-blue-300 hover:border-cyan-500/60 hover:text-cyan-300"}`}
+              >
+                <Share2 className="w-4 h-4" /> {promptSharing ? "Sharing…" : "Share with friends"}
+              </button>
+            )}
 
             {/* Discard */}
             <button

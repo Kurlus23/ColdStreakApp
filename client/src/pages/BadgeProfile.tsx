@@ -1,11 +1,12 @@
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
-import { X, Pencil, ChevronDown, ChevronUp, Check } from "lucide-react";
+import { X, Pencil, Share2, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { SiInstagram, SiSnapchat, SiFacebook, SiTiktok, SiX, SiYoutube } from "react-icons/si";
 import { getAuthToken } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
+import { shareContent } from "@/lib/share";
 
 interface BadgeProfile {
   username: string;
@@ -330,15 +331,28 @@ export default function BadgeProfile() {
 
         {/* Owner action bar */}
         {isOwner && (
-          <div>
+          <div className="flex gap-2">
             <button
               data-testid="button-edit-badge-profile"
               onClick={() => (showEdit ? setShowEdit(false) : openEdit())}
-              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all active:scale-95"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all active:scale-95"
             >
               <Pencil className="w-3.5 h-3.5" />
               {showEdit ? "Cancel" : "Edit Profile"}
               {showEdit ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+            <button
+              data-testid="button-share-profile"
+              onClick={async () => {
+                await shareContent({
+                  title: `${profile.username} on ColdStreak`,
+                  text: `Check out ${profile.username}'s cold plunge streak on ColdStreak 🧊🔥\nThey're on a ${profile.streak}-day streak!\n\nJoin the grind →`,
+                  url: `https://coldstreakapp.com/profile/${encodeURIComponent(profile.username)}`,
+                });
+              }}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-800/60 border border-blue-600/40 text-blue-200 text-xs font-semibold hover:bg-blue-700/60 transition-all active:scale-95"
+            >
+              <Share2 className="w-3.5 h-3.5" /> Share Profile
             </button>
           </div>
         )}
