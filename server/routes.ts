@@ -743,11 +743,27 @@ export async function registerRoutes(
         planType = interval === "month" ? "monthly" : "annual";
       }
 
+      // If this is a lifetime purchase, cancel any active monthly/annual subscriptions
+      // so the customer isn't double-charged going forward.
+      if (!isSubscription && session.customer) {
+        try {
+          const customerId = typeof session.customer === "string" ? session.customer : session.customer.id;
+          const activeSubs = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 5 });
+          for (const sub of activeSubs.data) {
+            await stripe.subscriptions.cancel(sub.id);
+            console.log(`[stripe] Cancelled subscription ${sub.id} for ${email} after lifetime upgrade`);
+          }
+        } catch (subErr) {
+          console.error("Failed to cancel subscriptions after lifetime upgrade:", subErr);
+        }
+      }
+
       const proUser = await storage.createProUser(email, session_id, {
         planType,
         stripeSubscriptionId: subscriptionId,
         expiresAt,
       });
+      clearProStatusCache(email);
       res.json({ email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType });
     } catch (err) {
       console.error("Stripe verify error:", err);
@@ -932,6 +948,16 @@ export async function registerRoutes(
             const proUser = await storage.createProUser(email, session.id, { planType: "lifetime" });
             const result = { email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType };
             clearProStatusCache(email); // clear sub cache so next load reflects lifetime from DB
+            // Cancel any lingering monthly/annual subscriptions so the user isn't double-charged
+            try {
+              const activeSubs = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 5 });
+              for (const sub of activeSubs.data) {
+                await stripe.subscriptions.cancel(sub.id);
+                console.log(`[stripe] Cancelled subscription ${sub.id} for ${email} after lifetime detected`);
+              }
+            } catch (cancelErr) {
+              console.error("Failed to cancel subscriptions after lifetime auto-detect:", cancelErr);
+            }
             return res.json(result);
           }
         }

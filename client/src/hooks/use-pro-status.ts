@@ -117,8 +117,10 @@ export function useProStatus() {
   // page becomes visible again (tab focus, app foreground). This ensures
   // subscription cancellations are detected without requiring a sign-out.
   useEffect(() => {
+    // 30-second debounce prevents rapid-fire duplicate calls when tabs are toggled
+    // quickly. The server has its own 5-min Stripe cache so it handles the heavy lifting.
     let lastCheck = 0;
-    const MIN_CHECK_INTERVAL_MS = 5 * 60 * 1000; // don't re-check more than once per 5 min
+    const DEBOUNCE_MS = 30 * 1000;
 
     function verify() {
       const cachedEmail = localStorage.getItem(PRO_EMAIL_KEY);
@@ -131,7 +133,7 @@ export function useProStatus() {
       }
 
       const now = Date.now();
-      if (now - lastCheck < MIN_CHECK_INTERVAL_MS) return;
+      if (now - lastCheck < DEBOUNCE_MS) return;
       lastCheck = now;
 
       fetch(`/api/pro-status/${encodeURIComponent(cachedEmail)}`, { cache: "no-store" })
@@ -148,6 +150,7 @@ export function useProStatus() {
 
     verify();
 
+    // Check every time the user returns to the app (tab / Android foreground restore)
     function onVisibilityChange() {
       if (document.visibilityState === "visible") verify();
     }
