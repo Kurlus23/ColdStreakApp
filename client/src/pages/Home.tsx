@@ -4171,7 +4171,7 @@ export default function Home() {
                       onClick={async () => {
                         await shareContent({
                           title: `${username} on ColdStreak`,
-                          text: `Check out ${username}'s cold plunge streak on ColdStreak 🧊🔥\nThey're on a ${streak}-day streak!\n\nThink you can beat them?\n\nhttps://coldstreakapp.com/profile/${encodeURIComponent(username)}`,
+                          text: `Check out ${username}'s cold plunge streak on ColdStreak 🧊🔥\nThey're on a ${streak}-day streak!\n\nThink you can beat them?`,
                         });
                       }}
                       className="flex-1 flex items-center justify-center gap-2 bg-blue-800/60 border border-blue-600/40 text-blue-200 text-sm font-medium py-2 rounded-xl active:scale-95 transition-transform"
@@ -5643,8 +5643,6 @@ export default function Home() {
                       `⏱️ ${durationStr} | 🔥 ${streak}-day streak`,
                       "",
                       "Think you can beat me?",
-                      "",
-                      "https://coldstreakapp.com",
                     ].join("\n"),
                   });
 

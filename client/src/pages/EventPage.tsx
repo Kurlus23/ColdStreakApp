@@ -255,7 +255,7 @@ export default function EventPage() {
           data-testid="button-share-event-link"
           onClick={async () => {
             const location = evt.locationName ? `\n📍 ${evt.locationName}` : "";
-            const message = `Join me at ${evt.name} 🧊🔥${location}\n📅 ${fmtDate(evt.eventDate)}\n\nLet's get after it:\n\nhttps://coldstreakapp.com/events`;
+            const message = `Join me at ${evt.name} 🧊🔥${location}\n📅 ${fmtDate(evt.eventDate)}`;
             console.log("SHARE MESSAGE:", message);
             await shareContent({
               title: evt.name,

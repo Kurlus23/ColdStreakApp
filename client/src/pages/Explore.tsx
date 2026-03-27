@@ -775,7 +775,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     const date = evt.eventDate
       ? `\n📅 ${new Date(evt.eventDate).toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric", year: "numeric" })}`
       : "";
-    const message = `Join me at ${evt.name} 🧊🔥${location}${date}\n\nLet's get after it:\n\nhttps://coldstreakapp.com/events`;
+    const message = `Join me at ${evt.name} 🧊🔥${location}${date}`;
     console.log("SHARE MESSAGE:", message);
     await shareContent({
       title: `Join me at ${evt.name}`,
