@@ -937,7 +937,10 @@ export async function registerRoutes(
     const sig = req.headers["stripe-signature"] as string;
     let event: Stripe.Event;
     try {
-      event = stripe.webhooks.constructEvent(req.rawBody as Buffer, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+      const webhookSecret = TEST_MODE
+        ? process.env.STRIPE_TEST_WEBHOOK_SECRET!
+        : process.env.STRIPE_WEBHOOK_SECRET!;
+      event = stripe.webhooks.constructEvent(req.rawBody as Buffer, sig, webhookSecret);
     } catch (err) {
       return res.status(400).json({ message: "Webhook signature invalid" });
     }
