@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +31,54 @@ interface LookupResult {
   }[];
 }
 
+type UserFlag = "active" | "expiring-soon" | "orange" | "red";
+type SortMode = "default" | "issues-first" | "active-first";
+
+function getUserFlag(u: ProUser): UserFlag {
+  const now = Date.now();
+  const expiry = u.expiresAt ? new Date(u.expiresAt).getTime() : null;
+  const sevenDays = 7 * 24 * 60 * 60 * 1000;
+
+  if (!u.active) {
+    // Inactive — cancelled or deactivated
+    if (expiry === null || expiry < now) return "red";   // fully expired
+    return "orange";                                      // cancelled but access window still open
+  }
+  // Active but expiry already passed — DB inconsistency
+  if (expiry !== null && expiry < now) return "red";
+  // Active, expires within 7 days
+  if (expiry !== null && expiry - now < sevenDays) return "expiring-soon";
+  return "active";
+}
+
+const FLAG_PRIORITY: Record<UserFlag, number> = {
+  red: 0,
+  orange: 1,
+  "expiring-soon": 2,
+  active: 3,
+};
+
+const FLAG_LABEL: Record<UserFlag, string> = {
+  red: "Expired / Cancelled",
+  orange: "Cancelled — Access Remaining",
+  "expiring-soon": "Expiring Soon",
+  active: "Active",
+};
+
+const FLAG_BORDER: Record<UserFlag, string> = {
+  red: "border-l-4 border-l-red-500",
+  orange: "border-l-4 border-l-orange-400",
+  "expiring-soon": "border-l-4 border-l-yellow-400",
+  active: "",
+};
+
+const FLAG_BADGE: Record<UserFlag, string> = {
+  red: "bg-red-700 text-white",
+  orange: "bg-orange-500 text-white",
+  "expiring-soon": "bg-yellow-500 text-black",
+  active: "bg-green-600 text-white",
+};
+
 export default function Admin() {
   const { toast } = useToast();
   const auth = useAuth();
@@ -45,6 +93,7 @@ export default function Admin() {
   });
 
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>("issues-first");
 
   // Email lookup
   const [lookupEmail, setLookupEmail] = useState("");
@@ -132,7 +181,7 @@ export default function Admin() {
       toast({ title: "Pro status updated" });
     },
     onError: () => {
-      toast({ title: "Failed to update", description: "Are you logged in as admin?", variant: "destructive" });
+      toast({ title: "Failed to update", variant: "destructive" });
     },
   });
 
@@ -140,9 +189,7 @@ export default function Admin() {
     mutationFn: async (email: string) => {
       const res = await fetch(`/api/admin/pro-users/${encodeURIComponent(email)}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}`,
-        },
+        headers: { Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}` },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
@@ -151,12 +198,33 @@ export default function Admin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/pro-users"] });
       setConfirmDelete(null);
-      toast({ title: "Pro record deleted", description: "User can now purchase fresh." });
+      toast({ title: "Pro record deleted" });
     },
     onError: (err: Error) => {
       toast({ title: "Delete failed", description: err.message, variant: "destructive" });
     },
   });
+
+  // Sorted users with flag metadata
+  const sortedUsers = useMemo(() => {
+    if (!proUsers) return [];
+    const withFlags = proUsers.map((u) => ({ ...u, flag: getUserFlag(u) }));
+    if (sortMode === "issues-first") {
+      return [...withFlags].sort((a, b) => FLAG_PRIORITY[a.flag] - FLAG_PRIORITY[b.flag]);
+    }
+    if (sortMode === "active-first") {
+      return [...withFlags].sort((a, b) => FLAG_PRIORITY[b.flag] - FLAG_PRIORITY[a.flag]);
+    }
+    return withFlags;
+  }, [proUsers, sortMode]);
+
+  // Counts per flag
+  const flagCounts = useMemo(() => {
+    if (!proUsers) return { red: 0, orange: 0, "expiring-soon": 0, active: 0 };
+    const counts = { red: 0, orange: 0, "expiring-soon": 0, active: 0 };
+    proUsers.forEach((u) => { counts[getUserFlag(u)]++; });
+    return counts;
+  }, [proUsers]);
 
   const handleLogin = async () => {
     setLoginError("");
@@ -173,7 +241,7 @@ export default function Admin() {
           <input
             data-testid="input-admin-username"
             type="text"
-            placeholder="Username"
+            placeholder="Username or email"
             autoCapitalize="none"
             autoCorrect="off"
             value={username}
@@ -210,7 +278,7 @@ export default function Admin() {
       <div className="min-h-screen bg-blue-950 flex items-center justify-center text-white">
         <div className="text-center space-y-3">
           <p className="text-red-400">Access denied — admin accounts only.</p>
-          <button onClick={() => { auth.logout(); }} className="text-blue-400 text-sm underline hover:text-blue-300">Sign out</button>
+          <button onClick={() => auth.logout()} className="text-blue-400 text-sm underline hover:text-blue-300">Sign out</button>
         </div>
       </div>
     );
@@ -262,7 +330,6 @@ export default function Admin() {
 
         {lookupResult && (
           <div className="mt-4 space-y-3">
-            {/* DB record */}
             <div className="bg-blue-800/60 rounded-lg p-3">
               <p className="text-xs font-semibold text-blue-300 mb-2">Database Record</p>
               {lookupResult.dbRecord ? (
@@ -288,7 +355,6 @@ export default function Admin() {
               )}
             </div>
 
-            {/* Stripe subscriptions */}
             <div className="bg-blue-800/60 rounded-lg p-3">
               <p className="text-xs font-semibold text-blue-300 mb-2">Stripe Subscriptions ({lookupResult.stripeSubscriptions.length})</p>
               {lookupResult.stripeSubscriptions.length === 0 ? (
@@ -323,10 +389,10 @@ export default function Admin() {
         )}
       </div>
 
-      {/* Verify Stripe payment (cs_ session or sub_ subscription) */}
+      {/* Verify Stripe payment */}
       <div className="mb-4 max-w-2xl bg-blue-900/60 rounded-xl p-4">
         <p className="text-sm font-semibold text-blue-200 mb-1">Verify Stripe Payment → Grant Pro</p>
-        <p className="text-xs text-blue-400 mb-3">Paste a Stripe checkout session ID (<span className="font-mono">cs_…</span>) or subscription ID (<span className="font-mono">sub_…</span>). Pro is only granted if Stripe confirms it.</p>
+        <p className="text-xs text-blue-400 mb-3">Paste a checkout session ID (<span className="font-mono">cs_…</span>) or subscription ID (<span className="font-mono">sub_…</span>).</p>
         <div className="flex gap-2 flex-wrap">
           <input
             data-testid="input-verify-id"
@@ -348,7 +414,7 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Admin override — no Stripe check */}
+      {/* Admin override */}
       <div className="mb-6 max-w-2xl">
         <button
           className="text-xs text-yellow-500/70 hover:text-yellow-400 underline"
@@ -394,83 +460,138 @@ export default function Admin() {
       </div>
 
       {isLoading && <p className="text-blue-300">Loading…</p>}
-      {proUsers && proUsers.length === 0 && <p className="text-blue-300">No pro users found.</p>}
 
-      <div className="flex flex-col gap-4 max-w-2xl">
-        {proUsers?.map((u) => (
-          <div
-            key={u.id}
-            data-testid={`admin-pro-user-${u.id}`}
-            className="bg-blue-900/60 rounded-xl p-4 flex flex-col gap-2"
-          >
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <div>
-                <p className="font-semibold text-sm">{u.email}</p>
-                <p className="text-xs text-blue-300 mt-0.5">
-                  {u.planType} {u.foundingPlunger && "· Founding Plunger"}
-                  {u.expiresAt && ` · Expires ${new Date(u.expiresAt).toLocaleDateString()}`}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge
-                  data-testid={`badge-active-${u.id}`}
-                  className={u.active ? "bg-green-600 text-white" : "bg-red-600 text-white"}
+      {proUsers && (
+        <>
+          {/* Summary counts + sort controls */}
+          <div className="max-w-2xl mb-4 flex flex-wrap items-center gap-3">
+            <div className="flex gap-2 flex-wrap text-xs">
+              {flagCounts.red > 0 && (
+                <span className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-900/40 border border-red-700/50 text-red-300">
+                  <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+                  {flagCounts.red} expired/cancelled
+                </span>
+              )}
+              {flagCounts.orange > 0 && (
+                <span className="flex items-center gap-1 px-2 py-1 rounded-lg bg-orange-900/40 border border-orange-700/50 text-orange-300">
+                  <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
+                  {flagCounts.orange} cancelled w/ access
+                </span>
+              )}
+              {flagCounts["expiring-soon"] > 0 && (
+                <span className="flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-900/40 border border-yellow-700/50 text-yellow-300">
+                  <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block" />
+                  {flagCounts["expiring-soon"]} expiring soon
+                </span>
+              )}
+              <span className="flex items-center gap-1 px-2 py-1 rounded-lg bg-green-900/30 border border-green-700/40 text-green-300">
+                <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+                {flagCounts.active} active
+              </span>
+            </div>
+
+            <div className="ml-auto flex items-center gap-1 bg-blue-900/60 rounded-lg p-1">
+              {(["issues-first", "default", "active-first"] as SortMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  data-testid={`sort-${mode}`}
+                  onClick={() => setSortMode(mode)}
+                  className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                    sortMode === mode
+                      ? "bg-blue-600 text-white"
+                      : "text-blue-400 hover:text-blue-200"
+                  }`}
                 >
-                  {u.active ? "Active" : "Inactive"}
-                </Badge>
-                <Button
-                  data-testid={`btn-toggle-${u.id}`}
-                  size="sm"
-                  variant="outline"
-                  className="border-blue-400 text-blue-200 hover:bg-blue-800"
-                  disabled={toggleMutation.isPending || deleteMutation.isPending}
-                  onClick={() => toggleMutation.mutate({ email: u.email, active: !u.active })}
-                >
-                  {u.active ? "Deactivate" : "Activate"}
-                </Button>
-                {confirmDelete === u.email ? (
-                  <div className="flex items-center gap-1">
-                    <Button
-                      data-testid={`btn-confirm-delete-${u.id}`}
-                      size="sm"
-                      className="bg-red-600 hover:bg-red-500 text-white"
-                      disabled={deleteMutation.isPending}
-                      onClick={() => deleteMutation.mutate(u.email)}
+                  {mode === "issues-first" ? "Issues first" : mode === "active-first" ? "Active first" : "Default"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 max-w-2xl">
+            {sortedUsers.map((u) => (
+              <div
+                key={u.id}
+                data-testid={`admin-pro-user-${u.id}`}
+                className={`bg-blue-900/60 rounded-xl p-4 flex flex-col gap-2 ${FLAG_BORDER[u.flag]}`}
+              >
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold text-sm">{u.email}</p>
+                      {u.flag !== "active" && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${FLAG_BADGE[u.flag]}`}>
+                          {FLAG_LABEL[u.flag]}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-blue-300 mt-0.5">
+                      {u.planType} {u.foundingPlunger && "· Founding Plunger"}
+                      {u.expiresAt && ` · Expires ${new Date(u.expiresAt).toLocaleDateString()}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge
+                      data-testid={`badge-active-${u.id}`}
+                      className={u.active ? "bg-green-600 text-white" : "bg-red-600 text-white"}
                     >
-                      {deleteMutation.isPending ? "Cancelling & Deleting…" : "Yes, Cancel & Delete"}
-                    </Button>
+                      {u.active ? "Active" : "Inactive"}
+                    </Badge>
                     <Button
+                      data-testid={`btn-toggle-${u.id}`}
                       size="sm"
                       variant="outline"
-                      className="border-blue-600 text-blue-300"
-                      onClick={() => setConfirmDelete(null)}
+                      className="border-blue-400 text-blue-200 hover:bg-blue-800"
+                      disabled={toggleMutation.isPending || deleteMutation.isPending}
+                      onClick={() => toggleMutation.mutate({ email: u.email, active: !u.active })}
                     >
-                      Cancel
+                      {u.active ? "Deactivate" : "Activate"}
                     </Button>
+                    {confirmDelete === u.email ? (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          data-testid={`btn-confirm-delete-${u.id}`}
+                          size="sm"
+                          className="bg-red-600 hover:bg-red-500 text-white"
+                          disabled={deleteMutation.isPending}
+                          onClick={() => deleteMutation.mutate(u.email)}
+                        >
+                          {deleteMutation.isPending ? "Cancelling & Deleting…" : "Yes, Cancel & Delete"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-blue-600 text-blue-300"
+                          onClick={() => setConfirmDelete(null)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        data-testid={`btn-delete-${u.id}`}
+                        size="sm"
+                        variant="outline"
+                        className="border-red-700/50 text-red-400 hover:bg-red-900/30 hover:border-red-500"
+                        disabled={toggleMutation.isPending || deleteMutation.isPending}
+                        onClick={() => setConfirmDelete(u.email)}
+                      >
+                        Delete
+                      </Button>
+                    )}
                   </div>
-                ) : (
-                  <Button
-                    data-testid={`btn-delete-${u.id}`}
-                    size="sm"
-                    variant="outline"
-                    className="border-red-700/50 text-red-400 hover:bg-red-900/30 hover:border-red-500"
-                    disabled={toggleMutation.isPending || deleteMutation.isPending}
-                    onClick={() => setConfirmDelete(u.email)}
-                  >
-                    Delete
-                  </Button>
+                </div>
+                {u.stripeSessionId && (
+                  <p className="text-xs text-blue-400 break-all">Session: {u.stripeSessionId}</p>
+                )}
+                {u.stripeSubscriptionId && (
+                  <p className="text-xs text-blue-400 break-all">Sub: {u.stripeSubscriptionId}</p>
                 )}
               </div>
-            </div>
-            {u.stripeSessionId && (
-              <p className="text-xs text-blue-400 break-all">Session: {u.stripeSessionId}</p>
-            )}
-            {u.stripeSubscriptionId && (
-              <p className="text-xs text-blue-400 break-all">Sub: {u.stripeSubscriptionId}</p>
-            )}
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </div>
   );
 }
