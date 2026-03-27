@@ -53,5 +53,11 @@ The system uses a `clientId` for anonymous plunge tracking, which can be synced 
 ## Avatar / Profile Photos
 Profile avatars currently use a URL field — users paste a link to an image hosted elsewhere (e.g. a profile photo URL). This keeps the app free of file storage requirements and avoids privacy/moderation obligations.
 
+## Pre-Launch Checklist (before Google Play release)
+- **Remove `kurlus23@gmail.com` from admin** — After go-live, only `CStreak28` (`coldstreakapp17@gmail.com`) should be admin. Remove `kurlus23@gmail.com` from the `ADMIN_EMAILS` list in `server/routes.ts` and from any admin-seed logic in `server/storage.ts`.
+- **Delete `seedTestVerifiedBusiness()`** — Remove the test verified business seed call before production launch.
+- **Activate Stripe Customer Portal** — Must be enabled in the Stripe dashboard before subscription management goes live.
+- **Add `username` column to production DB** — Run `ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT UNIQUE;` on the production database if not already applied.
+
 ## v2.0 Roadmap Notes
 - **Bitmoji / device photo upload for avatars** — Allow users to upload an image directly from their device (including Bitmoji screenshots). Requires cloud image storage (Cloudinary or similar), privacy policy updates to cover image data collection, ToS clause for user-generated content, and a content moderation plan for App Store / Play Store compliance. Current URL-paste approach intentionally deferred until v2.0.
