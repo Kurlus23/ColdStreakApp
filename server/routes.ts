@@ -698,6 +698,37 @@ export async function registerRoutes(
     }
   });
 
+  // Admin: verify by Stripe payment intent ID and grant Pro (lifetime)
+  app.post("/api/admin/verify-payment", async (req, res) => {
+    try {
+      const caller = extractUser(req);
+      if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+      const { paymentIntentId } = z.object({ paymentIntentId: z.string().startsWith("pi_") }).parse(req.body);
+
+      const pi = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["customer"] });
+      if (pi.status !== "succeeded") {
+        return res.status(402).json({ message: `Payment intent is ${pi.status} — not succeeded` });
+      }
+
+      // Try to get email: prefer customer email, fall back to receipt_email
+      let email: string | null = null;
+      if (pi.customer && typeof pi.customer === "object" && (pi.customer as Stripe.Customer).email) {
+        email = (pi.customer as Stripe.Customer).email;
+      } else if (pi.receipt_email) {
+        email = pi.receipt_email;
+      }
+      if (!email) return res.status(400).json({ message: "No email found on payment intent or its customer" });
+
+      const proUser = await storage.createProUser(email.toLowerCase(), paymentIntentId, { planType: "lifetime" });
+      clearProStatusCache(email.toLowerCase());
+      console.log(`[admin] Verified payment intent ${paymentIntentId} → granted lifetime pro to ${email}`);
+      res.json({ email: proUser.email, isPro: true, planType: proUser.planType, foundingPlunger: proUser.foundingPlunger });
+    } catch (err: any) {
+      console.error("[admin] Verify payment intent error:", err);
+      res.status(500).json({ message: err?.message ?? "Failed to verify payment intent" });
+    }
+  });
+
   // Admin: verify by Stripe subscription ID and grant Pro
   app.post("/api/admin/verify-subscription", async (req, res) => {
     try {

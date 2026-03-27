@@ -126,24 +126,32 @@ export default function Admin() {
 
   const isSubId = verifyId.startsWith("sub_");
   const isSessionId = verifyId.startsWith("cs_");
+  const isPaymentId = verifyId.startsWith("pi_");
 
   const verifyMutation = useMutation({
     mutationFn: async (id: string) => {
+      const authHeader = { Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}` };
       if (id.startsWith("sub_")) {
         const res = await fetch("/api/admin/verify-subscription", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}`,
-          },
+          headers: { "Content-Type": "application/json", ...authHeader },
           body: JSON.stringify({ subscriptionId: id }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
+        return data;
+      } else if (id.startsWith("pi_")) {
+        const res = await fetch("/api/admin/verify-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeader },
+          body: JSON.stringify({ paymentIntentId: id }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
         return data;
       } else {
         const res = await fetch(`/api/stripe/verify?session_id=${encodeURIComponent(id)}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}` },
+          headers: authHeader,
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
@@ -397,7 +405,7 @@ export default function Admin() {
           <input
             data-testid="input-verify-id"
             type="text"
-            placeholder="cs_test_… or sub_…"
+            placeholder="cs_… or sub_… or pi_…"
             value={verifyId}
             onChange={(e) => setVerifyId(e.target.value.trim())}
             className="flex-1 min-w-0 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400 font-mono"
@@ -406,7 +414,7 @@ export default function Admin() {
             data-testid="button-verify"
             size="sm"
             className="bg-cyan-600 hover:bg-cyan-500 text-white"
-            disabled={verifyMutation.isPending || (!isSubId && !isSessionId)}
+            disabled={verifyMutation.isPending || (!isSubId && !isSessionId && !isPaymentId)}
             onClick={() => verifyMutation.mutate(verifyId)}
           >
             {verifyMutation.isPending ? "Verifying…" : "Verify & Grant"}
