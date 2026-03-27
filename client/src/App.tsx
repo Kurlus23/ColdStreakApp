@@ -12,6 +12,7 @@ import VerifyEmail from "@/pages/VerifyEmail";
 import BadgeProfile from "@/pages/BadgeProfile";
 import DeleteAccount from "@/pages/DeleteAccount";
 import EventPage from "@/pages/EventPage";
+import Admin from "@/pages/Admin";
 import { Sentry } from "@/lib/monitoring";
 
 function Router() {
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/profile/:username" component={BadgeProfile} />
       <Route path="/delete-account" component={DeleteAccount} />
       <Route path="/event/:code" component={EventPage} />
+      <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
   );
