@@ -3241,11 +3241,10 @@ export default function Home() {
                     <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
                       <User className="w-3 h-3" /> Leaderboard Name
                     </label>
-                    {(StreakBadge || DaysBadge) && (
+                    {StreakBadge && (
                       <div className="flex items-center gap-2 mb-2 bg-blue-800/40 rounded-xl px-3 py-2 border border-blue-700/30">
                         <span className="text-blue-400 text-xs truncate">{username || "You"}</span>
                         {StreakBadge}
-                        {DaysBadge}
                       </div>
                     )}
                     <input
