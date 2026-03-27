@@ -1297,8 +1297,19 @@ export async function registerRoutes(
       }
     });
 
-    // For users still without a badge profile, surface founding plunger status
-    const fpMap = stillMissing.length > 0 ? await storage.getFoundingPlungerBatch(stillMissing) : {};
+    // Get live foundingPlunger truth from pro_users for ALL usernames (found + missing).
+    // This corrects stale badge_profiles rows where the field was written before admin granted
+    // founding plunger status.
+    const allQueryUsernames = usernames;
+    const fpMap = allQueryUsernames.length > 0 ? await storage.getFoundingPlungerBatch(allQueryUsernames) : {};
+
+    // Merge live foundingPlunger into already-found profiles
+    const mergedFound = found.map((f) => {
+      const liveIsFP = fpMap[f.username.toLowerCase()] === true || fpMap[f.profile!.username.toLowerCase()] === true;
+      return { ...f.profile!, foundingPlunger: liveIsFP || f.profile!.foundingPlunger };
+    });
+
+    // Synthesise minimal profiles for users still missing a badge profile but who are founding plungers
     const computed = stillMissing
       .filter((u) => fpMap[u.toLowerCase()])
       .map((u) => ({
@@ -1311,7 +1322,7 @@ export async function registerRoutes(
         updatedAt: new Date().toISOString(),
       }));
 
-    res.json([...found.map((f) => f.profile!), ...computed]);
+    res.json([...mergedFound, ...computed]);
   });
 
   app.get("/api/badge-profile/:username", async (req, res) => {
@@ -1354,8 +1365,21 @@ export async function registerRoutes(
       coldestTemp = userPlunges.length > 0 ? Math.min(...userPlunges.map((p) => p.temperature)) : null;
     }
 
+    // Always get live foundingPlunger from pro_users — badge_profiles may be stale
+    // (e.g. admin grants founding status after the user last synced their profile)
+    const liveFpEmail = user?.email;
+    const liveFpDisplayName = user?.displayName || requestedUsername;
+    let liveFoundingPlunger = storedProfile?.foundingPlunger ?? false;
+    if (liveFpEmail) {
+      const proUser = await storage.getProUser(liveFpEmail.toLowerCase());
+      if (proUser?.foundingPlunger) liveFoundingPlunger = true;
+    } else {
+      const fpMap = await storage.getFoundingPlungerBatch([liveFpDisplayName]);
+      if (fpMap[liveFpDisplayName.toLowerCase()]) liveFoundingPlunger = true;
+    }
+
     if (storedProfile) {
-      return res.json({ ...storedProfile, plungeCount, uniqueDays, coldestTemp });
+      return res.json({ ...storedProfile, plungeCount, uniqueDays, coldestTemp, foundingPlunger: liveFoundingPlunger });
     }
 
     // Auto-compute when no published profile exists yet (but user account found)
@@ -1368,7 +1392,7 @@ export async function registerRoutes(
       uniqueDays,
       coldestTemp,
       updatedAt: new Date().toISOString(),
-      foundingPlunger: false,
+      foundingPlunger: liveFoundingPlunger,
       avatarUrl: null,
       bio: null,
       socialLinks: "{}",
