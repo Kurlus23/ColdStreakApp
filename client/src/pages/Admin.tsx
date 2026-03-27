@@ -18,6 +18,19 @@ interface ProUser {
   createdAt: string;
 }
 
+interface LookupResult {
+  email: string;
+  dbRecord: ProUser | null;
+  stripeSubscriptions: {
+    subscriptionId: string;
+    status: string;
+    planType: string;
+    currentPeriodEnd: string;
+    customerId: string;
+    customerEmail: string | null;
+  }[];
+}
+
 export default function Admin() {
   const { toast } = useToast();
   const auth = useAuth();
@@ -32,23 +45,65 @@ export default function Admin() {
   });
 
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [verifySessionId, setVerifySessionId] = useState("");
+
+  // Email lookup
+  const [lookupEmail, setLookupEmail] = useState("");
+  const [lookupResult, setLookupResult] = useState<LookupResult | null>(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
+
+  const handleLookup = async () => {
+    if (!lookupEmail.includes("@")) return;
+    setLookupLoading(true);
+    setLookupResult(null);
+    try {
+      const res = await fetch(`/api/admin/lookup?email=${encodeURIComponent(lookupEmail.trim())}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Lookup failed");
+      setLookupResult(data);
+    } catch (err: any) {
+      toast({ title: "Lookup failed", description: err.message, variant: "destructive" });
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
+  // Verify Stripe ID (session cs_ or subscription sub_)
+  const [verifyId, setVerifyId] = useState("");
   const [overrideEmail, setOverrideEmail] = useState("");
   const [overridePlan, setOverridePlan] = useState<"monthly" | "annual" | "lifetime" | "promo">("monthly");
   const [showOverride, setShowOverride] = useState(false);
 
-  const verifySessionMutation = useMutation({
-    mutationFn: async (sessionId: string) => {
-      const res = await fetch(`/api/stripe/verify?session_id=${encodeURIComponent(sessionId)}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}` },
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
-      return data;
+  const isSubId = verifyId.startsWith("sub_");
+  const isSessionId = verifyId.startsWith("cs_");
+
+  const verifyMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (id.startsWith("sub_")) {
+        const res = await fetch("/api/admin/verify-subscription", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}`,
+          },
+          body: JSON.stringify({ subscriptionId: id }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
+        return data;
+      } else {
+        const res = await fetch(`/api/stripe/verify?session_id=${encodeURIComponent(id)}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}` },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
+        return data;
+      }
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/pro-users"] });
-      setVerifySessionId("");
+      setVerifyId("");
       toast({ title: "Payment verified ✓", description: `${data.email} granted ${data.planType} pro.` });
     },
     onError: (err: Error) => {
@@ -115,7 +170,6 @@ export default function Admin() {
         <div className="w-full max-w-sm bg-blue-900/80 rounded-2xl border border-blue-700/50 p-6 space-y-4">
           <h1 className="text-xl font-extrabold italic text-white text-center">ColdStreak Admin</h1>
           <p className="text-blue-400 text-sm text-center">Sign in to continue</p>
-
           <input
             data-testid="input-admin-username"
             type="text"
@@ -137,9 +191,7 @@ export default function Admin() {
             onKeyDown={(e) => e.key === "Enter" && handleLogin()}
             className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
           />
-
           {loginError && <p className="text-red-400 text-xs">{loginError}</p>}
-
           <button
             data-testid="button-admin-login"
             onClick={handleLogin}
@@ -158,14 +210,19 @@ export default function Admin() {
       <div className="min-h-screen bg-blue-950 flex items-center justify-center text-white">
         <div className="text-center space-y-3">
           <p className="text-red-400">Access denied — admin accounts only.</p>
-          <button
-            onClick={() => { auth.logout(); }}
-            className="text-blue-400 text-sm underline hover:text-blue-300"
-          >Sign out</button>
+          <button onClick={() => { auth.logout(); }} className="text-blue-400 text-sm underline hover:text-blue-300">Sign out</button>
         </div>
       </div>
     );
   }
+
+  const statusColor: Record<string, string> = {
+    active: "bg-green-600",
+    trialing: "bg-cyan-600",
+    canceled: "bg-red-600",
+    incomplete: "bg-yellow-600",
+    past_due: "bg-orange-600",
+  };
 
   return (
     <div className="min-h-screen bg-blue-950 text-white p-6">
@@ -178,27 +235,115 @@ export default function Admin() {
         >Sign out</button>
       </div>
 
-      {/* Verify Stripe payment and grant Pro */}
+      {/* Customer email lookup */}
+      <div className="mb-4 max-w-2xl bg-blue-900/60 rounded-xl p-4">
+        <p className="text-sm font-semibold text-blue-200 mb-1">Customer Lookup</p>
+        <p className="text-xs text-blue-400 mb-3">Search by email — shows DB record and all Stripe subscriptions.</p>
+        <div className="flex gap-2">
+          <input
+            data-testid="input-lookup-email"
+            type="email"
+            placeholder="customer@example.com"
+            value={lookupEmail}
+            onChange={(e) => setLookupEmail(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleLookup()}
+            className="flex-1 min-w-0 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+          />
+          <Button
+            data-testid="button-lookup"
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-500 text-white"
+            disabled={lookupLoading || !lookupEmail.includes("@")}
+            onClick={handleLookup}
+          >
+            {lookupLoading ? "Searching…" : "Look Up"}
+          </Button>
+        </div>
+
+        {lookupResult && (
+          <div className="mt-4 space-y-3">
+            {/* DB record */}
+            <div className="bg-blue-800/60 rounded-lg p-3">
+              <p className="text-xs font-semibold text-blue-300 mb-2">Database Record</p>
+              {lookupResult.dbRecord ? (
+                <div className="space-y-1 text-xs">
+                  <div className="flex gap-4 flex-wrap">
+                    <span><span className="text-blue-400">Plan:</span> <span className="text-white font-mono">{lookupResult.dbRecord.planType}</span></span>
+                    <span><span className="text-blue-400">Active:</span> <span className={lookupResult.dbRecord.active ? "text-green-400" : "text-red-400"}>{lookupResult.dbRecord.active ? "Yes" : "No"}</span></span>
+                    <span><span className="text-blue-400">Founding Plunger:</span> <span className="text-white">{lookupResult.dbRecord.foundingPlunger ? "Yes" : "No"}</span></span>
+                  </div>
+                  {lookupResult.dbRecord.expiresAt && (
+                    <p><span className="text-blue-400">Expires:</span> <span className="text-white">{new Date(lookupResult.dbRecord.expiresAt).toLocaleDateString()}</span></p>
+                  )}
+                  {lookupResult.dbRecord.stripeSubscriptionId && (
+                    <p><span className="text-blue-400">Sub ID:</span> <span className="text-white font-mono break-all">{lookupResult.dbRecord.stripeSubscriptionId}</span></p>
+                  )}
+                  {lookupResult.dbRecord.stripeSessionId && (
+                    <p><span className="text-blue-400">Session ID:</span> <span className="text-white font-mono break-all">{lookupResult.dbRecord.stripeSessionId}</span></p>
+                  )}
+                  <p><span className="text-blue-400">Created:</span> <span className="text-white">{new Date(lookupResult.dbRecord.createdAt).toLocaleString()}</span></p>
+                </div>
+              ) : (
+                <p className="text-xs text-yellow-400">No DB record found for this email.</p>
+              )}
+            </div>
+
+            {/* Stripe subscriptions */}
+            <div className="bg-blue-800/60 rounded-lg p-3">
+              <p className="text-xs font-semibold text-blue-300 mb-2">Stripe Subscriptions ({lookupResult.stripeSubscriptions.length})</p>
+              {lookupResult.stripeSubscriptions.length === 0 ? (
+                <p className="text-xs text-yellow-400">No Stripe subscriptions found for this email.</p>
+              ) : (
+                <div className="space-y-2">
+                  {lookupResult.stripeSubscriptions.map((sub) => (
+                    <div key={sub.subscriptionId} className="border border-blue-700/50 rounded-lg p-2 space-y-1 text-xs">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`px-2 py-0.5 rounded text-white text-xs font-semibold ${statusColor[sub.status] ?? "bg-gray-600"}`}>{sub.status}</span>
+                        <span className="text-white font-semibold">{sub.planType}</span>
+                      </div>
+                      <p><span className="text-blue-400">Sub ID:</span> <span className="text-white font-mono break-all">{sub.subscriptionId}</span></p>
+                      <p><span className="text-blue-400">Renews / expires:</span> <span className="text-white">{new Date(sub.currentPeriodEnd).toLocaleDateString()}</span></p>
+                      <p><span className="text-blue-400">Customer ID:</span> <span className="text-white font-mono">{sub.customerId}</span></p>
+                      {(sub.status === "active" || sub.status === "trialing") && (
+                        <Button
+                          size="sm"
+                          className="bg-cyan-700 hover:bg-cyan-600 text-white mt-1 h-7 text-xs"
+                          disabled={verifyMutation.isPending}
+                          onClick={() => verifyMutation.mutate(sub.subscriptionId)}
+                        >
+                          Grant Pro from this subscription
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Verify Stripe payment (cs_ session or sub_ subscription) */}
       <div className="mb-4 max-w-2xl bg-blue-900/60 rounded-xl p-4">
         <p className="text-sm font-semibold text-blue-200 mb-1">Verify Stripe Payment → Grant Pro</p>
-        <p className="text-xs text-blue-400 mb-3">Paste the Stripe session ID (cs_…) from the Stripe dashboard. Pro is only granted if Stripe confirms payment.</p>
+        <p className="text-xs text-blue-400 mb-3">Paste a Stripe checkout session ID (<span className="font-mono">cs_…</span>) or subscription ID (<span className="font-mono">sub_…</span>). Pro is only granted if Stripe confirms it.</p>
         <div className="flex gap-2 flex-wrap">
           <input
-            data-testid="input-verify-session"
+            data-testid="input-verify-id"
             type="text"
-            placeholder="cs_test_… or cs_live_…"
-            value={verifySessionId}
-            onChange={(e) => setVerifySessionId(e.target.value.trim())}
+            placeholder="cs_test_… or sub_…"
+            value={verifyId}
+            onChange={(e) => setVerifyId(e.target.value.trim())}
             className="flex-1 min-w-0 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400 font-mono"
           />
           <Button
-            data-testid="button-verify-session"
+            data-testid="button-verify"
             size="sm"
             className="bg-cyan-600 hover:bg-cyan-500 text-white"
-            disabled={verifySessionMutation.isPending || !verifySessionId.startsWith("cs_")}
-            onClick={() => verifySessionMutation.mutate(verifySessionId)}
+            disabled={verifyMutation.isPending || (!isSubId && !isSessionId)}
+            onClick={() => verifyMutation.mutate(verifyId)}
           >
-            {verifySessionMutation.isPending ? "Verifying…" : "Verify & Grant"}
+            {verifyMutation.isPending ? "Verifying…" : "Verify & Grant"}
           </Button>
         </div>
       </div>
@@ -213,7 +358,7 @@ export default function Admin() {
         </button>
         {showOverride && (
           <div className="mt-3 bg-yellow-900/30 border border-yellow-600/40 rounded-xl p-4">
-            <p className="text-xs text-yellow-400 mb-3">⚠️ Bypass Stripe — use only for refunds, gifts, or support cases where payment is confirmed externally.</p>
+            <p className="text-xs text-yellow-400 mb-3">Bypass Stripe — use only for refunds, gifts, or support cases where payment is confirmed externally.</p>
             <div className="flex gap-2 flex-wrap">
               <input
                 data-testid="input-override-email"
@@ -249,10 +394,7 @@ export default function Admin() {
       </div>
 
       {isLoading && <p className="text-blue-300">Loading…</p>}
-
-      {proUsers && proUsers.length === 0 && (
-        <p className="text-blue-300">No pro users found.</p>
-      )}
+      {proUsers && proUsers.length === 0 && <p className="text-blue-300">No pro users found.</p>}
 
       <div className="flex flex-col gap-4 max-w-2xl">
         {proUsers?.map((u) => (

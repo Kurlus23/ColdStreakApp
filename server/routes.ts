@@ -655,6 +655,79 @@ export async function registerRoutes(
     res.json(users);
   });
 
+  // Admin: look up a customer by email — returns DB record + live Stripe subscription info
+  app.get("/api/admin/lookup", async (req, res) => {
+    try {
+      const caller = extractUser(req);
+      if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+      const email = (req.query.email as string | undefined)?.toLowerCase().trim();
+      if (!email || !email.includes("@")) return res.status(400).json({ message: "Valid email required" });
+
+      const dbRecord = await storage.getProUser(email);
+
+      // Fetch all Stripe customers + subscriptions for this email
+      const customers = await stripe.customers.list({ email, limit: 5 });
+      const stripeData: any[] = [];
+      for (const customer of customers.data) {
+        const [activeSubs, trialingSubs, cancelledSubs] = await Promise.all([
+          stripe.subscriptions.list({ customer: customer.id, status: "active", limit: 5 }),
+          stripe.subscriptions.list({ customer: customer.id, status: "trialing", limit: 5 }),
+          stripe.subscriptions.list({ customer: customer.id, status: "canceled", limit: 3 }),
+        ]);
+        const allSubs = [...activeSubs.data, ...trialingSubs.data, ...cancelledSubs.data];
+        for (const sub of allSubs) {
+          const interval = sub.items?.data?.[0]?.plan?.interval;
+          stripeData.push({
+            subscriptionId: sub.id,
+            status: sub.status,
+            planType: interval === "month" ? "monthly" : "annual",
+            currentPeriodEnd: new Date(sub.current_period_end * 1000).toISOString(),
+            customerId: customer.id,
+            customerEmail: customer.email,
+          });
+        }
+      }
+
+      res.json({ email, dbRecord: dbRecord ?? null, stripeSubscriptions: stripeData });
+    } catch (err: any) {
+      console.error("[admin] Lookup error:", err);
+      res.status(500).json({ message: err?.message ?? "Lookup failed" });
+    }
+  });
+
+  // Admin: verify by Stripe subscription ID and grant Pro
+  app.post("/api/admin/verify-subscription", async (req, res) => {
+    try {
+      const caller = extractUser(req);
+      if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+      const { subscriptionId } = z.object({ subscriptionId: z.string().startsWith("sub_") }).parse(req.body);
+
+      const sub = await stripe.subscriptions.retrieve(subscriptionId, { expand: ["customer"] });
+      if (sub.status !== "active" && sub.status !== "trialing") {
+        return res.status(402).json({ message: `Subscription is ${sub.status} — not active` });
+      }
+      const customer = sub.customer as Stripe.Customer;
+      const email = customer.email;
+      if (!email) return res.status(400).json({ message: "No email on Stripe customer" });
+
+      const interval = sub.items?.data?.[0]?.plan?.interval;
+      const planType = interval === "month" ? "monthly" : "annual";
+      const expiresAt = new Date(sub.current_period_end * 1000);
+
+      const proUser = await storage.createProUser(email.toLowerCase(), subscriptionId, {
+        planType,
+        stripeSubscriptionId: subscriptionId,
+        expiresAt,
+      });
+      clearProStatusCache(email.toLowerCase());
+      console.log(`[admin] Verified sub ${subscriptionId} → granted ${planType} pro to ${email}`);
+      res.json({ email: proUser.email, isPro: true, planType: proUser.planType, foundingPlunger: proUser.foundingPlunger });
+    } catch (err: any) {
+      console.error("[admin] Verify subscription error:", err);
+      res.status(500).json({ message: err?.message ?? "Failed to verify subscription" });
+    }
+  });
+
   // Admin: manually grant pro to any email (no Stripe required)
   app.post("/api/admin/pro-users", async (req, res) => {
     try {
