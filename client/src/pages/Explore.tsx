@@ -771,14 +771,15 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   }
 
   async function handleShareEvent(evt: Event) {
-    const lines: string[] = [`Join me at ${evt.name} 🧊🔥`];
-    if (evt.locationName) lines.push(`📍 ${evt.locationName}`);
-    if (evt.eventDate) lines.push(`📅 ${new Date(evt.eventDate).toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric", year: "numeric" })}`);
-    lines.push("");
-    lines.push("https://coldstreakapp.com/events");
+    const location = evt.locationName ? `\n📍 ${evt.locationName}` : "";
+    const date = evt.eventDate
+      ? `\n📅 ${new Date(evt.eventDate).toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric", year: "numeric" })}`
+      : "";
+    const message = `Join me at ${evt.name} 🧊🔥${location}${date}\n\nLet's get after it:\n\nhttps://coldstreakapp.com/events`;
+    console.log("SHARE MESSAGE:", message);
     await shareContent({
       title: `Join me at ${evt.name}`,
-      text: lines.join("\n"),
+      text: message,
     });
     setCopiedCode(evt.shareCode);
     setTimeout(() => setCopiedCode(null), 2500);

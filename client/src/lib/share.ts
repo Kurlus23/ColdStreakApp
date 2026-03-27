@@ -14,6 +14,7 @@ export async function shareContent({
 
   if (navigator.share) {
     try {
+      console.log("SHARE MESSAGE:", text);
       await navigator.share({ text });
       return;
     } catch (e: any) {
