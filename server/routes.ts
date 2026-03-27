@@ -667,13 +667,21 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/pro-users/:email", async (req, res) => {
-    const caller = extractUser(req);
-    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
-    const email = decodeURIComponent(req.params.email).toLowerCase();
-    const deleted = await storage.deleteProUser(email);
-    if (!deleted) return res.status(404).json({ message: "User not found" });
-    clearProStatusCache(email);
-    res.json({ success: true });
+    try {
+      const caller = extractUser(req);
+      console.log(`[admin] DELETE pro-user requested by: ${caller?.email ?? "unauthenticated"}`);
+      if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+      const email = decodeURIComponent(req.params.email).toLowerCase();
+      console.log(`[admin] Deleting pro-user: ${email}`);
+      const deleted = await storage.deleteProUser(email);
+      if (!deleted) return res.status(404).json({ message: "No pro record found for that email" });
+      clearProStatusCache(email);
+      console.log(`[admin] Deleted pro-user: ${email}`);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[admin] Delete pro-user error:", err);
+      res.status(500).json({ message: "Server error during delete" });
+    }
   });
 
   // ── Admin: hide / unhide locations ─────────────────────────────────────

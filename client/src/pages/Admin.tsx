@@ -46,15 +46,24 @@ export default function Admin() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (email: string) =>
-      apiRequest("DELETE", `/api/admin/pro-users/${encodeURIComponent(email)}`),
+    mutationFn: async (email: string) => {
+      const res = await fetch(`/api/admin/pro-users/${encodeURIComponent(email)}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}`,
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
+      return data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/pro-users"] });
       setConfirmDelete(null);
       toast({ title: "Pro record deleted", description: "User can now purchase fresh." });
     },
-    onError: () => {
-      toast({ title: "Delete failed", variant: "destructive" });
+    onError: (err: Error) => {
+      toast({ title: "Delete failed", description: err.message, variant: "destructive" });
     },
   });
 
