@@ -940,6 +940,13 @@ export async function registerRoutes(
       }
     }
 
+    // If the account was manually deactivated (e.g. for testing), skip ALL Stripe
+    // subscription checks — not just the one-time sessions above.  This prevents
+    // any active test subscription from silently re-granting pro access.
+    if (user && !user.active) {
+      return res.json({ email, isPro: false, foundingPlunger: false });
+    }
+
     // Always verify subscription status with Stripe (cached for 5 min to keep it fast).
     // This ensures cancellations are detected on the next page load without requiring sign-out.
     // Skip cache when ?noCache=1 (used by restore-purchase flow).
