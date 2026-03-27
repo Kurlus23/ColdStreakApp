@@ -23,6 +23,7 @@ export interface IStorage {
   // Pro users
   getProUser(email: string): Promise<ProUser | null>;
   getAllProUsers(): Promise<ProUser[]>;
+  getFreeUsers(): Promise<{ id: number; email: string; displayName: string | null; createdAt: Date }[]>;
   getProUserCount(): Promise<number>;
   createProUser(email: string, stripeSessionId: string, opts?: { planType?: string; stripeSubscriptionId?: string; expiresAt?: Date }): Promise<ProUser>;
   updateProUserSubscription(subscriptionId: string, expiresAt: Date): Promise<void>;
@@ -195,6 +196,18 @@ export class DatabaseStorage implements IStorage {
 
   async getAllProUsers(): Promise<ProUser[]> {
     return db.select().from(proUsers).orderBy(desc(proUsers.createdAt));
+  }
+
+  async getFreeUsers(): Promise<{ id: number; email: string; displayName: string | null; createdAt: Date }[]> {
+    return db
+      .select({ id: users.id, email: users.email, displayName: users.displayName, createdAt: users.createdAt })
+      .from(users)
+      .where(sql`lower(${users.email}) NOT IN (
+        SELECT email FROM pro_users
+        WHERE active = true AND (expires_at IS NULL OR expires_at > NOW())
+      )`)
+      .orderBy(desc(users.createdAt))
+      .limit(500);
   }
 
   async setProUserActive(email: string, active: boolean): Promise<ProUser | null> {

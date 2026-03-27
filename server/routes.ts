@@ -658,6 +658,13 @@ export async function registerRoutes(
     res.json(users);
   });
 
+  app.get("/api/admin/free-users", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const users = await storage.getFreeUsers();
+    res.json(users);
+  });
+
   // Admin: look up a customer by email — returns DB record + live Stripe subscription info
   app.get("/api/admin/lookup", async (req, res) => {
     try {

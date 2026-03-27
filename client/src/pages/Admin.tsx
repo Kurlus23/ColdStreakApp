@@ -6,6 +6,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+interface FreeUser {
+  id: number;
+  email: string;
+  displayName: string | null;
+  createdAt: string;
+}
+
 interface ProUser {
   id: number;
   email: string;
@@ -79,6 +86,17 @@ const FLAG_BADGE: Record<UserFlag, string> = {
   active: "bg-green-600 text-white",
 };
 
+function getPlanStyle(planType: string, active: boolean): string {
+  if (!active) return "bg-gray-900/70 border border-gray-700/50";
+  switch (planType) {
+    case "lifetime": return "bg-amber-950/70 border border-amber-700/40";
+    case "annual":   return "bg-green-950/70 border border-green-700/40";
+    case "promo":    return "bg-purple-950/70 border border-purple-700/40";
+    case "monthly":  return "bg-cyan-950/70 border border-cyan-700/40";
+    default:         return "bg-blue-900/60";
+  }
+}
+
 export default function Admin() {
   const { toast } = useToast();
   const auth = useAuth();
@@ -92,6 +110,12 @@ export default function Admin() {
     enabled: !!auth.user,
   });
 
+  const { data: freeUsers } = useQuery<FreeUser[]>({
+    queryKey: ["/api/admin/free-users"],
+    enabled: !!auth.user,
+  });
+
+  const [freeUsersExpanded, setFreeUsersExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("issues-first");
 
@@ -521,7 +545,7 @@ export default function Admin() {
               <div
                 key={u.id}
                 data-testid={`admin-pro-user-${u.id}`}
-                className={`bg-blue-900/60 rounded-xl p-4 flex flex-col gap-2 ${FLAG_BORDER[u.flag]}`}
+                className={`rounded-xl p-4 flex flex-col gap-2 ${getPlanStyle(u.planType, u.active)} ${FLAG_BORDER[u.flag]}`}
               >
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div>
@@ -599,6 +623,48 @@ export default function Admin() {
             ))}
           </div>
         </>
+      )}
+
+      {/* ── Free / Registered Users ─────────────────────────────────── */}
+      {auth.user && freeUsers && (
+        <div className="mt-10 max-w-2xl">
+          <button
+            data-testid="button-toggle-free-users"
+            onClick={() => setFreeUsersExpanded((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-slate-800/60 border border-slate-700/50 hover:bg-slate-800 transition-colors text-left"
+          >
+            <span className="font-semibold text-slate-200 text-sm">
+              Registered Free Users
+              <span className="ml-2 text-xs font-normal text-slate-400">({freeUsers.length})</span>
+            </span>
+            <span className="text-slate-400 text-xs">{freeUsersExpanded ? "▲ Hide" : "▼ Show"}</span>
+          </button>
+
+          {freeUsersExpanded && (
+            <div className="mt-3 flex flex-col gap-2">
+              {freeUsers.length === 0 ? (
+                <p className="text-slate-400 text-sm px-2">No free users found.</p>
+              ) : (
+                freeUsers.map((u) => (
+                  <div
+                    key={u.id}
+                    data-testid={`admin-free-user-${u.id}`}
+                    className="bg-slate-800/50 border border-slate-700/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
+                  >
+                    <div>
+                      <p className="font-semibold text-sm text-slate-200">{u.email}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {u.displayName ? `@${u.displayName} · ` : ""}
+                        Joined {new Date(u.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Badge className="bg-slate-600 text-slate-200 text-xs">Free</Badge>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
