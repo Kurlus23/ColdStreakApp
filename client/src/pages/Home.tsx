@@ -290,15 +290,31 @@ export default function Home() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get("session_id");
-    if (!sessionId) return;
-    localStorage.removeItem(PENDING_CHECKOUT_KEY);
-    verifySession(sessionId).then((planType) => {
-      if (planType) {
-        triggerProCelebration(planType);
-      } else {
-        toast({ title: "Payment not confirmed", description: "If you completed payment, try Restore Purchase.", variant: "destructive" });
+    if (sessionId) {
+      localStorage.removeItem(PENDING_CHECKOUT_KEY);
+      verifySession(sessionId).then((planType) => {
+        if (planType) {
+          triggerProCelebration(planType);
+        } else {
+          toast({ title: "Payment not confirmed", description: "If you completed payment, try Restore Purchase.", variant: "destructive" });
+        }
+        window.history.replaceState({}, "", window.location.pathname);
+      });
+      return;
+    }
+    // No session_id in URL — but if we have a pending checkout, the redirect may have
+    // lost the query param (common on Android web-to-browser flow). Try restoring via
+    // Stripe subscription lookup as a fallback.
+    const pendingEmail = localStorage.getItem(PENDING_CHECKOUT_KEY);
+    if (!pendingEmail || pendingEmail === "unknown") return;
+    restorePurchase(pendingEmail).then((result) => {
+      if (result.success) {
+        localStorage.removeItem(PENDING_CHECKOUT_KEY);
+        triggerProCelebration(result.planType ?? "monthly");
       }
-      window.history.replaceState({}, "", window.location.pathname);
+      // If restore failed, leave the key in place so the user can still use
+      // "Restore Purchase" manually. Don't show an error — the user may have
+      // abandoned checkout intentionally.
     });
   }, []);
 
