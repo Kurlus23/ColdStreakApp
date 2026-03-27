@@ -1040,6 +1040,19 @@ export async function registerRoutes(
           await storage.createProUser(email.toLowerCase(), sessionId, { planType, stripeSubscriptionId: subscriptionId, expiresAt });
           clearProStatusCache(email.toLowerCase());
           console.log(`[webhook] checkout.session.completed → granted ${planType} pro to ${email}`);
+          // On lifetime payment, cancel any lingering monthly/annual subscriptions
+          if (planType === "lifetime" && session.customer) {
+            const customerId = typeof session.customer === "string" ? session.customer : session.customer.id;
+            try {
+              const activeSubs = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 10 });
+              for (const sub of activeSubs.data) {
+                await stripe.subscriptions.cancel(sub.id);
+                console.log(`[webhook] Cancelled sub ${sub.id} for ${email} after lifetime grant`);
+              }
+            } catch (cancelErr) {
+              console.error("[webhook] Failed to cancel subscriptions after lifetime grant:", cancelErr);
+            }
+          }
         } catch (err) {
           console.error("[webhook] Failed to grant pro from checkout.session.completed:", err);
         }
@@ -1104,9 +1117,9 @@ export async function registerRoutes(
     const isExpired = user?.expiresAt ? new Date(user.expiresAt) < new Date() : false;
     const isActiveNonLifetime = user && user.active && !isExpired && user.planType !== "lifetime";
 
-    // If already lifetime in DB, return immediately (no Stripe needed)
-    if (user && user.active && !isExpired && user.planType === "lifetime") {
-      const result = { email: user.email, isPro: true, foundingPlunger: user.foundingPlunger, planType: user.planType };
+    // If already lifetime in DB, return immediately — lifetime never expires, no Stripe check needed
+    if (user && user.planType === "lifetime" && user.active) {
+      const result = { email: user.email, isPro: true, foundingPlunger: user.foundingPlunger, planType: "lifetime" };
       setProStatusCache(email, result);
       return res.json(result);
     }
@@ -1180,6 +1193,13 @@ export async function registerRoutes(
         ]);
         const sub = activeSubs.data[0] ?? trialingSubs.data[0];
         if (sub) {
+          // Secondary lifetime guard: if the DB already has lifetime, a monthly sub must not overwrite it.
+          // (The application-level createProUser guard handles this too, but skip the call entirely for clarity.)
+          if (user && user.planType === "lifetime" && user.active) {
+            const result = { email: user.email, isPro: true, foundingPlunger: user.foundingPlunger, planType: "lifetime" };
+            setProStatusCache(email, result);
+            return res.json(result);
+          }
           const interval = sub.items?.data?.[0]?.plan?.interval;
           const planType = interval === "month" ? "monthly" : "annual";
           const expiresAt = new Date(sub.current_period_end * 1000);
