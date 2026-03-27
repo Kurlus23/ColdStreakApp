@@ -942,6 +942,34 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Webhook signature invalid" });
     }
 
+    // Initial purchase — grant Pro as soon as checkout completes (server-to-server, no redirect needed)
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const email = session.customer_details?.email;
+      if (email && session.payment_status === "paid") {
+        try {
+          const isSubscription = session.mode === "subscription";
+          let subscriptionId: string | undefined;
+          let expiresAt: Date | undefined;
+          let planType = "lifetime";
+          if (isSubscription && session.subscription) {
+            const subId = typeof session.subscription === "string" ? session.subscription : session.subscription.id;
+            subscriptionId = subId;
+            const sub = await stripe.subscriptions.retrieve(subId);
+            expiresAt = new Date(sub.current_period_end * 1000);
+            const interval = sub.items?.data?.[0]?.plan?.interval;
+            planType = interval === "month" ? "monthly" : "annual";
+          }
+          const sessionId = session.id;
+          await storage.createProUser(email.toLowerCase(), sessionId, { planType, stripeSubscriptionId: subscriptionId, expiresAt });
+          clearProStatusCache(email.toLowerCase());
+          console.log(`[webhook] checkout.session.completed → granted ${planType} pro to ${email}`);
+        } catch (err) {
+          console.error("[webhook] Failed to grant pro from checkout.session.completed:", err);
+        }
+      }
+    }
+
     if (event.type === "invoice.payment_succeeded") {
       const invoice = event.data.object as Stripe.Invoice;
       const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
