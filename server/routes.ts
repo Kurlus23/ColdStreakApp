@@ -666,6 +666,16 @@ export async function registerRoutes(
     res.json(updated);
   });
 
+  app.delete("/api/admin/pro-users/:email", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const email = decodeURIComponent(req.params.email).toLowerCase();
+    const deleted = await storage.deleteProUser(email);
+    if (!deleted) return res.status(404).json({ message: "User not found" });
+    clearProStatusCache(email);
+    res.json({ success: true });
+  });
+
   // ── Admin: hide / unhide locations ─────────────────────────────────────
   app.patch("/api/admin/locations/:id/visibility", async (req, res) => {
     const caller = extractUser(req);

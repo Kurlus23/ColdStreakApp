@@ -31,6 +31,8 @@ export default function Admin() {
     enabled: !!auth.user,
   });
 
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
   const toggleMutation = useMutation({
     mutationFn: ({ email, active }: { email: string; active: boolean }) =>
       apiRequest("PATCH", `/api/admin/pro-users/${encodeURIComponent(email)}`, { active }),
@@ -40,6 +42,19 @@ export default function Admin() {
     },
     onError: () => {
       toast({ title: "Failed to update", description: "Are you logged in as admin?", variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (email: string) =>
+      apiRequest("DELETE", `/api/admin/pro-users/${encodeURIComponent(email)}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pro-users"] });
+      setConfirmDelete(null);
+      toast({ title: "Pro record deleted", description: "User can now purchase fresh." });
+    },
+    onError: () => {
+      toast({ title: "Delete failed", variant: "destructive" });
     },
   });
 
@@ -139,7 +154,7 @@ export default function Admin() {
                   {u.expiresAt && ` · Expires ${new Date(u.expiresAt).toLocaleDateString()}`}
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Badge
                   data-testid={`badge-active-${u.id}`}
                   className={u.active ? "bg-green-600 text-white" : "bg-red-600 text-white"}
@@ -151,11 +166,43 @@ export default function Admin() {
                   size="sm"
                   variant="outline"
                   className="border-blue-400 text-blue-200 hover:bg-blue-800"
-                  disabled={toggleMutation.isPending}
+                  disabled={toggleMutation.isPending || deleteMutation.isPending}
                   onClick={() => toggleMutation.mutate({ email: u.email, active: !u.active })}
                 >
                   {u.active ? "Deactivate" : "Activate"}
                 </Button>
+                {confirmDelete === u.email ? (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      data-testid={`btn-confirm-delete-${u.id}`}
+                      size="sm"
+                      className="bg-red-600 hover:bg-red-500 text-white"
+                      disabled={deleteMutation.isPending}
+                      onClick={() => deleteMutation.mutate(u.email)}
+                    >
+                      {deleteMutation.isPending ? "Deleting…" : "Confirm Delete"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-blue-600 text-blue-300"
+                      onClick={() => setConfirmDelete(null)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    data-testid={`btn-delete-${u.id}`}
+                    size="sm"
+                    variant="outline"
+                    className="border-red-700/50 text-red-400 hover:bg-red-900/30 hover:border-red-500"
+                    disabled={toggleMutation.isPending || deleteMutation.isPending}
+                    onClick={() => setConfirmDelete(u.email)}
+                  >
+                    Delete
+                  </Button>
+                )}
               </div>
             </div>
             {u.stripeSessionId && (

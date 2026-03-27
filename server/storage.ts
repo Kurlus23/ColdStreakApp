@@ -28,6 +28,7 @@ export interface IStorage {
   updateProUserSubscription(subscriptionId: string, expiresAt: Date): Promise<void>;
   deactivateProUserBySubscriptionId(subscriptionId: string): Promise<void>;
   setProUserActive(email: string, active: boolean): Promise<ProUser | null>;
+  deleteProUser(email: string): Promise<boolean>;
   // Promo codes
   getPromoCode(code: string): Promise<PromoCode | null>;
   redeemPromoCode(code: string): Promise<PromoCode | null>;
@@ -203,6 +204,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(proUsers.email, email.toLowerCase()))
       .returning();
     return updated ?? null;
+  }
+
+  async deleteProUser(email: string): Promise<boolean> {
+    const result = await db
+      .delete(proUsers)
+      .where(eq(proUsers.email, email.toLowerCase()))
+      .returning({ id: proUsers.id });
+    return result.length > 0;
   }
 
   async getProUserCount(): Promise<number> {
