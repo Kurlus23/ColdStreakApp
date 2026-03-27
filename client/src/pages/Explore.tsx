@@ -771,15 +771,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   }
 
   async function handleShareEvent(evt: Event) {
-    const location = evt.locationName ? `\n📍 ${evt.locationName}` : "";
-    const date = evt.eventDate
-      ? `\n📅 ${new Date(evt.eventDate).toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric", year: "numeric" })}`
-      : "";
-    const message = `Join me at ${evt.name} 🧊🔥${location}${date}`;
-    console.log("SHARE MESSAGE:", message);
     await shareContent({
       title: `Join me at ${evt.name}`,
-      text: message,
       url: `${window.location.origin}/event/${evt.shareCode}`,
     });
     setCopiedCode(evt.shareCode);

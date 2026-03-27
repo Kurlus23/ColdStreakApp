@@ -212,7 +212,6 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
         "",
         "Think you can beat me?",
       ].join("\n"),
-      url: "https://coldstreakapp.com",
     });
   };
 

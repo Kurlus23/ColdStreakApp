@@ -43,7 +43,7 @@ export async function nativeShare({
   onCaptionCopied,
 }: {
   title?: string;
-  text: string;
+  text?: string;
   url?: string;
   photoBlob?: Blob | null;
   photoFilename?: string;

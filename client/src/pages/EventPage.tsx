@@ -254,12 +254,8 @@ export default function EventPage() {
         <button
           data-testid="button-share-event-link"
           onClick={async () => {
-            const location = evt.locationName ? `\n📍 ${evt.locationName}` : "";
-            const message = `Join me at ${evt.name} 🧊🔥${location}\n📅 ${fmtDate(evt.eventDate)}`;
-            console.log("SHARE MESSAGE:", message);
             await shareContent({
               title: evt.name,
-              text: message,
               url: `${window.location.origin}/event/${code}`,
             });
             setCopied(true);

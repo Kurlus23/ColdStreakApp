@@ -4171,7 +4171,6 @@ export default function Home() {
                       onClick={async () => {
                         await shareContent({
                           title: `${username} on ColdStreak`,
-                          text: `Check out ${username}'s cold plunge streak on ColdStreak 🧊🔥\nThey're on a ${streak}-day streak!\n\nThink you can beat them?`,
                           url: `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`,
                         });
                       }}
@@ -5645,7 +5644,6 @@ export default function Home() {
                       "",
                       "Think you can beat me?",
                     ].join("\n"),
-                    url: "https://coldstreakapp.com",
                   });
 
                   sharingLockRef.current = false;
