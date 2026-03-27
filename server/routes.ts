@@ -7,7 +7,7 @@ import Stripe from "stripe";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail } from "./email";
+import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail, sendAdminSecurityAlert } from "./email";
 import webpush from "web-push";
 
 webpush.setVapidDetails(
@@ -69,7 +69,10 @@ const MONTHLY_PRICE_ID = TEST_MODE
   ? process.env.STRIPE_TEST_MONTHLY_PRICE_ID!
   : (process.env.STRIPE_MONTHLY_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID!);
 const JWT_SECRET = process.env.SESSION_SECRET || "coldstreak-dev-secret";
-const ADMIN_EMAILS = new Set(["kurlus23@gmail.com"]);
+const ADMIN_EMAILS = new Set(["kurlus23@gmail.com", "coldstreakapp17@gmail.com"]);
+// Usernames whose login/reset events trigger a security alert to kurlus23@gmail.com
+const MONITORED_USERNAMES = new Set(["CStreak28"]);
+const MONITORED_EMAILS = new Set(["coldstreakapp17@gmail.com"]);
 
 // In-memory cache for pro-status Stripe lookups (avoids ~1.5s Stripe API call on every load)
 // Caches: customer IDs (slow lookup), subscription status (monthly/annual)
@@ -186,10 +189,17 @@ async function seedTestVerifiedBusiness() {
 
 async function seedAdminAccount() {
   try {
+    // Primary admin (legacy)
     const adminEmail = process.env.ADMIN_EMAIL || "admin@coldstreakapp.com";
     const adminPassword = process.env.ADMIN_PASSWORD || "ColdStreak-Admin-2026!";
     const hash = await bcrypt.hash(adminPassword, 12);
     await storage.upsertAdminAccount(adminEmail, hash);
+
+    // CStreak28 admin — login by username, recovery by email
+    const cstreakEmail = process.env.CSTREAK_EMAIL || "coldstreakapp17@gmail.com";
+    const cstreakPassword = process.env.CSTREAK_PASSWORD || "Shaf@28135!28135!";
+    const cstreakHash = await bcrypt.hash(cstreakPassword, 12);
+    await storage.upsertAdminAccount(cstreakEmail, cstreakHash, { username: "CStreak28" });
   } catch (err) {
     console.error("[seed] Failed to seed admin account:", err);
   }
@@ -270,18 +280,29 @@ export async function registerRoutes(
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password } = z.object({
-        email: z.string().email(),
+      // Accept email address OR username in the same field
+      const { email: loginId, password } = z.object({
+        email: z.string().min(1, "Email or username is required"),
         password: z.string().min(1),
       }).parse(req.body);
 
-      const user = await storage.getUserByEmail(email);
-      if (!user) return res.status(401).json({ message: "Invalid email or password" });
+      const isEmail = loginId.includes("@");
+      const user = isEmail
+        ? await storage.getUserByEmail(loginId)
+        : await storage.getUserByUsername(loginId);
+
+      if (!user) return res.status(401).json({ message: "Invalid email/username or password" });
 
       const valid = await bcrypt.compare(password, user.passwordHash);
-      if (!valid) return res.status(401).json({ message: "Invalid email or password" });
+      if (!valid) return res.status(401).json({ message: "Invalid email/username or password" });
 
       if (user.isDisabled) return res.status(403).json({ message: "This account is currently disabled." });
+
+      // Security alert for monitored admin accounts (fire-and-forget)
+      const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress;
+      if ((user.username && MONITORED_USERNAMES.has(user.username)) || MONITORED_EMAILS.has(user.email)) {
+        sendAdminSecurityAlert("login", user.username ?? user.email, ip).catch(console.error);
+      }
 
       const token = signToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin });
       res.json({ token, user: { id: user.id, email: user.email, emailVerified: user.emailVerified, isAdmin: user.isAdmin } });
@@ -375,6 +396,12 @@ export async function registerRoutes(
         const origin = getSiteOrigin(req);
         const resetUrl = `${origin}/reset-password?token=${token}`;
         await sendPasswordResetEmail(email, resetUrl);
+
+        // Security alert for monitored admin accounts (fire-and-forget)
+        if (MONITORED_EMAILS.has(email.toLowerCase())) {
+          const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress;
+          sendAdminSecurityAlert("password_reset", email, ip).catch(console.error);
+        }
       }
       // Always respond OK — don't reveal whether email exists
       res.json({ ok: true });

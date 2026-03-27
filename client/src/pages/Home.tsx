@@ -3147,8 +3147,10 @@ export default function Home() {
                         </div>
                         <input
                           data-testid="input-auth-email"
-                          type="email"
-                          placeholder="Email"
+                          type={authMode === "register" ? "email" : "text"}
+                          placeholder={authMode === "register" ? "Email" : "Email or Username"}
+                          autoCapitalize="none"
+                          autoCorrect="off"
                           value={authEmail}
                           onChange={(e) => {
                             setAuthEmail(e.target.value);
@@ -3173,7 +3175,7 @@ export default function Home() {
                             }}
                             className="w-3.5 h-3.5 accent-cyan-400"
                           />
-                          <span className="text-blue-400 text-xs">Remember my email</span>
+                          <span className="text-blue-400 text-xs">Remember me</span>
                         </label>
                         <div className="space-y-1">
                           <input

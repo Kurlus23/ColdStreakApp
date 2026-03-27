@@ -78,6 +78,27 @@ export async function sendMilestoneEmail(milestone: number, totalUsers: number):
   );
 }
 
+export async function sendAdminSecurityAlert(event: "login" | "password_reset", username: string, ip?: string): Promise<void> {
+  const label = event === "login" ? "Login attempt" : "Password reset request";
+  const color = event === "login" ? "#22d3ee" : "#f59e0b";
+  await sendEmail(
+    "kurlus23@gmail.com",
+    `🔐 ColdStreak admin alert: ${label} for ${username}`,
+    `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">
+      <h1 style="color:#22d3ee;margin:0 0 8px">🧊 ColdStreak</h1>
+      <h2 style="color:${color};margin:0 0 16px;font-size:18px">${label}</h2>
+      <p style="color:#94a3b8;margin:0 0 8px;line-height:1.6">
+        A <strong style="color:#e2e8f0">${label.toLowerCase()}</strong> was detected for the admin account <strong style="color:${color}">${username}</strong>.
+      </p>
+      ${ip ? `<p style="color:#64748b;font-size:13px;margin:0 0 8px">IP: ${ip}</p>` : ""}
+      <p style="color:#64748b;margin:16px 0 0;font-size:13px">
+        If this was you, no action is needed. If not, change the password immediately.<br><br>
+        — ColdStreak Security 🥶
+      </p>
+    </div>`
+  );
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   await sendEmail(to, "Reset your ColdStreak password", `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">

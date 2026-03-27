@@ -41,8 +41,9 @@ export interface IStorage {
   nominateUserLocation(id: number): Promise<UserLocation | null>;
   // Auth users
   createUser(email: string, passwordHash: string): Promise<User>;
-  upsertAdminAccount(email: string, passwordHash: string): Promise<void>;
+  upsertAdminAccount(email: string, passwordHash: string, opts?: { username?: string }): Promise<void>;
   getUserByEmail(email: string): Promise<User | null>;
+  getUserByUsername(username: string): Promise<User | null>;
   getUserById(id: number): Promise<User | null>;
   deleteUser(id: number): Promise<void>;
   setResetToken(email: string, token: string, expiry: Date): Promise<boolean>;
@@ -328,26 +329,37 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async upsertAdminAccount(email: string, passwordHash: string): Promise<void> {
+  async upsertAdminAccount(email: string, passwordHash: string, opts?: { username?: string }): Promise<void> {
     const e = email.toLowerCase();
     const [existing] = await db.select().from(users).where(eq(users.email, e));
     if (!existing) {
       await db.insert(users).values({
         email: e,
+        username: opts?.username ?? null,
         passwordHash,
         emailVerified: true,
         isAdmin: true,
         isDisabled: false,
       });
-      console.log(`[seed] Admin account created: ${e}`);
+      console.log(`[seed] Admin account created: ${e}${opts?.username ? ` (username: ${opts.username})` : ""}`);
     } else {
-      await db.update(users).set({ isAdmin: true, isDisabled: false, passwordHash }).where(eq(users.email, e));
+      await db.update(users).set({
+        isAdmin: true,
+        isDisabled: false,
+        passwordHash,
+        ...(opts?.username ? { username: opts.username } : {}),
+      }).where(eq(users.email, e));
       console.log(`[seed] Admin account confirmed: ${e}`);
     }
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
     const [user] = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
+    return user ?? null;
+  }
+
+  async getUserByUsername(username: string): Promise<User | null> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
     return user ?? null;
   }
 
