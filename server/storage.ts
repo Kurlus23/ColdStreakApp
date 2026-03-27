@@ -23,7 +23,8 @@ export interface IStorage {
   // Pro users
   getProUser(email: string): Promise<ProUser | null>;
   getAllProUsers(): Promise<ProUser[]>;
-  getFreeUsers(): Promise<{ id: number; email: string; displayName: string | null; createdAt: Date }[]>;
+  getFreeUsers(): Promise<{ id: number; email: string; username: string | null; displayName: string | null; isDisabled: boolean; createdAt: Date }[]>;
+  setUserDisabled(id: number, disabled: boolean): Promise<void>;
   getProUserCount(): Promise<number>;
   createProUser(email: string, stripeSessionId: string, opts?: { planType?: string; stripeSubscriptionId?: string; expiresAt?: Date }): Promise<ProUser>;
   updateProUserSubscription(subscriptionId: string, expiresAt: Date): Promise<void>;
@@ -198,9 +199,9 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(proUsers).orderBy(desc(proUsers.createdAt));
   }
 
-  async getFreeUsers(): Promise<{ id: number; email: string; displayName: string | null; createdAt: Date }[]> {
+  async getFreeUsers(): Promise<{ id: number; email: string; username: string | null; displayName: string | null; isDisabled: boolean; createdAt: Date }[]> {
     return db
-      .select({ id: users.id, email: users.email, displayName: users.displayName, createdAt: users.createdAt })
+      .select({ id: users.id, email: users.email, username: users.username, displayName: users.displayName, isDisabled: users.isDisabled, createdAt: users.createdAt })
       .from(users)
       .where(sql`lower(${users.email}) NOT IN (
         SELECT email FROM pro_users
@@ -208,6 +209,10 @@ export class DatabaseStorage implements IStorage {
       )`)
       .orderBy(desc(users.createdAt))
       .limit(500);
+  }
+
+  async setUserDisabled(id: number, disabled: boolean): Promise<void> {
+    await db.update(users).set({ isDisabled: disabled }).where(eq(users.id, id));
   }
 
   async setProUserActive(email: string, active: boolean): Promise<ProUser | null> {

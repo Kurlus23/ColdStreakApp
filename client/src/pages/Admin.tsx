@@ -9,7 +9,9 @@ import { Badge } from "@/components/ui/badge";
 interface FreeUser {
   id: number;
   email: string;
+  username: string | null;
   displayName: string | null;
+  isDisabled: boolean;
   createdAt: string;
 }
 
@@ -234,6 +236,57 @@ export default function Admin() {
     },
     onError: (err: Error) => {
       toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  // ── Free-user management ────────────────────────────────────────────────
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState<number | null>(null);
+  const [editingUser, setEditingUser] = useState<number | null>(null);
+  const [editDisplayName, setEditDisplayName] = useState("");
+
+  const disableUserMutation = useMutation({
+    mutationFn: ({ id, disabled }: { id: number; disabled: boolean }) =>
+      apiRequest("PATCH", `/api/admin/users/${id}`, { disabled }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/free-users"] });
+      toast({ title: "Account updated" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to update account", description: err?.message ?? "Server error", variant: "destructive" });
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/free-users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pro-users"] });
+      setConfirmDeleteUser(null);
+      toast({ title: "Account deleted" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const editUserMutation = useMutation({
+    mutationFn: ({ id, displayName }: { id: number; displayName: string }) =>
+      apiRequest("PUT", `/api/admin/users/${id}`, { displayName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/free-users"] });
+      setEditingUser(null);
+      toast({ title: "Display name updated" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Update failed", description: err?.message ?? "Server error", variant: "destructive" });
     },
   });
 
@@ -649,16 +702,123 @@ export default function Admin() {
                   <div
                     key={u.id}
                     data-testid={`admin-free-user-${u.id}`}
-                    className="bg-slate-800/50 border border-slate-700/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
+                    className={`rounded-xl px-4 py-3 flex flex-col gap-2 border ${
+                      u.isDisabled
+                        ? "bg-gray-900/60 border-gray-700/40 opacity-70"
+                        : "bg-slate-800/50 border-slate-700/40"
+                    }`}
                   >
-                    <div>
-                      <p className="font-semibold text-sm text-slate-200">{u.email}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {u.displayName ? `@${u.displayName} · ` : ""}
-                        Joined {new Date(u.createdAt).toLocaleDateString()}
-                      </p>
+                    {/* Top row: info + badges */}
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-sm text-slate-200 break-all">{u.email}</p>
+                          {u.isDisabled && (
+                            <Badge className="bg-red-700 text-white text-[10px] px-1.5 py-0.5">Disabled</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {u.username ? `@${u.username}` : u.displayName ? `@${u.displayName}` : "no username"}
+                          {u.displayName && u.username ? ` · ${u.displayName}` : ""}
+                          {" · "}Joined {new Date(u.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Badge className="bg-slate-600 text-slate-200 text-xs shrink-0">Free</Badge>
                     </div>
-                    <Badge className="bg-slate-600 text-slate-200 text-xs">Free</Badge>
+
+                    {/* Edit display name inline */}
+                    {editingUser === u.id ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          data-testid={`input-display-name-${u.id}`}
+                          className="flex-1 px-2 py-1 rounded bg-slate-700 border border-slate-600 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                          placeholder="Display name…"
+                          value={editDisplayName}
+                          onChange={(e) => setEditDisplayName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") editUserMutation.mutate({ id: u.id, displayName: editDisplayName });
+                            if (e.key === "Escape") setEditingUser(null);
+                          }}
+                        />
+                        <Button
+                          data-testid={`btn-save-name-${u.id}`}
+                          size="sm"
+                          className="bg-cyan-600 hover:bg-cyan-500 text-white"
+                          disabled={editUserMutation.isPending || !editDisplayName.trim()}
+                          onClick={() => editUserMutation.mutate({ id: u.id, displayName: editDisplayName })}
+                        >
+                          Save
+                        </Button>
+                        <Button size="sm" variant="outline" className="border-slate-600 text-slate-300"
+                          onClick={() => setEditingUser(null)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : null}
+
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                      <Button
+                        data-testid={`btn-edit-user-${u.id}`}
+                        size="sm"
+                        variant="outline"
+                        className="border-slate-600 text-slate-300 hover:bg-slate-700 text-xs"
+                        onClick={() => {
+                          setEditingUser(editingUser === u.id ? null : u.id);
+                          setEditDisplayName(u.displayName ?? "");
+                        }}
+                      >
+                        {editingUser === u.id ? "Cancel Edit" : "Edit Name"}
+                      </Button>
+
+                      <Button
+                        data-testid={`btn-disable-user-${u.id}`}
+                        size="sm"
+                        variant="outline"
+                        className={
+                          u.isDisabled
+                            ? "border-green-700/60 text-green-400 hover:bg-green-900/30 text-xs"
+                            : "border-orange-700/60 text-orange-400 hover:bg-orange-900/30 text-xs"
+                        }
+                        disabled={disableUserMutation.isPending}
+                        onClick={() => disableUserMutation.mutate({ id: u.id, disabled: !u.isDisabled })}
+                      >
+                        {u.isDisabled ? "Enable" : "Disable"}
+                      </Button>
+
+                      {confirmDeleteUser === u.id ? (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            data-testid={`btn-confirm-delete-user-${u.id}`}
+                            size="sm"
+                            className="bg-red-600 hover:bg-red-500 text-white text-xs"
+                            disabled={deleteUserMutation.isPending}
+                            onClick={() => deleteUserMutation.mutate(u.id)}
+                          >
+                            {deleteUserMutation.isPending ? "Deleting…" : "Yes, Delete Account"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-slate-600 text-slate-300 text-xs"
+                            onClick={() => setConfirmDeleteUser(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          data-testid={`btn-delete-user-${u.id}`}
+                          size="sm"
+                          variant="outline"
+                          className="border-red-700/50 text-red-400 hover:bg-red-900/30 hover:border-red-500 text-xs"
+                          disabled={disableUserMutation.isPending || deleteUserMutation.isPending}
+                          onClick={() => setConfirmDeleteUser(u.id)}
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))
               )}

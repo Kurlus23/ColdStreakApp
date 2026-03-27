@@ -665,6 +665,42 @@ export async function registerRoutes(
     res.json(users);
   });
 
+  // Admin: disable / enable a user account
+  app.patch("/api/admin/users/:id", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid user id" });
+    const { disabled } = req.body as { disabled?: boolean };
+    if (typeof disabled !== "boolean") return res.status(400).json({ message: "disabled (boolean) required" });
+    await storage.setUserDisabled(id, disabled);
+    res.json({ success: true });
+  });
+
+  // Admin: delete a user account entirely
+  app.delete("/api/admin/users/:id", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid user id" });
+    // Also remove any pro record so Stripe data stays in sync
+    const target = await storage.getUserById(id);
+    if (target) await storage.deleteProUser(target.email).catch(() => {});
+    await storage.deleteUser(id);
+    res.json({ success: true });
+  });
+
+  // Admin: update a user's display name / email
+  app.put("/api/admin/users/:id", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid user id" });
+    const { displayName } = req.body as { displayName?: string };
+    const updated = await storage.updateUserProfile(id, { displayName: displayName ?? undefined });
+    res.json(updated);
+  });
+
   // Admin: look up a customer by email — returns DB record + live Stripe subscription info
   app.get("/api/admin/lookup", async (req, res) => {
     try {
