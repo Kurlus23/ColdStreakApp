@@ -59,8 +59,9 @@ export async function nativeShare({
         return "shared";
       }
     }
-    // No title in share payload — prevents iMessage from rendering it as a second bubble
-    await Share.share({ text, dialogTitle: title });
+    // Pass ONLY text — no title, no dialogTitle, no url
+    // Any extra field can cause iMessage to render a second bubble on iOS
+    await Share.share({ text });
     return "shared";
   } catch (e: any) {
     if (e?.message?.includes("cancel") || e?.errorMessage?.includes("cancel")) {
