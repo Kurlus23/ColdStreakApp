@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { getPhoto, deletePhoto } from "@/lib/photoStore";
 import { buildShareImage, dataUrlToBlob } from "@/lib/shareImage";
-import { isNative, nativeShare } from "@/lib/nativeShare";
+import { shareContent } from "@/lib/share";
 import { InterstitialAd } from "@/components/AdUnit";
 
 function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
@@ -209,32 +209,11 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
       locationName: plunge.locationName,
       locationId: plunge.locationId,
     });
-
-    // ── Native Android/iOS: use Capacitor Share plugin
-    if (isNative()) {
-      await nativeShare({ title: "ColdStreak Plunge", text });
-      return;
-    }
-
-    // ── Web browser: use navigator.share
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "ColdStreak Plunge", text });
-        return;
-      } catch (e: any) {
-        if (e?.name !== "AbortError") {
-          toast({ title: "Share failed", variant: "destructive" });
-        }
-        return;
-      }
-    }
-
-    try {
-      await navigator.clipboard.writeText(text);
-      toast({ title: "Copied to clipboard!", description: "Paste to share with friends." });
-    } catch {
-      toast({ title: "Could not copy", variant: "destructive" });
-    }
+    await shareContent({
+      title: "ColdStreak Plunge",
+      text,
+      url: `https://coldstreakapp.com/profile/${encodeURIComponent(username ?? "")}`,
+    });
   };
 
   const openEdit = () => {

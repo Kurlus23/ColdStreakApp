@@ -13,6 +13,7 @@ import { useProStatus } from "@/hooks/use-pro-status";
 import { useAuth } from "@/hooks/use-auth";
 import { PASSPORT_LOCATIONS, usePassportBadges, distanceMiles, DIFFICULTY_META, type Difficulty, TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { shareContent } from "@/lib/share";
 import type { UserLocation, Event, EventParticipant } from "@shared/schema";
 
 type EventCoordinator = { id: number; eventId: number; userId: number; username: string; addedAt: string };
@@ -770,18 +771,12 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   }
 
   async function handleShareEvent(code: string, name: string) {
-    const url = `${window.location.origin}/event/${code}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `Join me at ${name}`, text: `You're invited to "${name}" — a cold plunge event! Sign up here:`, url });
-        return;
-      } catch {
-        // user cancelled or share failed — fall through to clipboard
-      }
-    }
-    navigator.clipboard.writeText(url).catch(() => {});
+    await shareContent({
+      title: `Join me at ${name}`,
+      text: `🧊 You're invited to "${name}" — a cold plunge event!\n\nYou in?`,
+      url: `${window.location.origin}/event/${code}`,
+    });
     setCopiedCode(code);
-    toast({ title: "Link copied!", description: url });
     setTimeout(() => setCopiedCode(null), 2500);
   }
 
