@@ -254,18 +254,15 @@ export default function EventPage() {
         <button
           data-testid="button-share-event-link"
           onClick={async () => {
-            const lines = [
-              `🧊 Join me at ${evt.name}`,
-              `📅 ${fmtDate(evt.eventDate)}`,
-            ];
+            const lines: string[] = [`Join me at ${evt.name} 🧊🔥`];
             if (evt.locationName) lines.push(`📍 ${evt.locationName}`);
-            lines.push(`👥 ${evt.participantCount} people going`);
+            lines.push(`📅 ${fmtDate(evt.eventDate)}`);
             lines.push("");
-            lines.push("You in?");
+            lines.push("Let's get after it:");
+            lines.push("https://coldstreakapp.com/events");
             await shareContent({
               title: evt.name,
               text: lines.join("\n"),
-              url: `${window.location.origin}/event/${code}`,
             });
             setCopied(true);
             setTimeout(() => setCopied(false), 2500);

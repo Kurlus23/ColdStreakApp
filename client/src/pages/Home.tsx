@@ -4171,8 +4171,7 @@ export default function Home() {
                       onClick={async () => {
                         await shareContent({
                           title: `${username} on ColdStreak`,
-                          text: `Check out ${username}'s cold plunge streak on ColdStreak 🧊🔥\nThey're on a ${streak}-day streak!\n\nJoin the grind →`,
-                          url: `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`,
+                          text: `Check out ${username}'s cold plunge streak on ColdStreak 🧊🔥\nThey're on a ${streak}-day streak!\n\nThink you can beat them?\nhttps://coldstreakapp.com/profile/${encodeURIComponent(username)}`,
                         });
                       }}
                       className="flex-1 flex items-center justify-center gap-2 bg-blue-800/60 border border-blue-600/40 text-blue-200 text-sm font-medium py-2 rounded-xl active:scale-95 transition-transform"
@@ -5635,32 +5634,17 @@ export default function Home() {
                   const p = promptPlungeRef.current;
                   const s = p.duration;
                   const m = Math.floor(s / 60);
-                  const durationStr = m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
-
-                  let locationName: string | undefined;
-                  if (promptLocationId === "custom") {
-                    locationName = promptCustomLocation.trim() || undefined;
-                  } else if (promptLocationId === "home") {
-                    locationName = "Home";
-                  } else if (promptLocationId.startsWith("community-")) {
-                    const cid = Number(promptLocationId.replace("community-", ""));
-                    locationName = communityLocs.find((l) => l.id === cid)?.name;
-                  } else if (promptLocationId) {
-                    locationName = PASSPORT_LOCATIONS.find((l) => l.id === promptLocationId)?.name;
-                  }
-
-                  const lines = [
-                    `I just completed a ${p.temperature}°F plunge! 🧊`,
-                    `⏱️ Duration: ${durationStr}`,
-                  ];
-                  if (streak > 0) lines.push(`🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}`);
-                  if (locationName) lines.push(`📍 ${locationName}`);
-                  lines.push("Join me on ColdStreak →");
+                  const durationStr = `${m}:${String(s % 60).padStart(2, "0")}`;
 
                   await shareContent({
                     title: "ColdStreak Plunge",
-                    text: lines.join("\n"),
-                    url: `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`,
+                    text: [
+                      `I just completed a ${p.temperature}°F cold plunge 🧊`,
+                      `⏱️ ${durationStr} | 🔥 ${streak}-day streak`,
+                      "",
+                      "Think you can beat me?",
+                      "https://coldstreakapp.com",
+                    ].join("\n"),
                   });
 
                   sharingLockRef.current = false;

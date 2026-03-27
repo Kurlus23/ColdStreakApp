@@ -770,13 +770,18 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     if (target === "plunge") setEvtPlungeGpsLoading(false); else setEvtAccessGpsLoading(false);
   }
 
-  async function handleShareEvent(code: string, name: string) {
+  async function handleShareEvent(evt: Event) {
+    const lines: string[] = [`Join me at ${evt.name} 🧊🔥`];
+    if (evt.locationName) lines.push(`📍 ${evt.locationName}`);
+    if (evt.eventDate) lines.push(`📅 ${new Date(evt.eventDate).toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric", year: "numeric" })}`);
+    lines.push("");
+    lines.push("Let's get after it:");
+    lines.push("https://coldstreakapp.com/events");
     await shareContent({
-      title: `Join me at ${name}`,
-      text: `🧊 You're invited to "${name}" — a cold plunge event!\n\nYou in?`,
-      url: `${window.location.origin}/event/${code}`,
+      title: `Join me at ${evt.name}`,
+      text: lines.join("\n"),
     });
-    setCopiedCode(code);
+    setCopiedCode(evt.shareCode);
     setTimeout(() => setCopiedCode(null), 2500);
   }
 
@@ -2525,7 +2530,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               )}
               <button
                 data-testid={`button-share-event-${evt.id}`}
-                onClick={() => handleShareEvent(evt.shareCode, evt.name)}
+                onClick={() => handleShareEvent(evt)}
                 className="w-full py-2.5 rounded-2xl border border-blue-700/50 text-blue-400 text-xs font-semibold flex items-center justify-center gap-1.5 hover:border-blue-500 hover:text-blue-300 transition-all"
               >
                 {copiedCode === evt.shareCode ? <Check className="w-3.5 h-3.5 text-cyan-400" /> : <Send className="w-3.5 h-3.5" />}

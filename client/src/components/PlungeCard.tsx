@@ -201,18 +201,18 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
   };
 
   const handleShare = async () => {
-    const text = buildShareText({
-      username,
-      temperature: plunge.temperature,
-      duration: plunge.duration,
-      streak,
-      locationName: plunge.locationName,
-      locationId: plunge.locationId,
-    });
+    const s = plunge.duration;
+    const m = Math.floor(s / 60);
+    const durationStr = `${m}:${String(s % 60).padStart(2, "0")}`;
     await shareContent({
       title: "ColdStreak Plunge",
-      text,
-      url: `https://coldstreakapp.com/profile/${encodeURIComponent(username ?? "")}`,
+      text: [
+        `I just completed a ${plunge.temperature}°F cold plunge 🧊`,
+        `⏱️ ${durationStr} | 🔥 ${streak}-day streak`,
+        "",
+        "Think you can beat me?",
+        "https://coldstreakapp.com",
+      ].join("\n"),
     });
   };
 

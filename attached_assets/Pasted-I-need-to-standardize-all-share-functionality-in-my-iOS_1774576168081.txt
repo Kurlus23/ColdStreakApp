@@ -1,0 +1,87 @@
+I need to standardize all share functionality in my iOS app (ColdStreak) using UIActivityViewController.
+
+IMPORTANT:
+- Only pass ONE string into activityItems (do NOT pass URL separately)
+- The URL must be embedded at the end of the message string
+- This prevents iMessage from sending duplicate messages
+
+Create 3 reusable share functions:
+
+--------------------------------------------------
+
+1. SHARE PROFILE
+
+Input:
+- username (String)
+- streak (Int)
+
+Output message format:
+
+"Check out \(username)'s cold plunge streak on ColdStreak 🧊🔥
+They're on a \(streak)-day streak!
+
+Think you can beat them?
+https://coldstreakapp.com/profile/\(username)"
+
+--------------------------------------------------
+
+2. SHARE PLUNGE (HISTORY CARD)
+
+Input:
+- temp (Int or String)
+- duration (String)  // example: "6:38"
+- streak (Int)
+
+Output message format:
+
+"I just completed a \(temp)°F cold plunge 🧊
+⏱️ \(duration) | 🔥 \(streak)-day streak
+
+Think you can beat me?
+https://coldstreakapp.com"
+
+--------------------------------------------------
+
+3. SHARE EVENT
+
+Input:
+- eventName (String)
+- location (String)
+- date (String)
+
+Output message format:
+
+"Join me at \(eventName) 🧊🔥
+📍 \(location)
+📅 \(date)
+
+Let’s get after it:
+https://coldstreakapp.com/events"
+
+--------------------------------------------------
+
+IMPLEMENTATION REQUIREMENTS:
+
+- Use UIActivityViewController
+- Always pass a single string:
+  activityItems: [message]
+
+- Create a reusable helper function:
+
+func presentShare(message: String, from viewController: UIViewController)
+
+- Ensure it works on iPhone (popover safe for iPad too if possible)
+
+- Do NOT include separate URL objects
+- Do NOT include multiple activity items
+
+--------------------------------------------------
+
+OPTIONAL (if easy):
+- Add slight formatting spacing (line breaks as shown)
+- Keep emojis
+
+--------------------------------------------------
+
+Goal:
+Clean, viral, single-bubble iMessage shares with link previews
