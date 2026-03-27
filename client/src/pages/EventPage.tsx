@@ -260,6 +260,7 @@ export default function EventPage() {
             await shareContent({
               title: evt.name,
               text: message,
+              url: `${window.location.origin}/event/${code}`,
             });
             setCopied(true);
             setTimeout(() => setCopied(false), 2500);

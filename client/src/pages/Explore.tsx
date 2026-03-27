@@ -780,6 +780,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     await shareContent({
       title: `Join me at ${evt.name}`,
       text: message,
+      url: `${window.location.origin}/event/${evt.shareCode}`,
     });
     setCopiedCode(evt.shareCode);
     setTimeout(() => setCopiedCode(null), 2500);

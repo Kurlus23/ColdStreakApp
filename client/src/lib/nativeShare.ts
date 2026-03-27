@@ -37,12 +37,14 @@ async function writeToClipboard(text: string): Promise<boolean> {
 export async function nativeShare({
   title = "ColdStreak Plunge",
   text,
+  url,
   photoBlob,
   photoFilename = "coldstreak-plunge.jpg",
   onCaptionCopied,
 }: {
   title?: string;
   text: string;
+  url?: string;
   photoBlob?: Blob | null;
   photoFilename?: string;
   onCaptionCopied?: () => void;
@@ -59,9 +61,8 @@ export async function nativeShare({
         return "shared";
       }
     }
-    // Pass ONLY text — no title, no dialogTitle, no url
-    // Any extra field can cause iMessage to render a second bubble on iOS
-    await Share.share({ text });
+    // Pass text + optional url as separate fields so platforms treat them as distinct items
+    await Share.share({ text, ...(url ? { url } : {}) });
     return "shared";
   } catch (e: any) {
     if (e?.message?.includes("cancel") || e?.errorMessage?.includes("cancel")) {
