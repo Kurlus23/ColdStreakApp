@@ -869,7 +869,7 @@ export async function registerRoutes(
         ...(email ? { customer_email: email } : {}),
       });
 
-      res.json({ url: session.url });
+      res.json({ url: session.url, sessionId: session.id });
     } catch (err: any) {
       console.error("Stripe checkout error:", err?.message ?? err);
       res.status(500).json({

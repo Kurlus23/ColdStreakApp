@@ -21,7 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { usePlunges, useCreatePlunge, useUpdatePlunge, useDeletePlunge } from "@/hooks/use-plunges";
 import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry, type LeaderboardEntryWithBadge } from "@/hooks/use-leaderboard";
-import { useProStatus, PENDING_CHECKOUT_KEY } from "@/hooks/use-pro-status";
+import { useProStatus, PENDING_CHECKOUT_KEY, PENDING_SESSION_KEY } from "@/hooks/use-pro-status";
 import { PlungeCard, buildShareText } from "@/components/PlungeCard";
 import { BannerAd, FeedAd, InterstitialAd } from "@/components/AdUnit";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
@@ -286,36 +286,60 @@ export default function Home() {
     };
   }, [btConnected]);
 
-  // Handle Stripe payment return — verify session_id in URL
+  // Handle Stripe payment return — verify session_id in URL or stored session
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get("session_id");
+    // Prefer URL param, fall back to the session ID stored before checkout navigation
+    const sessionId = params.get("session_id") || localStorage.getItem(PENDING_SESSION_KEY);
     if (sessionId) {
       localStorage.removeItem(PENDING_CHECKOUT_KEY);
+      localStorage.removeItem(PENDING_SESSION_KEY);
       verifySession(sessionId).then((planType) => {
         if (planType) {
           triggerProCelebration(planType);
         } else {
-          toast({ title: "Payment not confirmed", description: "If you completed payment, try Restore Purchase.", variant: "destructive" });
+          // Verify via session failed — fall back to email-based restore with retries
+          const pendingEmail = localStorage.getItem(PENDING_CHECKOUT_KEY) || localStorage.getItem("coldstreak-pro-email");
+          if (pendingEmail && pendingEmail !== "unknown") {
+            let attempts = 0;
+            const tryRestore = () => {
+              attempts++;
+              restorePurchase(pendingEmail).then((r) => {
+                if (r.success) {
+                  triggerProCelebration(r.planType ?? "monthly");
+                } else if (attempts < 5) {
+                  setTimeout(tryRestore, 3000);
+                } else {
+                  toast({ title: "Payment not confirmed", description: "If you completed payment, tap Restore Purchase.", variant: "destructive" });
+                }
+              });
+            };
+            setTimeout(tryRestore, 2000);
+          } else {
+            toast({ title: "Payment not confirmed", description: "If you completed payment, tap Restore Purchase.", variant: "destructive" });
+          }
         }
         window.history.replaceState({}, "", window.location.pathname);
       });
       return;
     }
-    // No session_id in URL — but if we have a pending checkout, the redirect may have
-    // lost the query param (common on Android web-to-browser flow). Try restoring via
-    // Stripe subscription lookup as a fallback.
+    // No session_id at all — use email-based restore with retries
     const pendingEmail = localStorage.getItem(PENDING_CHECKOUT_KEY);
     if (!pendingEmail || pendingEmail === "unknown") return;
-    restorePurchase(pendingEmail).then((result) => {
-      if (result.success) {
-        localStorage.removeItem(PENDING_CHECKOUT_KEY);
-        triggerProCelebration(result.planType ?? "monthly");
-      }
-      // If restore failed, leave the key in place so the user can still use
-      // "Restore Purchase" manually. Don't show an error — the user may have
-      // abandoned checkout intentionally.
-    });
+    let attempts = 0;
+    const tryRestore = () => {
+      attempts++;
+      restorePurchase(pendingEmail).then((result) => {
+        if (result.success) {
+          localStorage.removeItem(PENDING_CHECKOUT_KEY);
+          triggerProCelebration(result.planType ?? "monthly");
+        } else if (attempts < 5) {
+          setTimeout(tryRestore, 3000);
+        }
+        // After 5 failures, leave key in place so manual Restore Purchase still works
+      });
+    };
+    tryRestore();
   }, []);
 
 
@@ -517,9 +541,11 @@ export default function Home() {
           window.dispatchEvent(new PopStateEvent("popstate"));
           return;
         }
-        const sessionId = url.searchParams.get("session_id");
+        // Use URL param, or fall back to stored session ID
+        const sessionId = url.searchParams.get("session_id") || localStorage.getItem(PENDING_SESSION_KEY);
         if (sessionId) {
           localStorage.removeItem(PENDING_CHECKOUT_KEY);
+          localStorage.removeItem(PENDING_SESSION_KEY);
           const planType = await verifySession(sessionId);
           if (planType) {
             triggerProCelebration(planType);
@@ -531,15 +557,20 @@ export default function Home() {
         const pendingEmail = localStorage.getItem(PENDING_CHECKOUT_KEY);
         if (!pendingEmail) return;
         if (pendingEmail !== "unknown") {
-          const result = await restorePurchase(pendingEmail);
-          if (result.success && result.planType === "lifetime") {
-            localStorage.removeItem(PENDING_CHECKOUT_KEY);
-            toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "Lifetime access unlocked." });
-            return;
-          } else if (result.success && result.planType !== "lifetime") {
-            // Still monthly — keep the key so we keep retrying on next return
-            return;
-          }
+          let attempts = 0;
+          const tryRestore = async (): Promise<void> => {
+            attempts++;
+            const result = await restorePurchase(pendingEmail);
+            if (result.success) {
+              localStorage.removeItem(PENDING_CHECKOUT_KEY);
+              triggerProCelebration(result.planType ?? "monthly");
+              return;
+            } else if (attempts < 5) {
+              return new Promise((res) => setTimeout(() => tryRestore().then(res), 3000));
+            }
+          };
+          await tryRestore();
+          return;
         }
         localStorage.removeItem(PENDING_CHECKOUT_KEY);
         setPendingRestoreEmail(pendingEmail === "unknown" ? "" : pendingEmail);
@@ -565,17 +596,30 @@ export default function Home() {
     if (!Capacitor.isNativePlatform()) return;
     const handleVisibility = async () => {
       if (document.visibilityState !== "visible") return;
+      // Try stored session ID first — most reliable path
+      const storedSessionId = localStorage.getItem(PENDING_SESSION_KEY);
+      if (storedSessionId) {
+        localStorage.removeItem(PENDING_SESSION_KEY);
+        localStorage.removeItem(PENDING_CHECKOUT_KEY);
+        const planType = await verifySession(storedSessionId);
+        if (planType) { triggerProCelebration(planType); return; }
+      }
       const pendingEmail = localStorage.getItem(PENDING_CHECKOUT_KEY);
       if (!pendingEmail) return;
       if (pendingEmail !== "unknown") {
-        const result = await restorePurchase(pendingEmail);
-        if (result.success && result.planType === "lifetime") {
-          // Successfully upgraded to lifetime — clear key and celebrate
-          localStorage.removeItem(PENDING_CHECKOUT_KEY);
-          toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "Lifetime access unlocked." });
-          return;
-        }
-        // Either still monthly (payment in progress) or restore failed — keep key to retry
+        let attempts = 0;
+        const tryRestore = async (): Promise<void> => {
+          attempts++;
+          const result = await restorePurchase(pendingEmail);
+          if (result.success) {
+            localStorage.removeItem(PENDING_CHECKOUT_KEY);
+            triggerProCelebration(result.planType ?? "monthly");
+            return;
+          } else if (attempts < 5) {
+            return new Promise((res) => setTimeout(() => tryRestore().then(res), 3000));
+          }
+        };
+        await tryRestore();
         return;
       }
       // Unknown email — show the manual entry dialog
@@ -584,7 +628,43 @@ export default function Home() {
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [restorePurchase]);
+  }, [verifySession, restorePurchase, triggerProCelebration]);
+
+  // Web/PWA: fallback restore when user returns from browser (Stripe redirect opened in Chrome)
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) return; // native has its own handler above
+    const handleWebVisibility = async () => {
+      if (document.visibilityState !== "visible") return;
+      // If there's a stored session ID, try to verify it directly first
+      const storedSessionId = localStorage.getItem(PENDING_SESSION_KEY);
+      if (storedSessionId) {
+        localStorage.removeItem(PENDING_SESSION_KEY);
+        localStorage.removeItem(PENDING_CHECKOUT_KEY);
+        const planType = await verifySession(storedSessionId);
+        if (planType) {
+          triggerProCelebration(planType);
+          return;
+        }
+      }
+      // Fall back to email-based restore with retries
+      const pendingEmail = localStorage.getItem(PENDING_CHECKOUT_KEY);
+      if (!pendingEmail || pendingEmail === "unknown") return;
+      let attempts = 0;
+      const tryRestore = async () => {
+        attempts++;
+        const result = await restorePurchase(pendingEmail);
+        if (result.success) {
+          localStorage.removeItem(PENDING_CHECKOUT_KEY);
+          triggerProCelebration(result.planType ?? "monthly");
+        } else if (attempts < 5) {
+          setTimeout(tryRestore, 3000);
+        }
+      };
+      tryRestore();
+    };
+    document.addEventListener("visibilitychange", handleWebVisibility);
+    return () => document.removeEventListener("visibilitychange", handleWebVisibility);
+  }, [verifySession, restorePurchase, triggerProCelebration]);
 
   const { data: fpCountData } = useQuery<{ count: number; remaining: number; limit: number }>({
     queryKey: ["/api/founding-plunger-count"],
