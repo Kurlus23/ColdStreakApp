@@ -22,7 +22,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { usePlunges, useCreatePlunge, useUpdatePlunge, useDeletePlunge } from "@/hooks/use-plunges";
 import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry, type LeaderboardEntryWithBadge } from "@/hooks/use-leaderboard";
 import { useProStatus, PENDING_CHECKOUT_KEY } from "@/hooks/use-pro-status";
-import { PlungeCard, buildShareText, buildShareUrl } from "@/components/PlungeCard";
+import { PlungeCard, buildShareText } from "@/components/PlungeCard";
 import { BannerAd, FeedAd, InterstitialAd } from "@/components/AdUnit";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
 import { Analytics } from "@/lib/analytics";
@@ -4169,11 +4169,10 @@ export default function Home() {
                       data-testid="button-share-badge-profile"
                       onClick={async () => {
                         const url = `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`;
-                        const text = `Check me out on ColdStreak! 🧊❄️`;
                         if (navigator.share) {
-                          try { await navigator.share({ title: `${username} on ColdStreak`, text, url }); } catch {}
+                          try { await navigator.share({ title: `${username}'s Badge Profile`, url }); } catch {}
                         } else {
-                          await navigator.clipboard.writeText(`${text}\n${url}`);
+                          await navigator.clipboard.writeText(url);
                           toast({ title: "Profile link copied!", description: "Share it with friends." });
                         }
                       }}
@@ -5653,17 +5652,14 @@ export default function Home() {
                     locationName,
                     locationId: promptLocationId,
                   });
-                  const shareUrl = buildShareUrl(username);
 
                   // ── Native Android/iOS: use Capacitor Share (avoids WebView doubling bug)
-                  // No URL in text — URL in text body causes Messenger to unfurl and double-print
                   if (isNative()) {
                     await nativeShare({ text });
                     done(); return;
                   }
 
-                  // ── Web browser: text-only, no URL param
-                  // URL as separate param doubles in iMessage; URL in text doubles in Messenger — omit entirely
+                  // ── Web browser: use navigator.share (no title — prevents iOS iMessage subject bubble)
                   if (navigator.share) {
                     try {
                       await navigator.share({ text });
@@ -5673,9 +5669,9 @@ export default function Home() {
                     }
                   }
 
-                  // ── Clipboard fallback: include the link so they can paste it
+                  // ── Clipboard fallback
                   try {
-                    await navigator.clipboard.writeText(`${text}\nJoin me on ColdStreak → ${shareUrl}`);
+                    await navigator.clipboard.writeText(text);
                     toast({ title: "Copied!", description: "Paste to share with friends." });
                   } catch {
                     toast({ title: "Could not copy", variant: "destructive" });

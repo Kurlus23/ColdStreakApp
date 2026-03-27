@@ -52,7 +52,6 @@ async function dataUrlToFile(dataUrl: string, filename: string): Promise<File> {
 }
 
 export function buildShareText({
-  username,
   temperature,
   duration,
   streak,
@@ -67,19 +66,14 @@ export function buildShareText({
   locationId?: string | null;
 }): string {
   const lines: string[] = [
-    `I just completed a ${temperature}°F plunge! 🧊`,
+    `I just completed a ${temperature}°F plunge!`,
     `⏱️ Duration: ${formatTime(duration)}`,
   ];
   if (streak && streak > 0) lines.push(`🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}`);
   if (locationId === "home") lines.push(`📍 Home`);
   else if (locationName) lines.push(`📍 ${locationName}`);
+  lines.push(`Tracked with ColdStreak`);
   return lines.join("\n");
-}
-
-export function buildShareUrl(username?: string): string {
-  return username
-    ? `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`
-    : `https://coldstreakapp.com`;
 }
 
 function resolveLocationDisplay(locId: string | null | undefined, locName: string | null | undefined, communityLocs: UserLocation[], homeLabel?: string) {
@@ -215,20 +209,17 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
       locationName: plunge.locationName,
       locationId: plunge.locationId,
     });
-    const url = buildShareUrl(username);
 
     // ── Native Android/iOS: use Capacitor Share plugin
-    // No URL in text — URL in text body causes Messenger to unfurl and double-print
     if (isNative()) {
       await nativeShare({ title: "ColdStreak Plunge", text });
       return;
     }
 
-    // ── Web browser: text-only, no URL param
-    // URL as separate param doubles in iMessage; URL in text doubles in Messenger — omit entirely
+    // ── Web browser: use navigator.share
     if (navigator.share) {
       try {
-        await navigator.share({ text });
+        await navigator.share({ title: "ColdStreak Plunge", text });
         return;
       } catch (e: any) {
         if (e?.name !== "AbortError") {
@@ -238,9 +229,8 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
       }
     }
 
-    // ── Clipboard fallback: include the link so they can paste it
     try {
-      await navigator.clipboard.writeText(`${text}\nJoin me on ColdStreak → ${url}`);
+      await navigator.clipboard.writeText(text);
       toast({ title: "Copied to clipboard!", description: "Paste to share with friends." });
     } catch {
       toast({ title: "Could not copy", variant: "destructive" });
