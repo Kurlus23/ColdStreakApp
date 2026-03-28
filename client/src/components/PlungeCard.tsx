@@ -210,6 +210,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
         `I just completed a ${plunge.temperature}°F Plunge!`,
         `⏱️ ${durationStr} | 🔥 ${streak}-day streak`,
         "Think you can beat me?",
+        "ColdStreak",
       ].join("\n"),
     });
   };

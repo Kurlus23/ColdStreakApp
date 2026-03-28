@@ -5762,6 +5762,7 @@ export default function Home() {
                       `I just completed a ${p.temperature}°F Plunge!`,
                       `⏱️ ${durationStr} | 🔥 ${streak}-day streak`,
                       "Think you can beat me?",
+                      "ColdStreak",
                     ].join("\n"),
                   });
 
