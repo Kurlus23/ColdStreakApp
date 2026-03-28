@@ -2258,27 +2258,27 @@ export default function Home() {
                 className="flex flex-col items-center group focus:outline-none"
                 title="Tap to switch mode"
               >
-                <div className={`text-4xl font-mono font-bold tracking-tight leading-none mb-0.5 ${isActive ? "text-white" : "text-slate-200"}`}>
+                <div className={`text-[2rem] leading-none font-mono font-bold tracking-tight mb-0.5 ${isActive ? "text-white" : "text-slate-200"}`}>
                   {formatTime(displaySeconds)}
                 </div>
-                <div className="flex items-center gap-1 text-blue-300 group-hover:text-cyan-300 transition-colors text-[10px] uppercase tracking-widest mb-3">
+                <div className="flex items-center gap-1 text-blue-300 group-hover:text-cyan-300 transition-colors text-[9px] uppercase tracking-widest mb-2">
                   {countdownMode ? "Countdown" : "Stopwatch"}
                   <svg className="w-2.5 h-2.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
                   </svg>
                 </div>
               </button>
-              <div className="flex gap-1.5 w-full mt-auto">
+              <div className="flex gap-1 w-full mt-auto">
                 <button
                   data-testid="button-start"
                   onClick={handleStart}
                   disabled={isActive}
-                  className="flex-1 bg-blue-500 hover:bg-blue-400 disabled:opacity-40 text-white rounded-xl py-2 text-sm font-bold transition-all active:scale-95 shadow-lg shadow-blue-500/30"
+                  className="flex-1 min-w-0 bg-blue-500 hover:bg-blue-400 disabled:opacity-40 text-white rounded-xl py-1.5 text-xs font-bold transition-all active:scale-95 shadow-lg shadow-blue-500/30"
                 >Start</button>
                 <button
                   data-testid="button-stop"
                   onClick={handleStop}
-                  className="flex-1 bg-slate-600/80 hover:bg-slate-500/80 text-white rounded-xl py-2 text-sm font-bold border border-slate-500/50 transition-all active:scale-95"
+                  className="flex-1 min-w-0 bg-slate-600/80 hover:bg-slate-500/80 text-white rounded-xl py-1.5 text-xs font-bold border border-slate-500/50 transition-all active:scale-95"
                 >Stop</button>
               </div>
               {displaySeconds > 0 && !isActive && (
@@ -3555,18 +3555,18 @@ export default function Home() {
 
             {/* Countdown timer mode */}
             <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex flex-col gap-2 mb-3">
                 <div className="text-white font-semibold flex items-center gap-2"><AlarmClock className="w-4 h-4 text-cyan-400" /> Timer Mode</div>
                 <div className="flex bg-blue-800/80 rounded-lg p-0.5">
                   <button
                     onClick={() => setCountdownMode(false)}
                     data-testid="button-mode-stopwatch"
-                    className={`px-3 py-1 rounded-md text-sm font-semibold transition-all ${!countdownMode ? "bg-cyan-500 text-white" : "text-blue-400 hover:text-white"}`}
+                    className={`flex-1 px-3 py-1.5 rounded-md text-sm font-semibold transition-all text-center ${!countdownMode ? "bg-cyan-500 text-white" : "text-blue-400 hover:text-white"}`}
                   >Stopwatch</button>
                   <button
                     onClick={() => setCountdownMode(true)}
                     data-testid="button-mode-countdown"
-                    className={`px-3 py-1 rounded-md text-sm font-semibold transition-all ${countdownMode ? "bg-cyan-500 text-white" : "text-blue-400 hover:text-white"}`}
+                    className={`flex-1 px-3 py-1.5 rounded-md text-sm font-semibold transition-all text-center ${countdownMode ? "bg-cyan-500 text-white" : "text-blue-400 hover:text-white"}`}
                   >Countdown</button>
                 </div>
               </div>
