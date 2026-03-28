@@ -207,7 +207,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
     await shareContent({
       title: "ColdStreak Plunge",
       text: [
-        `I just completed a ${plunge.temperature}°F cold plunge 🧊`,
+        `I just completed a ${plunge.temperature}°F Plunge!`,
         `⏱️ ${durationStr} | 🔥 ${streak}-day streak`,
         "Think you can beat me?",
       ].join("\n"),

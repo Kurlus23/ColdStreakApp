@@ -5759,7 +5759,7 @@ export default function Home() {
                   await shareContent({
                     title: "ColdStreak Plunge",
                     text: [
-                      `I just completed a ${p.temperature}°F cold plunge 🧊`,
+                      `I just completed a ${p.temperature}°F Plunge!`,
                       `⏱️ ${durationStr} | 🔥 ${streak}-day streak`,
                       "Think you can beat me?",
                     ].join("\n"),
