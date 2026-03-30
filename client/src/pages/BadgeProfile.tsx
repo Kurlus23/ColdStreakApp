@@ -200,9 +200,7 @@ export default function BadgeProfile() {
       <button
         data-testid="button-close-profile"
         onClick={() => {
-          if (window.opener) {
-            window.close();
-          } else if (window.history.length > 1) {
+          if (window.history.length > 1) {
             window.history.back();
           } else {
             navigate("/");

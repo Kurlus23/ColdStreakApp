@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
+import { useLocation } from "wouter";
 import { Camera as CapCamera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
@@ -174,6 +175,7 @@ function openDirections(lat: number | string, lng: number | string) {
 }
 
 export default function Home() {
+  const [, navigate] = useLocation();
   const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
   const auth = useAuth();
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
@@ -4281,7 +4283,7 @@ export default function Home() {
                   <div className="mt-3 flex gap-2">
                     <button
                       data-testid="button-view-badge-profile"
-                      onClick={() => window.open(`/profile/${encodeURIComponent(username)}`, "_blank")}
+                      onClick={() => navigate(`/profile/${encodeURIComponent(username)}`)}
                       className="flex-1 flex items-center justify-center gap-2 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-sm font-medium py-2 rounded-xl active:scale-95 transition-transform hover:bg-cyan-500/30"
                     >
                       <User className="w-3.5 h-3.5" /> View My Profile
@@ -5121,7 +5123,7 @@ export default function Home() {
                             <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                               <button
                                 data-testid={`link-profile-${entry.username}`}
-                                onClick={() => window.open(`/profile/${encodeURIComponent(entry.username)}`, "_blank")}
+                                onClick={() => navigate(`/profile/${encodeURIComponent(entry.username)}`)}
                                 className="text-white font-semibold text-sm truncate hover:text-cyan-300 transition-colors active:scale-95"
                               >{entry.username}</button>
                               {(entry as LeaderboardEntryWithBadge).foundingPlunger && (

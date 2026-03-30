@@ -2346,11 +2346,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 <div className="space-y-2">
                   {evt.createdByUsername && (
                     <div className="flex items-center gap-2.5">
-                      <button onClick={() => window.open(`/profile/${encodeURIComponent(evt.createdByUsername!)}`, '_blank')} className="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-xs font-bold text-cyan-300 flex-shrink-0 hover:opacity-80 transition-opacity">
+                      <button onClick={() => navigate(`/profile/${encodeURIComponent(evt.createdByUsername!)}`)} className="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-xs font-bold text-cyan-300 flex-shrink-0 hover:opacity-80 transition-opacity">
                         {evt.createdByUsername.slice(0, 1).toUpperCase()}
                       </button>
                       <div>
-                        <button onClick={() => window.open(`/profile/${encodeURIComponent(evt.createdByUsername!)}`, '_blank')} className="flex items-center gap-1 text-white text-xs font-semibold hover:text-cyan-300 transition-colors text-left">
+                        <button onClick={() => navigate(`/profile/${encodeURIComponent(evt.createdByUsername!)}`)} className="flex items-center gap-1 text-white text-xs font-semibold hover:text-cyan-300 transition-colors text-left">
                           {evt.createdByUsername}
                           {renderEventBadges(evt.createdByUsername)}
                         </button>
@@ -2360,11 +2360,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   )}
                   {evt.coordinators.map((c) => (
                     <div key={c.id} className="flex items-center gap-2.5">
-                      <button onClick={() => window.open(`/profile/${encodeURIComponent(c.username)}`, '_blank')} className="w-7 h-7 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-xs font-bold text-blue-300 flex-shrink-0 hover:opacity-80 transition-opacity">
+                      <button onClick={() => navigate(`/profile/${encodeURIComponent(c.username)}`)} className="w-7 h-7 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-xs font-bold text-blue-300 flex-shrink-0 hover:opacity-80 transition-opacity">
                         {c.username.slice(0, 1).toUpperCase()}
                       </button>
                       <div className="flex-1">
-                        <button onClick={() => window.open(`/profile/${encodeURIComponent(c.username)}`, '_blank')} className="flex items-center gap-1 text-white text-xs font-semibold hover:text-cyan-300 transition-colors text-left">
+                        <button onClick={() => navigate(`/profile/${encodeURIComponent(c.username)}`)} className="flex items-center gap-1 text-white text-xs font-semibold hover:text-cyan-300 transition-colors text-left">
                           {c.username}
                           {renderEventBadges(c.username)}
                         </button>
@@ -2424,10 +2424,10 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     <div className="space-y-1">
                       {selectedEventDetail.participants.map((p) => (
                         <div key={p.id} className="flex items-center gap-2.5 py-1.5 border-b border-blue-800/30 last:border-0">
-                          <button onClick={() => window.open(`/profile/${encodeURIComponent(p.username)}`, '_blank')} className="w-6 h-6 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-[10px] font-bold text-blue-300 flex-shrink-0 hover:opacity-80 transition-opacity">
+                          <button onClick={() => navigate(`/profile/${encodeURIComponent(p.username)}`)} className="w-6 h-6 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-[10px] font-bold text-blue-300 flex-shrink-0 hover:opacity-80 transition-opacity">
                             {p.username.slice(0, 1).toUpperCase()}
                           </button>
-                          <button onClick={() => window.open(`/profile/${encodeURIComponent(p.username)}`, '_blank')} className="flex items-center gap-1 text-white text-xs font-medium flex-1 hover:text-cyan-300 transition-colors text-left">
+                          <button onClick={() => navigate(`/profile/${encodeURIComponent(p.username)}`)} className="flex items-center gap-1 text-white text-xs font-medium flex-1 hover:text-cyan-300 transition-colors text-left">
                             {p.username}
                             {renderEventBadges(p.username)}
                           </button>
@@ -2465,10 +2465,10 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   <div className="space-y-1">
                     {selectedEventDetail.bans.map((ban) => (
                       <div key={ban.id} className="flex items-center gap-2.5 py-1.5 border-b border-blue-800/30 last:border-0">
-                        <button onClick={() => window.open(`/profile/${encodeURIComponent(ban.username)}`, '_blank')} className="w-6 h-6 rounded-full bg-red-900/40 border border-red-700/40 flex items-center justify-center text-[10px] font-bold text-red-400 flex-shrink-0 hover:opacity-80 transition-opacity">
+                        <button onClick={() => navigate(`/profile/${encodeURIComponent(ban.username)}`)} className="w-6 h-6 rounded-full bg-red-900/40 border border-red-700/40 flex items-center justify-center text-[10px] font-bold text-red-400 flex-shrink-0 hover:opacity-80 transition-opacity">
                           {ban.username.slice(0, 1).toUpperCase()}
                         </button>
-                        <button onClick={() => window.open(`/profile/${encodeURIComponent(ban.username)}`, '_blank')} className="text-red-300 text-xs flex-1 line-through opacity-60 hover:opacity-100 hover:text-cyan-300 transition-colors text-left">{ban.username}</button>
+                        <button onClick={() => navigate(`/profile/${encodeURIComponent(ban.username)}`)} className="text-red-300 text-xs flex-1 line-through opacity-60 hover:opacity-100 hover:text-cyan-300 transition-colors text-left">{ban.username}</button>
                         <button
                           data-testid={`button-unban-participant-${ban.userId}`}
                           onClick={() => unbanParticipantMut.mutate({ eventId: evt.id, userId: ban.userId })}
