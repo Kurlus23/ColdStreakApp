@@ -4250,12 +4250,12 @@ export default function Home() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <h2 className="text-white font-bold text-lg leading-tight truncate">
+                      <h2 className="text-white font-bold text-lg leading-tight">
                         {username ? `${username}'s Badges` : "My Badges"}
+                        {streak > 0 && (
+                          <span className="text-orange-400 text-sm font-normal ml-2">🔥 {streak} day streak</span>
+                        )}
                       </h2>
-                      {streak > 0 && (
-                        <p className="text-orange-400 text-xs">🔥 {streak} day streak</p>
-                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0 ml-2">
@@ -4273,6 +4273,25 @@ export default function Home() {
                     >✕</button>
                   </div>
                 </div>
+
+                {/* Earned badges row */}
+                {totalEarned > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {isFoundingPlunger && (
+                      <span title="Founding Plunger" className="text-xl leading-tight">🎖️</span>
+                    )}
+                    {[...orderedTiers].reverse().filter(t => earnedTempTierIds.has(t.id)).map(t => (
+                      <span key={t.id} title={t.label} className="text-xl leading-tight">{t.emoji}</span>
+                    ))}
+                    {[...DAYS_TIERS].filter(t => earnedDaysTierIds.has(t.id)).map(t => (
+                      <span key={t.id} title={t.label} className="text-xl leading-tight">{t.emoji}</span>
+                    ))}
+                    {[...earnedStates].map(s => (
+                      <span key={s} title={s} className="text-xl leading-tight">{(STATE_EMOJI as Record<string, string>)[s] ?? "📍"}</span>
+                    ))}
+                  </div>
+                )}
+
                 <div className="h-2 bg-blue-900/60 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-cyan-500 to-yellow-400 rounded-full transition-all duration-500"
