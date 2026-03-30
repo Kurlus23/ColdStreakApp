@@ -4259,13 +4259,6 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                    {featuredBadgeIds.length > 0 && (
-                      <div className="flex flex-wrap justify-end gap-0.5 max-w-[100px]">
-                        {featuredBadgeIds.map(id => (
-                          <span key={id} className="text-xl leading-tight">{badgeEmojiLookup[id] ?? "🏆"}</span>
-                        ))}
-                      </div>
-                    )}
                     <button
                       data-testid="button-close-achievements"
                       onClick={() => navTo("timer")}
