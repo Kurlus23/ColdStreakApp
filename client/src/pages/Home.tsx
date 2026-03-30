@@ -5899,7 +5899,7 @@ export default function Home() {
             {formatTime(displaySeconds)}
           </div>
 
-          {/* Temp + live score row */}
+          {/* Temp + live score + personal best row */}
           <div className="flex items-center gap-6">
             <div className="text-center">
               <div className="text-blue-400 text-xs uppercase tracking-widest mb-0.5">Water Temp</div>
@@ -5910,6 +5910,15 @@ export default function Home() {
               <div className="text-blue-400 text-xs uppercase tracking-widest mb-0.5">Cold Score</div>
               <div className="text-cyan-300 text-2xl font-bold">{displayScore}</div>
             </div>
+            {personalBest > 0 && (
+              <>
+                <div className="w-px h-8 bg-blue-700/50" />
+                <div className="text-center">
+                  <div className="text-blue-400 text-xs uppercase tracking-widest mb-0.5">Personal Best</div>
+                  <div className="text-yellow-400 text-2xl font-bold">{personalBest.toFixed(1)}</div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Stop button */}
