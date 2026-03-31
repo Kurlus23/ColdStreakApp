@@ -1881,7 +1881,7 @@ export default function Home() {
               for (const loc of nearbyLocs) {
                 if (!loc.latitude || !loc.longitude) continue;
                 const d = haversineM(lat, lng, Number(loc.latitude), Number(loc.longitude));
-                if (d < 800 && d < nearestDist) { nearestDist = d; nearestId = loc.id; }
+                if (d < 100 && d < nearestDist) { nearestDist = d; nearestId = loc.id; }
               }
 
               if (nearestId !== null) {
