@@ -527,6 +527,7 @@ export default function Home() {
   const [introToggle, setIntroToggle] = useState(() => localStorage.getItem("coldstreak-intro-enabled") !== "false");
   const introVideoRef = useRef<HTMLVideoElement>(null);
   const [introMuted, setIntroMuted] = useState(true);
+  const [introReady, setIntroReady] = useState(false);
   const dismissIntro = () => {
     localStorage.setItem("coldstreak-intro-seen", "true");
     setIntroSeen(true);
@@ -543,7 +544,8 @@ export default function Home() {
     setIntroMuted(v.muted);
   };
   const handleIntroPlay = () => {
-    // On Android (Capacitor native) autoplay with sound is allowed — unmute immediately
+    // Video is actually playing — reveal it and unmute on Android
+    setIntroReady(true);
     if (Capacitor.getPlatform() !== "web") {
       const v = introVideoRef.current;
       if (v) { v.muted = false; setIntroMuted(false); }
@@ -2178,6 +2180,7 @@ export default function Home() {
       {/* ─── INTRO VIDEO OVERLAY ─── */}
       {showIntro && (
         <div className="fixed inset-0 z-[90] bg-black flex items-center justify-center">
+          {/* Video — hidden until onPlay fires so no paused-frame flash */}
           <video
             ref={introVideoRef}
             src="/intro.mp4"
@@ -2185,28 +2188,33 @@ export default function Home() {
             muted
             playsInline
             preload="auto"
-            className="w-full h-full object-contain"
+            className={`w-full h-full object-contain transition-opacity duration-300 ${introReady ? "opacity-100" : "opacity-0"}`}
             onPlay={handleIntroPlay}
             onEnded={dismissIntro}
           />
 
-          {/* Mute toggle — bottom left (web only, Android unmutes automatically) */}
-          <button
-            data-testid="button-intro-mute"
-            onClick={toggleIntroMute}
-            className="absolute bottom-10 left-6 bg-black/50 border border-white/20 text-white p-2.5 rounded-full backdrop-blur-sm active:scale-95 transition-all"
-          >
-            {introMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </button>
+          {/* Controls — only show once video is playing */}
+          {introReady && (
+            <>
+              {/* Mute toggle — bottom left (web only, Android unmutes automatically) */}
+              <button
+                data-testid="button-intro-mute"
+                onClick={toggleIntroMute}
+                className="absolute bottom-10 left-6 bg-black/50 border border-white/20 text-white p-2.5 rounded-full backdrop-blur-sm active:scale-95 transition-all"
+              >
+                {introMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </button>
 
-          {/* Skip — bottom right */}
-          <button
-            data-testid="button-skip-intro"
-            onClick={dismissIntro}
-            className="absolute bottom-10 right-6 bg-black/50 border border-white/20 text-white text-xs font-semibold px-4 py-2 rounded-full backdrop-blur-sm active:scale-95 transition-all"
-          >
-            Skip ›
-          </button>
+              {/* Skip — bottom right */}
+              <button
+                data-testid="button-skip-intro"
+                onClick={dismissIntro}
+                className="absolute bottom-10 right-6 bg-black/50 border border-white/20 text-white text-xs font-semibold px-4 py-2 rounded-full backdrop-blur-sm active:scale-95 transition-all"
+              >
+                Skip ›
+              </button>
+            </>
+          )}
         </div>
       )}
 
