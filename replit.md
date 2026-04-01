@@ -65,15 +65,16 @@ Profile avatars currently use a URL field — users paste a link to an image hos
 - **Set up Google Workspace for support email** — Create `support@coldstreakapp.com` (~$6/month) using Google Workspace with the coldstreakapp.com domain. Update `sendSupportEmail` in `server/email.ts` to send TO `support@coldstreakapp.com` instead of `coldstreakapp17@gmail.com`. This separates support traffic from admin email, looks professional in reply-to headers, and makes ticket management much easier at scale.
 
 ## Home Screen Background
-- **Active background**: `attached_assets/generated_images/bg_frostlake_hires.png` (Frozen Misty Lake, high-res)
-- **Import alias**: `@assets/generated_images/bg_frostlake_hires.png` in `client/src/pages/Home.tsx`
+- **Active background**: `attached_assets/generated_images/bg_frostlake.png` (Frozen Misty Lake)
+- **Import alias**: `@assets/generated_images/bg_frostlake.png` in `client/src/pages/Home.tsx`
 - To swap backgrounds, update that one import line.
 
 ### Saved Wallpaper Library (future interchangeable wallpaper feature)
 All options are stored in `attached_assets/generated_images/`:
 | File | Description |
 |------|-------------|
-| `bg_frostlake_hires.png` | Frozen Misty Lake — **current default** |
+| `bg_frostlake_hires.png` | Frozen Misty Lake hi-res (alternate) |
+| `bg_frostlake.png` | Frozen Misty Lake — **current default** |
 | `bg_icecave.png` | Ice Cave with cyan glow |
 | `bg_underwater.png` | Underwater cold plunge looking up |
 | `bg_aurora.png` | Arctic Aurora Borealis |
