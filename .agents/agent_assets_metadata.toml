@@ -198,6 +198,12 @@ uri = "file://attached_assets/generated_images/bg_plungepool.png"
 type = "image"
 title = "cold plunge pool top down background"
 
+[[generated]]
+id = "0pw-It15DbFE1RZrCoImi"
+uri = "file://attached_assets/generated_images/bg_frostlake_hires.png"
+type = "image"
+title = "hi-res frost lake background"
+
 [[outputs]]
 id = "unpmrc8DDk2bB4ZkNmn5k"
 uri = "file://client/public/feature-graphic-1024x500.png"

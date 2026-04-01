@@ -64,5 +64,27 @@ Profile avatars currently use a URL field — users paste a link to an image hos
 ### At 1,000 users
 - **Set up Google Workspace for support email** — Create `support@coldstreakapp.com` (~$6/month) using Google Workspace with the coldstreakapp.com domain. Update `sendSupportEmail` in `server/email.ts` to send TO `support@coldstreakapp.com` instead of `coldstreakapp17@gmail.com`. This separates support traffic from admin email, looks professional in reply-to headers, and makes ticket management much easier at scale.
 
+## Home Screen Background
+- **Active background**: `attached_assets/generated_images/bg_frostlake_hires.png` (Frozen Misty Lake, high-res)
+- **Import alias**: `@assets/generated_images/bg_frostlake_hires.png` in `client/src/pages/Home.tsx`
+- To swap backgrounds, update that one import line.
+
+### Saved Wallpaper Library (future interchangeable wallpaper feature)
+All options are stored in `attached_assets/generated_images/`:
+| File | Description |
+|------|-------------|
+| `bg_frostlake_hires.png` | Frozen Misty Lake — **current default** |
+| `bg_icecave.png` | Ice Cave with cyan glow |
+| `bg_underwater.png` | Underwater cold plunge looking up |
+| `bg_aurora.png` | Arctic Aurora Borealis |
+| `bg_plungepool.png` | Cold plunge pool top-down at night |
+| `bg_crackedice.png` | Cracked ice surface from below |
+
+### Future: Custom Wallpaper System
+- Let users pick a wallpaper from the library in Settings (free tier gets 1-2, Pro unlocks all)
+- Store choice in `localStorage` key `coldstreak-wallpaper`
+- Could offer exclusive Pro-only wallpapers as a perk
+- Could tie certain wallpapers to badge milestones (e.g. unlock "Ice Cave" after 30-day streak)
+
 ## v2.0 Roadmap Notes
 - **Bitmoji / device photo upload for avatars** — Allow users to upload an image directly from their device (including Bitmoji screenshots). Requires cloud image storage (Cloudinary or similar), privacy policy updates to cover image data collection, ToS clause for user-generated content, and a content moderation plan for App Store / Play Store compliance. Current URL-paste approach intentionally deferred until v2.0.
