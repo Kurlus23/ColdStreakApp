@@ -204,6 +204,36 @@ uri = "file://attached_assets/generated_images/bg_frostlake_hires.png"
 type = "image"
 title = "hi-res frost lake background"
 
+[[generated]]
+id = "9xqyHsa-jYZ5Ree5xMAwC"
+uri = "file://client/public/feature-graphic-lake-2025.png"
+type = "image"
+title = "feature graphic"
+
+[[generated]]
+id = "IehLYRandQhcQmk3thgOv"
+uri = "file://client/public/screenshot-home-2025.png"
+type = "image"
+title = "home screen screenshot"
+
+[[generated]]
+id = "jCOs0MxoU5v_DSKHWEjwG"
+uri = "file://client/public/screenshot-history-2025.png"
+type = "image"
+title = "history screen screenshot"
+
+[[generated]]
+id = "qUkJPWU6qN25-zCnHqJBg"
+uri = "file://client/public/screenshot-leaderboard-2025.png"
+type = "image"
+title = "leaderboard screenshot"
+
+[[generated]]
+id = "-pLbY47Lyc8ppXdQ_V1-s"
+uri = "file://client/public/screenshot-badges-2025.png"
+type = "image"
+title = "badges screen screenshot"
+
 [[outputs]]
 id = "unpmrc8DDk2bB4ZkNmn5k"
 uri = "file://client/public/feature-graphic-1024x500.png"
@@ -509,3 +539,33 @@ id = "eIUe92LZZTULjrwSGr9g5"
 uri = "file://attached_assets/generated_images/bg_plungepool.png"
 type = "image"
 title = "Option 4 — Cold Plunge Pool (top down)"
+
+[[outputs]]
+id = "q0Kqs_6BPK4bZ-QQWRSiV"
+uri = "file://client/public/feature-graphic-lake-2025.png"
+type = "image"
+title = "Feature Graphic (1024x500) — upload to Play Store banner"
+
+[[outputs]]
+id = "cHR98assEPMzy7ShqaJwW"
+uri = "file://client/public/screenshot-home-2025.png"
+type = "image"
+title = "Screenshot 1 — Home / Timer Screen"
+
+[[outputs]]
+id = "jwxqJ8IGdRY8twKHcnSmN"
+uri = "file://client/public/screenshot-history-2025.png"
+type = "image"
+title = "Screenshot 2 — History Screen"
+
+[[outputs]]
+id = "r02f0sBXzZydtfcIPowpU"
+uri = "file://client/public/screenshot-leaderboard-2025.png"
+type = "image"
+title = "Screenshot 3 — Leaderboard"
+
+[[outputs]]
+id = "KSMDVECq1gUIveASuwQ-e"
+uri = "file://client/public/screenshot-badges-2025.png"
+type = "image"
+title = "Screenshot 4 — Badges & Achievements"
