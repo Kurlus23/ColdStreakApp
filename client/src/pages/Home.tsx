@@ -526,6 +526,7 @@ export default function Home() {
   const [introSeen, setIntroSeen] = useState(() => localStorage.getItem("coldstreak-intro-seen") === "true");
   const [introToggle, setIntroToggle] = useState(() => localStorage.getItem("coldstreak-intro-enabled") !== "false");
   const introVideoRef = useRef<HTMLVideoElement>(null);
+  const [introMuted, setIntroMuted] = useState(true);
   const dismissIntro = () => {
     localStorage.setItem("coldstreak-intro-seen", "true");
     setIntroSeen(true);
@@ -535,9 +536,11 @@ export default function Home() {
     localStorage.setItem("coldstreak-intro-enabled", val ? "true" : "false");
     setIntroToggle(val);
   };
-  const handleIntroPlay = () => {
-    // Unmute as soon as playback actually starts — no visible flash
-    if (introVideoRef.current) introVideoRef.current.muted = false;
+  const toggleIntroMute = () => {
+    const v = introVideoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setIntroMuted(v.muted);
   };
   const [supportCategory, setSupportCategory] = useState("bug");
   const [supportMessage, setSupportMessage] = useState("");
@@ -2176,10 +2179,19 @@ export default function Home() {
             playsInline
             preload="auto"
             className="w-full h-full object-contain"
-            onPlay={handleIntroPlay}
             onEnded={dismissIntro}
           />
 
+          {/* Mute toggle — bottom left */}
+          <button
+            data-testid="button-intro-mute"
+            onClick={toggleIntroMute}
+            className="absolute bottom-10 left-6 bg-black/50 border border-white/20 text-white p-2.5 rounded-full backdrop-blur-sm active:scale-95 transition-all"
+          >
+            {introMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+
+          {/* Skip — bottom right */}
           <button
             data-testid="button-skip-intro"
             onClick={dismissIntro}
