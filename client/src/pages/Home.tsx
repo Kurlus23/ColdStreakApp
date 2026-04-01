@@ -520,6 +520,20 @@ export default function Home() {
   const { isPro, proEmail, proPlan, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo, clearPro, verifyProForEmail } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
+
+  // Intro video
+  const [showIntro, setShowIntro] = useState(() => localStorage.getItem("coldstreak-intro-enabled") !== "false");
+  const [introSeen, setIntroSeen] = useState(() => localStorage.getItem("coldstreak-intro-seen") === "true");
+  const [introToggle, setIntroToggle] = useState(() => localStorage.getItem("coldstreak-intro-enabled") !== "false");
+  const dismissIntro = () => {
+    localStorage.setItem("coldstreak-intro-seen", "true");
+    setIntroSeen(true);
+    setShowIntro(false);
+  };
+  const toggleIntro = (val: boolean) => {
+    localStorage.setItem("coldstreak-intro-enabled", val ? "true" : "false");
+    setIntroToggle(val);
+  };
   const [supportCategory, setSupportCategory] = useState("bug");
   const [supportMessage, setSupportMessage] = useState("");
   const [supportEmail, setSupportEmail] = useState("");
@@ -2145,6 +2159,28 @@ export default function Home() {
       {showOnboarding && (
         <Onboarding onComplete={() => setShowOnboarding(false)} />
       )}
+
+      {/* ─── INTRO VIDEO OVERLAY ─── */}
+      {showIntro && (
+        <div className="fixed inset-0 z-[90] bg-black flex items-center justify-center">
+          <video
+            src="/intro.mp4"
+            autoPlay
+            playsInline
+            muted={false}
+            className="w-full h-full object-cover"
+            onEnded={dismissIntro}
+          />
+          <button
+            data-testid="button-skip-intro"
+            onClick={dismissIntro}
+            className="absolute bottom-10 right-6 bg-black/50 border border-white/20 text-white text-xs font-semibold px-4 py-2 rounded-full backdrop-blur-sm active:scale-95 transition-all"
+          >
+            Skip ›
+          </button>
+        </div>
+      )}
+
       {/* Iceberg photo background */}
       <img
         src={icebergBg}
@@ -3694,6 +3730,26 @@ export default function Home() {
                 </div>
               )}
             </div>
+
+            {/* Intro Video Toggle — shown after user has seen it once */}
+            {introSeen && (
+              <div className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40">
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-cyan-400" />
+                  <div>
+                    <span className="text-white font-semibold text-sm">Intro Video</span>
+                    <p className="text-blue-400 text-xs">Play on every launch</p>
+                  </div>
+                </div>
+                <button
+                  data-testid="button-toggle-intro"
+                  onClick={() => toggleIntro(!introToggle)}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${introToggle ? "bg-cyan-500" : "bg-blue-800/80"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${introToggle ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
+            )}
 
             {/* Help & Support */}
             <button
