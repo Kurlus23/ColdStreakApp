@@ -2178,7 +2178,8 @@ export default function Home() {
             ref={introVideoRef}
             src="/intro.mp4"
             playsInline
-            className="w-full h-full object-cover"
+            preload="auto"
+            className="w-full h-full object-contain"
             onCanPlay={handleIntroCanPlay}
             onEnded={dismissIntro}
           />
