@@ -144,6 +144,12 @@ uri = "file://attached_assets/generated_images/coldstreak_logo_corrected.png"
 type = "image"
 title = "coldstreak logo corrected spelling one L"
 
+[[generated]]
+id = "Yc1JUeZeXzPwT0Vekad-x"
+uri = "file://attached_assets/generated_images/coldstreak_logo_final_gradient.png"
+type = "image"
+title = "coldstreak logo final with gradient font"
+
 [[outputs]]
 id = "unpmrc8DDk2bB4ZkNmn5k"
 uri = "file://client/public/feature-graphic-1024x500.png"
@@ -389,3 +395,9 @@ id = "34yBYuip67QnpIVCBWQt1"
 uri = "file://attached_assets/generated_images/coldstreak_logo_corrected.png"
 type = "image"
 title = "ColdStreak — Ice Blocks (Corrected)"
+
+[[outputs]]
+id = "TYXHAYwqBGX84CHRXemSn"
+uri = "file://attached_assets/generated_images/coldstreak_logo_final_gradient.png"
+type = "image"
+title = "ColdStreak — Final Logo with Gradient Font"
