@@ -96,6 +96,12 @@ uri = "file://attached_assets/generated_images/coldstreak_logo_ice_gradient_v2.p
 type = "image"
 title = "coldstreak logo ice gradient v2 clean T"
 
+[[generated]]
+id = "jsOqf-Tfi0iW74GfCZC7D"
+uri = "file://attached_assets/generated_images/coldstreak_logo_ice_gradient_v3.png"
+type = "image"
+title = "coldstreak logo ice gradient v3 T R separated"
+
 [[outputs]]
 id = "unpmrc8DDk2bB4ZkNmn5k"
 uri = "file://client/public/feature-graphic-1024x500.png"
@@ -293,3 +299,9 @@ id = "EMKO8Gm5TgbXF1z2X4n8R"
 uri = "file://attached_assets/generated_images/coldstreak_logo_ice_gradient_v2.png"
 type = "image"
 title = "ColdStreak — Ice Blocks (Fixed T)"
+
+[[outputs]]
+id = "JSQV3qc_qbeMe0DYnti78"
+uri = "file://attached_assets/generated_images/coldstreak_logo_ice_gradient_v3.png"
+type = "image"
+title = "ColdStreak — Ice Blocks (T & R Separated)"
