@@ -525,7 +525,6 @@ export default function Home() {
   const [showIntro, setShowIntro] = useState(() => localStorage.getItem("coldstreak-intro-enabled") !== "false");
   const [introSeen, setIntroSeen] = useState(() => localStorage.getItem("coldstreak-intro-seen") === "true");
   const [introToggle, setIntroToggle] = useState(() => localStorage.getItem("coldstreak-intro-enabled") !== "false");
-  const [introNeedsTab, setIntroNeedsTab] = useState(false);
   const introVideoRef = useRef<HTMLVideoElement>(null);
   const dismissIntro = () => {
     localStorage.setItem("coldstreak-intro-seen", "true");
@@ -536,22 +535,9 @@ export default function Home() {
     localStorage.setItem("coldstreak-intro-enabled", val ? "true" : "false");
     setIntroToggle(val);
   };
-  const handleIntroCanPlay = () => {
-    const v = introVideoRef.current;
-    if (!v) return;
-    // Start muted so browser allows autoplay, then unmute immediately
-    v.muted = true;
-    v.play().then(() => {
-      v.muted = false;
-    }).catch(() => {
-      // If still blocked, show tap-to-play
-      v.muted = false;
-      setIntroNeedsTab(true);
-    });
-  };
-  const handleIntroTap = () => {
-    setIntroNeedsTab(false);
-    introVideoRef.current?.play();
+  const handleIntroPlay = () => {
+    // Unmute as soon as playback actually starts — no visible flash
+    if (introVideoRef.current) introVideoRef.current.muted = false;
   };
   const [supportCategory, setSupportCategory] = useState("bug");
   const [supportMessage, setSupportMessage] = useState("");
@@ -2185,25 +2171,14 @@ export default function Home() {
           <video
             ref={introVideoRef}
             src="/intro.mp4"
+            autoPlay
+            muted
             playsInline
             preload="auto"
             className="w-full h-full object-contain"
-            onCanPlay={handleIntroCanPlay}
+            onPlay={handleIntroPlay}
             onEnded={dismissIntro}
           />
-
-          {/* Tap-to-play overlay — shown when browser blocks autoplay */}
-          {introNeedsTab && (
-            <button
-              onClick={handleIntroTap}
-              className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/60"
-            >
-              <div className="w-20 h-20 rounded-full bg-white/10 border-2 border-white/40 flex items-center justify-center">
-                <Play className="w-9 h-9 text-white ml-1" />
-              </div>
-              <span className="text-white/70 text-sm font-medium">Tap to play</span>
-            </button>
-          )}
 
           <button
             data-testid="button-skip-intro"
