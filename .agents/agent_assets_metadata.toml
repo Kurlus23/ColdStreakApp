@@ -90,6 +90,12 @@ uri = "file://attached_assets/generated_images/coldstreak_logo_ice_gradient.png"
 type = "image"
 title = "coldstreak logo ice gradient letters"
 
+[[generated]]
+id = "cUJA4vAOnfnj6gjd2tt9F"
+uri = "file://attached_assets/generated_images/coldstreak_logo_ice_gradient_v2.png"
+type = "image"
+title = "coldstreak logo ice gradient v2 clean T"
+
 [[outputs]]
 id = "unpmrc8DDk2bB4ZkNmn5k"
 uri = "file://client/public/feature-graphic-1024x500.png"
@@ -281,3 +287,9 @@ id = "r5wfNRrAIy4QrqQUAmkst"
 uri = "file://attached_assets/generated_images/coldstreak_logo_ice_gradient.png"
 type = "image"
 title = "ColdStreak — Ice Blocks with White-to-Blue Gradient"
+
+[[outputs]]
+id = "EMKO8Gm5TgbXF1z2X4n8R"
+uri = "file://attached_assets/generated_images/coldstreak_logo_ice_gradient_v2.png"
+type = "image"
+title = "ColdStreak — Ice Blocks (Fixed T)"
