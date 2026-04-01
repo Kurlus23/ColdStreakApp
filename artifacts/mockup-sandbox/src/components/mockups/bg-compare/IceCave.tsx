@@ -5,27 +5,28 @@ export function IceCave() {
         className="relative overflow-hidden rounded-[2.5rem] shadow-2xl"
         style={{ width: 390, height: 844 }}
       >
-        <img
-          src="/bg_icecave.png"
-          alt="Ice Cave"
-          className="absolute inset-0 w-full h-full object-cover"
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: "url('/bg_icecave.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-blue-950/80 via-blue-900/20 to-blue-950/90" />
 
         <div className="relative z-10 flex flex-col h-full px-6 pt-14 pb-8">
-          <div className="flex items-center justify-between mb-1">
-            <div className="text-center flex-1">
-              <span
-                className="text-2xl font-black tracking-widest"
-                style={{
-                  background: "linear-gradient(to right, #ffffff, #67e8f9)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                COLDSTREAK
-              </span>
-            </div>
+          <div className="text-center mb-1">
+            <span
+              className="text-2xl font-black tracking-widest"
+              style={{
+                background: "linear-gradient(to right, #ffffff, #67e8f9)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              COLDSTREAK
+            </span>
           </div>
 
           <div className="flex justify-center gap-6 mb-8 mt-2">
@@ -41,12 +42,10 @@ export function IceCave() {
           </div>
 
           <div className="flex-1 flex flex-col items-center justify-center gap-6">
-            <div className="relative flex items-center justify-center">
-              <div className="w-52 h-52 rounded-full border-4 border-cyan-400/40 flex items-center justify-center bg-blue-950/40 backdrop-blur-sm">
-                <div className="text-center">
-                  <div className="text-5xl font-mono font-bold text-white">2:00</div>
-                  <div className="text-sm text-cyan-300 mt-1 uppercase tracking-widest">Ready</div>
-                </div>
+            <div className="w-52 h-52 rounded-full border-4 border-cyan-400/40 flex items-center justify-center bg-blue-950/40 backdrop-blur-sm">
+              <div className="text-center">
+                <div className="text-5xl font-mono font-bold text-white">2:00</div>
+                <div className="text-sm text-cyan-300 mt-1 uppercase tracking-widest">Ready</div>
               </div>
             </div>
 
