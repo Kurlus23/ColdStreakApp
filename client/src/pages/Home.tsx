@@ -542,6 +542,13 @@ export default function Home() {
     v.muted = !v.muted;
     setIntroMuted(v.muted);
   };
+  const handleIntroPlay = () => {
+    // On Android (Capacitor native) autoplay with sound is allowed — unmute immediately
+    if (Capacitor.getPlatform() !== "web") {
+      const v = introVideoRef.current;
+      if (v) { v.muted = false; setIntroMuted(false); }
+    }
+  };
   const [supportCategory, setSupportCategory] = useState("bug");
   const [supportMessage, setSupportMessage] = useState("");
   const [supportEmail, setSupportEmail] = useState("");
@@ -2179,10 +2186,11 @@ export default function Home() {
             playsInline
             preload="auto"
             className="w-full h-full object-contain"
+            onPlay={handleIntroPlay}
             onEnded={dismissIntro}
           />
 
-          {/* Mute toggle — bottom left */}
+          {/* Mute toggle — bottom left (web only, Android unmutes automatically) */}
           <button
             data-testid="button-intro-mute"
             onClick={toggleIntroMute}
