@@ -36,6 +36,18 @@ uri = "file://attached_assets/generated_images/coldstreak_logo_v3_wide.png"
 type = "image"
 title = "coldstreak logo v3 wide"
 
+[[generated]]
+id = "gZWwIENz2ePoydvTmZmCW"
+uri = "file://attached_assets/generated_images/coldstreak_logo_ice_square.png"
+type = "image"
+title = "coldstreak logo ice square"
+
+[[generated]]
+id = "xoHflQPnNIvAm_C15iVtf"
+uri = "file://attached_assets/generated_images/coldstreak_logo_ice_wide.png"
+type = "image"
+title = "coldstreak logo ice wide"
+
 [[outputs]]
 id = "unpmrc8DDk2bB4ZkNmn5k"
 uri = "file://client/public/feature-graphic-1024x500.png"
@@ -173,3 +185,15 @@ id = "p4HZnkGl-I3hUoPpotLHT"
 uri = "file://attached_assets/generated_images/coldstreak_logo_v3_wide.png"
 type = "image"
 title = "ColdStreak Logo — Wide"
+
+[[outputs]]
+id = "C4EqOiXmOT04Lw_3vXGr6"
+uri = "file://attached_assets/generated_images/coldstreak_logo_ice_square.png"
+type = "image"
+title = "ColdStreak Logo — Ice Square"
+
+[[outputs]]
+id = "VUhJlOY05hB4pKJ8aIoTg"
+uri = "file://attached_assets/generated_images/coldstreak_logo_ice_wide.png"
+type = "image"
+title = "ColdStreak Logo — Ice Wide"
