@@ -108,6 +108,24 @@ uri = "file://attached_assets/generated_images/coldstreak_logo_ice_final_v2.png"
 type = "image"
 title = "coldstreak logo ice final v2"
 
+[[generated]]
+id = "ciNzeqrKPfFqbtQiBdBFi"
+uri = "file://attached_assets/generated_images/coldstreak_spelling_a.png"
+type = "image"
+title = "coldstreak spelling attempt a"
+
+[[generated]]
+id = "Uto3hHGe914EK1UrqHdIv"
+uri = "file://attached_assets/generated_images/coldstreak_spelling_b.png"
+type = "image"
+title = "coldstreak spelling attempt b"
+
+[[generated]]
+id = "e0u8MMA6xdRHNgjihVwxM"
+uri = "file://attached_assets/generated_images/coldstreak_spelling_c.png"
+type = "image"
+title = "coldstreak spelling attempt c"
+
 [[outputs]]
 id = "unpmrc8DDk2bB4ZkNmn5k"
 uri = "file://client/public/feature-graphic-1024x500.png"
@@ -317,3 +335,21 @@ id = "tLTKqWHFuhq5xIuVqIUS4"
 uri = "file://attached_assets/generated_images/coldstreak_logo_ice_final_v2.png"
 type = "image"
 title = "ColdStreak — Ice Blocks (Corrected)"
+
+[[outputs]]
+id = "ZW-Gdjv0wW7zX5otNY0Lq"
+uri = "file://attached_assets/generated_images/coldstreak_spelling_a.png"
+type = "image"
+title = "Version A"
+
+[[outputs]]
+id = "g9UPoO8EcUXzJbzGyYWGF"
+uri = "file://attached_assets/generated_images/coldstreak_spelling_b.png"
+type = "image"
+title = "Version B"
+
+[[outputs]]
+id = "f3QkfLDRucA_G_3wwI8pE"
+uri = "file://attached_assets/generated_images/coldstreak_spelling_c.png"
+type = "image"
+title = "Version C"
