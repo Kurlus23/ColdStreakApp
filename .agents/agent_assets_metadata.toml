@@ -292,7 +292,7 @@ title = "7\" — Badges"
 id = "j6awlHvqHMHs0oun2WVV1"
 uri = "file://client/public/tablet-7-history.png"
 type = "image"
-title = "7\" — History"
+title = "7\" — Plunge History"
 
 [[outputs]]
 id = "T-rvmxRIhhfm7lIOkl2zH"
@@ -322,7 +322,7 @@ title = "10\" — Badges"
 id = "VEGhLqGO0T_r9DHk5k_cc"
 uri = "file://client/public/tablet-10-history.png"
 type = "image"
-title = "10\" — History"
+title = "10\" — Plunge History"
 
 [[outputs]]
 id = "UE_RvMK0Mdc362Xxabrk6"
@@ -569,3 +569,27 @@ id = "KSMDVECq1gUIveASuwQ-e"
 uri = "file://client/public/screenshot-badges-2025.png"
 type = "image"
 title = "Screenshot 4 — Badges & Achievements"
+
+[[outputs]]
+id = "zbgtzio36qsdUSEGx1bct"
+uri = "file://client/public/tablet-7-gear.png"
+type = "image"
+title = "7\" — Gear"
+
+[[outputs]]
+id = "iAbKAfpHf0dX69f9gcImC"
+uri = "file://client/public/tablet-7-devices.png"
+type = "image"
+title = "7\" — Bluetooth Devices"
+
+[[outputs]]
+id = "s3t5AxPJ3PUpzeVVpecWR"
+uri = "file://client/public/tablet-10-gear.png"
+type = "image"
+title = "10\" — Gear"
+
+[[outputs]]
+id = "53Q9jTjMea-r-si9G4zTZ"
+uri = "file://client/public/tablet-10-devices.png"
+type = "image"
+title = "10\" — Bluetooth Devices"
