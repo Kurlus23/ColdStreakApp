@@ -150,6 +150,12 @@ uri = "file://attached_assets/generated_images/coldstreak_logo_final_gradient.pn
 type = "image"
 title = "coldstreak logo final with gradient font"
 
+[[generated]]
+id = "GB1gziYiPrbHEbIlS-x_m"
+uri = "file://attached_assets/generated_images/coldstreak_logo_final_v2.png"
+type = "image"
+title = "coldstreak logo final v2 no double letters"
+
 [[outputs]]
 id = "unpmrc8DDk2bB4ZkNmn5k"
 uri = "file://client/public/feature-graphic-1024x500.png"
@@ -401,3 +407,9 @@ id = "TYXHAYwqBGX84CHRXemSn"
 uri = "file://attached_assets/generated_images/coldstreak_logo_final_gradient.png"
 type = "image"
 title = "ColdStreak — Final Logo with Gradient Font"
+
+[[outputs]]
+id = "EeggRtbrKHhE4lpcE2l5Z"
+uri = "file://attached_assets/generated_images/coldstreak_logo_final_v2.png"
+type = "image"
+title = "ColdStreak — Ice Blocks (Single T)"
