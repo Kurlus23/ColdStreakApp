@@ -539,7 +539,15 @@ export default function Home() {
   const handleIntroCanPlay = () => {
     const v = introVideoRef.current;
     if (!v) return;
-    v.play().catch(() => setIntroNeedsTab(true));
+    // Start muted so browser allows autoplay, then unmute immediately
+    v.muted = true;
+    v.play().then(() => {
+      v.muted = false;
+    }).catch(() => {
+      // If still blocked, show tap-to-play
+      v.muted = false;
+      setIntroNeedsTab(true);
+    });
   };
   const handleIntroTap = () => {
     setIntroNeedsTab(false);
