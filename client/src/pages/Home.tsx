@@ -7,7 +7,7 @@ import { App as CapApp } from "@capacitor/app";
 import { BleClient } from "@capacitor-community/bluetooth-le";
 import { savePhoto } from "@/lib/photoStore";
 import { tagAndSaveToRoll, readPlungeMetaFromPhoto, type PlungePhotoMeta } from "@/lib/cameraRoll";
-import icebergBg from "@assets/generated_images/bg_frostlake.png";
+import icebergBg from "@assets/image_1775083022624.png";
 import {
   Play, Pause, RotateCcw, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,

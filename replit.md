@@ -65,8 +65,8 @@ Profile avatars currently use a URL field — users paste a link to an image hos
 - **Set up Google Workspace for support email** — Create `support@coldstreakapp.com` (~$6/month) using Google Workspace with the coldstreakapp.com domain. Update `sendSupportEmail` in `server/email.ts` to send TO `support@coldstreakapp.com` instead of `coldstreakapp17@gmail.com`. This separates support traffic from admin email, looks professional in reply-to headers, and makes ticket management much easier at scale.
 
 ## Home Screen Background
-- **Active background**: `attached_assets/generated_images/bg_frostlake.png` (Frozen Misty Lake)
-- **Import alias**: `@assets/generated_images/bg_frostlake.png` in `client/src/pages/Home.tsx`
+- **Active background**: `attached_assets/image_1775083022624.png` (Frozen Misty Lake — user-provided photo)
+- **Import alias**: `@assets/image_1775083022624.png` in `client/src/pages/Home.tsx`
 - To swap backgrounds, update that one import line.
 
 ### Saved Wallpaper Library (future interchangeable wallpaper feature)
