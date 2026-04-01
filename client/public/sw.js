@@ -1,12 +1,24 @@
-const CACHE_NAME = "coldstreak-v8";
+const CACHE_NAME = "coldstreak-v9";
 const OFFLINE_URL = "/offline.html";
 
-// Install — only cache the offline page (keeps install from failing)
+// Assets to pre-cache on install so they're instant on first use
+const PRECACHE_ASSETS = [
+  OFFLINE_URL,
+  "/intro.mp4",
+];
+
+// Install — pre-cache critical assets including the intro video
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    fetch(OFFLINE_URL)
-      .then((res) => caches.open(CACHE_NAME).then((c) => c.put(OFFLINE_URL, res)))
-      .catch(() => {})
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.allSettled(
+        PRECACHE_ASSETS.map((url) =>
+          fetch(url, { cache: "no-store" })
+            .then((res) => { if (res.ok) cache.put(url, res); })
+            .catch(() => {})
+        )
+      )
+    )
   );
   self.skipWaiting();
 });
