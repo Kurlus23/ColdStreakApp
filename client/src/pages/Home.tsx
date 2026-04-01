@@ -2224,11 +2224,19 @@ export default function Home() {
       <header className="absolute z-10 inset-x-0 top-0 flex items-center justify-between px-5 pt-6 pb-2">
         <div className="w-20" />
         <h1
-          className="text-2xl font-extrabold italic tracking-wide text-white/90 pointer-events-none"
-          style={{ textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}
+          className="text-2xl font-black tracking-widest pointer-events-none select-none"
+          style={{
+            background: "linear-gradient(to bottom, #ffffff 0%, #67e8f9 60%, #0891b2 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            textShadow: "none",
+            filter: "drop-shadow(0 1px 6px rgba(0,0,0,0.7))",
+            letterSpacing: "0.12em",
+          }}
           data-testid="header-title"
         >
-          ColdStreak
+          COLDSTREAK
         </h1>
         <div className="w-20 flex justify-end">
           {!auth.user && (
