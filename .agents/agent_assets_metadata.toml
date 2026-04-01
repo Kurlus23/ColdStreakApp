@@ -132,6 +132,12 @@ uri = "file://attached_assets/generated_images/coldstreak_logo_spacing_fixed.png
 type = "image"
 title = "coldstreak logo spacing fixed"
 
+[[generated]]
+id = "grziJiJc1Cwdfu7iRdjhH"
+uri = "file://attached_assets/generated_images/coldstreak_logo_v_final.png"
+type = "image"
+title = "coldstreak logo final centered short line"
+
 [[outputs]]
 id = "unpmrc8DDk2bB4ZkNmn5k"
 uri = "file://client/public/feature-graphic-1024x500.png"
@@ -365,3 +371,9 @@ id = "o4HTBPLcw_X3C0mjOwHKS"
 uri = "file://attached_assets/generated_images/coldstreak_logo_spacing_fixed.png"
 type = "image"
 title = "ColdStreak — Ice Blocks (Spacing Fixed)"
+
+[[outputs]]
+id = "xljIBhAJCg0Igu9aWSS0a"
+uri = "file://attached_assets/generated_images/coldstreak_logo_v_final.png"
+type = "image"
+title = "ColdStreak — Ice Blocks (Fixed Spacing & Line)"
