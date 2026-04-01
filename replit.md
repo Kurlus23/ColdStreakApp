@@ -59,5 +59,10 @@ Profile avatars currently use a URL field — users paste a link to an image hos
 - **Activate Stripe Customer Portal** — Must be enabled in the Stripe dashboard before subscription management goes live.
 - **Add `username` column to production DB** — Run `ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT UNIQUE;` on the production database if not already applied.
 
+## Growth Milestones
+
+### At 1,000 users
+- **Set up Google Workspace for support email** — Create `support@coldstreakapp.com` (~$6/month) using Google Workspace with the coldstreakapp.com domain. Update `sendSupportEmail` in `server/email.ts` to send TO `support@coldstreakapp.com` instead of `coldstreakapp17@gmail.com`. This separates support traffic from admin email, looks professional in reply-to headers, and makes ticket management much easier at scale.
+
 ## v2.0 Roadmap Notes
 - **Bitmoji / device photo upload for avatars** — Allow users to upload an image directly from their device (including Bitmoji screenshots). Requires cloud image storage (Cloudinary or similar), privacy policy updates to cover image data collection, ToS clause for user-generated content, and a content moderation plan for App Store / Play Store compliance. Current URL-paste approach intentionally deferred until v2.0.
