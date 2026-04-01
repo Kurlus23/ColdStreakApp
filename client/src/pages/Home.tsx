@@ -2398,30 +2398,6 @@ export default function Home() {
 
             {/* Cold Score — tappable, cycles today → week → kcal (daily) → kcal (weekly) */}
             <div className="relative w-full h-full">
-              {/* Info button — top-right corner */}
-              <button
-                data-testid="button-score-info"
-                onClick={(e) => { e.stopPropagation(); setScoreInfoOpen(v => !v); }}
-                className="absolute top-2 right-2 z-10 w-5 h-5 flex items-center justify-center rounded-full bg-blue-800/70 border border-blue-600/50 text-blue-400 hover:text-cyan-300 hover:border-cyan-500/50 transition-all text-[10px] font-bold"
-              >ℹ</button>
-
-              {/* Info popup */}
-              {scoreInfoOpen && (
-                <div className="absolute top-8 right-2 z-20 w-52 bg-blue-950 border border-blue-600/60 rounded-xl p-3 shadow-2xl shadow-black/60">
-                  <button
-                    onClick={() => setScoreInfoOpen(false)}
-                    className="absolute top-1.5 right-2 text-blue-500 hover:text-white text-xs"
-                  >✕</button>
-                  <p className="text-blue-200 text-[10px] leading-relaxed">
-                    <span className="text-cyan-300 font-bold">Cold Score</span> = duration (min) × temperature factor.<br />
-                    40°F = <span className="text-cyan-300 font-bold">2.3×</span> · 50°F = <span className="text-cyan-300 font-bold">1.7×</span> · 60°F = <span className="text-cyan-300 font-bold">1.0×</span>
-                  </p>
-                  <p className="text-blue-200 text-[10px] leading-relaxed mt-2">
-                    <span className="text-orange-300 font-bold">Calories</span> = thermogenesis model based on temp, duration &amp; body weight. Set your weight in Settings.
-                  </p>
-                </div>
-              )}
-
               <button
                 data-testid="card-cold-score"
                 onClick={() => {
@@ -2467,6 +2443,30 @@ export default function Home() {
                   </>
                 )}
               </button>
+
+              {/* Info button — rendered AFTER card so it always wins DOM stacking order */}
+              <button
+                data-testid="button-score-info"
+                onClick={(e) => { e.stopPropagation(); setScoreInfoOpen(v => !v); }}
+                className="absolute top-2 right-2 z-20 w-5 h-5 flex items-center justify-center rounded-full bg-blue-800/70 border border-blue-600/50 text-blue-400 hover:text-cyan-300 hover:border-cyan-500/50 transition-all text-[10px] font-bold"
+              >ℹ</button>
+
+              {/* Info popup */}
+              {scoreInfoOpen && (
+                <div className="absolute top-8 right-2 z-30 w-52 bg-blue-950 border border-blue-600/60 rounded-xl p-3 shadow-2xl shadow-black/60">
+                  <button
+                    onClick={() => setScoreInfoOpen(false)}
+                    className="absolute top-1.5 right-2 text-blue-500 hover:text-white text-xs"
+                  >✕</button>
+                  <p className="text-blue-200 text-[10px] leading-relaxed">
+                    <span className="text-cyan-300 font-bold">Cold Score</span> = duration (min) × temperature factor.<br />
+                    40°F = <span className="text-cyan-300 font-bold">2.3×</span> · 50°F = <span className="text-cyan-300 font-bold">1.7×</span> · 60°F = <span className="text-cyan-300 font-bold">1.0×</span>
+                  </p>
+                  <p className="text-blue-200 text-[10px] leading-relaxed mt-2">
+                    <span className="text-orange-300 font-bold">Calories</span> = thermogenesis model based on temp, duration &amp; body weight. Set your weight in Settings.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
