@@ -156,6 +156,24 @@ uri = "file://attached_assets/generated_images/coldstreak_logo_final_v2.png"
 type = "image"
 title = "coldstreak logo final v2 no double letters"
 
+[[generated]]
+id = "HtqWsmH_lm44fHq__qE1A"
+uri = "file://attached_assets/generated_images/bg_icecubes.png"
+type = "image"
+title = "ice cubes background"
+
+[[generated]]
+id = "JAeFPKbepfc-IzPX_WKiR"
+uri = "file://attached_assets/generated_images/bg_underwater.png"
+type = "image"
+title = "underwater cold background"
+
+[[generated]]
+id = "r1si3NnQ8VlSajEj-ToTS"
+uri = "file://attached_assets/generated_images/bg_frostlake.png"
+type = "image"
+title = "frost lake background"
+
 [[outputs]]
 id = "unpmrc8DDk2bB4ZkNmn5k"
 uri = "file://client/public/feature-graphic-1024x500.png"
@@ -419,3 +437,21 @@ id = "M34LShKNI71wuLq0o_kD4"
 uri = "file://attached_assets/coldstreak_logo_FINAL.png"
 type = "image"
 title = "ColdStreak Logo — FINAL"
+
+[[outputs]]
+id = "6O2c6AgyTHx3UG4hxIBU5"
+uri = "file://attached_assets/generated_images/bg_icecubes.png"
+type = "image"
+title = "Option A — Ice Cubes (matches logo theme)"
+
+[[outputs]]
+id = "Tcdl2SjQit7m8UbxD3TLo"
+uri = "file://attached_assets/generated_images/bg_underwater.png"
+type = "image"
+title = "Option B — Underwater Cold Plunge"
+
+[[outputs]]
+id = "a_nY_RqRL3zCR8ZB5x-yz"
+uri = "file://attached_assets/generated_images/bg_frostlake.png"
+type = "image"
+title = "Option C — Frozen Misty Lake"
