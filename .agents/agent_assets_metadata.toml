@@ -1,5 +1,16 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "WDWa9AIu_omG1zx-CdkGQ"
+uri = "file://attached_assets/generated_images/coldstreak_logo_square.png"
+type = "image"
+title = "coldstreak logo square"
+
+[[generated]]
+id = "Gg1cYun0E2GhJ8IsGvIOu"
+uri = "file://attached_assets/generated_images/coldstreak_logo_wide.png"
+type = "image"
+title = "coldstreak logo wide"
 
 [[outputs]]
 id = "unpmrc8DDk2bB4ZkNmn5k"
@@ -102,3 +113,15 @@ id = "v4efCPE04woLVjvlJ7h1w"
 uri = "file://client/public/tablet-10-profile.png"
 type = "image"
 title = "10\" — Profile"
+
+[[outputs]]
+id = "y_DUizrY8wSmFUxCU62eZ"
+uri = "file://attached_assets/generated_images/coldstreak_logo_square.png"
+type = "image"
+title = "ColdStreak Logo — Square (1:1)"
+
+[[outputs]]
+id = "rb1qAWipe41Zl12PYFinc"
+uri = "file://attached_assets/generated_images/coldstreak_logo_wide.png"
+type = "image"
+title = "ColdStreak Logo — Wide (16:9)"
