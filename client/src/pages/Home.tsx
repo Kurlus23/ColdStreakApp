@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import { useLocation } from "wouter";
 import { Camera as CapCamera, CameraResultType, CameraSource } from "@capacitor/camera";
+import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
 import { BleClient } from "@capacitor-community/bluetooth-le";
@@ -479,15 +480,18 @@ export default function Home() {
   const [promptSubmitLeaderboard, setPromptSubmitLeaderboard] = useState(true);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const [showWebCamera, setShowWebCamera] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<"environment" | "user">("environment");
   const webVideoRef = useRef<HTMLVideoElement | null>(null);
   const webStreamRef = useRef<MediaStream | null>(null);
   const preloadedPhotoRef = useRef<HTMLImageElement | null>(null);
   const preloadedLogoRef = useRef<HTMLImageElement | null>(null);
 
-  const startWebCamera = useCallback(async () => {
+  const startWebCamera = useCallback(async (facing: "environment" | "user" = "environment") => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+      webStreamRef.current?.getTracks().forEach(t => t.stop());
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false });
       webStreamRef.current = stream;
+      setCameraFacing(facing);
       setShowWebCamera(true);
       setTimeout(() => { if (webVideoRef.current) webVideoRef.current.srcObject = stream; }, 50);
     } catch {
@@ -1856,15 +1860,27 @@ export default function Home() {
           const nearbyLocs = communityLocs; // capture current list
           (async () => {
             try {
-              const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-                const tid = setTimeout(() => reject(new Error("timeout")), 8000);
-                navigator.geolocation?.getCurrentPosition(
-                  (p) => { clearTimeout(tid); resolve(p); },
-                  (e) => { clearTimeout(tid); reject(e); },
-                  { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
-                );
-              });
-              const { latitude: lat, longitude: lng } = pos.coords;
+              let lat: number, lng: number;
+              if (Capacitor.isNativePlatform()) {
+                const locPerm = await Geolocation.checkPermissions();
+                if (locPerm.location !== "granted") {
+                  await Geolocation.requestPermissions();
+                }
+                const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 8000 });
+                lat = pos.coords.latitude;
+                lng = pos.coords.longitude;
+              } else {
+                const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                  const tid = setTimeout(() => reject(new Error("timeout")), 8000);
+                  navigator.geolocation?.getCurrentPosition(
+                    (p) => { clearTimeout(tid); resolve(p); },
+                    (e) => { clearTimeout(tid); reject(e); },
+                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+                  );
+                });
+                lat = pos.coords.latitude;
+                lng = pos.coords.longitude;
+              }
 
               // Haversine distance in metres
               const haversineM = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -5336,7 +5352,10 @@ export default function Home() {
                 onClick={async () => {
                   if (Capacitor.isNativePlatform()) {
                     try {
-                      await CapCamera.requestPermissions({ permissions: ["camera"] });
+                      const camPerm = await CapCamera.checkPermissions();
+                      if (camPerm.camera !== "granted") {
+                        await CapCamera.requestPermissions({ permissions: ["camera"] });
+                      }
                       const photo = await CapCamera.getPhoto({
                         resultType: CameraResultType.Base64,
                         source: CameraSource.Camera,
@@ -5828,7 +5847,13 @@ export default function Home() {
               onClick={captureWebPhoto}
               className="w-16 h-16 rounded-full bg-white border-4 border-cyan-400 shadow-lg shadow-cyan-400/40 active:scale-95 transition-transform"
             />
-            <div className="w-20" />
+            <button
+              onClick={() => startWebCamera(cameraFacing === "environment" ? "user" : "environment")}
+              className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 border border-white/30 text-white active:scale-95 transition-transform"
+              title="Flip camera"
+            >
+              <RotateCcw className="w-5 h-5" />
+            </button>
           </div>
         </div>
       )}
