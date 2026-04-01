@@ -48,6 +48,18 @@ uri = "file://attached_assets/generated_images/coldstreak_logo_ice_wide.png"
 type = "image"
 title = "coldstreak logo ice wide"
 
+[[generated]]
+id = "nVE_2tdiUCDDu4I5kHylB"
+uri = "file://attached_assets/generated_images/coldstreak_logo_ice_blocks_square.png"
+type = "image"
+title = "coldstreak logo individual ice blocks square"
+
+[[generated]]
+id = "t_51MTBzqC0A79ZX8d_Z3"
+uri = "file://attached_assets/generated_images/coldstreak_logo_ice_blocks_wide.png"
+type = "image"
+title = "coldstreak logo individual ice blocks wide"
+
 [[outputs]]
 id = "unpmrc8DDk2bB4ZkNmn5k"
 uri = "file://client/public/feature-graphic-1024x500.png"
@@ -197,3 +209,15 @@ id = "VUhJlOY05hB4pKJ8aIoTg"
 uri = "file://attached_assets/generated_images/coldstreak_logo_ice_wide.png"
 type = "image"
 title = "ColdStreak Logo — Ice Wide"
+
+[[outputs]]
+id = "1QyqcLQpo4c5F1L25QdYm"
+uri = "file://attached_assets/generated_images/coldstreak_logo_ice_blocks_square.png"
+type = "image"
+title = "ColdStreak — Individual Ice Blocks (Square)"
+
+[[outputs]]
+id = "Fspc4FZqt0pO29B5tb5Wh"
+uri = "file://attached_assets/generated_images/coldstreak_logo_ice_blocks_wide.png"
+type = "image"
+title = "ColdStreak — Individual Ice Blocks (Wide)"
