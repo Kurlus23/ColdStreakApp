@@ -99,6 +99,39 @@ export async function sendAdminSecurityAlert(event: "login" | "password_reset", 
   );
 }
 
+export async function sendSupportEmail(opts: {
+  from: string;
+  username: string | null;
+  category: string;
+  message: string;
+  deviceInfo: string;
+}): Promise<void> {
+  const categoryLabels: Record<string, string> = {
+    bug: "🐛 Bug Report",
+    refund: "💳 Refund Request",
+    feature: "💡 Feature Request",
+    other: "📬 General Question",
+  };
+  const label = categoryLabels[opts.category] ?? opts.category;
+  await sendEmail("coldstreakapp17@gmail.com", `[ColdStreak Support] ${label}`, `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">
+      <h1 style="color:#22d3ee;margin:0 0 4px">🧊 ColdStreak Support</h1>
+      <h2 style="color:#fff;margin:0 0 24px;font-size:18px">${label}</h2>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+        <tr><td style="color:#64748b;padding:4px 0;width:110px">From</td><td style="color:#e2e8f0">${opts.from}</td></tr>
+        <tr><td style="color:#64748b;padding:4px 0">Username</td><td style="color:#e2e8f0">${opts.username ?? "—"}</td></tr>
+      </table>
+      <div style="background:#1e3a5f;border-radius:10px;padding:16px;margin-bottom:20px;">
+        <p style="margin:0;line-height:1.7;white-space:pre-wrap;">${opts.message}</p>
+      </div>
+      <div style="background:#0d1b2e;border-radius:10px;padding:12px;font-size:12px;color:#64748b;">
+        <strong style="color:#94a3b8;">Device Info</strong><br>
+        <pre style="margin:6px 0 0;white-space:pre-wrap;font-size:11px;">${opts.deviceInfo}</pre>
+      </div>
+    </div>
+  `);
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   await sendEmail(to, "Reset your ColdStreak password", `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">

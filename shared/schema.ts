@@ -243,3 +243,19 @@ export const eventBans = pgTable("event_bans", {
 }, (t) => [uniqueIndex("event_ban_idx").on(t.eventId, t.userId)]);
 
 export type EventBan = typeof eventBans.$inferSelect;
+
+export const supportMessages = pgTable("support_messages", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),
+  username: text("username"),
+  email: text("email"),
+  category: text("category").notNull(), // bug | refund | feature | other
+  message: text("message").notNull(),
+  deviceInfo: text("device_info"), // JSON string
+  status: text("status").default("open").notNull(), // open | resolved
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSupportMessageSchema = createInsertSchema(supportMessages).omit({ id: true, createdAt: true });
+export type SupportMessage = typeof supportMessages.$inferSelect;
+export type InsertSupportMessage = z.infer<typeof insertSupportMessageSchema>;

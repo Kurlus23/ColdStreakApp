@@ -6,6 +6,18 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+interface SupportMessage {
+  id: number;
+  userId: number | null;
+  username: string | null;
+  email: string | null;
+  category: string;
+  message: string;
+  deviceInfo: string | null;
+  status: string;
+  createdAt: string;
+}
+
 interface FreeUser {
   id: number;
   email: string;
@@ -117,6 +129,17 @@ export default function Admin() {
     enabled: !!auth.user,
   });
 
+  const { data: supportMessages } = useQuery<SupportMessage[]>({
+    queryKey: ["/api/admin/support-messages"],
+    enabled: !!auth.user,
+  });
+
+  const resolveMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("PATCH", `/api/admin/support-messages/${id}/resolve`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/support-messages"] }),
+  });
+
+  const [supportExpanded, setSupportExpanded] = useState(false);
   const [freeUsersExpanded, setFreeUsersExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("issues-first");
@@ -704,7 +727,63 @@ export default function Admin() {
         </>
       )}
 
-      {/* ── Free / Registered Users ─────────────────────────────────── */}
+      {/* ── Support Inbox ── */}
+      {auth.user && supportMessages && (
+        <div className="mt-6 border border-slate-700 rounded-xl overflow-hidden">
+          <button
+            className="w-full flex items-center justify-between px-4 py-3 bg-slate-800 text-left"
+            onClick={() => setSupportExpanded(e => !e)}
+          >
+            <span className="text-white font-semibold text-sm">
+              💬 Support Inbox
+              <span className="ml-2 text-xs font-normal text-slate-400">
+                ({supportMessages.filter(m => m.status === "open").length} open)
+              </span>
+            </span>
+            <span className="text-slate-400 text-xs">{supportExpanded ? "▲ Hide" : "▼ Show"}</span>
+          </button>
+          {supportExpanded && (
+            <div className="p-4 space-y-3 bg-slate-900">
+              {supportMessages.length === 0 ? (
+                <p className="text-slate-500 text-sm text-center py-4">No support messages yet.</p>
+              ) : (
+                supportMessages.map(m => {
+                  const categoryLabel: Record<string, string> = { bug: "🐛 Bug", refund: "💳 Refund", feature: "💡 Feature", other: "📬 Other" };
+                  let deviceObj: Record<string, string> = {};
+                  try { deviceObj = JSON.parse(m.deviceInfo ?? "{}"); } catch {}
+                  return (
+                    <div key={m.id} className={`rounded-xl border p-3 space-y-2 ${m.status === "resolved" ? "border-slate-700 opacity-50" : "border-cyan-700/50 bg-slate-800/60"}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold text-cyan-300">{categoryLabel[m.category] ?? m.category}</span>
+                          {m.username && <span className="text-xs text-slate-300">@{m.username}</span>}
+                          {m.email && <span className="text-xs text-slate-500">{m.email}</span>}
+                          <span className="text-xs text-slate-600">{new Date(m.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        {m.status === "open" && (
+                          <Button size="sm" variant="outline" className="border-green-700 text-green-400 hover:bg-green-900/30 text-xs shrink-0" onClick={() => resolveMutation.mutate(m.id)} disabled={resolveMutation.isPending}>
+                            Resolve
+                          </Button>
+                        )}
+                        {m.status === "resolved" && <span className="text-xs text-green-600 shrink-0">✓ Resolved</span>}
+                      </div>
+                      <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{m.message}</p>
+                      {Object.keys(deviceObj).length > 0 && (
+                        <div className="text-[10px] text-slate-600 flex flex-wrap gap-x-3">
+                          {deviceObj.platform && <span>Platform: {deviceObj.platform}</span>}
+                          {deviceObj.screenWidth && <span>Screen: {deviceObj.screenWidth}×{deviceObj.screenHeight}</span>}
+                          {deviceObj.plan && <span>Plan: {deviceObj.plan}</span>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {auth.user && freeUsers && (
         <div className="mt-10 max-w-2xl">
           <button

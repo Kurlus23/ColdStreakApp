@@ -1,11 +1,12 @@
 import { db } from "./db";
 import {
   plunges, leaderboardEntries, proUsers, promoCodes, userLocations, businessListings, users, badgeProfiles, pushSubscriptions,
-  events, eventParticipants, eventCoordinators, eventBans,
+  events, eventParticipants, eventCoordinators, eventBans, supportMessages,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
   type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile, type PushSubscription,
   type BusinessListing, type Event, type EventParticipant, type EventCoordinator, type EventBan,
+  type SupportMessage, type InsertSupportMessage,
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and, not, lt } from "drizzle-orm";
 
@@ -105,6 +106,10 @@ export interface IStorage {
   // User lookup for coordinator assignment
   getUserByDisplayName(displayName: string): Promise<User | null>;
   getUserByEmailPrefix(prefix: string): Promise<User | null>;
+  // Support messages
+  createSupportMessage(msg: InsertSupportMessage): Promise<SupportMessage>;
+  getSupportMessages(): Promise<SupportMessage[]>;
+  resolveSupportMessage(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -780,6 +785,19 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.select().from(users)
       .where(sql`lower(split_part(${users.email}, '@', 1)) = lower(${prefix})`);
     return user ?? null;
+  }
+
+  async createSupportMessage(msg: InsertSupportMessage): Promise<SupportMessage> {
+    const [row] = await db.insert(supportMessages).values(msg).returning();
+    return row;
+  }
+
+  async getSupportMessages(): Promise<SupportMessage[]> {
+    return db.select().from(supportMessages).orderBy(desc(supportMessages.createdAt));
+  }
+
+  async resolveSupportMessage(id: number): Promise<void> {
+    await db.update(supportMessages).set({ status: "resolved" }).where(eq(supportMessages.id, id));
   }
 }
 

@@ -14,7 +14,7 @@ import {
   Settings, Bell, Upload, Volume2, FileText,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
   Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff, Heart, X,
-  Image as ImageIcon
+  Image as ImageIcon, MessageCircle, Send
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -519,6 +519,11 @@ export default function Home() {
   // Pro status
   const { isPro, proEmail, proPlan, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo, clearPro, verifyProForEmail } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportCategory, setSupportCategory] = useState("bug");
+  const [supportMessage, setSupportMessage] = useState("");
+  const [supportEmail, setSupportEmail] = useState("");
+  const [supportSending, setSupportSending] = useState(false);
   const [pendingRestoreEmail, setPendingRestoreEmail] = useState<string | null>(null);
 
   // Pro purchase celebration
@@ -3690,6 +3695,24 @@ export default function Home() {
               )}
             </div>
 
+            {/* Help & Support */}
+            <button
+              data-testid="button-nav-support"
+              onClick={() => {
+                setSupportEmail(proEmail || "");
+                setSupportMessage("");
+                setSupportCategory("bug");
+                setShowSupportModal(true);
+              }}
+              className="w-full flex items-center justify-between bg-cyan-900/40 rounded-2xl px-4 py-3 border border-cyan-700/50 hover:border-cyan-500/70 transition-all active:scale-[0.99]"
+            >
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-cyan-400" />
+                <span className="text-white font-semibold text-sm">Help &amp; Support</span>
+              </div>
+              <span className="text-cyan-500 text-xs">›</span>
+            </button>
+
             {/* Legal & Safety */}
             <button
               data-testid="button-nav-legal"
@@ -5954,6 +5977,103 @@ export default function Home() {
           >
             Stop
           </button>
+        </div>
+      )}
+
+      {/* ─── HELP & SUPPORT MODAL ─── */}
+      {showSupportModal && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-blue-950 border border-blue-700/60 rounded-t-3xl p-5 pb-8 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-white font-bold text-base flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-cyan-400" /> Help &amp; Support
+              </h3>
+              <button onClick={() => setShowSupportModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white transition-all active:scale-95 text-lg font-bold">✕</button>
+            </div>
+
+            {/* Category */}
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: "bug", label: "🐛 Bug Report" },
+                { id: "refund", label: "💳 Refund Request" },
+                { id: "feature", label: "💡 Feature Request" },
+                { id: "other", label: "📬 General Question" },
+              ].map(c => (
+                <button
+                  key={c.id}
+                  data-testid={`button-support-category-${c.id}`}
+                  onClick={() => setSupportCategory(c.id)}
+                  className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${supportCategory === c.id ? "bg-cyan-500/20 border-cyan-500/60 text-cyan-300" : "bg-blue-900/60 border-blue-700/40 text-blue-400"}`}
+                >{c.label}</button>
+              ))}
+            </div>
+
+            {/* Contact email (if not logged in) */}
+            {!proEmail && (
+              <div>
+                <label className="text-blue-400 text-xs font-semibold uppercase tracking-wide block mb-1">Your Email</label>
+                <input
+                  data-testid="input-support-email"
+                  type="email"
+                  value={supportEmail}
+                  onChange={e => setSupportEmail(e.target.value)}
+                  placeholder="so we can reply to you"
+                  className="w-full bg-blue-900/60 border border-blue-700/50 rounded-xl px-3 py-2 text-white text-sm placeholder-blue-600 focus:outline-none focus:border-cyan-500/60"
+                />
+              </div>
+            )}
+
+            {/* Message */}
+            <div>
+              <label className="text-blue-400 text-xs font-semibold uppercase tracking-wide block mb-1">Message</label>
+              <textarea
+                data-testid="input-support-message"
+                value={supportMessage}
+                onChange={e => setSupportMessage(e.target.value)}
+                placeholder="Describe your issue or question…"
+                rows={4}
+                className="w-full bg-blue-900/60 border border-blue-700/50 rounded-xl px-3 py-2 text-white text-sm placeholder-blue-600 resize-none focus:outline-none focus:border-cyan-500/60"
+              />
+              <p className="text-blue-600 text-[10px] mt-1">Device info is automatically included to help us diagnose issues.</p>
+            </div>
+
+            {/* Send */}
+            <button
+              data-testid="button-send-support"
+              disabled={supportSending || !supportMessage.trim()}
+              onClick={async () => {
+                if (!supportMessage.trim()) return;
+                setSupportSending(true);
+                try {
+                  const deviceInfo = {
+                    platform: Capacitor.getPlatform(),
+                    userAgent: navigator.userAgent,
+                    screenWidth: window.screen.width,
+                    screenHeight: window.screen.height,
+                    appVersion: "1.0",
+                    username: username || "anonymous",
+                    plan: isPro ? (proPlan ?? "pro") : "free",
+                  };
+                  const token = localStorage.getItem("coldstreak-auth-token");
+                  await fetch("/api/support", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                    body: JSON.stringify({ category: supportCategory, message: supportMessage, deviceInfo, contactEmail: supportEmail || undefined }),
+                  });
+                  toast({ title: "Message sent!", description: "We'll get back to you as soon as possible." });
+                  setShowSupportModal(false);
+                  setSupportMessage("");
+                } catch {
+                  toast({ title: "Could not send message", description: "Please try again or email coldstreakapp17@gmail.com", variant: "destructive" });
+                } finally {
+                  setSupportSending(false);
+                }
+              }}
+              className="w-full flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-blue-950 font-bold py-3 rounded-2xl text-sm transition-all active:scale-[0.98]"
+            >
+              {supportSending ? "Sending…" : <><Send className="w-4 h-4" /> Send Message</>}
+            </button>
+          </div>
         </div>
       )}
 

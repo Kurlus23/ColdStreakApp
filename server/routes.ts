@@ -7,7 +7,7 @@ import Stripe from "stripe";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail, sendAdminSecurityAlert } from "./email";
+import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail, sendAdminSecurityAlert, sendSupportEmail } from "./email";
 import webpush from "web-push";
 
 webpush.setVapidDetails(
@@ -647,6 +647,45 @@ export async function registerRoutes(
       }
     }
     await storage.deleteUserLocation(id);
+    res.json({ success: true });
+  });
+
+  // ── Support messages ────────────────────────────────────────────────────
+  app.post("/api/support", async (req, res) => {
+    const { category, message, deviceInfo, contactEmail } = req.body;
+    if (!category || !message?.trim()) return res.status(400).json({ message: "Category and message are required" });
+    const caller = extractUser(req);
+    const email = contactEmail || caller?.email || null;
+    const msg = await storage.createSupportMessage({
+      userId: caller?.userId ?? null,
+      username: caller?.username ?? null,
+      email,
+      category,
+      message: message.trim(),
+      deviceInfo: deviceInfo ? JSON.stringify(deviceInfo) : null,
+      status: "open",
+    });
+    sendSupportEmail({
+      from: email ?? "anonymous",
+      username: caller?.username ?? null,
+      category,
+      message: message.trim(),
+      deviceInfo: deviceInfo ? JSON.stringify(deviceInfo, null, 2) : "N/A",
+    }).catch(console.error);
+    res.json({ success: true, id: msg.id });
+  });
+
+  app.get("/api/admin/support-messages", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const msgs = await storage.getSupportMessages();
+    res.json(msgs);
+  });
+
+  app.patch("/api/admin/support-messages/:id/resolve", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    await storage.resolveSupportMessage(Number(req.params.id));
     res.json({ success: true });
   });
 
