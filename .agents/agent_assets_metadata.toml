@@ -126,6 +126,12 @@ uri = "file://attached_assets/generated_images/coldstreak_spelling_c.png"
 type = "image"
 title = "coldstreak spelling attempt c"
 
+[[generated]]
+id = "FKuTGkcwo2aN7EEOAiyQ3"
+uri = "file://attached_assets/generated_images/coldstreak_logo_spacing_fixed.png"
+type = "image"
+title = "coldstreak logo spacing fixed"
+
 [[outputs]]
 id = "unpmrc8DDk2bB4ZkNmn5k"
 uri = "file://client/public/feature-graphic-1024x500.png"
@@ -353,3 +359,9 @@ id = "f3QkfLDRucA_G_3wwI8pE"
 uri = "file://attached_assets/generated_images/coldstreak_spelling_c.png"
 type = "image"
 title = "Version C"
+
+[[outputs]]
+id = "o4HTBPLcw_X3C0mjOwHKS"
+uri = "file://attached_assets/generated_images/coldstreak_logo_spacing_fixed.png"
+type = "image"
+title = "ColdStreak — Ice Blocks (Spacing Fixed)"
