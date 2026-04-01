@@ -78,6 +78,12 @@ uri = "file://attached_assets/generated_images/coldstreak_logo_ice_blocks_wide_v
 type = "image"
 title = "coldstreak logo ice blocks wide v2"
 
+[[generated]]
+id = "4EAnjcLzQAaL3kZaK84iX"
+uri = "file://attached_assets/generated_images/coldstreak_logo_ice_final.png"
+type = "image"
+title = "coldstreak logo ice final"
+
 [[outputs]]
 id = "unpmrc8DDk2bB4ZkNmn5k"
 uri = "file://client/public/feature-graphic-1024x500.png"
@@ -257,3 +263,9 @@ id = "iHHRFmDpCs8LydDtzs6za"
 uri = "file://attached_assets/generated_images/coldstreak_logo_ice_blocks_wide_v2.png"
 type = "image"
 title = "ColdStreak — Ice Blocks Wide (Full)"
+
+[[outputs]]
+id = "0LCUJiMOqjMV4x61Vf5qH"
+uri = "file://attached_assets/generated_images/coldstreak_logo_ice_final.png"
+type = "image"
+title = "ColdStreak — Ice Blocks (All Letters Visible)"
