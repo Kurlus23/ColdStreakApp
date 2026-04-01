@@ -85,6 +85,11 @@ All options are stored in `attached_assets/generated_images/`:
 - Store choice in `localStorage` key `coldstreak-wallpaper`
 - Could offer exclusive Pro-only wallpapers as a perk
 - Could tie certain wallpapers to badge milestones (e.g. unlock "Ice Cave" after 30-day streak)
+- **Pro exclusive**: Allow Pro users to upload their own photo as a custom wallpaper
+  - Store as base64 in `localStorage` key `coldstreak-wallpaper-custom` (keeps it simple, no cloud storage needed for v1)
+  - Cap file size at ~3MB with a client-side check before accepting
+  - Show a "Custom" option in the wallpaper picker that opens the device photo library
+  - If cloud storage is added later (e.g. Cloudinary), migrate to URL-based storage per the avatar roadmap pattern
 
 ## v2.0 Roadmap Notes
 - **Bitmoji / device photo upload for avatars** — Allow users to upload an image directly from their device (including Bitmoji screenshots). Requires cloud image storage (Cloudinary or similar), privacy policy updates to cover image data collection, ToS clause for user-generated content, and a content moderation plan for App Store / Play Store compliance. Current URL-paste approach intentionally deferred until v2.0.
