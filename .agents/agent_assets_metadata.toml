@@ -413,3 +413,9 @@ id = "EeggRtbrKHhE4lpcE2l5Z"
 uri = "file://attached_assets/generated_images/coldstreak_logo_final_v2.png"
 type = "image"
 title = "ColdStreak — Ice Blocks (Single T)"
+
+[[outputs]]
+id = "M34LShKNI71wuLq0o_kD4"
+uri = "file://attached_assets/coldstreak_logo_FINAL.png"
+type = "image"
+title = "ColdStreak Logo — FINAL"
