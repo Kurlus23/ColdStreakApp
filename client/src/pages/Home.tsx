@@ -11,7 +11,7 @@ import icebergBg from "@assets/image_1773152998246.png";
 import {
   Play, Pause, RotateCcw, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,
-  Settings, Bell, Upload, Volume2, FileText,
+  Settings, Bell, Upload, Volume2, VolumeX, FileText,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
   Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff, Heart, X,
   Image as ImageIcon, MessageCircle, Send
