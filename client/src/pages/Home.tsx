@@ -2419,15 +2419,15 @@ export default function Home() {
                     <div className="text-orange-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
                       Calories<br />Burned
                     </div>
-                    {/* Icon + number centered */}
+                    {/* Number + icon centered — number first so it lines up with temp & timer */}
                     <div className="flex-1 flex flex-col items-center justify-center gap-1">
-                      <Flame className="w-7 h-7 text-orange-400" />
                       <div className="text-orange-300 font-bold text-2xl leading-none">
                         {scoreView === "kcal"
                           ? (todayCalories > 0 ? Math.round(todayCalories) : "—")
                           : (weeklyCalories > 0 ? Math.round(weeklyCalories) : "—")
                         }
                       </div>
+                      <Flame className="w-5 h-5 text-orange-400" />
                     </div>
                     {/* Subtitle at bottom */}
                     <div
@@ -2443,15 +2443,15 @@ export default function Home() {
                     <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
                       Cold<br />Score
                     </div>
-                    {/* Icon + number centered */}
+                    {/* Number + icon centered — number first so it lines up with temp & timer */}
                     <div className="flex-1 flex flex-col items-center justify-center gap-1">
-                      <Snowflake className="w-7 h-7 text-cyan-400" />
                       <div className="text-cyan-300 font-bold text-2xl leading-none">
                         {scoreView === "today"
                           ? (displayScore > 0 ? displayScore.toFixed(1) : "—")
                           : (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
                         }
                       </div>
+                      <Snowflake className="w-5 h-5 text-cyan-400" />
                     </div>
                     {/* Subtitle at bottom */}
                     <div className="text-blue-400 text-[10px]">
