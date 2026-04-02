@@ -2320,26 +2320,28 @@ export default function Home() {
                 >●C</button>
               </div>
 
-              {/* Calibration offset — always rendered to keep tile height stable; invisible when no BT thermometer */}
-              <div className={`flex items-center gap-1 mt-1 mb-1 ${btOffsetVisible ? "" : "invisible"}`}>
-                <span className="text-blue-400/60 text-[9px] uppercase tracking-widest shrink-0">Offset</span>
-                <div className="flex items-center gap-0.5 ml-auto">
-                  <button
-                    data-testid="button-tile-offset-down"
-                    onClick={() => setBtTempOffset(prev => { const v = Math.max(-10, prev - 1); localStorage.setItem("coldstreak-bt-temp-offset", String(v)); return v; })}
-                    className="w-5 h-5 rounded flex items-center justify-center bg-blue-800/60 text-blue-300 text-sm font-bold leading-none hover:bg-blue-700/70 active:scale-95 transition-all"
-                  >−</button>
-                  <span
-                    data-testid="text-tile-offset"
-                    className="text-blue-300 text-[10px] font-bold w-8 text-center"
-                  >{btTempOffset >= 0 ? "+" : ""}{btTempOffset}°</span>
-                  <button
-                    data-testid="button-tile-offset-up"
-                    onClick={() => setBtTempOffset(prev => { const v = Math.min(10, prev + 1); localStorage.setItem("coldstreak-bt-temp-offset", String(v)); return v; })}
-                    className="w-5 h-5 rounded flex items-center justify-center bg-blue-800/60 text-blue-300 text-sm font-bold leading-none hover:bg-blue-700/70 active:scale-95 transition-all"
-                  >+</button>
+              {/* Calibration offset — shown for 10 s after BT disconnect to prevent flashing */}
+              {btOffsetVisible && (
+                <div className="flex items-center gap-1 mt-1 mb-1">
+                  <span className="text-blue-400/60 text-[9px] uppercase tracking-widest shrink-0">Offset</span>
+                  <div className="flex items-center gap-0.5 ml-auto">
+                    <button
+                      data-testid="button-tile-offset-down"
+                      onClick={() => setBtTempOffset(prev => { const v = Math.max(-10, prev - 1); localStorage.setItem("coldstreak-bt-temp-offset", String(v)); return v; })}
+                      className="w-5 h-5 rounded flex items-center justify-center bg-blue-800/60 text-blue-300 text-sm font-bold leading-none hover:bg-blue-700/70 active:scale-95 transition-all"
+                    >−</button>
+                    <span
+                      data-testid="text-tile-offset"
+                      className="text-blue-300 text-[10px] font-bold w-8 text-center"
+                    >{btTempOffset >= 0 ? "+" : ""}{btTempOffset}°</span>
+                    <button
+                      data-testid="button-tile-offset-up"
+                      onClick={() => setBtTempOffset(prev => { const v = Math.min(10, prev + 1); localStorage.setItem("coldstreak-bt-temp-offset", String(v)); return v; })}
+                      className="w-5 h-5 rounded flex items-center justify-center bg-blue-800/60 text-blue-300 text-sm font-bold leading-none hover:bg-blue-700/70 active:scale-95 transition-all"
+                    >+</button>
+                  </div>
                 </div>
-              </div>
+              )}
 
             </div>
 
@@ -2397,14 +2399,14 @@ export default function Home() {
             </div>
 
             {/* Cold Score — tappable, cycles today → week → kcal (daily) → kcal (weekly) */}
-            <div className="relative w-full h-full">
+            <div className="relative flex flex-col">
               <button
                 data-testid="card-cold-score"
                 onClick={() => {
                   setScoreInfoOpen(false);
                   setScoreView(v => v === "today" ? "week" : v === "week" ? "kcal" : v === "kcal" ? "kcal-week" : "today");
                 }}
-                className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 hover:border-cyan-500/50 w-full h-full"
+                className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 hover:border-cyan-500/50 w-full flex-1"
               >
                 {scoreView === "kcal" || scoreView === "kcal-week" ? (
                   <>
