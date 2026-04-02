@@ -537,169 +537,161 @@ function CommunityDetail({
   const hasAccessPoint = !!(loc.accessLat && loc.accessLng);
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-slate-950/98 backdrop-blur-sm" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
-      {/* Header */}
-      <div className="flex items-start justify-between p-4 border-b border-blue-800/40 flex-shrink-0">
-        <div className="flex-1 min-w-0 pr-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            {loc.businessVerified && <BadgeCheck className="w-4 h-4 text-yellow-400 flex-shrink-0" />}
-            {loc.isBusiness && !loc.businessVerified && <Building2 className="w-4 h-4 text-amber-400 flex-shrink-0" />}
-            <h2 className="text-white font-bold text-lg leading-tight">{loc.name}</h2>
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 backdrop-blur-sm p-4 pb-6"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border border-blue-700/40 rounded-3xl shadow-2xl overflow-y-auto max-h-[88vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Sticky header */}
+        <div className="flex items-start gap-3 px-5 pt-5 pb-4 border-b border-slate-800 sticky top-0 bg-slate-900 rounded-t-3xl z-10">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl shrink-0 bg-cyan-800/40 border border-cyan-700/40">
+            {loc.isBusiness
+              ? <Building2 className="w-5 h-5 text-cyan-400" />
+              : <Snowflake className="w-5 h-5 text-cyan-400" />
+            }
           </div>
-          <p className="text-blue-400 text-sm mt-0.5">
-            {[loc.city, loc.state, loc.country].filter(Boolean).join(", ")}
-          </p>
-          {loc.difficulty && DIFFICULTY_META[loc.difficulty as Difficulty] && (
-            <span className={`text-xs font-bold ${DIFFICULTY_META[loc.difficulty as Difficulty].color}`}>
-              {DIFFICULTY_FILTERS.find((f) => f.value === loc.difficulty)?.label}{" "}
-              {DIFFICULTY_META[loc.difficulty as Difficulty].label}
-            </span>
-          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-white font-bold text-base">{loc.name}</h2>
+              {loc.businessVerified && (
+                <span className="inline-flex items-center gap-1 text-[10px] bg-yellow-500/20 border border-yellow-400/40 text-yellow-300 px-1.5 py-0.5 rounded-full font-bold shrink-0">
+                  <BadgeCheck className="w-3 h-3" /> Verified
+                </span>
+              )}
+              {loc.difficulty && DIFFICULTY_META[loc.difficulty as Difficulty] && (
+                <span className={`text-[10px] font-bold shrink-0 ${DIFFICULTY_META[loc.difficulty as Difficulty].color}`}>
+                  {DIFFICULTY_FILTERS.find((f) => f.value === loc.difficulty)?.label}
+                </span>
+              )}
+            </div>
+            <p className="text-blue-400 text-xs mt-0.5">
+              {[loc.city, loc.state, loc.country].filter(Boolean).join(", ")}
+            </p>
+          </div>
+          <button
+            data-testid="button-close-community-detail"
+            onClick={onClose}
+            className="text-slate-500 hover:text-white transition-colors shrink-0 mt-0.5"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <button
-          data-testid="button-close-community-detail"
-          onClick={onClose}
-          className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-800/60 border border-slate-600/40 text-slate-300 hover:bg-slate-700/60 transition-all flex-shrink-0"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-5">
+        {/* Content */}
+        <div className="px-5 py-4 space-y-4 pb-6">
 
-        {/* Description */}
-        {loc.description && (
-          <div className="bg-blue-900/30 rounded-xl p-4 border border-blue-700/30">
-            <p className="text-[11px] font-semibold text-blue-400 uppercase tracking-widest mb-1.5">About this spot</p>
-            <p className="text-blue-200 text-sm leading-relaxed">{loc.description}</p>
-          </div>
-        )}
+          {/* Description */}
+          {loc.description && (
+            <p className="text-slate-300 text-sm leading-relaxed">{loc.description}</p>
+          )}
 
-        {/* Directions */}
-        <div>
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Directions</p>
+          {/* Directions */}
           <div className="space-y-2">
             {hasPlungeCoords && (
               <button
                 data-testid={`button-directions-plunge-${loc.id}`}
                 onClick={() => openDirections(lat!, lng!)}
-                className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-cyan-900/30 border border-cyan-700/30 text-cyan-300 hover:bg-cyan-800/40 transition-all active:scale-[0.98]"
+                className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-sm font-semibold hover:bg-cyan-500/20 transition-all active:scale-[0.98]"
               >
-                <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex-shrink-0">
-                  <Snowflake className="w-4 h-4" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-semibold">Plunge Site</p>
-                  <p className="text-xs text-cyan-500/80">Tap to open in Maps</p>
-                </div>
-                <Navigation className="w-4 h-4 flex-shrink-0 opacity-60" />
+                <Snowflake className="w-4 h-4 shrink-0" />
+                <span className="flex-1 text-left">Plunge Site Directions</span>
+                <Navigation className="w-4 h-4 shrink-0 opacity-50" />
               </button>
             )}
             {hasAccessPoint ? (
               <button
                 data-testid={`button-directions-parking-detail-${loc.id}`}
                 onClick={() => openDirections(Number(loc.accessLat), Number(loc.accessLng))}
-                className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-cyan-900/30 border border-cyan-700/30 text-cyan-300 hover:bg-cyan-800/40 transition-all active:scale-[0.98]"
+                className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-sm font-semibold hover:bg-cyan-500/20 transition-all active:scale-[0.98]"
               >
-                <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex-shrink-0">
-                  <Car className="w-4 h-4" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-semibold">Parking / Access Point</p>
-                  <p className="text-xs text-cyan-500/80">Tap to open in Maps</p>
-                </div>
-                <Navigation className="w-4 h-4 flex-shrink-0 opacity-60" />
+                <Car className="w-4 h-4 shrink-0" />
+                <span className="flex-1 text-left">Parking / Access Directions</span>
+                <Navigation className="w-4 h-4 shrink-0 opacity-50" />
               </button>
             ) : (
-              <div className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-slate-900/40 border border-slate-700/20 opacity-40 cursor-default">
-                <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-700/30 border border-slate-600/20 flex-shrink-0">
-                  <Car className="w-4 h-4 text-slate-500" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-semibold text-slate-500">Parking / Access Point</p>
-                  <p className="text-xs text-slate-600">No parking GPS saved</p>
-                </div>
+              <div className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-slate-800/30 border border-slate-700/30 text-slate-600 text-sm opacity-50 cursor-default">
+                <Car className="w-4 h-4 shrink-0" />
+                <span>No parking GPS saved</span>
               </div>
             )}
-            {!hasPlungeCoords && (
-              <p className="text-slate-500 text-sm text-center py-1">No plunge GPS saved yet</p>
+            {!hasPlungeCoords && !hasAccessPoint && (
+              <p className="text-slate-500 text-xs text-center py-1">No GPS coordinates saved for this spot yet</p>
             )}
           </div>
-        </div>
 
-        {/* Leaderboard */}
-        <div>
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Leaderboard</p>
-          {lbLoading ? (
-            <div className="text-center text-blue-400 text-sm py-6">Loading…</div>
-          ) : !leaderboard?.length ? (
-            <div className="text-center text-slate-500 text-sm py-6 bg-slate-900/40 rounded-xl border border-slate-700/30">
-              No plunges logged here yet — be the first!
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {leaderboard.map((entry, i) => (
-                <div
-                  key={entry.id}
-                  data-testid={`leaderboard-entry-${entry.id}`}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${
-                    i === 0 ? "bg-yellow-900/20 border-yellow-700/30" :
-                    i === 1 ? "bg-slate-700/20 border-slate-600/30" :
-                    i === 2 ? "bg-orange-900/20 border-orange-700/30" :
-                    "bg-slate-900/30 border-slate-700/20"
-                  }`}
-                >
-                  <span className={`w-6 text-center text-sm font-bold flex-shrink-0 ${
-                    i === 0 ? "text-yellow-400" :
-                    i === 1 ? "text-slate-300" :
-                    i === 2 ? "text-orange-400" :
-                    "text-slate-500"
-                  }`}>
-                    {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`}
-                  </span>
-                  <span className="flex-1 text-sm font-semibold text-white truncate">
-                    {entry.foundingPlunger ? "🧊 " : ""}{entry.username}
-                  </span>
-                  <div className="flex flex-col items-end flex-shrink-0">
-                    <span className="text-xs font-bold text-cyan-400">{Number(entry.score).toFixed(1)}</span>
-                    {entry.temperature && (
-                      <span className="text-[10px] text-slate-500">{entry.temperature}°F</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+          {/* Website */}
+          {loc.websiteUrl && (
+            <a
+              href={loc.websiteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid={`link-website-detail-${loc.id}`}
+              className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-blue-800/40 border border-blue-700/40 text-blue-200 text-sm hover:border-blue-500/60 transition-all"
+            >
+              <ExternalLink className="w-4 h-4 text-blue-400 shrink-0" /> Website
+            </a>
           )}
-        </div>
 
-        {/* Nomination progress */}
-        <div>
-          <div className="flex justify-between text-[11px] text-blue-500 mb-1.5">
-            <span>{loc.nominationCount >= 25 ? "🔥 Under review by ColdStreak" : `${loc.nominationCount} / 25 community votes`}</span>
+          {/* Leaderboard */}
+          <div>
+            <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-1.5">Leaderboard</p>
+            {lbLoading ? (
+              <div className="text-center text-slate-500 text-sm py-4">Loading…</div>
+            ) : !leaderboard?.length ? (
+              <div className="text-center text-slate-600 text-sm py-4 bg-slate-900/60 rounded-xl border border-slate-800">
+                No plunges logged here yet
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {leaderboard.map((entry, i) => (
+                  <div
+                    key={entry.id}
+                    data-testid={`leaderboard-entry-${entry.id}`}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border ${
+                      i === 0 ? "bg-yellow-900/20 border-yellow-700/30" :
+                      i === 1 ? "bg-slate-700/20 border-slate-600/30" :
+                      i === 2 ? "bg-orange-900/20 border-orange-700/30" :
+                      "bg-slate-900/40 border-slate-800"
+                    }`}
+                  >
+                    <span className={`w-5 text-center text-sm shrink-0 ${
+                      i === 0 ? "text-yellow-400" : i === 1 ? "text-slate-300" : i === 2 ? "text-orange-400" : "text-slate-600"
+                    }`}>
+                      {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`}
+                    </span>
+                    <span className="flex-1 text-sm font-semibold text-white truncate">
+                      {entry.foundingPlunger ? "🧊 " : ""}{entry.username}
+                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {entry.temperature && (
+                        <span className="text-[10px] text-slate-500">{entry.temperature}°F</span>
+                      )}
+                      <span className="text-xs font-bold text-cyan-400">{Number(entry.score).toFixed(1)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          <div className="h-1.5 bg-blue-800/60 rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${loc.nominationCount >= 25 ? "bg-orange-400" : "bg-indigo-500"}`}
-              style={{ width: `${Math.min((loc.nominationCount / 25) * 100, 100)}%` }}
-            />
+
+          {/* Nomination progress */}
+          <div>
+            <div className="flex justify-between text-[10px] text-slate-500 mb-1.5 uppercase tracking-wide">
+              <span>{loc.nominationCount >= 25 ? "🔥 Under review" : "Community votes"}</span>
+              <span>{loc.nominationCount >= 25 ? "" : `${loc.nominationCount} / 25`}</span>
+            </div>
+            <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${loc.nominationCount >= 25 ? "bg-orange-400" : "bg-indigo-500"}`}
+                style={{ width: `${Math.min((loc.nominationCount / 25) * 100, 100)}%` }}
+              />
+            </div>
           </div>
+
         </div>
-
-        {/* Website link for businesses */}
-        {loc.isBusiness && loc.websiteUrl && (
-          <a
-            href={loc.websiteUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-testid={`link-website-detail-${loc.id}`}
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-amber-900/20 border border-amber-700/30 text-amber-300 hover:bg-amber-800/30 transition-all text-sm font-semibold"
-          >
-            <ExternalLink className="w-4 h-4" /> Visit Website
-          </a>
-        )}
-
-        <div className="h-6" />
       </div>
     </div>
   );
