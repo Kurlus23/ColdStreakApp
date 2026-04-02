@@ -39,6 +39,19 @@ interface ProUser {
   createdAt: string;
 }
 
+interface CommunityLocation {
+  id: number;
+  name: string;
+  city: string | null;
+  state: string | null;
+  country: string;
+  isBusiness: boolean;
+  businessVerified: boolean | null;
+  isHidden: boolean | null;
+  nominationCount: number;
+  submittedBy: string | null;
+}
+
 interface LookupResult {
   email: string;
   dbRecord: ProUser | null;
@@ -141,6 +154,8 @@ export default function Admin() {
 
   const [supportExpanded, setSupportExpanded] = useState(false);
   const [freeUsersExpanded, setFreeUsersExpanded] = useState(false);
+  const [locationsExpanded, setLocationsExpanded] = useState(false);
+  const [confirmDeleteLoc, setConfirmDeleteLoc] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("issues-first");
 
@@ -297,6 +312,44 @@ export default function Admin() {
     },
     onError: (err: Error) => {
       toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  // ── Location management ─────────────────────────────────────────────────
+  const { data: allLocations } = useQuery<CommunityLocation[]>({
+    queryKey: ["/api/community-locations"],
+    enabled: !!auth.user,
+  });
+
+  const deleteLocationMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/community-locations/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
+      setConfirmDeleteLoc(null);
+      toast({ title: "Location deleted" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const toggleLocationVisibilityMutation = useMutation({
+    mutationFn: ({ id, hidden }: { id: number; hidden: boolean }) =>
+      apiRequest("PATCH", `/api/admin/locations/${id}/visibility`, { hidden }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
+      toast({ title: "Visibility updated" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to update visibility", description: err?.message ?? "Server error", variant: "destructive" });
     },
   });
 
@@ -919,6 +972,117 @@ export default function Admin() {
                           className="border-red-700/50 text-red-400 hover:bg-red-900/30 hover:border-red-500 text-xs"
                           disabled={disableUserMutation.isPending || deleteUserMutation.isPending}
                           onClick={() => setConfirmDeleteUser(u.id)}
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {auth.user && allLocations && (
+        <div className="mt-10 max-w-2xl">
+          <button
+            data-testid="button-toggle-locations"
+            onClick={() => setLocationsExpanded((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-slate-800/60 border border-slate-700/50 hover:bg-slate-800 transition-colors text-left"
+          >
+            <span className="font-semibold text-slate-200 text-sm">
+              Community &amp; Business Locations
+              <span className="ml-2 text-xs font-normal text-slate-400">({allLocations.length})</span>
+            </span>
+            <span className="text-slate-400 text-xs">{locationsExpanded ? "▲ Hide" : "▼ Show"}</span>
+          </button>
+
+          {locationsExpanded && (
+            <div className="mt-3 flex flex-col gap-2">
+              {allLocations.length === 0 ? (
+                <p className="text-slate-400 text-sm px-2">No locations found.</p>
+              ) : (
+                allLocations.map((loc) => (
+                  <div
+                    key={loc.id}
+                    data-testid={`admin-location-${loc.id}`}
+                    className={`rounded-xl px-4 py-3 flex flex-col gap-2 border ${
+                      loc.isHidden
+                        ? "bg-gray-900/60 border-gray-700/40 opacity-70"
+                        : loc.isBusiness
+                        ? "bg-amber-950/40 border-amber-700/30"
+                        : "bg-blue-900/60 border-blue-700/30"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-sm text-slate-200">{loc.name}</p>
+                          {loc.isBusiness && (
+                            <Badge className="bg-amber-700 text-white text-[10px] px-1.5 py-0.5">Business</Badge>
+                          )}
+                          {loc.businessVerified && (
+                            <Badge className="bg-green-700 text-white text-[10px] px-1.5 py-0.5">Verified</Badge>
+                          )}
+                          {loc.isHidden && (
+                            <Badge className="bg-gray-600 text-white text-[10px] px-1.5 py-0.5">Hidden</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {[loc.city, loc.state, loc.country].filter(Boolean).join(", ")}
+                          {loc.submittedBy ? ` · by ${loc.submittedBy}` : ""}
+                          {" · "}ID #{loc.id}
+                          {" · "}{loc.nominationCount} vote{loc.nominationCount !== 1 ? "s" : ""}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Button
+                        data-testid={`btn-toggle-loc-visibility-${loc.id}`}
+                        size="sm"
+                        variant="outline"
+                        className={
+                          loc.isHidden
+                            ? "border-green-700/60 text-green-400 hover:bg-green-900/30 text-xs"
+                            : "border-gray-600 text-gray-400 hover:bg-gray-800/40 text-xs"
+                        }
+                        disabled={toggleLocationVisibilityMutation.isPending}
+                        onClick={() => toggleLocationVisibilityMutation.mutate({ id: loc.id, hidden: !loc.isHidden })}
+                      >
+                        {loc.isHidden ? "Unhide" : "Hide"}
+                      </Button>
+
+                      {confirmDeleteLoc === loc.id ? (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            data-testid={`btn-confirm-delete-loc-${loc.id}`}
+                            size="sm"
+                            className="bg-red-600 hover:bg-red-500 text-white text-xs"
+                            disabled={deleteLocationMutation.isPending}
+                            onClick={() => deleteLocationMutation.mutate(loc.id)}
+                          >
+                            {deleteLocationMutation.isPending ? "Deleting…" : "Yes, Delete"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-slate-600 text-slate-300 text-xs"
+                            onClick={() => setConfirmDeleteLoc(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          data-testid={`btn-delete-loc-${loc.id}`}
+                          size="sm"
+                          variant="outline"
+                          className="border-red-700/50 text-red-400 hover:bg-red-900/30 hover:border-red-500 text-xs"
+                          disabled={deleteLocationMutation.isPending || toggleLocationVisibilityMutation.isPending}
+                          onClick={() => setConfirmDeleteLoc(loc.id)}
                         >
                           Delete
                         </Button>

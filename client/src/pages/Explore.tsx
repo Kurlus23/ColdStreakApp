@@ -1782,7 +1782,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               <div className="space-y-2 blur-[3px] opacity-50 pointer-events-none select-none" aria-hidden="true">
                 {(() => {
                   const nonBiz = communityLocs.filter(l => !l.isBusiness);
-                  const preview = (communityFiltered.length > 0 ? communityFiltered : nonBiz).slice(0, 3);
+                  const preview = nonBiz.slice(0, 3);
                   return preview.map((loc) => {
                     const lat = loc.latitude ? Number(loc.latitude) : null;
                     const lng = loc.longitude ? Number(loc.longitude) : null;
