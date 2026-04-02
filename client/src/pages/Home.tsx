@@ -3252,6 +3252,26 @@ export default function Home() {
               </div>
             )}
 
+            {/* Intro Video Toggle — shown after user has seen it once */}
+            {introSeen && (
+              <div className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40">
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-cyan-400" />
+                  <div>
+                    <span className="text-white font-semibold text-sm">Intro Video</span>
+                    <p className="text-blue-400 text-xs">Play on every launch</p>
+                  </div>
+                </div>
+                <button
+                  data-testid="button-toggle-intro"
+                  onClick={() => toggleIntro(!introToggle)}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${introToggle ? "bg-cyan-500" : "bg-blue-800/80"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${introToggle ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
+            )}
+
             {/* User */}
             <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40">
               <button
@@ -3797,26 +3817,6 @@ export default function Home() {
                 </div>
               )}
             </div>
-
-            {/* Intro Video Toggle — shown after user has seen it once */}
-            {introSeen && (
-              <div className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40">
-                <div className="flex items-center gap-2">
-                  <Play className="w-4 h-4 text-cyan-400" />
-                  <div>
-                    <span className="text-white font-semibold text-sm">Intro Video</span>
-                    <p className="text-blue-400 text-xs">Play on every launch</p>
-                  </div>
-                </div>
-                <button
-                  data-testid="button-toggle-intro"
-                  onClick={() => toggleIntro(!introToggle)}
-                  className={`relative w-11 h-6 rounded-full transition-colors ${introToggle ? "bg-cyan-500" : "bg-blue-800/80"}`}
-                >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${introToggle ? "translate-x-5" : "translate-x-0"}`} />
-                </button>
-              </div>
-            )}
 
             {/* Help & Support */}
             <button
