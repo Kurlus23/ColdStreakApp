@@ -152,7 +152,23 @@ export default function Admin() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/support-messages"] }),
   });
 
+  const replyMutation = useMutation({
+    mutationFn: ({ id, replyText }: { id: number; replyText: string }) =>
+      apiRequest("POST", `/api/admin/support-messages/${id}/reply`, { replyText }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/support-messages"] });
+      setReplyingTo(null);
+      setReplyText("");
+      toast({ title: "Reply sent", description: "Email delivered and message marked resolved." });
+    },
+    onError: (err: any) => {
+      toast({ title: "Reply failed", description: err?.message ?? "Server error", variant: "destructive" });
+    },
+  });
+
   const [supportExpanded, setSupportExpanded] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState("");
   const [freeUsersExpanded, setFreeUsersExpanded] = useState(false);
   const [locationsExpanded, setLocationsExpanded] = useState(false);
   const [confirmDeleteLoc, setConfirmDeleteLoc] = useState<number | null>(null);
@@ -814,9 +830,27 @@ export default function Admin() {
                           <span className="text-xs text-slate-600">{new Date(m.createdAt).toLocaleDateString()}</span>
                         </div>
                         {m.status === "open" && (
-                          <Button size="sm" variant="outline" className="border-green-700 text-green-400 hover:bg-green-900/30 text-xs shrink-0" onClick={() => resolveMutation.mutate(m.id)} disabled={resolveMutation.isPending}>
-                            Resolve
-                          </Button>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-cyan-700 text-cyan-400 hover:bg-cyan-900/30 text-xs"
+                              onClick={() => {
+                                if (replyingTo === m.id) {
+                                  setReplyingTo(null);
+                                  setReplyText("");
+                                } else {
+                                  setReplyingTo(m.id);
+                                  setReplyText("");
+                                }
+                              }}
+                            >
+                              {replyingTo === m.id ? "Cancel" : "Reply"}
+                            </Button>
+                            <Button size="sm" variant="outline" className="border-green-700 text-green-400 hover:bg-green-900/30 text-xs" onClick={() => resolveMutation.mutate(m.id)} disabled={resolveMutation.isPending}>
+                              Resolve
+                            </Button>
+                          </div>
                         )}
                         {m.status === "resolved" && <span className="text-xs text-green-600 shrink-0">✓ Resolved</span>}
                       </div>
@@ -826,6 +860,31 @@ export default function Admin() {
                           {deviceObj.platform && <span>Platform: {deviceObj.platform}</span>}
                           {deviceObj.screenWidth && <span>Screen: {deviceObj.screenWidth}×{deviceObj.screenHeight}</span>}
                           {deviceObj.plan && <span>Plan: {deviceObj.plan}</span>}
+                        </div>
+                      )}
+                      {replyingTo === m.id && (
+                        <div className="pt-1 space-y-2 border-t border-slate-700/60 mt-1">
+                          {!m.email && (
+                            <p className="text-xs text-orange-400">⚠ No email address on this message — reply cannot be sent.</p>
+                          )}
+                          <textarea
+                            data-testid={`input-reply-${m.id}`}
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            placeholder={m.email ? `Reply to ${m.email}…` : "No email available"}
+                            rows={4}
+                            disabled={!m.email}
+                            className="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-500 placeholder-slate-500 resize-none disabled:opacity-40"
+                          />
+                          <Button
+                            data-testid={`btn-send-reply-${m.id}`}
+                            size="sm"
+                            className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs"
+                            disabled={!m.email || !replyText.trim() || replyMutation.isPending}
+                            onClick={() => replyMutation.mutate({ id: m.id, replyText: replyText.trim() })}
+                          >
+                            {replyMutation.isPending ? "Sending…" : "Send Reply & Resolve"}
+                          </Button>
                         </div>
                       )}
                     </div>

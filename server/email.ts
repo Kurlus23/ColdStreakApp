@@ -132,6 +132,37 @@ export async function sendSupportEmail(opts: {
   `);
 }
 
+export async function sendAdminReplyEmail(opts: {
+  to: string;
+  username: string | null;
+  originalCategory: string;
+  originalMessage: string;
+  replyText: string;
+}): Promise<void> {
+  const categoryLabels: Record<string, string> = {
+    bug: "Bug Report",
+    refund: "Refund Request",
+    feature: "Feature Request",
+    other: "General Question",
+  };
+  const label = categoryLabels[opts.originalCategory] ?? opts.originalCategory;
+  await sendEmail(opts.to, `Re: Your ColdStreak ${label}`, `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">
+      <h1 style="color:#22d3ee;margin:0 0 4px">🧊 ColdStreak Support</h1>
+      <h2 style="color:#fff;margin:0 0 24px;font-size:18px">Re: Your ${label}</h2>
+      <p style="color:#94a3b8;margin:0 0 16px">Hi${opts.username ? ` ${opts.username}` : ""},</p>
+      <div style="background:#1e3a5f;border-radius:10px;padding:16px;margin-bottom:24px;">
+        <p style="margin:0;line-height:1.7;white-space:pre-wrap;color:#e2e8f0;">${opts.replyText}</p>
+      </div>
+      <div style="background:#0d1b2e;border-radius:10px;padding:12px;font-size:12px;color:#64748b;margin-bottom:20px;">
+        <strong style="color:#94a3b8;">Your original message</strong>
+        <p style="margin:6px 0 0;white-space:pre-wrap;font-size:11px;">${opts.originalMessage}</p>
+      </div>
+      <p style="color:#64748b;font-size:12px;margin:0;">Stay cold,<br><strong style="color:#94a3b8;">The ColdStreak Team</strong></p>
+    </div>
+  `);
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   await sendEmail(to, "Reset your ColdStreak password", `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">

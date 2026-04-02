@@ -109,6 +109,7 @@ export interface IStorage {
   // Support messages
   createSupportMessage(msg: InsertSupportMessage): Promise<SupportMessage>;
   getSupportMessages(): Promise<SupportMessage[]>;
+  getSupportMessageById(id: number): Promise<SupportMessage | null>;
   resolveSupportMessage(id: number): Promise<void>;
 }
 
@@ -794,6 +795,11 @@ export class DatabaseStorage implements IStorage {
 
   async getSupportMessages(): Promise<SupportMessage[]> {
     return db.select().from(supportMessages).orderBy(desc(supportMessages.createdAt));
+  }
+
+  async getSupportMessageById(id: number): Promise<SupportMessage | null> {
+    const [row] = await db.select().from(supportMessages).where(eq(supportMessages.id, id));
+    return row ?? null;
   }
 
   async resolveSupportMessage(id: number): Promise<void> {

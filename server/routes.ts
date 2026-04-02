@@ -7,7 +7,7 @@ import Stripe from "stripe";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail, sendAdminSecurityAlert, sendSupportEmail } from "./email";
+import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail, sendAdminSecurityAlert, sendSupportEmail, sendAdminReplyEmail } from "./email";
 import webpush from "web-push";
 
 webpush.setVapidDetails(
@@ -641,6 +641,26 @@ export async function registerRoutes(
     const caller = extractUser(req);
     if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
     await storage.resolveSupportMessage(Number(req.params.id));
+    res.json({ success: true });
+  });
+
+  app.post("/api/admin/support-messages/:id/reply", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const { replyText } = z.object({ replyText: z.string().min(1).max(4000) }).parse(req.body);
+    const msg = await storage.getSupportMessageById(id);
+    if (!msg) return res.status(404).json({ message: "Message not found" });
+    if (!msg.email) return res.status(400).json({ message: "No email address on this message — cannot send reply" });
+    await sendAdminReplyEmail({
+      to: msg.email,
+      username: msg.username,
+      originalCategory: msg.category,
+      originalMessage: msg.message,
+      replyText,
+    });
+    await storage.resolveSupportMessage(id);
     res.json({ success: true });
   });
 
