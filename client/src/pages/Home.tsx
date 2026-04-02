@@ -2350,6 +2350,7 @@ export default function Home() {
               className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center"
               data-testid="card-timer"
             >
+              {/* Label row — tap to switch stopwatch/countdown; min-h matches 2-line labels on other tiles */}
               <button
                 data-testid="display-timer"
                 onClick={() => {
@@ -2361,20 +2362,24 @@ export default function Home() {
                   setCountdownRunning(false);
                   startTimeRef.current = null;
                 }}
-                className="flex flex-col items-center group focus:outline-none"
+                className="flex items-center justify-center gap-1 text-blue-300 hover:text-cyan-300 transition-colors text-[9px] uppercase tracking-widest focus:outline-none group w-full min-h-[2.5em] leading-tight"
                 title="Tap to switch mode"
               >
-                <div className={`text-[2rem] leading-none font-mono font-bold tracking-tight mb-0.5 ${isActive ? "text-white" : "text-slate-200"}`}>
+                {countdownMode ? "Countdown" : "Stopwatch"}
+                <svg className="w-2.5 h-2.5 opacity-60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+              </button>
+
+              {/* Number — centered in remaining flex space, same vertical position as temp & score */}
+              <div className="flex-1 flex items-center justify-center">
+                <div className={`text-[2rem] leading-none font-mono font-bold tracking-tight ${isActive ? "text-white" : "text-slate-200"}`}>
                   {formatTime(displaySeconds)}
                 </div>
-                <div className="flex items-center gap-1 text-blue-300 group-hover:text-cyan-300 transition-colors text-[9px] uppercase tracking-widest mb-2">
-                  {countdownMode ? "Countdown" : "Stopwatch"}
-                  <svg className="w-2.5 h-2.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
-                  </svg>
-                </div>
-              </button>
-              <div className="flex gap-1 w-full mt-auto">
+              </div>
+
+              {/* Buttons at bottom */}
+              <div className="flex gap-1 w-full">
                 <button
                   data-testid="button-start"
                   onClick={handleStart}
@@ -2406,39 +2411,49 @@ export default function Home() {
                   setScoreInfoOpen(false);
                   setScoreView(v => v === "today" ? "week" : v === "week" ? "kcal" : v === "kcal" ? "kcal-week" : "today");
                 }}
-                className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 hover:border-cyan-500/50 w-full flex-1"
+                className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center transition-all active:scale-95 hover:border-cyan-500/50 w-full flex-1"
               >
                 {scoreView === "kcal" || scoreView === "kcal-week" ? (
                   <>
+                    {/* Label at top */}
                     <div className="text-orange-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
                       Calories<br />Burned
                     </div>
-                    <Flame className="w-7 h-7 text-orange-400" />
-                    <div className="text-orange-300 font-bold text-2xl leading-none">
-                      {scoreView === "kcal"
-                        ? (todayCalories > 0 ? Math.round(todayCalories) : "—")
-                        : (weeklyCalories > 0 ? Math.round(weeklyCalories) : "—")
-                      }
+                    {/* Icon + number centered */}
+                    <div className="flex-1 flex flex-col items-center justify-center gap-1">
+                      <Flame className="w-7 h-7 text-orange-400" />
+                      <div className="text-orange-300 font-bold text-2xl leading-none">
+                        {scoreView === "kcal"
+                          ? (todayCalories > 0 ? Math.round(todayCalories) : "—")
+                          : (weeklyCalories > 0 ? Math.round(weeklyCalories) : "—")
+                        }
+                      </div>
                     </div>
+                    {/* Subtitle at bottom */}
                     <div
                       title="Estimated thermogenic calorie burn. Varies by individual physiology — not a precise measurement."
                       className="text-orange-400/70 text-[10px] cursor-help"
                     >
-                      {scoreView === "kcal" ? "kcal today (est.)" : "kcal/week (est.)"}
+                      {scoreView === "kcal" ? "kcal today" : "kcal/week"}
                     </div>
                   </>
                 ) : (
                   <>
+                    {/* Label at top */}
                     <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
                       Cold<br />Score
                     </div>
-                    <Snowflake className="w-7 h-7 text-cyan-400" />
-                    <div className="text-cyan-300 font-bold text-2xl leading-none">
-                      {scoreView === "today"
-                        ? (displayScore > 0 ? displayScore.toFixed(1) : "—")
-                        : (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
-                      }
+                    {/* Icon + number centered */}
+                    <div className="flex-1 flex flex-col items-center justify-center gap-1">
+                      <Snowflake className="w-7 h-7 text-cyan-400" />
+                      <div className="text-cyan-300 font-bold text-2xl leading-none">
+                        {scoreView === "today"
+                          ? (displayScore > 0 ? displayScore.toFixed(1) : "—")
+                          : (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
+                        }
+                      </div>
                     </div>
+                    {/* Subtitle at bottom */}
                     <div className="text-blue-400 text-[10px]">
                       {scoreView === "today" ? (isActive ? "live" : "today") : "this week"}
                     </div>
