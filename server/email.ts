@@ -82,7 +82,7 @@ export async function sendAdminSecurityAlert(event: "login" | "password_reset", 
   const label = event === "login" ? "Login attempt" : "Password reset request";
   const color = event === "login" ? "#22d3ee" : "#f59e0b";
   await sendEmail(
-    "kurlus23@gmail.com",
+    "coldstreakapp17@gmail.com",
     `🔐 ColdStreak admin alert: ${label} for ${username}`,
     `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">
       <h1 style="color:#22d3ee;margin:0 0 8px">🧊 ColdStreak</h1>

@@ -69,8 +69,8 @@ const MONTHLY_PRICE_ID = TEST_MODE
   ? process.env.STRIPE_TEST_MONTHLY_PRICE_ID!
   : (process.env.STRIPE_MONTHLY_PRICE_ID || process.env.STRIPE_ANNUAL_PRICE_ID!);
 const JWT_SECRET = process.env.SESSION_SECRET || "coldstreak-dev-secret";
-const ADMIN_EMAILS = new Set(["kurlus23@gmail.com", "coldstreakapp17@gmail.com"]);
-// Usernames whose login/reset events trigger a security alert to kurlus23@gmail.com
+const ADMIN_EMAILS = new Set(["coldstreakapp17@gmail.com"]);
+// Usernames whose login/reset events trigger a security alert to coldstreakapp17@gmail.com
 const MONITORED_USERNAMES = new Set(["CStreak28"]);
 const MONITORED_EMAILS = new Set(["coldstreakapp17@gmail.com"]);
 
@@ -156,40 +156,6 @@ async function seedPromoCodes() {
   }
 }
 
-async function seedTestVerifiedBusiness() {
-  try {
-    const { db } = await import("./db");
-    const { userLocations } = await import("@shared/schema");
-    const { eq } = await import("drizzle-orm");
-    const [existing] = await db.select().from(userLocations).where(eq(userLocations.name, "Arctic Recovery Studio"));
-    if (!existing) {
-      await db.insert(userLocations).values({
-        name: "Arctic Recovery Studio",
-        country: "USA",
-        state: "Virginia",
-        city: "Fredericksburg",
-        fullAddress: "2265 Princess Anne St, Fredericksburg, VA 22401",
-        description: "Premium cold plunge facility offering private and group sessions. Featuring Morozko Forge tubs at 34–38°F, infrared sauna, and guided breathwork coaching. Walk-ins welcome.",
-        isBusiness: true,
-        businessVerified: true,
-        phone: "(540) 555-0182",
-        websiteUrl: "https://arcticrecoverystudio.com",
-        yelpUrl: "https://yelp.com",
-        bookingUrl: "https://arcticrecoverystudio.com/book",
-        modalities: ["Cold Plunge", "Infrared Sauna", "Breathwork", "Recovery Therapy"],
-        latitude: "38.3005",
-        longitude: "-77.4605",
-        submittedBy: "Demo",
-        contactEmail: "demo@arcticrecoverystudio.com",
-        nominationCount: 0,
-      });
-      console.log("[seed] Created test verified business: Arctic Recovery Studio");
-    }
-  } catch (err) {
-    console.error("[seed] Failed to seed test verified business:", err);
-  }
-}
-
 async function seedAdminAccount() {
   try {
     // Primary admin (legacy)
@@ -231,18 +197,7 @@ export async function registerRoutes(
   });
 
   await seedPromoCodes();
-  await seedTestVerifiedBusiness();
   await seedAdminAccount();
-  // TEMP: backfill contactEmail on Kurlus's community locations that predate auto-injection
-  try {
-    const { db } = await import("./db");
-    const { userLocations } = await import("@shared/schema");
-    const { and, eq, isNull, inArray } = await import("drizzle-orm");
-    await db.update(userLocations)
-      .set({ contactEmail: "kurlus23@gmail.com" })
-      .where(and(inArray(userLocations.id, [7, 8]), isNull(userLocations.contactEmail)));
-  } catch (_) {}
-
 
   // ── Auth ──────────────────────────────────────────────────────────────
 

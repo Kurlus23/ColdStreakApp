@@ -54,9 +54,12 @@ The system uses a `clientId` for anonymous plunge tracking, which can be synced 
 Profile avatars currently use a URL field — users paste a link to an image hosted elsewhere (e.g. a profile photo URL). This keeps the app free of file storage requirements and avoids privacy/moderation obligations.
 
 ## Pre-Launch Checklist (before Google Play release)
-- **Remove `kurlus23@gmail.com` from admin** — After go-live, only `CStreak28` (`coldstreakapp17@gmail.com`) should be admin. Remove `kurlus23@gmail.com` from the `ADMIN_EMAILS` list in `server/routes.ts` and from any admin-seed logic in `server/storage.ts`.
-- **Delete `seedTestVerifiedBusiness()`** — Remove the test verified business seed call before production launch.
-- **Activate Stripe Customer Portal** — Must be enabled in the Stripe dashboard before subscription management goes live.
+- ✅ **Remove `kurlus23@gmail.com` from admin** — Done. Only `coldstreakapp17@gmail.com` is in `ADMIN_EMAILS`. Security alert emails also updated.
+- ✅ **Delete `seedTestVerifiedBusiness()`** — Done. Function and its call removed from `server/routes.ts`.
+- ✅ **Switch Stripe to live mode** — Done. `USE_STRIPE_TEST=false`. All live secrets (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs) already configured.
+- ✅ **Remove TEMP backfill block** — Done. The kurlus23 contactEmail backfill block removed from `server/routes.ts`.
+- **Activate Stripe Customer Portal** — Must be enabled in the Stripe live-mode dashboard before subscription management goes live.
+- **Wipe test data from production DB** — Arctic Recovery Studio test business (id=6) is still in the database. Delete it from the admin panel or DB directly before launch.
 - **Add `username` column to production DB** — Run `ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT UNIQUE;` on the production database if not already applied.
 
 ## Growth Milestones
