@@ -29,7 +29,7 @@ const NOMINATIONS_KEY = "coldstreak-nominations";
 function openDirections(lat: number | string, lng: number | string) {
   const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
   if (Capacitor.isNativePlatform()) {
-    window.location.href = url;
+    window.open(url, "_system");
   } else {
     window.open(url, "_blank", "noopener,noreferrer");
   }
@@ -537,7 +537,7 @@ function CommunityDetail({
   const hasAccessPoint = !!(loc.accessLat && loc.accessLng);
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-slate-950/98 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-slate-950/98 backdrop-blur-sm" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       {/* Header */}
       <div className="flex items-start justify-between p-4 border-b border-blue-800/40 flex-shrink-0">
         <div className="flex-1 min-w-0 pr-3">
@@ -596,24 +596,34 @@ function CommunityDetail({
                 <Navigation className="w-4 h-4 flex-shrink-0 opacity-60" />
               </button>
             )}
-            {hasAccessPoint && (
+            {hasAccessPoint ? (
               <button
                 data-testid={`button-directions-parking-detail-${loc.id}`}
                 onClick={() => openDirections(Number(loc.accessLat), Number(loc.accessLng))}
-                className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-slate-800/50 border border-slate-700/40 text-slate-300 hover:bg-slate-700/50 transition-all active:scale-[0.98]"
+                className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-cyan-900/30 border border-cyan-700/30 text-cyan-300 hover:bg-cyan-800/40 transition-all active:scale-[0.98]"
               >
-                <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-600/30 border border-slate-600/40 flex-shrink-0">
+                <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex-shrink-0">
                   <Car className="w-4 h-4" />
                 </div>
                 <div className="flex-1 text-left">
                   <p className="text-sm font-semibold">Parking / Access Point</p>
-                  <p className="text-xs text-slate-500">Trailhead, parking lot, or gate</p>
+                  <p className="text-xs text-cyan-500/80">Tap to open in Maps</p>
                 </div>
                 <Navigation className="w-4 h-4 flex-shrink-0 opacity-60" />
               </button>
+            ) : (
+              <div className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-slate-900/40 border border-slate-700/20 opacity-40 cursor-default">
+                <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-700/30 border border-slate-600/20 flex-shrink-0">
+                  <Car className="w-4 h-4 text-slate-500" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-semibold text-slate-500">Parking / Access Point</p>
+                  <p className="text-xs text-slate-600">No parking GPS saved</p>
+                </div>
+              </div>
             )}
-            {!hasPlungeCoords && !hasAccessPoint && (
-              <p className="text-slate-500 text-sm text-center py-3">No GPS coordinates saved yet</p>
+            {!hasPlungeCoords && (
+              <p className="text-slate-500 text-sm text-center py-1">No plunge GPS saved yet</p>
             )}
           </div>
         </div>

@@ -174,7 +174,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 function openDirections(lat: number | string, lng: number | string) {
   const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
   if (Capacitor.isNativePlatform()) {
-    window.location.href = url;
+    window.open(url, "_system");
   } else {
     window.open(url, "_blank", "noopener,noreferrer");
   }
