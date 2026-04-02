@@ -172,7 +172,12 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 function openDirections(lat: number | string, lng: number | string) {
-  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank", "noopener,noreferrer");
+  const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  if (Capacitor.isNativePlatform()) {
+    window.location.href = url;
+  } else {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 }
 
 export default function Home() {

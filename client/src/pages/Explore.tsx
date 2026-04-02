@@ -6,8 +6,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   MapPin, Compass, Search, X, ChevronDown, ChevronRight, Lock,
   Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, Building2, CheckCircle2, BadgeCheck, Phone, ExternalLink, Pencil, LocateFixed, Trash2, Eye, EyeOff,
-  CalendarDays, Users, Copy, Check, Snowflake, Calendar
+  CalendarDays, Users, Copy, Check, Snowflake, Calendar, Car
 } from "lucide-react";
+import { useLeaderboard } from "@/hooks/use-leaderboard";
 import { useToast } from "@/hooks/use-toast";
 import { useProStatus } from "@/hooks/use-pro-status";
 import { useAuth } from "@/hooks/use-auth";
@@ -26,7 +27,12 @@ type BizLocation = Omit<UserLocation, "contactEmail"> & { isOwner: boolean; isAd
 const NOMINATIONS_KEY = "coldstreak-nominations";
 
 function openDirections(lat: number | string, lng: number | string) {
-  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank", "noopener,noreferrer");
+  const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  if (Capacitor.isNativePlatform()) {
+    window.location.href = url;
+  } else {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 }
 
 const RADIUS_KEY = "coldstreak-explore-radius";
@@ -516,6 +522,179 @@ export const GEAR_ITEMS: GearItem[] = [
 
 interface GeoPos { lat: number; lng: number; }
 
+function CommunityDetail({
+  loc,
+  onClose,
+}: {
+  loc: BizLocation;
+  onClose: () => void;
+}) {
+  const locationId = `community-${loc.id}`;
+  const { data: leaderboard, isLoading: lbLoading } = useLeaderboard(locationId);
+  const lat = loc.latitude ? Number(loc.latitude) : null;
+  const lng = loc.longitude ? Number(loc.longitude) : null;
+  const hasPlungeCoords = lat !== null && lng !== null;
+  const hasAccessPoint = !!(loc.accessLat && loc.accessLng);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex flex-col bg-slate-950/98 backdrop-blur-sm">
+      {/* Header */}
+      <div className="flex items-start justify-between p-4 border-b border-blue-800/40 flex-shrink-0">
+        <div className="flex-1 min-w-0 pr-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            {loc.businessVerified && <BadgeCheck className="w-4 h-4 text-yellow-400 flex-shrink-0" />}
+            {loc.isBusiness && !loc.businessVerified && <Building2 className="w-4 h-4 text-amber-400 flex-shrink-0" />}
+            <h2 className="text-white font-bold text-lg leading-tight">{loc.name}</h2>
+          </div>
+          <p className="text-blue-400 text-sm mt-0.5">
+            {[loc.city, loc.state, loc.country].filter(Boolean).join(", ")}
+          </p>
+          {loc.difficulty && DIFFICULTY_META[loc.difficulty as Difficulty] && (
+            <span className={`text-xs font-bold ${DIFFICULTY_META[loc.difficulty as Difficulty].color}`}>
+              {DIFFICULTY_FILTERS.find((f) => f.value === loc.difficulty)?.label}{" "}
+              {DIFFICULTY_META[loc.difficulty as Difficulty].label}
+            </span>
+          )}
+        </div>
+        <button
+          data-testid="button-close-community-detail"
+          onClick={onClose}
+          className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-800/60 border border-slate-600/40 text-slate-300 hover:bg-slate-700/60 transition-all flex-shrink-0"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-5">
+
+        {/* Description */}
+        {loc.description && (
+          <div className="bg-blue-900/30 rounded-xl p-4 border border-blue-700/30">
+            <p className="text-[11px] font-semibold text-blue-400 uppercase tracking-widest mb-1.5">About this spot</p>
+            <p className="text-blue-200 text-sm leading-relaxed">{loc.description}</p>
+          </div>
+        )}
+
+        {/* Directions */}
+        <div>
+          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Directions</p>
+          <div className="space-y-2">
+            {hasPlungeCoords && (
+              <button
+                data-testid={`button-directions-plunge-${loc.id}`}
+                onClick={() => openDirections(lat!, lng!)}
+                className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-cyan-900/30 border border-cyan-700/30 text-cyan-300 hover:bg-cyan-800/40 transition-all active:scale-[0.98]"
+              >
+                <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex-shrink-0">
+                  <Snowflake className="w-4 h-4" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-semibold">Plunge Site</p>
+                  <p className="text-xs text-cyan-500/80">Tap to open in Maps</p>
+                </div>
+                <Navigation className="w-4 h-4 flex-shrink-0 opacity-60" />
+              </button>
+            )}
+            {hasAccessPoint && (
+              <button
+                data-testid={`button-directions-parking-detail-${loc.id}`}
+                onClick={() => openDirections(Number(loc.accessLat), Number(loc.accessLng))}
+                className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-slate-800/50 border border-slate-700/40 text-slate-300 hover:bg-slate-700/50 transition-all active:scale-[0.98]"
+              >
+                <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-600/30 border border-slate-600/40 flex-shrink-0">
+                  <Car className="w-4 h-4" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-semibold">Parking / Access Point</p>
+                  <p className="text-xs text-slate-500">Trailhead, parking lot, or gate</p>
+                </div>
+                <Navigation className="w-4 h-4 flex-shrink-0 opacity-60" />
+              </button>
+            )}
+            {!hasPlungeCoords && !hasAccessPoint && (
+              <p className="text-slate-500 text-sm text-center py-3">No GPS coordinates saved yet</p>
+            )}
+          </div>
+        </div>
+
+        {/* Leaderboard */}
+        <div>
+          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Leaderboard</p>
+          {lbLoading ? (
+            <div className="text-center text-blue-400 text-sm py-6">Loading…</div>
+          ) : !leaderboard?.length ? (
+            <div className="text-center text-slate-500 text-sm py-6 bg-slate-900/40 rounded-xl border border-slate-700/30">
+              No plunges logged here yet — be the first!
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {leaderboard.map((entry, i) => (
+                <div
+                  key={entry.id}
+                  data-testid={`leaderboard-entry-${entry.id}`}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${
+                    i === 0 ? "bg-yellow-900/20 border-yellow-700/30" :
+                    i === 1 ? "bg-slate-700/20 border-slate-600/30" :
+                    i === 2 ? "bg-orange-900/20 border-orange-700/30" :
+                    "bg-slate-900/30 border-slate-700/20"
+                  }`}
+                >
+                  <span className={`w-6 text-center text-sm font-bold flex-shrink-0 ${
+                    i === 0 ? "text-yellow-400" :
+                    i === 1 ? "text-slate-300" :
+                    i === 2 ? "text-orange-400" :
+                    "text-slate-500"
+                  }`}>
+                    {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`}
+                  </span>
+                  <span className="flex-1 text-sm font-semibold text-white truncate">
+                    {entry.foundingPlunger ? "🧊 " : ""}{entry.username}
+                  </span>
+                  <div className="flex flex-col items-end flex-shrink-0">
+                    <span className="text-xs font-bold text-cyan-400">{Number(entry.score).toFixed(1)}</span>
+                    {entry.temperature && (
+                      <span className="text-[10px] text-slate-500">{entry.temperature}°F</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Nomination progress */}
+        <div>
+          <div className="flex justify-between text-[11px] text-blue-500 mb-1.5">
+            <span>{loc.nominationCount >= 25 ? "🔥 Under review by ColdStreak" : `${loc.nominationCount} / 25 community votes`}</span>
+          </div>
+          <div className="h-1.5 bg-blue-800/60 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${loc.nominationCount >= 25 ? "bg-orange-400" : "bg-indigo-500"}`}
+              style={{ width: `${Math.min((loc.nominationCount / 25) * 100, 100)}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Website link for businesses */}
+        {loc.isBusiness && loc.websiteUrl && (
+          <a
+            href={loc.websiteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid={`link-website-detail-${loc.id}`}
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-amber-900/20 border border-amber-700/30 text-amber-300 hover:bg-amber-800/30 transition-all text-sm font-semibold"
+          >
+            <ExternalLink className="w-4 h-4" /> Visit Website
+          </a>
+        )}
+
+        <div className="h-6" />
+      </div>
+    </div>
+  );
+}
+
 export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   username: string;
   onClose: () => void;
@@ -871,6 +1050,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [showForm, setShowForm] = useState(false);
   const [nominated, setNominated] = useState<Set<number>>(getNominated);
   const [locationIdDetail, setLocationIdDetail] = useState<string | null>(null);
+  const [communityDetailLoc, setCommunityDetailLoc] = useState<BizLocation | null>(null);
 
   const [form, setForm] = useState({
     name: "", country: "USA", state: "", city: "", description: "", difficulty: "", isBusiness: false, websiteUrl: "",
@@ -1299,6 +1479,12 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
 
   return (
     <>
+    {communityDetailLoc && (
+      <CommunityDetail
+        loc={communityDetailLoc}
+        onClose={() => setCommunityDetailLoc(null)}
+      />
+    )}
     <div className="px-4 pb-28 pt-4 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-white font-bold text-lg">Explore</h2>
@@ -1838,12 +2024,13 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     <div
                       key={loc.id}
                       data-testid={`card-community-${loc.id}`}
-                      className={`rounded-xl p-3 ${
+                      onClick={() => setCommunityDetailLoc(loc)}
+                      className={`rounded-xl p-3 cursor-pointer active:scale-[0.99] transition-transform ${
                         loc.businessVerified
-                          ? "bg-yellow-900/10 border border-yellow-500/40"
+                          ? "bg-yellow-900/10 border border-yellow-500/40 hover:bg-yellow-900/20"
                           : loc.isBusiness
-                          ? "bg-amber-900/10 border border-amber-600/25"
-                          : "bg-blue-900/40 border border-blue-700/30"
+                          ? "bg-amber-900/10 border border-amber-600/25 hover:bg-amber-900/20"
+                          : "bg-blue-900/40 border border-blue-700/30 hover:bg-blue-900/60"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -1865,7 +2052,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                             {dirLat !== null && dirLng !== null && (
                               <button
                                 data-testid={`button-directions-community-${loc.id}`}
-                                onClick={() => openDirections(dirLat, dirLng)}
+                                onClick={(e) => { e.stopPropagation(); openDirections(dirLat, dirLng); }}
                                 title={hasAccessPoint ? "Get directions to access/parking point" : "Get directions"}
                                 className="w-6 h-6 flex items-center justify-center rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 hover:text-cyan-300 transition-all active:scale-95 flex-shrink-0"
                               >
@@ -1905,7 +2092,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                           {loc.isOwner ? (
                             <button
                               data-testid={`button-edit-loc-${loc.id}`}
-                              onClick={() => openEdit(loc)}
+                              onClick={(e) => { e.stopPropagation(); openEdit(loc); }}
                               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-cyan-800/40 border border-cyan-600/40 text-cyan-300 hover:bg-cyan-700/50 transition-all active:scale-95"
                             >
                               <Pencil className="w-3 h-3" /> Edit
@@ -1913,7 +2100,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                           ) : (
                             <button
                               data-testid={`button-vote-${loc.id}`}
-                              onClick={() => !hasVoted && nominateMutation.mutate(loc.id)}
+                              onClick={(e) => { e.stopPropagation(); if (!hasVoted) nominateMutation.mutate(loc.id); }}
                               disabled={hasVoted || nominateMutation.isPending}
                               className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all active:scale-95 ${
                                 hasVoted
@@ -1925,20 +2112,10 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                               {hasVoted ? "Voted" : "Vote"}
                             </button>
                           )}
-                          {onViewLeaderboard && (
-                            <button
-                              data-testid={`button-leaderboard-${loc.id}`}
-                              onClick={() => onViewLeaderboard(`community-${loc.id}`, loc.name)}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20 transition-all active:scale-95"
-                            >
-                              <Trophy className="w-3 h-3" />
-                              Board
-                            </button>
-                          )}
                           {loc.isBusiness && !loc.businessVerified && (
                             <button
                               data-testid={`button-verify-business-${loc.id}`}
-                              onClick={() => setVerifyDialogLocId(loc.id)}
+                              onClick={(e) => { e.stopPropagation(); setVerifyDialogLocId(loc.id); }}
                               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20 transition-all active:scale-95"
                             >
                               <BadgeCheck className="w-3 h-3" />
