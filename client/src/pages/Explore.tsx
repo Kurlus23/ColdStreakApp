@@ -1332,6 +1332,13 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     onError: () => toast({ title: "Submission failed", description: "Please try again.", variant: "destructive" }),
   });
 
+  const normalizeUrl = (url: string): string | undefined => {
+    const t = url.trim();
+    if (!t) return undefined;
+    if (!/^https?:\/\//i.test(t)) return `https://${t}`;
+    return t;
+  };
+
   const handleBusinessSubmit = () => {
     if (!bizForm.name.trim()) { toast({ title: "Business name required", variant: "destructive" }); return; }
     if (!bizForm.city.trim()) { toast({ title: "City required", variant: "destructive" }); return; }
@@ -1344,10 +1351,10 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       state: bizForm.state.trim(),
       description: bizForm.description.trim() || undefined,
       phone: bizForm.phone.trim() || undefined,
-      websiteUrl: bizForm.websiteUrl.trim() || undefined,
-      yelpUrl: bizForm.yelpUrl.trim() || undefined,
-      facebookUrl: bizForm.facebookUrl.trim() || undefined,
-      bookingUrl: bizForm.bookingUrl.trim() || undefined,
+      websiteUrl: normalizeUrl(bizForm.websiteUrl),
+      yelpUrl: normalizeUrl(bizForm.yelpUrl),
+      facebookUrl: normalizeUrl(bizForm.facebookUrl),
+      bookingUrl: normalizeUrl(bizForm.bookingUrl),
       contactEmail: bizForm.contactEmail.trim(),
       fullAddress: bizForm.fullAddress.trim() || undefined,
       modalities: bizModalities.length > 0 ? bizModalities : undefined,
@@ -2847,8 +2854,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 data-testid="input-edit-contact-phone"
                 type="tel"
                 value={editEvtContactPhone}
-                onChange={(e) => setEditEvtContactPhone(e.target.value)}
-                placeholder="Phone number"
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  let formatted = raw;
+                  if (raw.length >= 7) formatted = `${raw.slice(0,3)}-${raw.slice(3,6)}-${raw.slice(6)}`;
+                  else if (raw.length >= 4) formatted = `${raw.slice(0,3)}-${raw.slice(3)}`;
+                  setEditEvtContactPhone(formatted);
+                }}
+                placeholder="555-555-5555"
                 className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
               />
               <input
@@ -3512,8 +3525,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 data-testid="input-biz-phone"
                 type="tel"
                 value={bizForm.phone}
-                onChange={(e) => setBizForm((f) => ({ ...f, phone: e.target.value }))}
-                placeholder="(512) 555-0100"
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  let formatted = raw;
+                  if (raw.length >= 7) formatted = `${raw.slice(0,3)}-${raw.slice(3,6)}-${raw.slice(6)}`;
+                  else if (raw.length >= 4) formatted = `${raw.slice(0,3)}-${raw.slice(3)}`;
+                  setBizForm((f) => ({ ...f, phone: formatted }));
+                }}
+                placeholder="555-555-5555"
                 className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
               />
             </div>
@@ -3907,8 +3926,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               data-testid="input-event-contact-phone"
               type="tel"
               value={evtContactPhone}
-              onChange={(e) => setEvtContactPhone(e.target.value)}
-              placeholder="Phone number"
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, "").slice(0, 10);
+                let formatted = raw;
+                if (raw.length >= 7) formatted = `${raw.slice(0,3)}-${raw.slice(3,6)}-${raw.slice(6)}`;
+                else if (raw.length >= 4) formatted = `${raw.slice(0,3)}-${raw.slice(3)}`;
+                setEvtContactPhone(formatted);
+              }}
+              placeholder="555-555-5555"
               className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
             />
             <input
