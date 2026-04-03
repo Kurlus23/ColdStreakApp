@@ -1,6 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl, type PlungeInput, type PlungeUpdateInput } from "@shared/routes";
 import { getAuthToken } from "@/hooks/use-auth";
+import { Capacitor } from "@capacitor/core";
+
+const REVIEW_COUNT_KEY = "coldstreak-plunge-saved-count";
+const REVIEW_PROMPTED_KEY = "coldstreak-review-prompted";
+const REVIEW_TRIGGER_COUNT = 3;
+
+async function maybeRequestReview() {
+  try {
+    if (!Capacitor.isNativePlatform()) return;
+    const count = Number(localStorage.getItem(REVIEW_COUNT_KEY) ?? 0) + 1;
+    localStorage.setItem(REVIEW_COUNT_KEY, String(count));
+    if (count === REVIEW_TRIGGER_COUNT && !localStorage.getItem(REVIEW_PROMPTED_KEY)) {
+      localStorage.setItem(REVIEW_PROMPTED_KEY, "true");
+      const { InAppReview } = await import("@capacitor-community/in-app-review");
+      await InAppReview.requestReview();
+    }
+  } catch {
+    // silently ignore — review prompt is best-effort
+  }
+}
 
 export function getClientId(): string {
   const KEY = "coldstreak-client-id";
@@ -61,6 +81,7 @@ export function useCreatePlunge() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.plunges.list.path] });
+      maybeRequestReview();
     },
   });
 }
