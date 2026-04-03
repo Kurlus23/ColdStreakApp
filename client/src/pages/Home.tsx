@@ -3102,12 +3102,12 @@ export default function Home() {
                 data-testid="tab-settings-main"
                 onClick={() => setSettingsTab('settings')}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${settingsTab === 'settings' ? 'bg-blue-800/80 text-white' : 'text-blue-400 hover:text-blue-200'}`}
-              >⚙ Settings</button>
+              >⚙ Device</button>
               <button
                 data-testid="tab-settings-support"
                 onClick={() => { setSettingsTab('support'); setSupportEmail(proEmail || ''); setSupportMessage(''); setSupportCategory('bug'); }}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${settingsTab === 'support' ? 'bg-cyan-600/20 border border-cyan-500/50 text-cyan-300' : 'text-blue-400 hover:text-blue-200'}`}
-              >💬 Help & Support</button>
+              >💬 Support</button>
             </div>
 
             {settingsTab === 'user' && (<>
@@ -3274,6 +3274,37 @@ export default function Home() {
               </div>
             )}
 
+            {/* Profile Name */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+              <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                <User className="w-3 h-3" /> Profile Name
+              </label>
+              {StreakBadge && (
+                <div className="flex items-center gap-2 mb-2 bg-blue-800/40 rounded-xl px-3 py-2 border border-blue-700/30">
+                  <span className="text-blue-400 text-xs truncate">{username || "You"}</span>
+                  {StreakBadge}
+                </div>
+              )}
+              <input
+                data-testid="input-settings-username"
+                type="text"
+                placeholder="Enter your display name…"
+                value={username}
+                maxLength={24}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  localStorage.setItem("coldstreak-username", e.target.value);
+                }}
+                onBlur={(e) => {
+                  const token = localStorage.getItem("coldstreak-auth-token");
+                  if (!token || !e.target.value.trim()) return;
+                  fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ displayName: e.target.value.trim() }) }).catch(() => {});
+                }}
+                className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+              />
+              <p className="text-blue-500 text-xs mt-1">Shown on leaderboards when you submit a plunge.</p>
+            </div>
+
             {/* Calorie Tracker / Streak */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
@@ -3308,37 +3339,6 @@ export default function Home() {
               <p className="text-blue-600 text-[10px] mt-2 leading-relaxed">
                 Estimated via thermogenesis model. Cold water forces your body to generate heat, burning extra calories beyond your normal resting rate.
               </p>
-            </div>
-
-            {/* Profile Name */}
-            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
-              <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
-                <User className="w-3 h-3" /> Profile Name
-              </label>
-              {StreakBadge && (
-                <div className="flex items-center gap-2 mb-2 bg-blue-800/40 rounded-xl px-3 py-2 border border-blue-700/30">
-                  <span className="text-blue-400 text-xs truncate">{username || "You"}</span>
-                  {StreakBadge}
-                </div>
-              )}
-              <input
-                data-testid="input-settings-username"
-                type="text"
-                placeholder="Enter your display name…"
-                value={username}
-                maxLength={24}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  localStorage.setItem("coldstreak-username", e.target.value);
-                }}
-                onBlur={(e) => {
-                  const token = localStorage.getItem("coldstreak-auth-token");
-                  if (!token || !e.target.value.trim()) return;
-                  fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ displayName: e.target.value.trim() }) }).catch(() => {});
-                }}
-                className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-              />
-              <p className="text-blue-500 text-xs mt-1">Shown on leaderboards when you submit a plunge.</p>
             </div>
 
             {/* Body Weight */}
@@ -3432,6 +3432,19 @@ export default function Home() {
                 <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full transition-all duration-700" style={{ width: `${weeklyPct}%` }} />
               </div>
             </div>
+
+            {/* Legal & Safety */}
+            <button
+              data-testid="button-nav-legal"
+              onClick={() => navTo("legal")}
+              className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40 hover:border-cyan-500/50 transition-all active:scale-[0.99]"
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-cyan-400" />
+                <span className="text-white font-semibold text-sm">Legal &amp; Safety</span>
+              </div>
+              <span className="text-blue-400 text-xs">›</span>
+            </button>
 
             </>)}
 
@@ -3824,18 +3837,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* Legal & Safety */}
-            <button
-              data-testid="button-nav-legal"
-              onClick={() => navTo("legal")}
-              className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40 hover:border-cyan-500/50 transition-all active:scale-[0.99]"
-            >
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-cyan-400" />
-                <span className="text-white font-semibold text-sm">Legal &amp; Safety</span>
-              </div>
-              <span className="text-blue-400 text-xs">›</span>
-            </button>
             </>)}
 
             {settingsTab === 'support' && (
