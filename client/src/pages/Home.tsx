@@ -524,7 +524,7 @@ export default function Home() {
   // Pro status
   const { isPro, proEmail, proPlan, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo, clearPro, verifyProForEmail } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<'settings' | 'support'>('settings');
+  const [settingsTab, setSettingsTab] = useState<'user' | 'settings' | 'support'>('user');
 
   // Intro video
   const [showIntro, setShowIntro] = useState(() => localStorage.getItem("coldstreak-intro-enabled") !== "false");
@@ -891,7 +891,7 @@ export default function Home() {
       setHrScanActive(false);
       setHrScanDevices([]);
     }
-    if (next !== "settings") setSettingsTab('settings');
+    if (next !== "settings") setSettingsTab('user');
     setScreen(next);
     localStorage.setItem("defaultScreen", next);
   };
@@ -3091,8 +3091,13 @@ export default function Home() {
               >✕</button>
             </div>
 
-            {/* Settings / Support sub-tabs */}
+            {/* User / Settings / Support sub-tabs */}
             <div className="flex gap-1 bg-blue-900/40 rounded-2xl p-1 border border-blue-800/40">
+              <button
+                data-testid="tab-settings-user"
+                onClick={() => setSettingsTab('user')}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${settingsTab === 'user' ? 'bg-blue-800/80 text-white' : 'text-blue-400 hover:text-blue-200'}`}
+              >👤 User</button>
               <button
                 data-testid="tab-settings-main"
                 onClick={() => setSettingsTab('settings')}
@@ -3105,7 +3110,7 @@ export default function Home() {
               >💬 Help & Support</button>
             </div>
 
-            {settingsTab === 'settings' && (<>
+            {settingsTab === 'user' && (<>
 
             {/* ColdStreak Pro */}
             {isPro ? (
@@ -3269,6 +3274,169 @@ export default function Home() {
               </div>
             )}
 
+            {/* Calorie Tracker / Streak */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+                <div className="text-blue-400 text-xs uppercase tracking-wide mb-1 flex items-center gap-1"><Flame className="w-3.5 h-3.5 text-orange-400" /> Streak</div>
+                <div className="text-white font-bold text-xl">{streak} <span className="text-sm font-normal text-blue-400">days</span></div>
+              </div>
+              <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+                <div className="text-blue-400 text-xs uppercase tracking-wide mb-1 flex items-center gap-1"><Zap className="w-3.5 h-3.5 text-cyan-400" /> Today</div>
+                <div className="text-white font-bold text-xl">{todayScore.toFixed(1)} <span className="text-sm font-normal text-blue-400">pts</span></div>
+              </div>
+            </div>
+
+            {/* Est. Calories Burned */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+              <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                <Flame className="w-3 h-3 text-orange-400" /> Est. Calories Burned
+              </label>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-orange-300 font-bold text-lg leading-none">{Math.round(todayCalories) || "—"}</div>
+                  <div className="text-blue-500 text-[10px] mt-0.5">today</div>
+                </div>
+                <div className="border-x border-blue-800">
+                  <div className="text-orange-300 font-bold text-lg leading-none">{Math.round(weeklyCalories) || "—"}</div>
+                  <div className="text-blue-500 text-[10px] mt-0.5">this week</div>
+                </div>
+                <div>
+                  <div className="text-orange-300 font-bold text-lg leading-none">{Math.round(allTimeCalories) || "—"}</div>
+                  <div className="text-blue-500 text-[10px] mt-0.5">all time</div>
+                </div>
+              </div>
+              <p className="text-blue-600 text-[10px] mt-2 leading-relaxed">
+                Estimated via thermogenesis model. Cold water forces your body to generate heat, burning extra calories beyond your normal resting rate.
+              </p>
+            </div>
+
+            {/* Profile Name */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+              <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                <User className="w-3 h-3" /> Profile Name
+              </label>
+              {StreakBadge && (
+                <div className="flex items-center gap-2 mb-2 bg-blue-800/40 rounded-xl px-3 py-2 border border-blue-700/30">
+                  <span className="text-blue-400 text-xs truncate">{username || "You"}</span>
+                  {StreakBadge}
+                </div>
+              )}
+              <input
+                data-testid="input-settings-username"
+                type="text"
+                placeholder="Enter your display name…"
+                value={username}
+                maxLength={24}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  localStorage.setItem("coldstreak-username", e.target.value);
+                }}
+                onBlur={(e) => {
+                  const token = localStorage.getItem("coldstreak-auth-token");
+                  if (!token || !e.target.value.trim()) return;
+                  fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ displayName: e.target.value.trim() }) }).catch(() => {});
+                }}
+                className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+              />
+              <p className="text-blue-500 text-xs mt-1">Shown on leaderboards when you submit a plunge.</p>
+            </div>
+
+            {/* Body Weight */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+              <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                <Flame className="w-3 h-3 text-orange-400" /> Body Weight
+              </label>
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const saveWeightToServer = (val: number) => {
+                    const token = localStorage.getItem("coldstreak-auth-token");
+                    if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: val }) }).catch(() => {});
+                  };
+                  const stopHold = () => {
+                    if (weightHoldRef.current) { clearTimeout(weightHoldRef.current); weightHoldRef.current = null; }
+                    weightHoldCountRef.current = 0;
+                    const stored = Number(localStorage.getItem("coldstreak-body-weight"));
+                    if (stored) saveWeightToServer(stored);
+                  };
+                  const startHold = (dir: 1 | -1) => {
+                    const tick = () => {
+                      weightHoldCountRef.current += 1;
+                      const fast = weightHoldCountRef.current > 20;
+                      const step = fast ? 5 : 1;
+                      const delay = fast ? 60 : 120;
+                      setBodyWeightLbs(prev => {
+                        const val = Math.min(400, Math.max(80, prev + dir * step));
+                        localStorage.setItem("coldstreak-body-weight", String(val));
+                        return val;
+                      });
+                      weightHoldRef.current = setTimeout(tick, delay);
+                    };
+                    weightHoldRef.current = setTimeout(tick, 350);
+                  };
+                  const pressProps = (dir: 1 | -1) => ({
+                    onMouseDown: (e: React.MouseEvent) => { e.preventDefault(); startHold(dir); },
+                    onMouseUp: stopHold,
+                    onMouseLeave: stopHold,
+                    onTouchStart: (e: React.TouchEvent) => { e.preventDefault(); startHold(dir); },
+                    onTouchEnd: stopHold,
+                    onClick: () => {
+                      if (weightHoldCountRef.current > 0) return;
+                      setBodyWeightLbs(prev => {
+                        const val = Math.min(400, Math.max(80, prev + dir));
+                        localStorage.setItem("coldstreak-body-weight", String(val));
+                        saveWeightToServer(val);
+                        return val;
+                      });
+                    },
+                  });
+                  return (<>
+                    <button data-testid="button-weight-decrease" {...pressProps(-1)}
+                      className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
+                    >−</button>
+                    <div data-testid="input-body-weight"
+                      className="w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none pointer-events-none"
+                    >{bodyWeightLbs}</div>
+                    <button data-testid="button-weight-increase" {...pressProps(1)}
+                      className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
+                    >+</button>
+                  </>);
+                })()}
+                <span className="text-blue-500 text-xs">lbs ({Math.round(bodyWeightLbs / 2.205)} kg)</span>
+              </div>
+              <p className="text-blue-500 text-xs mt-1">Used to estimate calories burned per plunge.</p>
+            </div>
+
+            {/* Weekly Goal */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+              <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                <Target className="w-3 h-3" /> Weekly Goal
+              </label>
+              <div className="flex items-center gap-3">
+                <select
+                  data-testid="select-weekly-goal"
+                  value={weeklyGoalMinutes}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setWeeklyGoalMinutes(val);
+                    localStorage.setItem("weeklyGoalMinutes", String(val));
+                  }}
+                  className="bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm font-semibold appearance-none focus:outline-none focus:border-cyan-400"
+                >
+                  {Array.from({ length: 110 }, (_, i) => i + 11).map((m) => (
+                    <option key={m} value={m}>{m} min / week</option>
+                  ))}
+                </select>
+                <span className="text-blue-400 text-xs">{weeklyMinutes.toFixed(1)} min done</span>
+              </div>
+              <div className="mt-2 h-2 bg-blue-800 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full transition-all duration-700" style={{ width: `${weeklyPct}%` }} />
+              </div>
+            </div>
+
+            </>)}
+
+            {settingsTab === 'settings' && (<>
+
             {/* Intro Video Toggle — shown after user has seen it once */}
             {introSeen && (
               <div className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40">
@@ -3289,27 +3457,11 @@ export default function Home() {
               </div>
             )}
 
-            {/* User */}
-            <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40">
-              <button
-                data-testid="button-toggle-user"
-                onClick={() => setUserOpen(v => !v)}
-                className="w-full flex items-center justify-between px-4 py-3 text-left"
-              >
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-cyan-400" />
-                  <span className="text-white font-semibold text-sm">User</span>
-                </div>
-                <span className={`text-blue-400 text-xs transition-transform duration-200 ${userOpen ? "rotate-180" : ""}`}>▼</span>
-              </button>
-              {userOpen && (
-                <div className="px-4 pb-4 space-y-4 border-t border-blue-700/30 pt-3">
-
-                  {/* Account */}
-                  <div>
-                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
-                      <User className="w-3 h-3" /> Account
-                    </label>
+            {/* Account */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+              <label className="text-blue-400 text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
+                <User className="w-3 h-3" /> Account
+              </label>
                     {auth.user ? (
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 bg-blue-800/40 rounded-xl px-3 py-2.5 border border-blue-700/30">
@@ -3493,228 +3645,65 @@ export default function Home() {
                         <p className="text-blue-500 text-xs text-center">Your plunges sync across all your devices</p>
                       </div>
                     )}
-                  </div>
+            </div>
 
-                  {/* Leaderboard name */}
-                  <div>
-                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
-                      <User className="w-3 h-3" /> Leaderboard Name
-                    </label>
-                    {StreakBadge && (
-                      <div className="flex items-center gap-2 mb-2 bg-blue-800/40 rounded-xl px-3 py-2 border border-blue-700/30">
-                        <span className="text-blue-400 text-xs truncate">{username || "You"}</span>
-                        {StreakBadge}
-                      </div>
+            {/* Home Label */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+              <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                🏠 Home Location Label
+              </label>
+              <input
+                data-testid="input-home-label"
+                type="text"
+                placeholder="e.g. Ice Barrel, Garage Tub, Bathtub…"
+                value={homeLabel}
+                maxLength={40}
+                onChange={(e) => {
+                  setHomeLabel(e.target.value || "Home");
+                  localStorage.setItem("coldstreak-home-label", e.target.value || "Home");
+                }}
+                className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+              />
+              <p className="text-blue-500 text-xs mt-1">Private — shares always show "Home".</p>
+            </div>
+
+            {/* Streak Reminders */}
+            {notifPermission !== "unsupported" && (
+              <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+                <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                  <Bell className="w-3 h-3 text-cyan-400" /> Streak Reminders
+                </label>
+                <div className="flex items-center justify-between gap-3 bg-blue-800/50 border border-blue-700/50 rounded-xl px-3 py-3">
+                  <div className="min-w-0">
+                    {notifPermission === "granted" ? (
+                      <>
+                        <p className="text-emerald-300 text-xs font-semibold">Push notifications enabled ✓</p>
+                        <p className="text-blue-500 text-[10px] mt-0.5">Your device will alert you if you miss a plunge day.</p>
+                      </>
+                    ) : notifPermission === "denied" ? (
+                      <>
+                        <p className="text-red-400 text-xs font-semibold">Notifications blocked</p>
+                        <p className="text-blue-500 text-[10px] mt-0.5">Enable in your browser / device Settings → Notifications.</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-blue-200 text-xs font-semibold">Get daily push reminders</p>
+                        <p className="text-blue-500 text-[10px] mt-0.5">Sent to your device when your streak is at risk.</p>
+                      </>
                     )}
-                    <input
-                      data-testid="input-settings-username"
-                      type="text"
-                      placeholder="Enter your display name…"
-                      value={username}
-                      maxLength={24}
-                      onChange={(e) => {
-                        setUsername(e.target.value);
-                        localStorage.setItem("coldstreak-username", e.target.value);
-                      }}
-                      onBlur={(e) => {
-                        const token = localStorage.getItem("coldstreak-auth-token");
-                        if (!token || !e.target.value.trim()) return;
-                        fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ displayName: e.target.value.trim() }) }).catch(() => {});
-                      }}
-                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-                    />
-                    <p className="text-blue-500 text-xs mt-1">Shown on leaderboards when you submit a plunge.</p>
                   </div>
-
-                  {/* Home label */}
-                  <div>
-                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
-                      🏠 Home Location Label
-                    </label>
-                    <input
-                      data-testid="input-home-label"
-                      type="text"
-                      placeholder="e.g. Ice Barrel, Garage Tub, Bathtub…"
-                      value={homeLabel}
-                      maxLength={40}
-                      onChange={(e) => {
-                        setHomeLabel(e.target.value || "Home");
-                        localStorage.setItem("coldstreak-home-label", e.target.value || "Home");
-                      }}
-                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-                    />
-                    <p className="text-blue-500 text-xs mt-1">Private — shares always show "Home".</p>
-                  </div>
-
-                  {/* Body weight */}
-                  <div>
-                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
-                      <Flame className="w-3 h-3 text-orange-400" /> Body Weight
-                    </label>
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const saveWeightToServer = (val: number) => {
-                          const token = localStorage.getItem("coldstreak-auth-token");
-                          if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: val }) }).catch(() => {});
-                        };
-                        const stopHold = () => {
-                          if (weightHoldRef.current) { clearTimeout(weightHoldRef.current); weightHoldRef.current = null; }
-                          weightHoldCountRef.current = 0;
-                          const stored = Number(localStorage.getItem("coldstreak-body-weight"));
-                          if (stored) saveWeightToServer(stored);
-                        };
-                        const startHold = (dir: 1 | -1) => {
-                          const tick = () => {
-                            weightHoldCountRef.current += 1;
-                            const fast = weightHoldCountRef.current > 20;
-                            const step = fast ? 5 : 1;
-                            const delay = fast ? 60 : 120;
-                            setBodyWeightLbs(prev => {
-                              const val = Math.min(400, Math.max(80, prev + dir * step));
-                              localStorage.setItem("coldstreak-body-weight", String(val));
-                              return val;
-                            });
-                            weightHoldRef.current = setTimeout(tick, delay);
-                          };
-                          weightHoldRef.current = setTimeout(tick, 350);
-                        };
-                        const pressProps = (dir: 1 | -1) => ({
-                          onMouseDown: (e: React.MouseEvent) => { e.preventDefault(); startHold(dir); },
-                          onMouseUp: stopHold,
-                          onMouseLeave: stopHold,
-                          onTouchStart: (e: React.TouchEvent) => { e.preventDefault(); startHold(dir); },
-                          onTouchEnd: stopHold,
-                          onClick: () => {
-                            if (weightHoldCountRef.current > 0) return;
-                            setBodyWeightLbs(prev => {
-                              const val = Math.min(400, Math.max(80, prev + dir));
-                              localStorage.setItem("coldstreak-body-weight", String(val));
-                              saveWeightToServer(val);
-                              return val;
-                            });
-                          },
-                        });
-                        return (<>
-                          <button data-testid="button-weight-decrease" {...pressProps(-1)}
-                            className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
-                          >−</button>
-                          <div data-testid="input-body-weight"
-                            className="w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none pointer-events-none"
-                          >{bodyWeightLbs}</div>
-                          <button data-testid="button-weight-increase" {...pressProps(1)}
-                            className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
-                          >+</button>
-                        </>);
-                      })()}
-                      <span className="text-blue-500 text-xs">lbs ({Math.round(bodyWeightLbs / 2.205)} kg)</span>
-                    </div>
-                    <p className="text-blue-500 text-xs mt-1">Used to estimate calories burned per plunge.</p>
-                  </div>
-
-                  {/* Weekly goal */}
-                  <div>
-                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
-                      <Target className="w-3 h-3" /> Weekly Goal
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <select
-                        data-testid="select-weekly-goal"
-                        value={weeklyGoalMinutes}
-                        onChange={(e) => {
-                          const val = Number(e.target.value);
-                          setWeeklyGoalMinutes(val);
-                          localStorage.setItem("weeklyGoalMinutes", String(val));
-                        }}
-                        className="bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm font-semibold appearance-none focus:outline-none focus:border-cyan-400"
-                      >
-                        {Array.from({ length: 110 }, (_, i) => i + 11).map((m) => (
-                          <option key={m} value={m}>{m} min / week</option>
-                        ))}
-                      </select>
-                      <span className="text-blue-400 text-xs">{weeklyMinutes.toFixed(1)} min done</span>
-                    </div>
-                    <div className="mt-2 h-2 bg-blue-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full transition-all duration-700" style={{ width: `${weeklyPct}%` }} />
-                    </div>
-                  </div>
-
-                  {/* Streak Reminders (push notifications) */}
-                  {notifPermission !== "unsupported" && (
-                    <div>
-                      <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
-                        <Bell className="w-3 h-3 text-cyan-400" /> Streak Reminders
-                      </label>
-                      <div className="flex items-center justify-between gap-3 bg-blue-800/50 border border-blue-700/50 rounded-xl px-3 py-3">
-                        <div className="min-w-0">
-                          {notifPermission === "granted" ? (
-                            <>
-                              <p className="text-emerald-300 text-xs font-semibold">Push notifications enabled ✓</p>
-                              <p className="text-blue-500 text-[10px] mt-0.5">Your device will alert you if you miss a plunge day.</p>
-                            </>
-                          ) : notifPermission === "denied" ? (
-                            <>
-                              <p className="text-red-400 text-xs font-semibold">Notifications blocked</p>
-                              <p className="text-blue-500 text-[10px] mt-0.5">Enable in your browser / device Settings → Notifications.</p>
-                            </>
-                          ) : (
-                            <>
-                              <p className="text-blue-200 text-xs font-semibold">Get daily push reminders</p>
-                              <p className="text-blue-500 text-[10px] mt-0.5">Sent to your device when your streak is at risk.</p>
-                            </>
-                          )}
-                        </div>
-                        {notifPermission === "default" && (
-                          <button
-                            data-testid="button-enable-notifications"
-                            onClick={enableNotifications}
-                            className="shrink-0 px-3 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all active:scale-95"
-                          >
-                            Enable
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                  {notifPermission === "default" && (
+                    <button
+                      data-testid="button-enable-notifications"
+                      onClick={enableNotifications}
+                      className="shrink-0 px-3 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all active:scale-95"
+                    >
+                      Enable
+                    </button>
                   )}
-
-                  {/* Est. Calories Burned */}
-                  <div>
-                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
-                      <Flame className="w-3 h-3 text-orange-400" /> Est. Calories Burned
-                    </label>
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div>
-                        <div className="text-orange-300 font-bold text-lg leading-none">{Math.round(todayCalories) || "—"}</div>
-                        <div className="text-blue-500 text-[10px] mt-0.5">today</div>
-                      </div>
-                      <div className="border-x border-blue-800">
-                        <div className="text-orange-300 font-bold text-lg leading-none">{Math.round(weeklyCalories) || "—"}</div>
-                        <div className="text-blue-500 text-[10px] mt-0.5">this week</div>
-                      </div>
-                      <div>
-                        <div className="text-orange-300 font-bold text-lg leading-none">{Math.round(allTimeCalories) || "—"}</div>
-                        <div className="text-blue-500 text-[10px] mt-0.5">all time</div>
-                      </div>
-                    </div>
-                    <p className="text-blue-600 text-[10px] mt-2 leading-relaxed">
-                      Estimated via thermogenesis model. Cold water forces your body to generate heat, burning extra calories beyond your normal resting rate.
-                    </p>
-                  </div>
-
                 </div>
-              )}
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
-                <div className="text-blue-400 text-xs uppercase tracking-wide mb-1 flex items-center gap-1"><Flame className="w-3.5 h-3.5 text-orange-400" /> Streak</div>
-                <div className="text-white font-bold text-xl">{streak} <span className="text-sm font-normal text-blue-400">days</span></div>
               </div>
-              <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
-                <div className="text-blue-400 text-xs uppercase tracking-wide mb-1 flex items-center gap-1"><Zap className="w-3.5 h-3.5 text-cyan-400" /> Today</div>
-                <div className="text-white font-bold text-xl">{todayScore.toFixed(1)} <span className="text-sm font-normal text-blue-400">pts</span></div>
-              </div>
-            </div>
+            )}
 
             {/* Countdown timer mode */}
             <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
@@ -3922,7 +3911,7 @@ export default function Home() {
                       });
                       toast({ title: "Message sent!", description: "We'll get back to you as soon as possible." });
                       setSupportMessage("");
-                      setSettingsTab('settings');
+                      setSettingsTab('user');
                     } catch {
                       toast({ title: "Could not send message", description: "Please try again or email coldstreakapp17@gmail.com", variant: "destructive" });
                     } finally {
