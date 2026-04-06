@@ -6134,13 +6134,20 @@ export default function Home() {
           className="fixed inset-0 z-[60] bg-blue-950/98 backdrop-blur-md flex flex-col items-center justify-center gap-8 transition-all duration-300 animate-in fade-in"
         >
           {/* Logo at top */}
-          <div className="absolute top-8 flex flex-col items-center gap-2">
-            <img
-              src="/icons/icon-192.png"
-              alt="ColdStreak"
-              className="w-12 h-12 rounded-xl shadow-lg shadow-blue-900/50"
-            />
-            <span className="text-white text-sm font-bold tracking-wide">ColdStreak</span>
+          <div className="absolute top-8 flex items-center justify-center">
+            <span
+              className="text-2xl font-black pointer-events-none select-none"
+              style={{
+                background: "linear-gradient(to bottom, #ffffff 0%, #67e8f9 60%, #0891b2 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+                filter: "drop-shadow(0 1px 6px rgba(0,0,0,0.7))",
+                letterSpacing: "0.12em",
+              }}
+            >
+              COLDSTREAK
+            </span>
           </div>
 
           {/* Mode label */}
