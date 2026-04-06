@@ -6133,6 +6133,16 @@ export default function Home() {
         <div
           className="fixed inset-0 z-[60] bg-blue-950/98 backdrop-blur-md flex flex-col items-center justify-center gap-8 transition-all duration-300 animate-in fade-in"
         >
+          {/* Logo at top */}
+          <div className="absolute top-8 flex flex-col items-center gap-2">
+            <img
+              src="/icons/icon-192.png"
+              alt="ColdStreak"
+              className="w-12 h-12 rounded-xl shadow-lg shadow-blue-900/50"
+            />
+            <span className="text-white text-sm font-bold tracking-wide">ColdStreak</span>
+          </div>
+
           {/* Mode label */}
           <div className="text-blue-400 text-xs font-semibold uppercase tracking-widest -mb-4">
             {countdownMode ? "Countdown" : "Stopwatch"}
