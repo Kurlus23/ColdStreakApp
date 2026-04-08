@@ -99,3 +99,13 @@ All options are stored in `attached_assets/generated_images/`:
 - **Bitmoji / device photo upload for avatars** — Allow users to upload an image directly from their device (including Bitmoji screenshots). Requires cloud image storage (Cloudinary or similar), privacy policy updates to cover image data collection, ToS clause for user-generated content, and a content moderation plan for App Store / Play Store compliance. Current URL-paste approach intentionally deferred until v2.0.
 - **Plunge photo cloud storage** — Currently plunge photos are stored as base64 in the database, which bloats storage and limits scalability. Migrate to a cloud storage provider (Cloudinary or S3-compatible) so photos are stored as URLs. Requires a CDN-backed upload flow, signed upload tokens so the client can upload directly without routing through the server, privacy policy updates for image data, and a moderation plan for App Store / Play Store compliance. On-device base64 approach is intentionally kept for v1 simplicity.
 - **Spotify & Apple Music integration** — Let users link their Spotify or Apple Music account and pick a playlist that auto-plays when the timer starts and pauses/stops when the session ends. On Android this would use Capacitor + the respective SDK or deep-link API; on iOS it would require the MusicKit entitlement. Requires OAuth flow for Spotify (PKCE) and MusicKit token for Apple. Both platforms have strict SDK terms around background audio — review before building. Consider making playlist selection a Pro perk.
+- **Social / Friends Feed ("Facebook of Cold Plunges")** — The flagship 2.0 social layer. Depends on cloud image storage being in place first (see avatar and plunge photo roadmap items above). Planned features:
+  - Friend requests: search by username, send/accept/decline
+  - Friends feed tab: chronological stream of friends' plunges (name, Cold Score, duration, temp, location, photo)
+  - Quick reactions on plunges (fire / ice / 💪 — no full comment system needed for v1 social)
+  - "Plunging now" live status indicator when a friend has an active timer
+  - Public profile page extending the existing badge profile (streak, stats, recent plunges, total count)
+  - Privacy controls per plunge: Public / Friends Only / Private
+  - Auto-posted milestones (e.g. "Just hit a 30-day streak!")
+  - **Key differentiator vs. PlungePalz**: every feed post is data-first — Cold Score, temp, and duration are baked into every entry, not just a photo caption
+  - Infrastructure prerequisites: cloud image storage (Cloudinary or S3), a real-time or polling notification layer for friend activity, and server-side capacity planning for feed generation at scale.
