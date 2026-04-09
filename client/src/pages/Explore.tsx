@@ -2624,6 +2624,51 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 </span>
               </div>
 
+              {/* Organizers */}
+              <div className="space-y-2">
+                <p className="text-blue-500 text-[11px] uppercase tracking-wide font-semibold">Organizers</p>
+                <div className="space-y-2">
+                  {evt.createdByUsername && (
+                    <div className="flex items-center gap-2.5">
+                      <button onClick={() => setViewingProfile(evt.createdByUsername!)} className="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-xs font-bold text-cyan-300 flex-shrink-0 hover:opacity-80 transition-opacity">
+                        {evt.createdByUsername.slice(0, 1).toUpperCase()}
+                      </button>
+                      <div>
+                        <button onClick={() => setViewingProfile(evt.createdByUsername!)} className="flex items-center gap-1 text-white text-xs font-semibold hover:text-cyan-300 transition-colors text-left">
+                          {evt.createdByUsername}
+                          {renderEventBadges(evt.createdByUsername)}
+                        </button>
+                        <p className="text-blue-500 text-[10px]">Creator</p>
+                      </div>
+                    </div>
+                  )}
+                  {evt.coordinators.map((c) => (
+                    <div key={c.id} className="flex items-center gap-2.5">
+                      <button onClick={() => setViewingProfile(c.username)} className="w-7 h-7 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-xs font-bold text-blue-300 flex-shrink-0 hover:opacity-80 transition-opacity">
+                        {c.username.slice(0, 1).toUpperCase()}
+                      </button>
+                      <div className="flex-1">
+                        <button onClick={() => setViewingProfile(c.username)} className="flex items-center gap-1 text-white text-xs font-semibold hover:text-cyan-300 transition-colors text-left">
+                          {c.username}
+                          {renderEventBadges(c.username)}
+                        </button>
+                        <p className="text-blue-500 text-[10px]">⚡ Co-coordinator</p>
+                      </div>
+                      {isManager && evt.createdBy === auth.user!.id && (
+                        <button
+                          data-testid={`button-remove-coord-${c.userId}`}
+                          onClick={() => removeCoordMut.mutate({ eventId: evt.id, userId: c.userId })}
+                          disabled={removeCoordMut.isPending}
+                          className="text-[10px] text-blue-600 hover:text-red-400 transition-colors"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Description */}
               {evt.description && (
                 <div className="bg-blue-900/40 border border-blue-700/30 rounded-2xl p-4">
@@ -2684,51 +2729,6 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   )}
                 </div>
               )}
-
-              {/* Organizers */}
-              <div className="space-y-2">
-                <p className="text-blue-500 text-[11px] uppercase tracking-wide font-semibold">Organizers</p>
-                <div className="space-y-2">
-                  {evt.createdByUsername && (
-                    <div className="flex items-center gap-2.5">
-                      <button onClick={() => setViewingProfile(evt.createdByUsername!)} className="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-xs font-bold text-cyan-300 flex-shrink-0 hover:opacity-80 transition-opacity">
-                        {evt.createdByUsername.slice(0, 1).toUpperCase()}
-                      </button>
-                      <div>
-                        <button onClick={() => setViewingProfile(evt.createdByUsername!)} className="flex items-center gap-1 text-white text-xs font-semibold hover:text-cyan-300 transition-colors text-left">
-                          {evt.createdByUsername}
-                          {renderEventBadges(evt.createdByUsername)}
-                        </button>
-                        <p className="text-blue-500 text-[10px]">Creator</p>
-                      </div>
-                    </div>
-                  )}
-                  {evt.coordinators.map((c) => (
-                    <div key={c.id} className="flex items-center gap-2.5">
-                      <button onClick={() => setViewingProfile(c.username)} className="w-7 h-7 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-xs font-bold text-blue-300 flex-shrink-0 hover:opacity-80 transition-opacity">
-                        {c.username.slice(0, 1).toUpperCase()}
-                      </button>
-                      <div className="flex-1">
-                        <button onClick={() => setViewingProfile(c.username)} className="flex items-center gap-1 text-white text-xs font-semibold hover:text-cyan-300 transition-colors text-left">
-                          {c.username}
-                          {renderEventBadges(c.username)}
-                        </button>
-                        <p className="text-blue-500 text-[10px]">⚡ Co-coordinator</p>
-                      </div>
-                      {isManager && evt.createdBy === auth.user!.id && (
-                        <button
-                          data-testid={`button-remove-coord-${c.userId}`}
-                          onClick={() => removeCoordMut.mutate({ eventId: evt.id, userId: c.userId })}
-                          disabled={removeCoordMut.isPending}
-                          className="text-[10px] text-blue-600 hover:text-red-400 transition-colors"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
 
               {/* ── Send Event Update (managers only) ───────────────── */}
               {isManager && (
