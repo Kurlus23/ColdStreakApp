@@ -3065,18 +3065,31 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             <div>
               <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Start Date & Time</label>
               <input
+                id="edit-evt-date"
                 data-testid="input-edit-event-date"
                 type="datetime-local"
                 value={editEvtDate}
                 onChange={(e) => { setEditEvtDate(e.target.value); if (editEvtEndDate && editEvtEndDate < e.target.value) setEditEvtEndDate(e.target.value); }}
                 className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 [color-scheme:dark]"
               />
+              {editEvtDate && (
+                <button
+                  data-testid="button-confirm-edit-event-date"
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => (document.getElementById("edit-evt-date") as HTMLInputElement)?.blur()}
+                  className="mt-1.5 w-full py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-cyan-400 text-[11px] font-semibold hover:bg-cyan-500/20 transition-all"
+                >
+                  ✓ Confirm Date
+                </button>
+              )}
             </div>
             <div>
               <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">
                 End Date (optional) <span className="text-blue-600 normal-case font-normal">— max 7 days</span>
               </label>
               <input
+                id="edit-evt-end-date"
                 data-testid="input-edit-event-end-date"
                 type="datetime-local"
                 value={editEvtEndDate}
@@ -3085,6 +3098,17 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 onChange={(e) => setEditEvtEndDate(e.target.value)}
                 className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 [color-scheme:dark]"
               />
+              {editEvtEndDate && (
+                <button
+                  data-testid="button-confirm-edit-event-end-date"
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => (document.getElementById("edit-evt-end-date") as HTMLInputElement)?.blur()}
+                  className="mt-1.5 w-full py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-cyan-400 text-[11px] font-semibold hover:bg-cyan-500/20 transition-all"
+                >
+                  ✓ Confirm End Date
+                </button>
+              )}
             </div>
             <div>
               <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Location Name (optional)</label>
@@ -4278,12 +4302,24 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               <div>
                 <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Start Date & Time *</label>
                 <input
+                  id="create-evt-date"
                   data-testid="input-event-date"
                   type="datetime-local"
                   value={evtDate}
                   onChange={(e) => { setEvtDate(e.target.value); if (evtEndDate && evtEndDate < e.target.value) setEvtEndDate(e.target.value); }}
                   className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 [color-scheme:dark]"
                 />
+                {evtDate && (
+                  <button
+                    data-testid="button-confirm-event-date"
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => (document.getElementById("create-evt-date") as HTMLInputElement)?.blur()}
+                    className="mt-1.5 w-full py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-cyan-400 text-[11px] font-semibold hover:bg-cyan-500/20 transition-all"
+                  >
+                    ✓ Confirm Date
+                  </button>
+                )}
               </div>
 
               {/* End date */}
@@ -4292,6 +4328,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   End Date <span className="text-blue-600 normal-case font-normal">— optional · max 7 days</span>
                 </label>
                 <input
+                  id="create-evt-end-date"
                   data-testid="input-event-end-date"
                   type="datetime-local"
                   value={evtEndDate}
@@ -4300,6 +4337,17 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   onChange={(e) => setEvtEndDate(e.target.value)}
                   className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 [color-scheme:dark]"
                 />
+                {evtEndDate && (
+                  <button
+                    data-testid="button-confirm-event-end-date"
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => (document.getElementById("create-evt-end-date") as HTMLInputElement)?.blur()}
+                    className="mt-1.5 w-full py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-cyan-400 text-[11px] font-semibold hover:bg-cyan-500/20 transition-all"
+                  >
+                    ✓ Confirm End Date
+                  </button>
+                )}
               </div>
 
               {/* Location name */}
