@@ -122,6 +122,7 @@ export const userLocations = pgTable("user_locations", {
   fullAddress: text("full_address"),
   modalities: text("modalities").array(),
   nominationCount: integer("nomination_count").default(0).notNull(),
+  viewCount: integer("view_count").default(0).notNull(),
   isHidden: boolean("is_hidden").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

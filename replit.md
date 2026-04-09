@@ -31,8 +31,8 @@ Preferred communication style: Simple, everyday language.
 - **plunges**: Records details of each cold plunge session, including duration, temperature, score, and location.
 - **leaderboard_entries**: Manages entries for location-specific leaderboards.
 - **pro_users**: Tracks Pro subscription status.
-- **user_locations**: Stores information about community-contributed chill places and business listings.
-- **events**: Community cold plunge events with name, description, date, location, and a 6-char alphanumeric share code.
+- **user_locations**: Stores community-contributed chill places and business listings. Tracks `view_count` (incremented each time the detail panel is opened) and `nomination_count`.
+- **events**: Community cold plunge events with name, description, date, location, a 6-char alphanumeric share code, optional waiver/payment URLs, and max attendees.
 - **event_participants**: Join table linking users to events they've RSVP'd to.
 
 ### Device Identity

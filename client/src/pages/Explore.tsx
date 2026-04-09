@@ -870,6 +870,15 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     enabled: !!selectedEvent,
   });
 
+  // Event leaderboard query — fetches cold scores for all participants during event window
+  type EventLeaderboardEntry = { username: string; userId: number; totalScore: number; plungeCount: number };
+  const { data: eventLeaderboard } = useQuery<EventLeaderboardEntry[]>({
+    queryKey: ["/api/events/leaderboard", selectedEvent?.id],
+    queryFn: () => fetch(`/api/events/${selectedEvent!.id}/leaderboard`).then((r) => r.json()),
+    enabled: !!selectedEvent,
+    refetchInterval: 60_000,
+  });
+
   // Batch badge profile query — fetches badges for all users visible in the event detail modal
   type MiniBadgeProfile = { username: string; featuredBadges: string; foundingPlunger: boolean };
   const eventUsernames = useMemo(() => {
@@ -1258,6 +1267,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [businessOpen, setBusinessOpen] = useState(true);
   const [showBusinessForm, setShowBusinessForm] = useState(false);
   const [businessProfileId, setBusinessProfileId] = useState<number | null>(null);
+
+  // Track location views when a business profile detail is opened
+  useEffect(() => {
+    if (businessProfileId !== null) {
+      fetch(`/api/community-locations/${businessProfileId}/view`, { method: "POST" }).catch(() => {});
+    }
+  }, [businessProfileId]);
+
   const [bizTier, setBizTier] = useState<"free" | "verified">("free");
   const [bizGeoPos, setBizGeoPos] = useState<GeoPos | null>(null);
   const [bizForm, setBizForm] = useState({
@@ -2641,6 +2658,59 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 </div>
               )}
 
+              {/* ── Cold Score Leaderboard ─────────────────────────── */}
+              {eventLeaderboard && eventLeaderboard.length > 0 && (() => {
+                const combinedScore = eventLeaderboard.reduce((s, e) => s + e.totalScore, 0);
+                const hasScores = eventLeaderboard.some((e) => e.totalScore > 0);
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-blue-500 text-[11px] uppercase tracking-wide font-semibold flex items-center gap-1.5">
+                        <Flame className="w-3 h-3 text-cyan-400" /> Cold Score Leaderboard
+                      </p>
+                      {hasScores && (
+                        <div className="flex items-center gap-1 bg-cyan-500/10 border border-cyan-400/25 rounded-lg px-2 py-0.5">
+                          <span className="text-[10px] text-cyan-400 font-semibold">Combined</span>
+                          <span className="text-cyan-300 text-[11px] font-bold">{combinedScore.toFixed(1)}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-blue-950/50 border border-blue-800/40 rounded-2xl overflow-hidden">
+                      {eventLeaderboard.map((entry, idx) => (
+                        <div
+                          key={entry.userId}
+                          className="flex items-center gap-2.5 px-3 py-2.5 border-b border-blue-800/30 last:border-0"
+                        >
+                          <span className={`w-5 text-center text-[11px] font-bold flex-shrink-0 ${idx === 0 ? "text-yellow-400" : idx === 1 ? "text-slate-300" : idx === 2 ? "text-amber-600" : "text-blue-600"}`}>
+                            {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}.`}
+                          </span>
+                          <button
+                            onClick={() => navigate(`/profile/${encodeURIComponent(entry.username)}`)}
+                            className="flex-1 text-left text-white text-xs font-medium hover:text-cyan-300 transition-colors truncate"
+                          >
+                            {entry.username}
+                          </button>
+                          {entry.totalScore > 0 ? (
+                            <div className="text-right flex-shrink-0">
+                              <span className="text-cyan-300 text-xs font-bold">{entry.totalScore.toFixed(1)}</span>
+                              <span className="text-blue-500 text-[10px] ml-1">pts</span>
+                              {entry.plungeCount > 0 && (
+                                <span className="text-blue-600 text-[10px] ml-1.5">· {entry.plungeCount} plunge{entry.plungeCount > 1 ? "s" : ""}</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-blue-700 text-[10px]">no plunges yet</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {!hasScores && (
+                      <p className="text-blue-600 text-[11px] text-center">Plunge scores will appear here once the event starts.</p>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* Participants panel (managers only) */}
               {isManager && selectedEventDetail && (
                 <div className="space-y-2">
@@ -3419,6 +3489,27 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   {/* Gradient fade */}
                   <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none" />
                 </div>
+                {/* Listing stats — only visible to the listing owner */}
+                {(biz.isOwner || biz.isAdmin) && (
+                  <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl p-3">
+                    <p className="text-blue-500 text-[10px] uppercase tracking-wide font-semibold mb-2">Listing Stats</p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-blue-900/50 rounded-lg px-3 py-2 text-center">
+                        <p className="text-white font-bold text-base">{biz.viewCount ?? 0}</p>
+                        <p className="text-blue-500 text-[10px]">App Views</p>
+                      </div>
+                      <div className="flex-1 bg-blue-900/50 rounded-lg px-3 py-2 text-center">
+                        <p className="text-white font-bold text-base">{biz.nominationCount}</p>
+                        <p className="text-blue-500 text-[10px]">Nominations</p>
+                      </div>
+                      <div className="flex-1 bg-blue-900/50 rounded-lg px-3 py-2 text-center">
+                        <p className={`font-bold text-base ${biz.businessVerified ? "text-green-400" : "text-amber-400"}`}>{biz.businessVerified ? "Live" : "Free"}</p>
+                        <p className="text-blue-500 text-[10px]">Status</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* CTA — only visible to the listing owner */}
                 {biz.isOwner && (
                   <button

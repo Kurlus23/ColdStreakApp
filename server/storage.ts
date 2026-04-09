@@ -8,7 +8,7 @@ import {
   type BusinessListing, type Event, type EventParticipant, type EventCoordinator, type EventBan,
   type SupportMessage, type InsertSupportMessage,
 } from "@shared/schema";
-import { desc, eq, sql, or, isNull, and, not, lt } from "drizzle-orm";
+import { desc, eq, sql, or, isNull, and, not, lt, gte, inArray, sum } from "drizzle-orm";
 
 export interface IStorage {
   // Plunges
@@ -103,6 +103,10 @@ export interface IStorage {
   banEventParticipant(eventId: number, userId: number, username: string): Promise<EventBan>;
   unbanEventParticipant(eventId: number, userId: number): Promise<void>;
   isEventBanned(eventId: number, userId: number): Promise<boolean>;
+  // Event leaderboard
+  getEventLeaderboard(eventId: number): Promise<Array<{ username: string; userId: number; totalScore: number; plungeCount: number }>>;
+  // Location view tracking
+  incrementLocationView(id: number): Promise<void>;
   // User lookup for coordinator assignment
   getUserByDisplayName(displayName: string): Promise<User | null>;
   getUserByEmailPrefix(prefix: string): Promise<User | null>;
@@ -688,6 +692,44 @@ export class DatabaseStorage implements IStorage {
       )
     ).returning({ id: events.id });
     return deleted.length;
+  }
+
+  async getEventLeaderboard(eventId: number): Promise<Array<{ username: string; userId: number; totalScore: number; plungeCount: number }>> {
+    const evt = await this.getEventById(eventId);
+    if (!evt) return [];
+    const windowStart = new Date(evt.eventDate);
+    const windowEnd = evt.endDate ? new Date(evt.endDate) : new Date(windowStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const participants = await db.select().from(eventParticipants).where(eq(eventParticipants.eventId, eventId));
+    if (participants.length === 0) return [];
+    const userIds = participants.map((p) => p.userId);
+    const rows = await db
+      .select({
+        userId: plunges.userId,
+        totalScore: sql<number>`COALESCE(SUM(${plunges.score}::numeric), 0)`,
+        plungeCount: sql<number>`COUNT(*)`,
+      })
+      .from(plunges)
+      .where(
+        and(
+          inArray(plunges.userId, userIds),
+          gte(plunges.createdAt, windowStart),
+          lt(plunges.createdAt, windowEnd)
+        )
+      )
+      .groupBy(plunges.userId);
+
+    const scoreMap = new Map(rows.map((r) => [r.userId!, { totalScore: Number(r.totalScore), plungeCount: Number(r.plungeCount) }]));
+    const result = participants.map((p) => ({
+      userId: p.userId,
+      username: p.username,
+      totalScore: scoreMap.get(p.userId)?.totalScore ?? 0,
+      plungeCount: scoreMap.get(p.userId)?.plungeCount ?? 0,
+    }));
+    return result.sort((a, b) => b.totalScore - a.totalScore);
+  }
+
+  async incrementLocationView(id: number): Promise<void> {
+    await db.update(userLocations).set({ viewCount: sql`${userLocations.viewCount} + 1` }).where(eq(userLocations.id, id));
   }
 
   async getEventParticipants(eventId: number): Promise<EventParticipant[]> {

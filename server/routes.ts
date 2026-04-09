@@ -580,6 +580,13 @@ export async function registerRoutes(
     res.json(updated);
   });
 
+  app.post("/api/community-locations/:id/view", async (_req, res) => {
+    const id = Number(_req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    await storage.incrementLocationView(id);
+    res.json({ ok: true });
+  });
+
   app.delete("/api/community-locations/:id", async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
@@ -1724,6 +1731,13 @@ export async function registerRoutes(
     if (isNaN(eventId)) return res.status(400).json({ error: "Invalid event id" });
     await storage.leaveEvent(eventId, payload.userId);
     res.json({ ok: true });
+  });
+
+  app.get("/api/events/:id/leaderboard", async (req, res) => {
+    const eventId = parseInt(req.params.id);
+    if (isNaN(eventId)) return res.status(400).json({ error: "Invalid event id" });
+    const entries = await storage.getEventLeaderboard(eventId);
+    res.json(entries);
   });
 
   app.get("/api/events/joined", async (req, res) => {
