@@ -763,6 +763,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [showEventUpdatePanel, setShowEventUpdatePanel] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<"active" | "postponed" | "cancelled">("active");
   const [updateNote, setUpdateNote] = useState("");
+  const [createEvtTab, setCreateEvtTab] = useState<"basics" | "details">("basics");
   const [editEvtPlungeGps, setEditEvtPlungeGps] = useState<GeoPos | null>(null);
   const [editEvtAccessGps, setEditEvtAccessGps] = useState<GeoPos | null>(null);
   const [editEvtPlungeGpsLoading, setEditEvtPlungeGpsLoading] = useState(false);
@@ -2400,7 +2401,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             {auth.user ? (
               <button
                 data-testid="button-create-event"
-                onClick={() => setShowCreateModal(true)}
+                onClick={() => { setShowCreateModal(true); setCreateEvtTab("basics"); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all active:scale-95"
               >
                 <Plus className="w-3.5 h-3.5" /> Create
@@ -4207,232 +4208,287 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
 
   {/* ── Create Event Modal ── */}
   {showCreateModal && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-sm bg-gradient-to-b from-blue-950 to-slate-950 border border-blue-700/50 rounded-2xl shadow-2xl overflow-hidden">
-        <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-blue-800/50">
-          <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center">
-            <CalendarDays className="w-5 h-5 text-cyan-400" />
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm sm:p-4">
+      <div className="w-full sm:max-w-sm bg-gradient-to-b from-blue-950 to-slate-950 border border-blue-700/50 sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col max-h-[90dvh]">
+
+        {/* Header */}
+        <div className="flex items-center gap-3 px-5 pt-5 pb-3 border-b border-blue-800/50 flex-shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center">
+            <CalendarDays className="w-4 h-4 text-cyan-400" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-white font-bold text-sm">Create Event</p>
             <p className="text-blue-400 text-[11px]">Organize a community cold plunge</p>
           </div>
-          <button onClick={() => setShowCreateModal(false)} className="ml-auto text-blue-500 hover:text-white transition-colors">
+          <button onClick={() => setShowCreateModal(false)} className="text-blue-500 hover:text-white transition-colors flex-shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="px-5 py-4 space-y-3">
-          <div>
-            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Event Name *</label>
-            <input
-              data-testid="input-event-name"
-              type="text"
-              value={evtName}
-              onChange={(e) => setEvtName(e.target.value)}
-              placeholder="Saturday Morning Plunge"
-              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
-            />
-          </div>
-          <div>
-            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Start Date & Time *</label>
-            <input
-              data-testid="input-event-date"
-              type="datetime-local"
-              value={evtDate}
-              onChange={(e) => { setEvtDate(e.target.value); if (evtEndDate && evtEndDate < e.target.value) setEvtEndDate(e.target.value); }}
-              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 [color-scheme:dark]"
-            />
-          </div>
-          <div>
-            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">
-              End Date (optional) <span className="text-blue-600 normal-case font-normal">— max 7 days, auto-deletes after</span>
-            </label>
-            <input
-              data-testid="input-event-end-date"
-              type="datetime-local"
-              value={evtEndDate}
-              min={evtDate || undefined}
-              max={evtDate ? (() => { const d = new Date(evtDate); d.setDate(d.getDate() + 7); return d.toISOString().slice(0, 16); })() : undefined}
-              onChange={(e) => setEvtEndDate(e.target.value)}
-              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 [color-scheme:dark]"
-            />
-          </div>
-          <div>
-            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Location Name (optional)</label>
-            <input
-              data-testid="input-event-location"
-              type="text"
-              value={evtLocationName}
-              onChange={(e) => setEvtLocationName(e.target.value)}
-              placeholder="Barton Springs Pool, Austin TX"
-              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
-            />
-          </div>
 
-          {/* Plunge Spot GPS */}
-          <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl p-3 space-y-2">
-            <div>
-              <p className="text-white text-xs font-semibold">📍 Plunge Spot</p>
-              <p className="text-blue-500 text-[10px]">Pin the exact water entry point</p>
-            </div>
-            {evtPlungeGps ? (
-              <div className="flex items-center gap-2">
-                <p className="text-green-400 text-[11px] font-mono flex-1">{evtPlungeGps.lat.toFixed(5)}, {evtPlungeGps.lng.toFixed(5)}</p>
-                <button onClick={() => setEvtPlungeGps(null)} className="text-blue-500 hover:text-red-400 text-[10px] transition-colors">✕ Clear</button>
-              </div>
-            ) : null}
+        {/* Tab bar */}
+        <div className="flex px-5 pt-3 pb-0 gap-1 flex-shrink-0">
+          {([["basics", "📅 The Basics"], ["details", "⚙️ Details"]] as const).map(([tab, label]) => (
             <button
-              data-testid="button-event-plunge-gps"
-              type="button"
-              onClick={() => grabEventGps("plunge")}
-              disabled={evtPlungeGpsLoading}
-              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-800/60 border border-blue-700/40 text-blue-300 text-xs font-semibold hover:border-blue-500 hover:text-white transition-all active:scale-95 disabled:opacity-50"
+              key={tab}
+              data-testid={`tab-create-event-${tab}`}
+              onClick={() => setCreateEvtTab(tab)}
+              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${
+                createEvtTab === tab
+                  ? "bg-cyan-500/20 border border-cyan-400/40 text-cyan-300"
+                  : "text-blue-500 hover:text-blue-300 border border-transparent"
+              }`}
             >
-              <LocateFixed className="w-3.5 h-3.5" />
-              {evtPlungeGpsLoading ? "Getting GPS…" : evtPlungeGps ? "Update plunge spot GPS" : "Pin plunge spot with GPS"}
+              {label}
             </button>
-          </div>
-
-          {/* Access / Parking GPS */}
-          <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl p-3 space-y-2">
-            <div>
-              <p className="text-white text-xs font-semibold">🅿 Parking / Access Point</p>
-              <p className="text-blue-500 text-[10px]">Trailhead, parking lot, or access gate — where directions navigate to</p>
-            </div>
-            {evtAccessGps ? (
-              <div className="flex items-center gap-2">
-                <p className="text-green-400 text-[11px] font-mono flex-1">{evtAccessGps.lat.toFixed(5)}, {evtAccessGps.lng.toFixed(5)}</p>
-                <button onClick={() => setEvtAccessGps(null)} className="text-blue-500 hover:text-red-400 text-[10px] transition-colors">✕ Clear</button>
-              </div>
-            ) : null}
-            <button
-              data-testid="button-event-access-gps"
-              type="button"
-              onClick={() => grabEventGps("access")}
-              disabled={evtAccessGpsLoading}
-              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-800/60 border border-blue-700/40 text-blue-300 text-xs font-semibold hover:border-blue-500 hover:text-white transition-all active:scale-95 disabled:opacity-50"
-            >
-              <LocateFixed className="w-3.5 h-3.5" />
-              {evtAccessGpsLoading ? "Getting GPS…" : evtAccessGps ? "Update access/parking GPS" : "Pin parking / access with GPS"}
-            </button>
-          </div>
-
-          {/* Contact info */}
-          <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl p-3 space-y-2">
-            <div>
-              <p className="text-white text-xs font-semibold">Contact Info (optional)</p>
-              <p className="text-blue-500 text-[10px]">Shown in the event detail so attendees can reach you</p>
-            </div>
-            <input
-              data-testid="input-event-contact-name"
-              type="text"
-              value={evtContactName}
-              onChange={(e) => setEvtContactName(e.target.value)}
-              placeholder="Contact name"
-              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
-            />
-            <input
-              data-testid="input-event-contact-phone"
-              type="tel"
-              value={evtContactPhone}
-              onChange={(e) => {
-                const raw = e.target.value.replace(/\D/g, "").slice(0, 10);
-                let formatted = raw;
-                if (raw.length >= 7) formatted = `${raw.slice(0,3)}-${raw.slice(3,6)}-${raw.slice(6)}`;
-                else if (raw.length >= 4) formatted = `${raw.slice(0,3)}-${raw.slice(3)}`;
-                setEvtContactPhone(formatted);
-              }}
-              placeholder="555-555-5555"
-              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
-            />
-            <input
-              data-testid="input-event-contact-email"
-              type="email"
-              value={evtContactEmail}
-              onChange={(e) => setEvtContactEmail(e.target.value)}
-              placeholder="Email address"
-              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Max Attendees (optional)</label>
-            <input
-              data-testid="input-event-max-attendees"
-              type="number"
-              min="1"
-              value={evtMaxAttendees}
-              onChange={(e) => setEvtMaxAttendees(e.target.value)}
-              placeholder="Leave blank for unlimited"
-              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Description (optional)</label>
-            <textarea
-              data-testid="input-event-description"
-              value={evtDescription}
-              onChange={(e) => setEvtDescription(e.target.value)}
-              placeholder="What to bring, carpool details, any notes…"
-              rows={2}
-              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500 resize-none"
-            />
-          </div>
-          <div>
-            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Waiver / Safety Link (optional)</label>
-            <input
-              data-testid="input-event-waiver-url"
-              type="url"
-              value={evtWaiverUrl}
-              onChange={(e) => setEvtWaiverUrl(e.target.value)}
-              placeholder="https://your-waiver-link.com"
-              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
-            />
-          </div>
-          <div>
-            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Payment Link (optional)</label>
-            <input
-              data-testid="input-event-payment-url"
-              type="url"
-              value={evtPaymentUrl}
-              onChange={(e) => setEvtPaymentUrl(e.target.value)}
-              placeholder="https://venmo.com/your-link"
-              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
-            />
-          </div>
-          {/* Privacy toggle */}
-          <button
-            data-testid="button-toggle-event-privacy"
-            type="button"
-            onClick={() => setEvtIsPrivate((v) => !v)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${evtIsPrivate ? "bg-slate-800/80 border-slate-600/60" : "bg-blue-900/30 border-blue-700/40 hover:border-blue-600"}`}
-          >
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${evtIsPrivate ? "bg-slate-700/70 border border-slate-600/50" : "bg-blue-800/60 border border-blue-600/40"}`}>
-              {evtIsPrivate ? <Lock className="w-4 h-4 text-slate-300" /> : <Globe className="w-4 h-4 text-blue-400" />}
-            </div>
-            <div className="flex-1 text-left">
-              <p className={`font-semibold text-xs ${evtIsPrivate ? "text-slate-200" : "text-blue-300"}`}>
-                {evtIsPrivate ? "Private Event" : "Public Event"}
-              </p>
-              <p className="text-blue-500 text-[10px]">
-                {evtIsPrivate ? "Only accessible via share link — not listed publicly" : "Visible to all users in the Events tab"}
-              </p>
-            </div>
-            <div className={`w-9 h-5 rounded-full transition-all flex-shrink-0 ${evtIsPrivate ? "bg-slate-600" : "bg-blue-600"}`}>
-              <div className={`w-3.5 h-3.5 bg-white rounded-full shadow mt-0.5 transition-all duration-200 ${evtIsPrivate ? "ml-[18px]" : "ml-0.5"}`} />
-            </div>
-          </button>
+          ))}
         </div>
-        <div className="px-5 pb-5 flex flex-col gap-2">
-          <button
-            data-testid="button-submit-event"
-            onClick={() => { if (!evtName.trim() || !evtDate) { toast({ title: "Name and date required", variant: "destructive" }); return; } createEventMut.mutate(); }}
-            disabled={createEventMut.isPending || !evtName.trim() || !evtDate}
-            className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-50"
-          >
-            {createEventMut.isPending ? "Creating…" : "Create Event ❄️"}
-          </button>
+
+        {/* Scrollable form body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+
+          {createEvtTab === "basics" ? (
+            <>
+              {/* Event Name */}
+              <div>
+                <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Event Name *</label>
+                <input
+                  data-testid="input-event-name"
+                  type="text"
+                  value={evtName}
+                  onChange={(e) => setEvtName(e.target.value)}
+                  placeholder="Saturday Morning Plunge"
+                  className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Description (optional)</label>
+                <textarea
+                  data-testid="input-event-description"
+                  value={evtDescription}
+                  onChange={(e) => setEvtDescription(e.target.value)}
+                  placeholder="What to bring, carpool details, any notes…"
+                  rows={2}
+                  className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500 resize-none"
+                />
+              </div>
+
+              {/* Start date */}
+              <div>
+                <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Start Date & Time *</label>
+                <input
+                  data-testid="input-event-date"
+                  type="datetime-local"
+                  value={evtDate}
+                  onChange={(e) => { setEvtDate(e.target.value); if (evtEndDate && evtEndDate < e.target.value) setEvtEndDate(e.target.value); }}
+                  className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 [color-scheme:dark]"
+                />
+              </div>
+
+              {/* End date */}
+              <div>
+                <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">
+                  End Date <span className="text-blue-600 normal-case font-normal">— optional · max 7 days</span>
+                </label>
+                <input
+                  data-testid="input-event-end-date"
+                  type="datetime-local"
+                  value={evtEndDate}
+                  min={evtDate || undefined}
+                  max={evtDate ? (() => { const d = new Date(evtDate); d.setDate(d.getDate() + 7); return d.toISOString().slice(0, 16); })() : undefined}
+                  onChange={(e) => setEvtEndDate(e.target.value)}
+                  className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 [color-scheme:dark]"
+                />
+              </div>
+
+              {/* Location name */}
+              <div>
+                <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Location Name (optional)</label>
+                <input
+                  data-testid="input-event-location"
+                  type="text"
+                  value={evtLocationName}
+                  onChange={(e) => setEvtLocationName(e.target.value)}
+                  placeholder="Barton Springs Pool, Austin TX"
+                  className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+                />
+              </div>
+
+              {/* Plunge Spot GPS */}
+              <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl p-3 space-y-2">
+                <div>
+                  <p className="text-white text-xs font-semibold">📍 Plunge Spot</p>
+                  <p className="text-blue-500 text-[10px]">Pin the exact water entry point</p>
+                </div>
+                {evtPlungeGps && (
+                  <div className="flex items-center gap-2">
+                    <p className="text-green-400 text-[11px] font-mono flex-1">{evtPlungeGps.lat.toFixed(5)}, {evtPlungeGps.lng.toFixed(5)}</p>
+                    <button onClick={() => setEvtPlungeGps(null)} className="text-blue-500 hover:text-red-400 text-[10px] transition-colors">✕ Clear</button>
+                  </div>
+                )}
+                <button
+                  data-testid="button-event-plunge-gps"
+                  type="button"
+                  onClick={() => grabEventGps("plunge")}
+                  disabled={evtPlungeGpsLoading}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-800/60 border border-blue-700/40 text-blue-300 text-xs font-semibold hover:border-blue-500 hover:text-white transition-all active:scale-95 disabled:opacity-50"
+                >
+                  <LocateFixed className="w-3.5 h-3.5" />
+                  {evtPlungeGpsLoading ? "Getting GPS…" : evtPlungeGps ? "Update plunge spot GPS" : "Pin plunge spot with GPS"}
+                </button>
+              </div>
+
+              {/* Parking GPS */}
+              <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl p-3 space-y-2">
+                <div>
+                  <p className="text-white text-xs font-semibold">🅿 Parking / Access Point</p>
+                  <p className="text-blue-500 text-[10px]">Trailhead, parking lot, or access gate</p>
+                </div>
+                {evtAccessGps && (
+                  <div className="flex items-center gap-2">
+                    <p className="text-green-400 text-[11px] font-mono flex-1">{evtAccessGps.lat.toFixed(5)}, {evtAccessGps.lng.toFixed(5)}</p>
+                    <button onClick={() => setEvtAccessGps(null)} className="text-blue-500 hover:text-red-400 text-[10px] transition-colors">✕ Clear</button>
+                  </div>
+                )}
+                <button
+                  data-testid="button-event-access-gps"
+                  type="button"
+                  onClick={() => grabEventGps("access")}
+                  disabled={evtAccessGpsLoading}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-800/60 border border-blue-700/40 text-blue-300 text-xs font-semibold hover:border-blue-500 hover:text-white transition-all active:scale-95 disabled:opacity-50"
+                >
+                  <LocateFixed className="w-3.5 h-3.5" />
+                  {evtAccessGpsLoading ? "Getting GPS…" : evtAccessGps ? "Update access/parking GPS" : "Pin parking / access with GPS"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Contact info */}
+              <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl p-3 space-y-2">
+                <div>
+                  <p className="text-white text-xs font-semibold">Contact Info (optional)</p>
+                  <p className="text-blue-500 text-[10px]">Shown so attendees can reach you</p>
+                </div>
+                <input
+                  data-testid="input-event-contact-name"
+                  type="text"
+                  value={evtContactName}
+                  onChange={(e) => setEvtContactName(e.target.value)}
+                  placeholder="Contact name"
+                  className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+                />
+                <input
+                  data-testid="input-event-contact-phone"
+                  type="tel"
+                  value={evtContactPhone}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    let formatted = raw;
+                    if (raw.length >= 7) formatted = `${raw.slice(0,3)}-${raw.slice(3,6)}-${raw.slice(6)}`;
+                    else if (raw.length >= 4) formatted = `${raw.slice(0,3)}-${raw.slice(3)}`;
+                    setEvtContactPhone(formatted);
+                  }}
+                  placeholder="555-555-5555"
+                  className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+                />
+                <input
+                  data-testid="input-event-contact-email"
+                  type="email"
+                  value={evtContactEmail}
+                  onChange={(e) => setEvtContactEmail(e.target.value)}
+                  placeholder="Email address"
+                  className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+                />
+              </div>
+
+              {/* Waiver link */}
+              <div>
+                <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Waiver / Safety Link (optional)</label>
+                <input
+                  data-testid="input-event-waiver-url"
+                  type="url"
+                  value={evtWaiverUrl}
+                  onChange={(e) => setEvtWaiverUrl(e.target.value)}
+                  placeholder="https://your-waiver-link.com"
+                  className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+                />
+              </div>
+
+              {/* Payment link */}
+              <div>
+                <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Payment Link (optional)</label>
+                <input
+                  data-testid="input-event-payment-url"
+                  type="url"
+                  value={evtPaymentUrl}
+                  onChange={(e) => setEvtPaymentUrl(e.target.value)}
+                  placeholder="https://venmo.com/your-link"
+                  className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+                />
+              </div>
+
+              {/* Privacy toggle */}
+              <button
+                data-testid="button-toggle-event-privacy"
+                type="button"
+                onClick={() => setEvtIsPrivate((v) => !v)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${evtIsPrivate ? "bg-slate-800/80 border-slate-600/60" : "bg-blue-900/30 border-blue-700/40 hover:border-blue-600"}`}
+              >
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${evtIsPrivate ? "bg-slate-700/70 border border-slate-600/50" : "bg-blue-800/60 border border-blue-600/40"}`}>
+                  {evtIsPrivate ? <Lock className="w-4 h-4 text-slate-300" /> : <Globe className="w-4 h-4 text-blue-400" />}
+                </div>
+                <div className="flex-1 text-left">
+                  <p className={`font-semibold text-xs ${evtIsPrivate ? "text-slate-200" : "text-blue-300"}`}>
+                    {evtIsPrivate ? "Private Event" : "Public Event"}
+                  </p>
+                  <p className="text-blue-500 text-[10px]">
+                    {evtIsPrivate ? "Only accessible via share link — not listed publicly" : "Visible to all users in the Events tab"}
+                  </p>
+                </div>
+                <div className={`w-9 h-5 rounded-full transition-all flex-shrink-0 ${evtIsPrivate ? "bg-slate-600" : "bg-blue-600"}`}>
+                  <div className={`w-3.5 h-3.5 bg-white rounded-full shadow mt-0.5 transition-all duration-200 ${evtIsPrivate ? "ml-[18px]" : "ml-0.5"}`} />
+                </div>
+              </button>
+
+              {/* Max attendees */}
+              <div>
+                <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Max Attendees (optional)</label>
+                <input
+                  data-testid="input-event-max-attendees"
+                  type="number"
+                  min="1"
+                  value={evtMaxAttendees}
+                  onChange={(e) => setEvtMaxAttendees(e.target.value)}
+                  placeholder="Leave blank for unlimited"
+                  className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer — always visible */}
+        <div className="px-5 py-4 border-t border-blue-800/50 flex-shrink-0 space-y-2">
+          {createEvtTab === "basics" ? (
+            <button
+              data-testid="button-next-tab"
+              onClick={() => setCreateEvtTab("details")}
+              className="w-full py-3 rounded-xl bg-blue-700/60 hover:bg-blue-600/60 border border-blue-600/50 text-white font-bold text-sm transition-all active:scale-95"
+            >
+              Next: Details →
+            </button>
+          ) : (
+            <button
+              data-testid="button-submit-event"
+              onClick={() => { if (!evtName.trim() || !evtDate) { toast({ title: "Name and date required", description: "Go back to the Basics tab to fill them in.", variant: "destructive" }); return; } createEventMut.mutate(); }}
+              disabled={createEventMut.isPending}
+              className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-50"
+            >
+              {createEventMut.isPending ? "Creating…" : "Create Event ❄️"}
+            </button>
+          )}
           <button
             onClick={() => setShowCreateModal(false)}
             className="w-full py-2 text-blue-500 text-xs hover:text-blue-400 transition-colors"
