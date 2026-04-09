@@ -785,6 +785,22 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     }
   }, [eventsData]);
 
+  // Restore event state after returning from a profile page
+  useEffect(() => {
+    if (!eventsData.length) return;
+    const raw = sessionStorage.getItem("coldstreak-event-restore");
+    if (!raw) return;
+    try {
+      const { eventId, tab } = JSON.parse(raw) as { eventId: number; tab: "info" | "people" };
+      const evt = eventsData.find((e) => e.id === eventId);
+      if (evt) {
+        sessionStorage.removeItem("coldstreak-event-restore");
+        setSelectedEvent(evt);
+        setEventDetailTab(tab ?? "people");
+      }
+    } catch { /* ignore bad data */ }
+  }, [eventsData]);
+
   const createEventMut = useMutation({
     mutationFn: () => apiRequest("POST", "/api/events", {
       name: evtName.trim(),
@@ -4651,12 +4667,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 )}
                 <button
                   onClick={() => {
-                    const url = `${window.location.origin}/profile/${encodeURIComponent(miniProfile.username)}`;
-                    if (Capacitor.isNativePlatform()) {
-                      window.open(url, "_system");
-                    } else {
-                      window.open(url, "_blank", "noopener,noreferrer");
+                    if (selectedEvent) {
+                      sessionStorage.setItem("coldstreak-event-restore", JSON.stringify({
+                        eventId: selectedEvent.id,
+                        tab: eventDetailTab,
+                      }));
                     }
+                    setViewingProfile(null);
+                    navigate(`/profile/${encodeURIComponent(miniProfile.username)}`);
                   }}
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-blue-800/50 border border-blue-600/40 text-blue-300 text-xs font-semibold hover:bg-blue-700/60 transition-all active:scale-95"
                 >
