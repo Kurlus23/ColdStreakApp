@@ -289,6 +289,8 @@ export async function registerRoutes(
   app.patch("/api/auth/profile", async (req, res) => {
     const payload = extractUser(req);
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    const existing = await storage.getUserById(payload.userId);
+    if (!existing) return res.status(401).json({ message: "User not found" });
     const { displayName, bodyWeight } = req.body;
     const patch: { displayName?: string; bodyWeight?: number } = {};
     if (typeof displayName === "string") patch.displayName = displayName.trim().slice(0, 32);
@@ -1641,6 +1643,13 @@ export async function registerRoutes(
     res.json(withDetails);
   });
 
+  app.get("/api/events/joined", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.json([]);
+    const ids = await storage.getJoinedEventIds(payload.userId);
+    res.json(ids);
+  });
+
   app.get("/api/events/:code", async (req, res) => {
     const evt = await storage.getEventByCode(req.params.code.toUpperCase());
     if (!evt) return res.status(404).json({ error: "Event not found" });
@@ -1741,13 +1750,6 @@ export async function registerRoutes(
     if (isNaN(eventId)) return res.status(400).json({ error: "Invalid event id" });
     const entries = await storage.getEventLeaderboard(eventId);
     res.json(entries);
-  });
-
-  app.get("/api/events/joined", async (req, res) => {
-    const payload = extractUser(req);
-    if (!payload) return res.json([]);
-    const ids = await storage.getJoinedEventIds(payload.userId);
-    res.json(ids);
   });
 
   // ── Edit event ─────────────────────────────────────────────────────────────

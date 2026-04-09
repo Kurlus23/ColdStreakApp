@@ -4,6 +4,11 @@ import { getAuthToken } from "@/hooks/use-auth";
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
+    if (res.status === 401 && text.includes("User not found")) {
+      localStorage.removeItem("coldstreak-auth-token");
+      localStorage.removeItem("coldstreak-auth-user");
+      window.dispatchEvent(new Event("coldstreak:force-logout"));
+    }
     throw new Error(`${res.status}: ${text}`);
   }
 }

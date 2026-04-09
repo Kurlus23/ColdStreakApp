@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 
 const TOKEN_KEY = "coldstreak-auth-token";
@@ -27,6 +27,12 @@ export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(loadUser);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handler = () => setUser(null);
+    window.addEventListener("coldstreak:force-logout", handler);
+    return () => window.removeEventListener("coldstreak:force-logout", handler);
+  }, []);
 
   const persist = (token: string, u: AuthUser) => {
     localStorage.setItem(TOKEN_KEY, token);
