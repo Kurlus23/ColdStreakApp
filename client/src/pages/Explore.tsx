@@ -736,8 +736,13 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [evtPlungeGps, setEvtPlungeGps] = useState<GeoPos | null>(null);
   const [evtAccessGps, setEvtAccessGps] = useState<GeoPos | null>(null);
   const [evtMaxAttendees, setEvtMaxAttendees] = useState<string>("");
+  const [evtWaiverUrl, setEvtWaiverUrl] = useState("");
+  const [evtPaymentUrl, setEvtPaymentUrl] = useState("");
   const [evtPlungeGpsLoading, setEvtPlungeGpsLoading] = useState(false);
   const [evtAccessGpsLoading, setEvtAccessGpsLoading] = useState(false);
+  const [showRsvpPopup, setShowRsvpPopup] = useState(false);
+  const [rsvpTargetEvtId, setRsvpTargetEvtId] = useState<number | null>(null);
+  const [rsvpSafetyChecked, setRsvpSafetyChecked] = useState(false);
   const [expandedCoordMgmt, setExpandedCoordMgmt] = useState<number | null>(null);
   const [newCoordName, setNewCoordName] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<EventWithCount | null>(null);
@@ -751,6 +756,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [editEvtContactPhone, setEditEvtContactPhone] = useState("");
   const [editEvtContactEmail, setEditEvtContactEmail] = useState("");
   const [editEvtMaxAttendees, setEditEvtMaxAttendees] = useState<string>("");
+  const [editEvtWaiverUrl, setEditEvtWaiverUrl] = useState("");
+  const [editEvtPaymentUrl, setEditEvtPaymentUrl] = useState("");
   const [editEvtPlungeGps, setEditEvtPlungeGps] = useState<GeoPos | null>(null);
   const [editEvtAccessGps, setEditEvtAccessGps] = useState<GeoPos | null>(null);
   const [editEvtPlungeGpsLoading, setEditEvtPlungeGpsLoading] = useState(false);
@@ -783,12 +790,15 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       ...(evtPlungeGps ? { plungeLat: evtPlungeGps.lat, plungeLng: evtPlungeGps.lng } : {}),
       ...(evtAccessGps ? { accessLat: evtAccessGps.lat, accessLng: evtAccessGps.lng } : {}),
       ...(evtMaxAttendees ? { maxAttendees: Number(evtMaxAttendees) } : {}),
+      ...(evtWaiverUrl.trim() ? { waiverUrl: evtWaiverUrl.trim() } : {}),
+      ...(evtPaymentUrl.trim() ? { paymentUrl: evtPaymentUrl.trim() } : {}),
     }).then((r) => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setShowCreateModal(false);
       setEvtName(""); setEvtDescription(""); setEvtDate(""); setEvtEndDate(""); setEvtLocationName("");
       setEvtContactName(""); setEvtContactPhone(""); setEvtContactEmail(""); setEvtMaxAttendees("");
+      setEvtWaiverUrl(""); setEvtPaymentUrl("");
       setEvtPlungeGps(null); setEvtAccessGps(null);
       toast({ title: "Event created! 🧊", description: "Share the link with your fellow plungers." });
     },
@@ -2408,9 +2418,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                       <div className="flex items-center gap-1.5 text-blue-500 text-xs">
                         <Users className="w-3.5 h-3.5 flex-shrink-0" />
                         <span>
-                          {evt.maxAttendees != null
-                            ? `${evt.participantCount} / ${evt.maxAttendees} attending${evt.participantCount >= evt.maxAttendees ? " · FULL" : ""}`
-                            : `${evt.participantCount} attending`}
+                          {evt.participantCount === 0
+                            ? <span className="text-cyan-400 font-semibold">Be the first to sign up!</span>
+                            : evt.maxAttendees != null
+                              ? `${evt.participantCount} / ${evt.maxAttendees} attending${evt.participantCount >= evt.maxAttendees ? " · FULL" : ""}`
+                              : `${evt.participantCount} attending`}
                         </span>
                         {evt.coordinators.length > 0 && (
                           <span className="text-blue-600">· {evt.coordinators.length + 1} organizer{evt.coordinators.length > 0 ? "s" : ""}</span>
@@ -2488,9 +2500,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               <div className="flex items-center gap-3 text-blue-400 text-sm">
                 <Users className="w-4 h-4 flex-shrink-0" />
                 <span>
-                  {evt.maxAttendees != null
-                    ? `${evt.participantCount} / ${evt.maxAttendees} attending${evt.participantCount >= evt.maxAttendees ? " · FULL" : ""}`
-                    : `${evt.participantCount} attending`}
+                  {evt.participantCount === 0
+                    ? <span className="text-cyan-400 font-semibold">Be the first to sign up!</span>
+                    : evt.maxAttendees != null
+                      ? `${evt.participantCount} / ${evt.maxAttendees} attending${evt.participantCount >= evt.maxAttendees ? " · FULL" : ""}`
+                      : `${evt.participantCount} attending`}
                 </span>
               </div>
 
@@ -2522,6 +2536,35 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                       <Send className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
                       <a href={`mailto:${evt.contactEmail}`} className="text-cyan-300 hover:underline">{evt.contactEmail}</a>
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* Waiver / Payment Links */}
+              {(evt.waiverUrl || evt.paymentUrl) && (
+                <div className="bg-blue-950/60 border border-blue-700/30 rounded-2xl p-4 space-y-2">
+                  <p className="text-blue-500 text-[11px] uppercase tracking-wide font-semibold mb-2">Event Links</p>
+                  {evt.waiverUrl && (
+                    <a
+                      href={evt.waiverUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 w-full px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold hover:bg-amber-500/20 transition-all"
+                    >
+                      <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0" /> Review Safety Waiver
+                      <ExternalLink className="w-3 h-3 ml-auto flex-shrink-0" />
+                    </a>
+                  )}
+                  {evt.paymentUrl && (
+                    <a
+                      href={evt.paymentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 w-full px-3 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/20 transition-all"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" /> Pay Entry Fee
+                      <ExternalLink className="w-3 h-3 ml-auto flex-shrink-0" />
+                    </a>
                   )}
                 </div>
               )}
@@ -2699,6 +2742,15 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
 
             {/* Action footer */}
             <div className="px-5 pb-6 pt-3 border-t border-blue-800/50 space-y-2.5">
+              {new Date(evt.eventDate) < new Date() && !isJoined && (
+                <button
+                  data-testid={`button-log-plunge-event-${evt.id}`}
+                  onClick={() => { setSelectedEvent(null); navigate("/"); }}
+                  className="w-full py-3 rounded-2xl bg-blue-700/50 border border-blue-600/50 text-white font-bold text-sm transition-all active:scale-95 hover:bg-blue-700/70"
+                >
+                  ❄️ Log My Plunge
+                </button>
+              )}
               {auth.user ? (
                 isJoined ? (
                   <button
@@ -2707,21 +2759,24 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     disabled={leaveEventMut.isPending}
                     className="w-full py-3 rounded-2xl border border-blue-600/60 text-blue-300 font-semibold text-sm hover:border-red-400/60 hover:text-red-300 transition-all active:scale-95 disabled:opacity-40"
                   >
-                    {leaveEventMut.isPending ? "Removing you…" : "✕ Remove Me"}
+                    {leaveEventMut.isPending ? "Removing you…" : "✓ Attending — tap to cancel"}
                   </button>
-                ) : (
+                ) : new Date(evt.eventDate) >= new Date() ? (
                   <button
                     data-testid={`button-join-event-${evt.id}`}
-                    onClick={() => { joinEventMut.mutate(evt.id); }}
+                    onClick={() => { setRsvpTargetEvtId(evt.id); setRsvpSafetyChecked(false); setShowRsvpPopup(true); }}
                     disabled={joinEventMut.isPending}
                     className="w-full py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-40 shadow-lg shadow-cyan-500/25"
                   >
-                    {joinEventMut.isPending ? "Signing up…" : "❄️ Sign Up"}
+                    ❄️ Sign Up
                   </button>
-                )
-              ) : (
-                <p className="text-center text-blue-500 text-xs">Log in to sign up for this event</p>
-              )}
+                ) : null
+              ) : new Date(evt.eventDate) >= new Date() ? (
+                <div className="bg-blue-900/50 border border-blue-700/40 rounded-2xl p-3 text-center">
+                  <p className="text-blue-300 text-xs font-semibold mb-1">Sign in required</p>
+                  <p className="text-blue-500 text-[11px]">Log in to your ColdStreak account to sign up for this event.</p>
+                </div>
+              ) : null}
               <button
                 data-testid={`button-share-event-${evt.id}`}
                 onClick={() => handleShareEvent(evt)}
@@ -2750,6 +2805,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                       setEditEvtContactPhone(evt.contactPhone ?? "");
                       setEditEvtContactEmail(evt.contactEmail ?? "");
                       setEditEvtMaxAttendees(evt.maxAttendees != null ? String(evt.maxAttendees) : "");
+                      setEditEvtWaiverUrl(evt.waiverUrl ?? "");
+                      setEditEvtPaymentUrl(evt.paymentUrl ?? "");
                       setEditEvtPlungeGps(evt.plungeLat && evt.plungeLng ? { lat: Number(evt.plungeLat), lng: Number(evt.plungeLng) } : null);
                       setEditEvtAccessGps(evt.accessLat && evt.accessLng ? { lat: Number(evt.accessLat), lng: Number(evt.accessLng) } : null);
                       setShowEditEventModal(true);
@@ -2965,6 +3022,28 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500 resize-none"
               />
             </div>
+            <div>
+              <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Waiver / Safety Link (optional)</label>
+              <input
+                data-testid="input-edit-event-waiver-url"
+                type="url"
+                value={editEvtWaiverUrl}
+                onChange={(e) => setEditEvtWaiverUrl(e.target.value)}
+                placeholder="https://your-waiver-link.com"
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+              />
+            </div>
+            <div>
+              <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Payment Link (optional)</label>
+              <input
+                data-testid="input-edit-event-payment-url"
+                type="url"
+                value={editEvtPaymentUrl}
+                onChange={(e) => setEditEvtPaymentUrl(e.target.value)}
+                placeholder="https://venmo.com/your-link"
+                className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+              />
+            </div>
           </div>
           <div className="px-5 pb-5 pt-3 border-t border-blue-800/50 flex flex-col gap-2 flex-shrink-0">
             <button
@@ -2983,6 +3062,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     contactPhone: editEvtContactPhone.trim() || null,
                     contactEmail: editEvtContactEmail.trim() || null,
                     maxAttendees: editEvtMaxAttendees ? Number(editEvtMaxAttendees) : null,
+                    waiverUrl: editEvtWaiverUrl.trim() || null,
+                    paymentUrl: editEvtPaymentUrl.trim() || null,
                     ...(editEvtPlungeGps ? { plungeLat: editEvtPlungeGps.lat, plungeLng: editEvtPlungeGps.lng } : { plungeLat: null, plungeLng: null }),
                     ...(editEvtAccessGps ? { accessLat: editEvtAccessGps.lat, accessLng: editEvtAccessGps.lng } : { accessLat: null, accessLng: null }),
                   },
@@ -3796,6 +3877,91 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       </div>
     )}
 
+  {/* ── RSVP Confirmation Popup ── */}
+  {showRsvpPopup && rsvpTargetEvtId !== null && (() => {
+    const rsvpEvt = eventsData.find((e) => e.id === rsvpTargetEvtId);
+    if (!rsvpEvt) return null;
+    return (
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div className="w-full max-w-sm bg-gradient-to-b from-blue-950 to-slate-950 border border-blue-700/50 rounded-2xl shadow-2xl p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center flex-shrink-0">
+              <CalendarDays className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm">Sign Up for Event</p>
+              <p className="text-blue-400 text-xs truncate max-w-[200px]">{rsvpEvt.name}</p>
+            </div>
+            <button onClick={() => setShowRsvpPopup(false)} className="ml-auto text-blue-500 hover:text-white transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {(rsvpEvt.waiverUrl || rsvpEvt.paymentUrl) && (
+            <div className="space-y-2">
+              <p className="text-blue-400 text-[11px] uppercase tracking-wide font-semibold">Before You Sign Up</p>
+              {rsvpEvt.waiverUrl && (
+                <a
+                  href={rsvpEvt.waiverUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold hover:bg-amber-500/20 transition-all"
+                >
+                  <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0" /> Review Safety Waiver
+                  <ExternalLink className="w-3 h-3 ml-auto flex-shrink-0" />
+                </a>
+              )}
+              {rsvpEvt.paymentUrl && (
+                <a
+                  href={rsvpEvt.paymentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/20 transition-all"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" /> Pay Entry Fee
+                  <ExternalLink className="w-3 h-3 ml-auto flex-shrink-0" />
+                </a>
+              )}
+            </div>
+          )}
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={rsvpSafetyChecked}
+              onChange={(e) => setRsvpSafetyChecked(e.target.checked)}
+              data-testid="checkbox-rsvp-safety"
+              className="mt-0.5 accent-cyan-400 w-4 h-4 flex-shrink-0"
+            />
+            <span className="text-blue-200 text-xs leading-relaxed">
+              I understand the risks of cold water immersion and take full responsibility for my own safety at this event.
+            </span>
+          </label>
+
+          <div className="flex flex-col gap-2 pt-1">
+            <button
+              data-testid="button-confirm-rsvp"
+              onClick={() => {
+                joinEventMut.mutate(rsvpTargetEvtId);
+                setShowRsvpPopup(false);
+              }}
+              disabled={!rsvpSafetyChecked || joinEventMut.isPending}
+              className="w-full py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-40 shadow-lg shadow-cyan-500/25"
+            >
+              {joinEventMut.isPending ? "Signing up…" : "❄️ Confirm Sign Up"}
+            </button>
+            <button
+              onClick={() => setShowRsvpPopup(false)}
+              className="w-full py-2 text-blue-500 text-xs hover:text-blue-400 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  })()}
+
   {/* ── Create Event Modal ── */}
   {showCreateModal && (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
@@ -3968,6 +4134,28 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               placeholder="What to bring, carpool details, any notes…"
               rows={2}
               className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500 resize-none"
+            />
+          </div>
+          <div>
+            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Waiver / Safety Link (optional)</label>
+            <input
+              data-testid="input-event-waiver-url"
+              type="url"
+              value={evtWaiverUrl}
+              onChange={(e) => setEvtWaiverUrl(e.target.value)}
+              placeholder="https://your-waiver-link.com"
+              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
+            />
+          </div>
+          <div>
+            <label className="text-blue-400 text-[11px] uppercase tracking-wide block mb-1">Payment Link (optional)</label>
+            <input
+              data-testid="input-event-payment-url"
+              type="url"
+              value={evtPaymentUrl}
+              onChange={(e) => setEvtPaymentUrl(e.target.value)}
+              placeholder="https://venmo.com/your-link"
+              className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
             />
           </div>
         </div>

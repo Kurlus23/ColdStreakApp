@@ -208,6 +208,8 @@ export const events = pgTable("events", {
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   maxAttendees: integer("max_attendees"),
+  waiverUrl: text("waiver_url"),
+  paymentUrl: text("payment_url"),
 });
 
 export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true });
