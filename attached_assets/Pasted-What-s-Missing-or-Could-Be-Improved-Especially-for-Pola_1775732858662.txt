@@ -1,0 +1,28 @@
+What's Missing or Could Be Improved (Especially for Polar Plunges / Group Events)This view works for very basic free meetups, but for real-world cold plunge events (including paid ones or charity-style polar plunges), several practical gaps stand out:No Cover Image / Visual Header
+You mentioned this is planned for 2.0 with server image storage — that's fine for now. Without it, the page looks a bit plain (just the calendar icon). Once added, it will make events much more appealing in lists and details.
+Safety / Waiver Acknowledgment (Biggest gap for liability)
+Polar plunges and group cold events almost always require a waiver or risk acknowledgment. Real events (charity or otherwise) typically make participants sign (or check) a liability release covering hypothermia, cold shock, injury, etc. Many require it before participation, sometimes with parental consent for minors.
+Recommendation: Add a required step on the Sign Up flow (not just creation):  Checkbox: "I acknowledge the risks of cold water plunging and agree to the event safety guidelines and liability waiver."  
+Link to view full text (or PDF upload by organizer).
+Tie it to your app-wide Safety Agreement for consistency. This protects organizers and makes the feature feel professional/safer than Facebook Events.
+Payment / Fee Handling
+The "$20 event fee" mention in the description box is good, but there's no built-in way to collect or confirm payment during Sign Up.
+Most organized polar plunges and studio events do collect fees — flat entry ($15–$50 common), suggested donations, or minimum fundraising pledges for charity versions.
+Quick win: On the Sign Up screen (after tapping the big button), add an optional or required "Payment Link" confirmation, or at least a note: "Pay the $20 fee via [external link provided by organizer] before attending."
+For now, let organizers paste the link in the description or contact section. Full in-app payments can come later.
+More "What to Expect" Details
+The current box is solid but could be expanded slightly for better attendee prep:  Expected water temperature (if provided during creation).  
+Safety briefing time or "never plunge alone" reminder.  
+Post-plunge plans (e.g., "Hot drinks and chairs provided" or "Nearby sauna option").  
+Difficulty level or beginner-friendly note.
+Notifications & Reminders
+No mention of automatic reminders (e.g., "1 day before" or "1 hour before" push). These are very useful for outdoor events where no-shows happen.
+Post-Event Engagement (Nice-to-have for retention)
+After the event date passes, add options like:  "I Attended – Log My Plunge" (auto-adds to Cold Score/streak/history).  
+Upload group photo or mark attendance.
+This turns one-off events into ongoing app usage.
+Small Polish Items  Show a map preview or embedded directions snippet (beyond just the buttons).  
+"Invite Friends" could open sharing with a pre-filled message.  
+For 0 attendees, maybe add motivational text like "Be the first to sign up!"  
+Clarify if "Sign Up" requires login/account (it probably does for tracking RSVPs).
+
