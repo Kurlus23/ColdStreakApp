@@ -764,6 +764,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [updateStatus, setUpdateStatus] = useState<"active" | "postponed" | "cancelled">("active");
   const [updateNote, setUpdateNote] = useState("");
   const [createEvtTab, setCreateEvtTab] = useState<"basics" | "details">("basics");
+  const [eventDetailTab, setEventDetailTab] = useState<"info" | "people">("info");
+  const [viewingProfile, setViewingProfile] = useState<string | null>(null);
   const [editEvtPlungeGps, setEditEvtPlungeGps] = useState<GeoPos | null>(null);
   const [editEvtAccessGps, setEditEvtAccessGps] = useState<GeoPos | null>(null);
   const [editEvtPlungeGpsLoading, setEditEvtPlungeGpsLoading] = useState(false);
@@ -902,6 +904,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     queryFn: () => fetch(`/api/badge-profiles/batch?usernames=${encodeURIComponent(eventUsernames.join(","))}`).then((r) => r.json()),
     enabled: eventUsernames.length > 0,
     staleTime: 60_000,
+  });
+
+  type MiniProfileFull = { username: string; plungeCount: number; bio?: string | null; avatarUrl?: string | null; featuredBadges?: string; foundingPlunger?: boolean };
+  const { data: miniProfile } = useQuery<MiniProfileFull>({
+    queryKey: ["/api/badge-profile", viewingProfile],
+    queryFn: () => fetch(`/api/badge-profile/${encodeURIComponent(viewingProfile!)}`).then((r) => r.json()),
+    enabled: !!viewingProfile,
+    staleTime: 30_000,
   });
 
   const eventBadgeMap = useMemo<Record<string, MiniBadgeProfile>>(() => {
@@ -2429,7 +2439,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 <button
                   key={evt.id}
                   data-testid={`card-event-${evt.id}`}
-                  onClick={() => setSelectedEvent(evt)}
+                  onClick={() => { setSelectedEvent(evt); setEventDetailTab("info"); }}
                   className="w-full text-left bg-blue-900/50 border border-blue-700/40 rounded-2xl p-4 hover:border-blue-500/60 hover:bg-blue-900/70 transition-all active:scale-[0.99] cursor-pointer"
                 >
                   <div className="flex items-start gap-3">
@@ -2540,8 +2550,31 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               </button>
             </div>
 
+            {/* Tabs */}
+            <div className="flex border-b border-blue-800/50 px-1">
+              <button
+                data-testid="tab-event-info"
+                onClick={() => setEventDetailTab("info")}
+                className={`flex-1 py-2.5 text-xs font-semibold transition-colors relative ${eventDetailTab === "info" ? "text-cyan-300" : "text-blue-500 hover:text-blue-300"}`}
+              >
+                Info
+                {eventDetailTab === "info" && <span className="absolute bottom-0 left-4 right-4 h-0.5 bg-cyan-400 rounded-full" />}
+              </button>
+              <button
+                data-testid="tab-event-people"
+                onClick={() => setEventDetailTab("people")}
+                className={`flex-1 py-2.5 text-xs font-semibold transition-colors relative ${eventDetailTab === "people" ? "text-cyan-300" : "text-blue-500 hover:text-blue-300"}`}
+              >
+                People{evt.participantCount > 0 ? ` (${evt.participantCount})` : ""}
+                {eventDetailTab === "people" && <span className="absolute bottom-0 left-4 right-4 h-0.5 bg-cyan-400 rounded-full" />}
+              </button>
+            </div>
+
             {/* Scrollable body */}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+
+              {/* ══ INFO TAB ══ */}
+              {eventDetailTab === "info" && (<>
 
               {/* ── Status announcement banner ─────────────────────── */}
               {evt.status && evt.status !== "active" && (
@@ -2658,11 +2691,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 <div className="space-y-2">
                   {evt.createdByUsername && (
                     <div className="flex items-center gap-2.5">
-                      <button onClick={() => navigate(`/profile/${encodeURIComponent(evt.createdByUsername!)}`)} className="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-xs font-bold text-cyan-300 flex-shrink-0 hover:opacity-80 transition-opacity">
+                      <button onClick={() => setViewingProfile(evt.createdByUsername!)} className="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-xs font-bold text-cyan-300 flex-shrink-0 hover:opacity-80 transition-opacity">
                         {evt.createdByUsername.slice(0, 1).toUpperCase()}
                       </button>
                       <div>
-                        <button onClick={() => navigate(`/profile/${encodeURIComponent(evt.createdByUsername!)}`)} className="flex items-center gap-1 text-white text-xs font-semibold hover:text-cyan-300 transition-colors text-left">
+                        <button onClick={() => setViewingProfile(evt.createdByUsername!)} className="flex items-center gap-1 text-white text-xs font-semibold hover:text-cyan-300 transition-colors text-left">
                           {evt.createdByUsername}
                           {renderEventBadges(evt.createdByUsername)}
                         </button>
@@ -2672,11 +2705,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   )}
                   {evt.coordinators.map((c) => (
                     <div key={c.id} className="flex items-center gap-2.5">
-                      <button onClick={() => navigate(`/profile/${encodeURIComponent(c.username)}`)} className="w-7 h-7 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-xs font-bold text-blue-300 flex-shrink-0 hover:opacity-80 transition-opacity">
+                      <button onClick={() => setViewingProfile(c.username)} className="w-7 h-7 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-xs font-bold text-blue-300 flex-shrink-0 hover:opacity-80 transition-opacity">
                         {c.username.slice(0, 1).toUpperCase()}
                       </button>
                       <div className="flex-1">
-                        <button onClick={() => navigate(`/profile/${encodeURIComponent(c.username)}`)} className="flex items-center gap-1 text-white text-xs font-semibold hover:text-cyan-300 transition-colors text-left">
+                        <button onClick={() => setViewingProfile(c.username)} className="flex items-center gap-1 text-white text-xs font-semibold hover:text-cyan-300 transition-colors text-left">
                           {c.username}
                           {renderEventBadges(c.username)}
                         </button>
@@ -2787,6 +2820,12 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 </div>
               )}
 
+              </>)}
+              {/* ══ END INFO TAB ══ */}
+
+              {/* ══ PEOPLE TAB ══ */}
+              {eventDetailTab === "people" && (<>
+
               {/* ── Cold Score Leaderboard ─────────────────────────── */}
               {eventLeaderboard && eventLeaderboard.length > 0 && (() => {
                 const combinedScore = eventLeaderboard.reduce((s, e) => s + e.totalScore, 0);
@@ -2814,7 +2853,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                             {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}.`}
                           </span>
                           <button
-                            onClick={() => navigate(`/profile/${encodeURIComponent(entry.username)}`)}
+                            onClick={() => setViewingProfile(entry.username)}
                             className="flex-1 text-left text-white text-xs font-medium hover:text-cyan-300 transition-colors truncate"
                           >
                             {entry.username}
@@ -2852,10 +2891,10 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     <div className="space-y-1">
                       {selectedEventDetail.participants.map((p) => (
                         <div key={p.id} className="flex items-center gap-2.5 py-1.5 border-b border-blue-800/30 last:border-0">
-                          <button onClick={() => navigate(`/profile/${encodeURIComponent(p.username)}`)} className="w-6 h-6 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-[10px] font-bold text-blue-300 flex-shrink-0 hover:opacity-80 transition-opacity">
+                          <button onClick={() => setViewingProfile(p.username)} className="w-6 h-6 rounded-full bg-blue-700/50 border border-blue-600/40 flex items-center justify-center text-[10px] font-bold text-blue-300 flex-shrink-0 hover:opacity-80 transition-opacity">
                             {p.username.slice(0, 1).toUpperCase()}
                           </button>
-                          <button onClick={() => navigate(`/profile/${encodeURIComponent(p.username)}`)} className="flex items-center gap-1 text-white text-xs font-medium flex-1 hover:text-cyan-300 transition-colors text-left">
+                          <button onClick={() => setViewingProfile(p.username)} className="flex items-center gap-1 text-white text-xs font-medium flex-1 hover:text-cyan-300 transition-colors text-left">
                             {p.username}
                             {renderEventBadges(p.username)}
                           </button>
@@ -2893,10 +2932,10 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   <div className="space-y-1">
                     {selectedEventDetail.bans.map((ban) => (
                       <div key={ban.id} className="flex items-center gap-2.5 py-1.5 border-b border-blue-800/30 last:border-0">
-                        <button onClick={() => navigate(`/profile/${encodeURIComponent(ban.username)}`)} className="w-6 h-6 rounded-full bg-red-900/40 border border-red-700/40 flex items-center justify-center text-[10px] font-bold text-red-400 flex-shrink-0 hover:opacity-80 transition-opacity">
+                        <button onClick={() => setViewingProfile(ban.username)} className="w-6 h-6 rounded-full bg-red-900/40 border border-red-700/40 flex items-center justify-center text-[10px] font-bold text-red-400 flex-shrink-0 hover:opacity-80 transition-opacity">
                           {ban.username.slice(0, 1).toUpperCase()}
                         </button>
-                        <button onClick={() => navigate(`/profile/${encodeURIComponent(ban.username)}`)} className="text-red-300 text-xs flex-1 line-through opacity-60 hover:opacity-100 hover:text-cyan-300 transition-colors text-left">{ban.username}</button>
+                        <button onClick={() => setViewingProfile(ban.username)} className="text-red-300 text-xs flex-1 line-through opacity-60 hover:opacity-100 hover:text-cyan-300 transition-colors text-left">{ban.username}</button>
                         <button
                           data-testid={`button-unban-participant-${ban.userId}`}
                           onClick={() => unbanParticipantMut.mutate({ eventId: evt.id, userId: ban.userId })}
@@ -2911,8 +2950,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 </div>
               )}
 
-              {/* Directions */}
-              {(evt.plungeLat || evt.accessLat) && (
+              </>)}
+              {/* ══ END PEOPLE TAB ══ */}
+
+              {/* Directions — shown on Info tab */}
+              {eventDetailTab === "info" && (evt.plungeLat || evt.accessLat) && (
                 <div className="space-y-2">
                   <p className="text-blue-500 text-[11px] uppercase tracking-wide font-semibold">Directions</p>
                   <div className="flex gap-2 flex-wrap">
@@ -2944,7 +2986,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               {new Date(evt.eventDate) < new Date() && !isJoined && (
                 <button
                   data-testid={`button-log-plunge-event-${evt.id}`}
-                  onClick={() => { setSelectedEvent(null); navigate("/"); }}
+                  onClick={() => setSelectedEvent(null)}
                   className="w-full py-3 rounded-2xl bg-blue-700/50 border border-blue-600/50 text-white font-bold text-sm transition-all active:scale-95 hover:bg-blue-700/70"
                 >
                   ❄️ Log My Plunge
@@ -4547,6 +4589,80 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       </div>
     </div>
   )}
+    {/* ── Mini Profile Overlay (in-app, no navigation) ── */}
+    {viewingProfile && (
+      <div
+        className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm"
+        onClick={() => setViewingProfile(null)}
+      >
+        <div
+          className="w-full max-w-sm bg-gradient-to-b from-blue-950 to-slate-950 border border-blue-700/50 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[80vh] flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="w-10 h-1 rounded-full bg-blue-700/60 mx-auto mt-3 mb-1 sm:hidden" />
+          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-blue-800/50">
+            <p className="text-blue-400 text-xs font-semibold uppercase tracking-wide">Profile</p>
+            <button
+              data-testid="button-close-mini-profile"
+              onClick={() => setViewingProfile(null)}
+              className="text-blue-500 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+            {!miniProfile ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-6 h-6 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-4">
+                  {miniProfile.avatarUrl ? (
+                    <img
+                      src={miniProfile.avatarUrl}
+                      alt={miniProfile.username}
+                      className="w-14 h-14 rounded-full object-cover border-2 border-cyan-400/40 flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500/30 to-blue-700/50 border-2 border-cyan-400/40 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xl font-bold text-cyan-300">{miniProfile.username.slice(0, 1).toUpperCase()}</span>
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-white font-bold text-base">{miniProfile.username}</p>
+                      {miniProfile.foundingPlunger && <span className="text-sm" title="Founding Plunger">🎖️</span>}
+                    </div>
+                    {miniProfile.featuredBadges && (() => {
+                      try {
+                        const ids: string[] = JSON.parse(miniProfile.featuredBadges!);
+                        const emojis = ids.slice(0, 5).map((id) => badgeEmojiLookup[id]).filter(Boolean);
+                        return emojis.length ? <p className="text-sm mt-0.5">{emojis.join(" ")}</p> : null;
+                      } catch { return null; }
+                    })()}
+                    <p className="text-cyan-400 text-xs mt-1 font-semibold">{miniProfile.plungeCount} plunge{miniProfile.plungeCount !== 1 ? "s" : ""}</p>
+                  </div>
+                </div>
+                {miniProfile.bio && (
+                  <div className="bg-blue-900/40 border border-blue-700/30 rounded-2xl px-4 py-3">
+                    <p className="text-blue-200 text-sm leading-relaxed">{miniProfile.bio}</p>
+                  </div>
+                )}
+                <a
+                  href={`/profile/${encodeURIComponent(miniProfile.username)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-blue-800/50 border border-blue-600/40 text-blue-300 text-xs font-semibold hover:bg-blue-700/60 transition-all active:scale-95"
+                >
+                  View full profile <ExternalLink className="w-3 h-3" />
+                </a>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }
