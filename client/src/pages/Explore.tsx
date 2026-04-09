@@ -760,6 +760,9 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [editEvtWaiverUrl, setEditEvtWaiverUrl] = useState("");
   const [editEvtPaymentUrl, setEditEvtPaymentUrl] = useState("");
   const [editEvtIsPrivate, setEditEvtIsPrivate] = useState(false);
+  const [showEventUpdatePanel, setShowEventUpdatePanel] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<"active" | "postponed" | "cancelled">("active");
+  const [updateNote, setUpdateNote] = useState("");
   const [editEvtPlungeGps, setEditEvtPlungeGps] = useState<GeoPos | null>(null);
   const [editEvtAccessGps, setEditEvtAccessGps] = useState<GeoPos | null>(null);
   const [editEvtPlungeGpsLoading, setEditEvtPlungeGpsLoading] = useState(false);
@@ -926,6 +929,21 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       queryClient.invalidateQueries({ queryKey: ["/api/events/detail", selectedEvent?.shareCode] });
       setShowEditEventModal(false);
       toast({ title: "Event updated ✓" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const sendEventUpdateMut = useMutation({
+    mutationFn: ({ id, status, organizerNote }: { id: number; status: string; organizerNote: string }) =>
+      apiRequest("PATCH", `/api/events/${id}`, { status, organizerNote }).then((r) => r.json()),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events/detail", selectedEvent?.shareCode] });
+      setSelectedEvent((prev) => prev ? { ...prev, ...updated } : prev);
+      setShowEventUpdatePanel(false);
+      setUpdateNote("");
+      const label = updated.status === "cancelled" ? "cancelled" : updated.status === "postponed" ? "postponed" : "active";
+      toast({ title: `Event marked as ${label} ✓`, description: updated.organizerNote ? "Attendees will see your message." : undefined });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -2440,18 +2458,28 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                           <span className="truncate">{evt.locationName}</span>
                         </div>
                       )}
-                      <div className="flex items-center gap-1.5 text-blue-500 text-xs">
-                        <Users className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span>
-                          {evt.participantCount === 0
-                            ? <span className="text-cyan-400 font-semibold">Be the first to sign up!</span>
-                            : evt.maxAttendees != null
-                              ? `${evt.participantCount} / ${evt.maxAttendees} attending${evt.participantCount >= evt.maxAttendees ? " · FULL" : ""}`
-                              : `${evt.participantCount} attending`}
-                        </span>
-                        {evt.coordinators.length > 0 && (
-                          <span className="text-blue-600">· {evt.coordinators.length + 1} organizer{evt.coordinators.length > 0 ? "s" : ""}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {evt.status && evt.status !== "active" && (
+                          <span
+                            data-testid={`badge-event-status-${evt.id}`}
+                            className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide ${evt.status === "cancelled" ? "bg-red-900/60 text-red-400 border border-red-700/50" : "bg-amber-900/60 text-amber-400 border border-amber-700/50"}`}
+                          >
+                            {evt.status === "cancelled" ? "⛔ Cancelled" : "⚠️ Postponed"}
+                          </span>
                         )}
+                        <div className="flex items-center gap-1.5 text-blue-500 text-xs">
+                          <Users className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span>
+                            {evt.participantCount === 0
+                              ? <span className="text-cyan-400 font-semibold">Be the first to sign up!</span>
+                              : evt.maxAttendees != null
+                                ? `${evt.participantCount} / ${evt.maxAttendees} attending${evt.participantCount >= evt.maxAttendees ? " · FULL" : ""}`
+                                : `${evt.participantCount} attending`}
+                          </span>
+                          {evt.coordinators.length > 0 && (
+                            <span className="text-blue-600">· {evt.coordinators.length + 1} organizer{evt.coordinators.length > 0 ? "s" : ""}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -2513,6 +2541,28 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
 
             {/* Scrollable body */}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+
+              {/* ── Status announcement banner ─────────────────────── */}
+              {evt.status && evt.status !== "active" && (
+                <div
+                  data-testid="banner-event-status"
+                  className={`rounded-2xl border px-4 py-3 space-y-1 ${evt.status === "cancelled" ? "bg-red-950/60 border-red-700/50" : "bg-amber-950/60 border-amber-700/50"}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-bold ${evt.status === "cancelled" ? "text-red-400" : "text-amber-400"}`}>
+                      {evt.status === "cancelled" ? "⛔ Event Cancelled" : "⚠️ Event Postponed"}
+                    </span>
+                  </div>
+                  {evt.organizerNote && (
+                    <p className={`text-xs leading-relaxed ${evt.status === "cancelled" ? "text-red-300" : "text-amber-300"}`}>
+                      {evt.organizerNote}
+                    </p>
+                  )}
+                  <p className={`text-[10px] ${evt.status === "cancelled" ? "text-red-500" : "text-amber-600"}`}>
+                    Message from the organizer
+                  </p>
+                </div>
+              )}
 
               {/* Date */}
               <div className="flex items-center gap-3 text-blue-200 text-sm">
@@ -2645,6 +2695,69 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   ))}
                 </div>
               </div>
+
+              {/* ── Send Event Update (managers only) ───────────────── */}
+              {isManager && (
+                <div className="bg-blue-950/60 border border-blue-700/30 rounded-xl overflow-hidden">
+                  <button
+                    data-testid="button-toggle-event-update-panel"
+                    onClick={() => {
+                      setShowEventUpdatePanel((v) => !v);
+                      setUpdateStatus((evt.status as "active" | "postponed" | "cancelled") ?? "active");
+                      setUpdateNote(evt.organizerNote ?? "");
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-blue-900/40 transition-colors"
+                  >
+                    <span className="text-blue-300 text-[11px] font-semibold flex items-center gap-1.5">
+                      📣 Send Event Update
+                    </span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-blue-500 transition-transform ${showEventUpdatePanel ? "rotate-180" : ""}`} />
+                  </button>
+                  {showEventUpdatePanel && (
+                    <div className="px-3 pb-3 space-y-2.5 border-t border-blue-800/40 pt-2.5">
+                      <p className="text-blue-500 text-[10px]">Set the event status and add a message. All attendees will see this banner when they open the event.</p>
+                      {/* Status picker */}
+                      <div className="flex gap-1.5">
+                        {(["active", "postponed", "cancelled"] as const).map((s) => (
+                          <button
+                            key={s}
+                            data-testid={`button-event-status-${s}`}
+                            onClick={() => setUpdateStatus(s)}
+                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide border transition-all ${
+                              updateStatus === s
+                                ? s === "active" ? "bg-cyan-600/40 border-cyan-500/60 text-cyan-300" : s === "postponed" ? "bg-amber-800/50 border-amber-600/60 text-amber-300" : "bg-red-900/50 border-red-600/60 text-red-300"
+                                : "bg-blue-900/40 border-blue-700/30 text-blue-500 hover:border-blue-600"
+                            }`}
+                          >
+                            {s === "active" ? "✓ Active" : s === "postponed" ? "⚠ Postponed" : "⛔ Cancelled"}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Note */}
+                      <textarea
+                        data-testid="input-event-update-note"
+                        value={updateNote}
+                        onChange={(e) => setUpdateNote(e.target.value)}
+                        placeholder={updateStatus === "cancelled" ? "e.g. Due to weather, this event has been cancelled. Stay safe!" : updateStatus === "postponed" ? "e.g. We're moving this event to next weekend — details coming soon." : "Optional message for attendees…"}
+                        rows={3}
+                        className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-600 resize-none"
+                      />
+                      <button
+                        data-testid="button-send-event-update"
+                        onClick={() => sendEventUpdateMut.mutate({ id: evt.id, status: updateStatus, organizerNote: updateNote })}
+                        disabled={sendEventUpdateMut.isPending}
+                        className={`w-full py-2 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50 ${
+                          updateStatus === "cancelled" ? "bg-red-700/70 hover:bg-red-600/70 text-red-100 border border-red-600/50" :
+                          updateStatus === "postponed" ? "bg-amber-700/70 hover:bg-amber-600/70 text-amber-100 border border-amber-600/50" :
+                          "bg-cyan-600/70 hover:bg-cyan-500/70 text-cyan-100 border border-cyan-500/50"
+                        }`}
+                      >
+                        {sendEventUpdateMut.isPending ? "Sending…" : "Send Update to Attendees"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Add co-coordinator (managers only) */}
               {isManager && (

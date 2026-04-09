@@ -82,8 +82,8 @@ export interface IStorage {
   getEvents(): Promise<Event[]>;
   getEventByCode(shareCode: string): Promise<Event | null>;
   getEventById(id: number): Promise<Event | null>;
-  createEvent(data: { name: string; description?: string; eventDate: Date; endDate?: Date; locationName?: string; locationId?: string; plungeLat?: number; plungeLng?: number; accessLat?: number; accessLng?: number; contactName?: string; contactPhone?: string; contactEmail?: string; createdBy?: number; createdByUsername?: string; shareCode: string; maxAttendees?: number | null; waiverUrl?: string; paymentUrl?: string; isPrivate?: boolean }): Promise<Event>;
-  updateEvent(id: number, data: { name?: string; description?: string; eventDate?: Date; endDate?: Date | null; locationName?: string; plungeLat?: number | null; plungeLng?: number | null; accessLat?: number | null; accessLng?: number | null; contactName?: string | null; contactPhone?: string | null; contactEmail?: string | null; maxAttendees?: number | null; waiverUrl?: string | null; paymentUrl?: string | null; isPrivate?: boolean }): Promise<Event>;
+  createEvent(data: { name: string; description?: string; eventDate: Date; endDate?: Date; locationName?: string; locationId?: string; plungeLat?: number; plungeLng?: number; accessLat?: number; accessLng?: number; contactName?: string; contactPhone?: string; contactEmail?: string; createdBy?: number; createdByUsername?: string; shareCode: string; maxAttendees?: number | null; waiverUrl?: string; paymentUrl?: string; isPrivate?: boolean; status?: string; organizerNote?: string }): Promise<Event>;
+  updateEvent(id: number, data: { name?: string; description?: string; eventDate?: Date; endDate?: Date | null; locationName?: string; plungeLat?: number | null; plungeLng?: number | null; accessLat?: number | null; accessLng?: number | null; contactName?: string | null; contactPhone?: string | null; contactEmail?: string | null; maxAttendees?: number | null; waiverUrl?: string | null; paymentUrl?: string | null; isPrivate?: boolean; status?: string; organizerNote?: string | null }): Promise<Event>;
   deleteEvent(id: number): Promise<void>;
   deleteExpiredEvents(): Promise<number>;
   getEventParticipants(eventId: number): Promise<EventParticipant[]>;
@@ -627,7 +627,7 @@ export class DatabaseStorage implements IStorage {
     return evt ?? null;
   }
 
-  async createEvent(data: { name: string; description?: string; eventDate: Date; endDate?: Date; locationName?: string; locationId?: string; plungeLat?: number; plungeLng?: number; accessLat?: number; accessLng?: number; contactName?: string; contactPhone?: string; contactEmail?: string; createdBy?: number; createdByUsername?: string; shareCode: string; maxAttendees?: number | null; waiverUrl?: string; paymentUrl?: string; isPrivate?: boolean }): Promise<Event> {
+  async createEvent(data: { name: string; description?: string; eventDate: Date; endDate?: Date; locationName?: string; locationId?: string; plungeLat?: number; plungeLng?: number; accessLat?: number; accessLng?: number; contactName?: string; contactPhone?: string; contactEmail?: string; createdBy?: number; createdByUsername?: string; shareCode: string; maxAttendees?: number | null; waiverUrl?: string; paymentUrl?: string; isPrivate?: boolean; status?: string; organizerNote?: string }): Promise<Event> {
     const [evt] = await db.insert(events).values({
       name: data.name,
       description: data.description ?? null,
@@ -647,6 +647,8 @@ export class DatabaseStorage implements IStorage {
       shareCode: data.shareCode,
       isActive: true,
       isPrivate: data.isPrivate ?? false,
+      status: data.status ?? "active",
+      organizerNote: data.organizerNote ?? null,
       maxAttendees: data.maxAttendees ?? null,
       waiverUrl: data.waiverUrl ?? null,
       paymentUrl: data.paymentUrl ?? null,
@@ -654,7 +656,7 @@ export class DatabaseStorage implements IStorage {
     return evt;
   }
 
-  async updateEvent(id: number, data: { name?: string; description?: string; eventDate?: Date; endDate?: Date | null; locationName?: string; plungeLat?: number | null; plungeLng?: number | null; accessLat?: number | null; accessLng?: number | null; contactName?: string | null; contactPhone?: string | null; contactEmail?: string | null; maxAttendees?: number | null; waiverUrl?: string | null; paymentUrl?: string | null; isPrivate?: boolean }): Promise<Event> {
+  async updateEvent(id: number, data: { name?: string; description?: string; eventDate?: Date; endDate?: Date | null; locationName?: string; plungeLat?: number | null; plungeLng?: number | null; accessLat?: number | null; accessLng?: number | null; contactName?: string | null; contactPhone?: string | null; contactEmail?: string | null; maxAttendees?: number | null; waiverUrl?: string | null; paymentUrl?: string | null; isPrivate?: boolean; status?: string; organizerNote?: string | null }): Promise<Event> {
     const set: Partial<typeof events.$inferInsert> = {};
     if (data.name !== undefined) set.name = data.name;
     if (data.description !== undefined) set.description = data.description || null;
@@ -672,6 +674,8 @@ export class DatabaseStorage implements IStorage {
     if ("waiverUrl" in data) set.waiverUrl = data.waiverUrl ?? null;
     if ("paymentUrl" in data) set.paymentUrl = data.paymentUrl ?? null;
     if ("isPrivate" in data) set.isPrivate = data.isPrivate ?? false;
+    if ("status" in data) set.status = data.status ?? "active";
+    if ("organizerNote" in data) set.organizerNote = data.organizerNote ?? null;
     const [evt] = await db.update(events).set(set).where(eq(events.id, id)).returning();
     return evt;
   }

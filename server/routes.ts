@@ -1659,7 +1659,7 @@ export async function registerRoutes(
     const user = await storage.getUserById(payload.userId);
     if (!user) return res.status(401).json({ error: "User not found" });
 
-    const { name, description, eventDate, endDate, locationName, locationId, plungeLat, plungeLng, accessLat, accessLng, contactName, contactPhone, contactEmail, maxAttendees, waiverUrl, paymentUrl, isPrivate } = req.body;
+    const { name, description, eventDate, endDate, locationName, locationId, plungeLat, plungeLng, accessLat, accessLng, contactName, contactPhone, contactEmail, maxAttendees, waiverUrl, paymentUrl, isPrivate, status, organizerNote } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: "Event name is required" });
     if (!eventDate) return res.status(400).json({ error: "Event date is required" });
 
@@ -1694,6 +1694,8 @@ export async function registerRoutes(
       waiverUrl: waiverUrl?.trim() || undefined,
       paymentUrl: paymentUrl?.trim() || undefined,
       isPrivate: isPrivate === true,
+      status: ["active", "postponed", "cancelled"].includes(status) ? status : "active",
+      organizerNote: organizerNote?.trim() || undefined,
     });
     res.json({ ...evt, participantCount: 0, participants: [], coordinators: [], bans: [] });
   });
@@ -1759,7 +1761,7 @@ export async function registerRoutes(
     if (!(await isEventManagerUser(evt, payload.userId, eventId)))
       return res.status(403).json({ error: "Only event coordinators can edit this event" });
 
-    const { name, description, eventDate, endDate, locationName, plungeLat, plungeLng, accessLat, accessLng, contactName, contactPhone, contactEmail, maxAttendees, waiverUrl, paymentUrl, isPrivate } = req.body;
+    const { name, description, eventDate, endDate, locationName, plungeLat, plungeLng, accessLat, accessLng, contactName, contactPhone, contactEmail, maxAttendees, waiverUrl, paymentUrl, isPrivate, status, organizerNote } = req.body;
     if (name !== undefined && !name?.trim()) return res.status(400).json({ error: "Event name cannot be empty" });
 
     let parsedEventDate: Date | undefined;
@@ -1797,6 +1799,8 @@ export async function registerRoutes(
       ...("waiverUrl" in req.body ? { waiverUrl: waiverUrl?.trim() || null } : {}),
       ...("paymentUrl" in req.body ? { paymentUrl: paymentUrl?.trim() || null } : {}),
       ...("isPrivate" in req.body ? { isPrivate: isPrivate === true } : {}),
+      ...("status" in req.body ? { status: ["active", "postponed", "cancelled"].includes(status) ? status : "active" } : {}),
+      ...("organizerNote" in req.body ? { organizerNote: organizerNote?.trim() || null } : {}),
     });
     res.json(updated);
   });

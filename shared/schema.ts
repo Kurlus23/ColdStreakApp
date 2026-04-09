@@ -208,6 +208,9 @@ export const events = pgTable("events", {
   shareCode: text("share_code").notNull().unique(),
   isActive: boolean("is_active").default(true).notNull(),
   isPrivate: boolean("is_private").default(false).notNull(),
+  // 'active' | 'postponed' | 'cancelled'
+  status: text("status").default("active").notNull(),
+  organizerNote: text("organizer_note"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   maxAttendees: integer("max_attendees"),
   waiverUrl: text("waiver_url"),

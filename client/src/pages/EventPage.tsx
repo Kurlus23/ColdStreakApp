@@ -141,6 +141,22 @@ export default function EventPage() {
 
       {/* Event card */}
       <div className="bg-blue-900/60 border border-blue-700/50 rounded-3xl p-5 space-y-4 mb-4">
+
+        {/* Announcement banner */}
+        {evt.status && evt.status !== "active" && (
+          <div className={`rounded-2xl border px-4 py-3 space-y-1 ${evt.status === "cancelled" ? "bg-red-950/70 border-red-700/60" : "bg-amber-950/70 border-amber-700/60"}`}>
+            <p className={`font-bold text-sm ${evt.status === "cancelled" ? "text-red-400" : "text-amber-400"}`}>
+              {evt.status === "cancelled" ? "⛔ Event Cancelled" : "⚠️ Event Postponed"}
+            </p>
+            {evt.organizerNote && (
+              <p className={`text-xs leading-relaxed ${evt.status === "cancelled" ? "text-red-300" : "text-amber-300"}`}>
+                {evt.organizerNote}
+              </p>
+            )}
+            <p className={`text-[10px] ${evt.status === "cancelled" ? "text-red-500" : "text-amber-600"}`}>Message from the organizer</p>
+          </div>
+        )}
+
         <div>
           <h1 className="text-white font-bold text-2xl leading-tight">{evt.name}</h1>
           {evt.description && <p className="text-blue-200 text-sm mt-1.5 leading-relaxed">{evt.description}</p>}
