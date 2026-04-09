@@ -4,7 +4,7 @@ import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
-  MapPin, Compass, Search, X, ChevronDown, ChevronRight, Lock,
+  MapPin, Compass, Search, X, ChevronDown, ChevronRight, Lock, Globe,
   Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, Building2, CheckCircle2, BadgeCheck, Phone, ExternalLink, Pencil, LocateFixed, Trash2, Eye, EyeOff,
   CalendarDays, Users, Copy, Check, Snowflake, Calendar, Car
 } from "lucide-react";
@@ -738,6 +738,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [evtMaxAttendees, setEvtMaxAttendees] = useState<string>("");
   const [evtWaiverUrl, setEvtWaiverUrl] = useState("");
   const [evtPaymentUrl, setEvtPaymentUrl] = useState("");
+  const [evtIsPrivate, setEvtIsPrivate] = useState(false);
   const [evtPlungeGpsLoading, setEvtPlungeGpsLoading] = useState(false);
   const [evtAccessGpsLoading, setEvtAccessGpsLoading] = useState(false);
   const [showRsvpPopup, setShowRsvpPopup] = useState(false);
@@ -758,6 +759,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [editEvtMaxAttendees, setEditEvtMaxAttendees] = useState<string>("");
   const [editEvtWaiverUrl, setEditEvtWaiverUrl] = useState("");
   const [editEvtPaymentUrl, setEditEvtPaymentUrl] = useState("");
+  const [editEvtIsPrivate, setEditEvtIsPrivate] = useState(false);
   const [editEvtPlungeGps, setEditEvtPlungeGps] = useState<GeoPos | null>(null);
   const [editEvtAccessGps, setEditEvtAccessGps] = useState<GeoPos | null>(null);
   const [editEvtPlungeGpsLoading, setEditEvtPlungeGpsLoading] = useState(false);
@@ -792,13 +794,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       ...(evtMaxAttendees ? { maxAttendees: Number(evtMaxAttendees) } : {}),
       ...(evtWaiverUrl.trim() ? { waiverUrl: evtWaiverUrl.trim() } : {}),
       ...(evtPaymentUrl.trim() ? { paymentUrl: evtPaymentUrl.trim() } : {}),
+      isPrivate: evtIsPrivate,
     }).then((r) => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setShowCreateModal(false);
       setEvtName(""); setEvtDescription(""); setEvtDate(""); setEvtEndDate(""); setEvtLocationName("");
       setEvtContactName(""); setEvtContactPhone(""); setEvtContactEmail(""); setEvtMaxAttendees("");
-      setEvtWaiverUrl(""); setEvtPaymentUrl("");
+      setEvtWaiverUrl(""); setEvtPaymentUrl(""); setEvtIsPrivate(false);
       setEvtPlungeGps(null); setEvtAccessGps(null);
       toast({ title: "Event created! 🧊", description: "Share the link with your fellow plungers." });
     },
@@ -2414,6 +2417,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex items-center gap-2">
                         <h3 className="text-white font-bold text-sm truncate">{evt.name}</h3>
+                        {evt.isPrivate && (
+                          <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-slate-700/60 border border-slate-600/50 text-slate-400 text-[10px] font-semibold">
+                            <Lock className="w-2.5 h-2.5" /> Private
+                          </span>
+                        )}
                         {isJoined && (
                           <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-[10px] font-semibold">✓ Going</span>
                         )}
@@ -2482,7 +2490,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 <CalendarDays className="w-5 h-5 text-cyan-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-white font-bold text-base leading-snug">{evt.name}</h2>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-white font-bold text-base leading-snug">{evt.name}</h2>
+                  {evt.isPrivate && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-700/60 border border-slate-600/50 text-slate-300 text-[10px] font-semibold">
+                      <Lock className="w-2.5 h-2.5" /> Private
+                    </span>
+                  )}
+                </div>
                 {isJoined && (
                   <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-[10px] font-semibold mt-1">✓ You're attending</span>
                 )}
@@ -2877,6 +2892,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                       setEditEvtMaxAttendees(evt.maxAttendees != null ? String(evt.maxAttendees) : "");
                       setEditEvtWaiverUrl(evt.waiverUrl ?? "");
                       setEditEvtPaymentUrl(evt.paymentUrl ?? "");
+                      setEditEvtIsPrivate(evt.isPrivate ?? false);
                       setEditEvtPlungeGps(evt.plungeLat && evt.plungeLng ? { lat: Number(evt.plungeLat), lng: Number(evt.plungeLng) } : null);
                       setEditEvtAccessGps(evt.accessLat && evt.accessLng ? { lat: Number(evt.accessLat), lng: Number(evt.accessLng) } : null);
                       setShowEditEventModal(true);
@@ -3114,6 +3130,28 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
               />
             </div>
+            {/* Privacy toggle */}
+            <button
+              data-testid="button-toggle-edit-event-privacy"
+              type="button"
+              onClick={() => setEditEvtIsPrivate((v) => !v)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${editEvtIsPrivate ? "bg-slate-800/80 border-slate-600/60" : "bg-blue-900/30 border-blue-700/40 hover:border-blue-600"}`}
+            >
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${editEvtIsPrivate ? "bg-slate-700/70 border border-slate-600/50" : "bg-blue-800/60 border border-blue-600/40"}`}>
+                {editEvtIsPrivate ? <Lock className="w-4 h-4 text-slate-300" /> : <Globe className="w-4 h-4 text-blue-400" />}
+              </div>
+              <div className="flex-1 text-left">
+                <p className={`font-semibold text-xs ${editEvtIsPrivate ? "text-slate-200" : "text-blue-300"}`}>
+                  {editEvtIsPrivate ? "Private Event" : "Public Event"}
+                </p>
+                <p className="text-blue-500 text-[10px]">
+                  {editEvtIsPrivate ? "Only accessible via share link — not listed publicly" : "Visible to all users in the Events tab"}
+                </p>
+              </div>
+              <div className={`w-9 h-5 rounded-full transition-all flex-shrink-0 ${editEvtIsPrivate ? "bg-slate-600" : "bg-blue-600"}`}>
+                <div className={`w-3.5 h-3.5 bg-white rounded-full shadow mt-0.5 transition-all duration-200 ${editEvtIsPrivate ? "ml-[18px]" : "ml-0.5"}`} />
+              </div>
+            </button>
           </div>
           <div className="px-5 pb-5 pt-3 border-t border-blue-800/50 flex flex-col gap-2 flex-shrink-0">
             <button
@@ -3134,6 +3172,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     maxAttendees: editEvtMaxAttendees ? Number(editEvtMaxAttendees) : null,
                     waiverUrl: editEvtWaiverUrl.trim() || null,
                     paymentUrl: editEvtPaymentUrl.trim() || null,
+                    isPrivate: editEvtIsPrivate,
                     ...(editEvtPlungeGps ? { plungeLat: editEvtPlungeGps.lat, plungeLng: editEvtPlungeGps.lng } : { plungeLat: null, plungeLng: null }),
                     ...(editEvtAccessGps ? { accessLat: editEvtAccessGps.lat, accessLng: editEvtAccessGps.lng } : { accessLat: null, accessLng: null }),
                   },
@@ -4249,6 +4288,28 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
             />
           </div>
+          {/* Privacy toggle */}
+          <button
+            data-testid="button-toggle-event-privacy"
+            type="button"
+            onClick={() => setEvtIsPrivate((v) => !v)}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${evtIsPrivate ? "bg-slate-800/80 border-slate-600/60" : "bg-blue-900/30 border-blue-700/40 hover:border-blue-600"}`}
+          >
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${evtIsPrivate ? "bg-slate-700/70 border border-slate-600/50" : "bg-blue-800/60 border border-blue-600/40"}`}>
+              {evtIsPrivate ? <Lock className="w-4 h-4 text-slate-300" /> : <Globe className="w-4 h-4 text-blue-400" />}
+            </div>
+            <div className="flex-1 text-left">
+              <p className={`font-semibold text-xs ${evtIsPrivate ? "text-slate-200" : "text-blue-300"}`}>
+                {evtIsPrivate ? "Private Event" : "Public Event"}
+              </p>
+              <p className="text-blue-500 text-[10px]">
+                {evtIsPrivate ? "Only accessible via share link — not listed publicly" : "Visible to all users in the Events tab"}
+              </p>
+            </div>
+            <div className={`w-9 h-5 rounded-full transition-all flex-shrink-0 ${evtIsPrivate ? "bg-slate-600" : "bg-blue-600"}`}>
+              <div className={`w-3.5 h-3.5 bg-white rounded-full shadow mt-0.5 transition-all duration-200 ${evtIsPrivate ? "ml-[18px]" : "ml-0.5"}`} />
+            </div>
+          </button>
         </div>
         <div className="px-5 pb-5 flex flex-col gap-2">
           <button

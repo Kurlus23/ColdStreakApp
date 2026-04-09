@@ -207,6 +207,7 @@ export const events = pgTable("events", {
   createdByUsername: text("created_by_username"),
   shareCode: text("share_code").notNull().unique(),
   isActive: boolean("is_active").default(true).notNull(),
+  isPrivate: boolean("is_private").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   maxAttendees: integer("max_attendees"),
   waiverUrl: text("waiver_url"),
