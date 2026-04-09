@@ -911,6 +911,29 @@ export async function registerRoutes(
     res.json(updated);
   });
 
+  // ── Admin events ────────────────────────────────────────────────────────
+  app.get("/api/admin/events", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const events = await storage.getEvents();
+    const withCounts = await Promise.all(events.map(async (e) => ({
+      ...e,
+      participantCount: await storage.getEventParticipantCount(e.id),
+    })));
+    res.json(withCounts);
+  });
+
+  app.delete("/api/admin/events/:id", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const evt = await storage.getEventById(id);
+    if (!evt) return res.status(404).json({ message: "Event not found" });
+    await storage.deleteEvent(id);
+    res.json({ ok: true });
+  });
+
   // ── Stripe ─────────────────────────────────────────────────────────────
 
   app.post("/api/stripe/checkout", async (req, res) => {
