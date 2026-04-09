@@ -527,7 +527,10 @@ export default function Home() {
   const [settingsTab, setSettingsTab] = useState<'user' | 'settings' | 'support'>('user');
 
   // Intro video
-  const [showIntro, setShowIntro] = useState(() => localStorage.getItem("coldstreak-intro-enabled") !== "false");
+  const [showIntro, setShowIntro] = useState(() =>
+    localStorage.getItem("coldstreak-intro-enabled") !== "false" &&
+    localStorage.getItem("coldstreak-intro-seen") !== "true"
+  );
   const [introSeen, setIntroSeen] = useState(() => localStorage.getItem("coldstreak-intro-seen") === "true");
   const [introToggle, setIntroToggle] = useState(() => localStorage.getItem("coldstreak-intro-enabled") !== "false");
   const introVideoRef = useRef<HTMLVideoElement>(null);

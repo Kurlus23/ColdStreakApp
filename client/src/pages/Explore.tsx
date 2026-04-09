@@ -4649,14 +4649,19 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     <p className="text-blue-200 text-sm leading-relaxed">{miniProfile.bio}</p>
                   </div>
                 )}
-                <a
-                  href={`/profile/${encodeURIComponent(miniProfile.username)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}/profile/${encodeURIComponent(miniProfile.username)}`;
+                    if (Capacitor.isNativePlatform()) {
+                      window.open(url, "_system");
+                    } else {
+                      window.open(url, "_blank", "noopener,noreferrer");
+                    }
+                  }}
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-blue-800/50 border border-blue-600/40 text-blue-300 text-xs font-semibold hover:bg-blue-700/60 transition-all active:scale-95"
                 >
                   View full profile <ExternalLink className="w-3 h-3" />
-                </a>
+                </button>
               </>
             )}
           </div>
