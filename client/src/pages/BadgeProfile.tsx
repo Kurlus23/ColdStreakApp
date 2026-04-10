@@ -1,6 +1,6 @@
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
+import { TEMP_TIERS, DAYS_TIERS, STATE_EMOJI, usePassportBadges, computeStateBadges } from "@/lib/passport";
 import { X, Pencil, Share2, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { SiInstagram, SiSnapchat, SiFacebook, SiTiktok, SiX, SiYoutube } from "react-icons/si";
 import { getAuthToken } from "@/hooks/use-auth";
@@ -186,10 +186,15 @@ export default function BadgeProfile() {
 
   const totalEarnedTemp = earnedTempTierIds.size;
   const totalEarnedDays = earnedDaysTierIds.size;
-  const totalEarned = totalEarnedTemp + totalEarnedDays;
 
   const updatedStr = new Date(profile.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const isOwner = !!myUsername && myUsername.toLowerCase() === profile.username.toLowerCase();
+
+  // State/location badges — read from this device's localStorage (only meaningful when isOwner)
+  const { badges: localBadges } = usePassportBadges();
+  const earnedStateBadges = isOwner ? computeStateBadges(localBadges) : [];
+
+  const totalEarned = totalEarnedTemp + totalEarnedDays + earnedStateBadges.length;
 
   const activeSocials = SOCIAL_META.filter(({ key }) => socialLinks[key]);
 
@@ -486,6 +491,21 @@ export default function BadgeProfile() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* State / Location Badges (owner only — stored locally) */}
+        {earnedStateBadges.length > 0 && (
+          <div className="bg-blue-900/60 rounded-2xl border border-blue-700/40 px-4 py-3">
+            <p className="text-blue-300 text-xs font-semibold uppercase tracking-widest mb-2">State Badges</p>
+            <div className="flex flex-wrap gap-3">
+              {earnedStateBadges.map((state) => (
+                <div key={state} className="flex items-center gap-2">
+                  <span className="text-2xl leading-none">{(STATE_EMOJI as Record<string, string>)[state] ?? "🏆"}</span>
+                  <span className="text-white text-sm font-semibold">{state}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
