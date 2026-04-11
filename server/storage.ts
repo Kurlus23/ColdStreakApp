@@ -110,6 +110,7 @@ export interface IStorage {
   // User lookup for coordinator assignment
   getUserByDisplayName(displayName: string): Promise<User | null>;
   getUserByEmailPrefix(prefix: string): Promise<User | null>;
+  clearAdminDisplayNames(): Promise<void>;
   // Support messages
   createSupportMessage(msg: InsertSupportMessage): Promise<SupportMessage>;
   getSupportMessages(): Promise<SupportMessage[]>;
@@ -829,7 +830,8 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByDisplayName(displayName: string): Promise<User | null> {
     const [user] = await db.select().from(users)
-      .where(sql`lower(${users.displayName}) = lower(${displayName})`);
+      .where(sql`lower(${users.displayName}) = lower(${displayName})`)
+      .orderBy(users.id);
     return user ?? null;
   }
 
@@ -838,6 +840,13 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.select().from(users)
       .where(sql`lower(split_part(${users.email}, '@', 1)) = lower(${prefix})`);
     return user ?? null;
+  }
+
+  async clearAdminDisplayNames(): Promise<void> {
+    // Admin accounts should never have a display name that could shadow a real user's profile
+    await db.update(users)
+      .set({ displayName: null })
+      .where(eq(users.email, "admin@coldstreakapp.com"));
   }
 
   async createSupportMessage(msg: InsertSupportMessage): Promise<SupportMessage> {
