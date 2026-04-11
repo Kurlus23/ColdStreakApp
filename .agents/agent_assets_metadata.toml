@@ -234,6 +234,12 @@ uri = "file://client/public/screenshot-badges-2025.png"
 type = "image"
 title = "badges screen screenshot"
 
+[[generated]]
+id = "m07E2ql4E_CojNUqNIzBZ"
+uri = "file://client/public/icons/icon-512.png"
+type = "image"
+title = "generated_image"
+
 [[outputs]]
 id = "unpmrc8DDk2bB4ZkNmn5k"
 uri = "file://client/public/feature-graphic-1024x500.png"
