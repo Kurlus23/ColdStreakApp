@@ -14,6 +14,46 @@ import DeleteAccount from "@/pages/DeleteAccount";
 import EventPage from "@/pages/EventPage";
 import Admin from "@/pages/Admin";
 import { Sentry } from "@/lib/monitoring";
+import { useState, useEffect } from "react";
+
+function UpdateBanner() {
+  const [showBanner, setShowBanner] = useState(false);
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    let firstController = navigator.serviceWorker.controller;
+    const handler = () => {
+      if (firstController) {
+        setShowBanner(true);
+      }
+      firstController = navigator.serviceWorker.controller;
+    };
+    navigator.serviceWorker.addEventListener("controllerchange", handler);
+    return () => navigator.serviceWorker.removeEventListener("controllerchange", handler);
+  }, []);
+
+  if (!showBanner) return null;
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-between gap-3 bg-cyan-500 px-4 py-3 shadow-lg">
+      <p className="text-blue-950 text-sm font-semibold">🧊 ColdStreak was updated!</p>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-blue-950 text-cyan-300 text-xs font-bold px-3 py-1.5 rounded-lg"
+        >
+          Reload
+        </button>
+        <button
+          onClick={() => setShowBanner(false)}
+          className="text-blue-950 text-xs font-bold px-2 py-1.5 rounded-lg opacity-70"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function Router() {
   return (
@@ -51,6 +91,7 @@ function App() {
     }>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
+          <UpdateBanner />
           <Toaster />
           <Router />
         </TooltipProvider>
