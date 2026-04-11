@@ -599,3 +599,9 @@ id = "53Q9jTjMea-r-si9G4zTZ"
 uri = "file://client/public/tablet-10-devices.png"
 type = "image"
 title = "10\" — Bluetooth Devices"
+
+[[outputs]]
+id = "yVv5tulHAxn7nTI_4zK_X"
+uri = "file://client/public/icons/icon-512.png"
+type = "image"
+title = "ColdStreak App Icon (512x512)"
