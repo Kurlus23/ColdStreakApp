@@ -1463,13 +1463,14 @@ export async function registerRoutes(
     ]);
 
     // Fallback: find user by email prefix (e.g. "kurlus23" matches "kurlus23@gmail.com")
-    // This covers events created before the user set a display name
-    if (!storedProfile && !user) {
+    // Runs whenever user lookup by display name failed — even if storedProfile exists —
+    // so live plunge stats are always fetched for users without a display name set.
+    if (!user) {
       const userByEmail = await storage.getUserByEmailPrefix(requestedUsername);
       if (userByEmail) {
         user = userByEmail;
-        // If they have a profile under their display name, use that
-        if (userByEmail.displayName) {
+        // If they have a profile under their display name, prefer that stored profile
+        if (userByEmail.displayName && !storedProfile) {
           const profileByDisplayName = await storage.getBadgeProfile(userByEmail.displayName);
           if (profileByDisplayName) storedProfile = profileByDisplayName;
         }
