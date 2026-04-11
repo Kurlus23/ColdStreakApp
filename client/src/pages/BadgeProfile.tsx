@@ -111,6 +111,9 @@ export default function BadgeProfile() {
     retry: false,
   });
 
+  // Must be called unconditionally before any early returns
+  const { badges: localBadges } = usePassportBadges();
+
   const updateMeta = useMutation({
     mutationFn: (body: { avatarUrl?: string | null; bio: string; socialLinks: string }) =>
       apiRequest("PATCH", "/api/badge-profile", body).then((r) => r.json()),
@@ -190,8 +193,7 @@ export default function BadgeProfile() {
   const updatedStr = new Date(profile.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const isOwner = !!myUsername && myUsername.toLowerCase() === profile.username.toLowerCase();
 
-  // State/location badges — read from this device's localStorage (only meaningful when isOwner)
-  const { badges: localBadges } = usePassportBadges();
+  // State/location badges — only meaningful when isOwner (localStorage is device-local)
   const earnedStateBadges = isOwner ? computeStateBadges(localBadges) : [];
 
   const totalEarned = totalEarnedTemp + totalEarnedDays + earnedStateBadges.length;
