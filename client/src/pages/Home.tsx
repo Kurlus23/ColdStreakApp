@@ -193,6 +193,8 @@ export default function Home() {
   const [forgotSent, setForgotSent] = useState(false);
   const [resendSent, setResendSent] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showSignupNudge, setShowSignupNudge] = useState(false);
+  const [pendingSignupNudge, setPendingSignupNudge] = useState(false);
 
   const [screen, setScreen] = useState<Screen>(
     () => (localStorage.getItem("defaultScreen") as Screen) || "timer"
@@ -969,6 +971,14 @@ export default function Home() {
     if (!promptPhotoData) { preloadedPhotoRef.current = null; return; }
     loadImage(promptPhotoData).then((img) => { preloadedPhotoRef.current = img; }).catch(() => {});
   }, [promptPhotoData]);
+
+  // Show signup nudge for anonymous users after the photo prompt closes
+  useEffect(() => {
+    if (photoPromptId === null && pendingSignupNudge) {
+      setPendingSignupNudge(false);
+      setShowSignupNudge(true);
+    }
+  }, [photoPromptId, pendingSignupNudge]);
 
   // Restore profile settings (displayName, bodyWeight) from server on login
   // If server has no value yet, push local values up so they're saved
@@ -1894,6 +1904,7 @@ export default function Home() {
           confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
           toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${temperature}°F` });
           promptPlungeRef.current = { score: String(score), duration: durationSec, temperature, timerUsed: true };
+          if (!auth.user) setPendingSignupNudge(true);
           setPhotoPromptId(newPlunge.id);
           setPromptPhotoData(null);
           setPromptLocationId("home");
@@ -2852,6 +2863,7 @@ export default function Home() {
                           setManualLocSel("home"); setManualLocCustom(""); setManualLocGeo(null);
                           const locPart = finalLocName ? ` at ${finalLocName}` : "";
                           toast({ title: "Plunge logged! ❄️", description: `${manualMins}m ${manualSecs}s at ${manualTempF}°F${locPart} — added to history.` });
+                          if (!auth.user) setShowSignupNudge(true);
                         }
                       }
                     );
@@ -6317,6 +6329,46 @@ export default function Home() {
             >
               Dismiss
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── SIGNUP NUDGE (shown after anonymous user saves a plunge) ─── */}
+      {showSignupNudge && !auth.user && (
+        <div className="fixed inset-0 z-[85] flex items-end justify-center px-4 pb-8">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowSignupNudge(false)} />
+          <div className="relative w-full max-w-md bg-gradient-to-b from-blue-900 to-slate-900 border border-blue-700/50 rounded-3xl p-6 space-y-4 shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+            <div className="flex flex-col items-center text-center gap-2 pt-1">
+              <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364-.707.707M6.343 17.657l-.707.707m12.728 0-.707-.707M6.343 6.343l-.707-.707M12 7a5 5 0 100 10A5 5 0 0012 7z" />
+                </svg>
+              </div>
+              <h3 className="text-white font-bold text-lg leading-tight">Don't lose your streak!</h3>
+              <p className="text-blue-300 text-sm leading-relaxed">
+                Create a free account to sync your plunge history across devices, unlock leaderboards, and earn badges.
+              </p>
+            </div>
+            <div className="space-y-2 pt-1">
+              <button
+                data-testid="button-signup-nudge-create"
+                onClick={() => {
+                  setShowSignupNudge(false);
+                  setAuthMode("register");
+                  setShowLoginModal(true);
+                }}
+                className="w-full py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-white font-bold text-sm transition-all active:scale-[0.98]"
+              >
+                Create Free Account
+              </button>
+              <button
+                data-testid="button-signup-nudge-dismiss"
+                onClick={() => setShowSignupNudge(false)}
+                className="w-full py-2.5 rounded-2xl text-blue-400 hover:text-white text-sm font-medium transition-colors"
+              >
+                Not Now
+              </button>
+            </div>
           </div>
         </div>
       )}
