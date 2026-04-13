@@ -677,3 +677,27 @@ id = "Q3omISze_xGvL3oTXqzsS"
 uri = "file://screenshots/ipad/ipad_5.png"
 type = "image"
 title = "iPad Screenshot 5 - Bluetooth Devices"
+
+[[outputs]]
+id = "l_0NcvLM9nthSjFRQ6A-h"
+uri = "file://screenshots/ipad/ipad_phone_home.png"
+type = "image"
+title = "iPad 13\" - Home Screen"
+
+[[outputs]]
+id = "-V7sUz4u0anDP8Ot_OSsC"
+uri = "file://screenshots/ipad/ipad_phone_timer.png"
+type = "image"
+title = "iPad 13\" - Active Timer"
+
+[[outputs]]
+id = "C0LFq-TkwsFoRHWtSPBoX"
+uri = "file://screenshots/ipad/ipad_phone_badges.png"
+type = "image"
+title = "iPad 13\" - Badges"
+
+[[outputs]]
+id = "Ol4noLf_rq0by-OOevRSE"
+uri = "file://screenshots/ipad/ipad_phone_bluetooth.png"
+type = "image"
+title = "iPad 13\" - Bluetooth Devices"
