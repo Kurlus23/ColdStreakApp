@@ -605,3 +605,33 @@ id = "yVv5tulHAxn7nTI_4zK_X"
 uri = "file://client/public/icons/icon-512.png"
 type = "image"
 title = "ColdStreak App Icon (512x512)"
+
+[[outputs]]
+id = "Mans3Outl0Xxj_gBQgWcB"
+uri = "file://appstore_screenshots/IMG_5197_1776105341860_6.5in.png"
+type = "image"
+title = "1 — Timer Home Screen"
+
+[[outputs]]
+id = "ahxffFl5GaTU2sicQLvlK"
+uri = "file://appstore_screenshots/IMG_5198_1776105341860_6.5in.png"
+type = "image"
+title = "2 — Active Timer"
+
+[[outputs]]
+id = "ZkzWVeNLZ6vj5WMtpZPlY"
+uri = "file://appstore_screenshots/IMG_5199_1776105341860_6.5in.png"
+type = "image"
+title = "3 — Plunge History"
+
+[[outputs]]
+id = "3fDW_pzzB-lO2lB9PD1sp"
+uri = "file://appstore_screenshots/IMG_5200_1776105341860_6.5in.png"
+type = "image"
+title = "4 — Badges Screen"
+
+[[outputs]]
+id = "niQKUO5v65KyiKQtC0S9Z"
+uri = "file://appstore_screenshots/IMG_5201_1776105341860_6.5in.png"
+type = "image"
+title = "5 — Explore / Community"
