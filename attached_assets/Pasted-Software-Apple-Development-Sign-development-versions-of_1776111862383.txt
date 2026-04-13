@@ -1,0 +1,62 @@
+Software
+
+
+Apple Development
+Sign development versions of your iOS, iPadOS, macOS, tvOS, watchOS, and visionOS apps.
+
+Apple Distribution
+Sign your iOS, iPadOS, macOS, tvOS, watchOS, and visionOS apps for release testing using Ad Hoc distribution or for submission to App Store Connect.
+
+iOS App Development
+Sign development versions of your iOS app.
+
+iOS Distribution (App Store Connect and Ad Hoc)
+Sign your iOS, iPadOS, watchOS, and visionOS apps for submission to App Store Connect or for Ad Hoc distribution.
+
+Mac Development
+Sign development versions of your Mac app.
+
+Mac App Distribution
+This certificate is used to code sign your app and configure a Distribution Provisioning Profile for submission to the Mac App Store Connect.
+
+Mac Installer Distribution
+This certificate is used to sign your app's Installer Package for submission to the Mac App Store Connect.
+
+Developer ID Installer
+This certificate is used to sign your app's Installer Package for distribution outside of the Mac App Store Connect.
+
+Developer ID Application
+This certificate is used to code sign your app for distribution outside of the Mac App Store Connect.
+
+Services
+
+
+Apple Push Notification service SSL (Sandbox)
+Establish connectivity between your notification server and the Apple Push Notification service sandbox environment to deliver remote notifications to your app. A separate certificate is required for each app you develop.
+
+Apple Push Notification service SSL (Sandbox & Production)
+Establish connectivity between your notification server, the Apple Push Notification service sandbox, and production environments to deliver remote notifications to your app. When utilizing HTTP/2, the same certificate can be used to deliver app notifications, update ClockKit complication data, and alert background VoIP apps of incoming activity. A separate certificate is required for each app you distribute.
+
+Pass Type ID Certificate
+Sign and send updates to passes in Wallet.
+
+Order Type ID Certificate
+Sign and send updates to order information payloads displayed in Apple Wallet.
+
+Website Push ID Certificate
+Sign and send updates for Websites.
+
+Swift Package Collection Certificate
+Sign Swift Package Collections for distribution.
+
+Swift Package Certificate
+Sign Swift packages and package collections for distribution. For use with Swift Package Manager v5.9 or later.
+
+WatchKit Services Certificate
+Establish connectivity between your notification server, the Apple Push Notification service sandbox, and production environment to update ClockKit complication data. When utilizing HTTP/2, the same certificate can be used to deliver app notifications, update ClockKit complication data, and alert background VoIP apps of incoming activity. A separate certificate is required for each app you distribute.
+
+VoIP Services Certificate
+Establish connectivity between your notification server, the Apple Push Notification service sandbox, and production environment to alert background VoIP apps of incoming activity. A separate certificate is required for each app you distribute.
+
+Apple Pay Payment Processing Certificate
+Decrypt app transaction data sent by Apple to a merchant/developer.
