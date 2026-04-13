@@ -635,3 +635,9 @@ id = "niQKUO5v65KyiKQtC0S9Z"
 uri = "file://appstore_screenshots/IMG_5201_1776105341860_6.5in.png"
 type = "image"
 title = "5 — Explore / Community"
+
+[[outputs]]
+id = "xIq7ScIH6LqTyI5sJVNt-"
+uri = "file://screenshots/ipad/ipad_screenshot_1.png"
+type = "image"
+title = "iPad 13-inch Screenshot (2048×2732)"
