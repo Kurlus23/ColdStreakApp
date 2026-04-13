@@ -6,6 +6,7 @@ const config: CapacitorConfig = {
   webDir: "dist/public",
   server: {
     androidScheme: "https",
+    iosScheme: "https",
     url: "https://coldstreakapp.com",
     cleartext: false,
   },
@@ -17,11 +18,18 @@ const config: CapacitorConfig = {
       keystoreAliasPassword: undefined,
     },
   },
+  ios: {
+    contentInset: "automatic",
+    backgroundColor: "#0f1f3d",
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 1500,
       backgroundColor: "#0f1f3d",
       showSpinner: false,
+    },
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"],
     },
   },
 };
