@@ -641,3 +641,9 @@ id = "xIq7ScIH6LqTyI5sJVNt-"
 uri = "file://screenshots/ipad/ipad_screenshot_1.png"
 type = "image"
 title = "iPad 13-inch Screenshot (2048×2732)"
+
+[[outputs]]
+id = "MtPzudzEMGS6RTW5U6Of0"
+uri = "file://attached_assets/Coldstreak_App_Icon_1775867328854.png"
+type = "image"
+title = "App Store Icon (1024×1024)"
