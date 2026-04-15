@@ -4246,9 +4246,18 @@ export default function Home() {
                   )}
 
                   {/* Discovered devices list — sorted strongest signal first */}
-                  {hrScanDevices.length > 0 && (
-                    <div className="space-y-1.5">
-                      {[...hrScanDevices].sort((a, b) => b.rssi - a.rssi).map((d) => {
+                  {hrScanDevices.length > 0 && (() => {
+                    // Filter out devices that are clearly not heart rate monitors
+                    const NON_HR_PATTERNS = /\b(TV|Television|YamahaAV|Yamaha|LCI|Remote|MacBook|iMac|MacPro|AirPod|HomePod|iPad|iPhone|Android|Kindle|Echo|Alexa|Chromecast|Roku|Xbox|PlayStation|Nintendo|Printer|Amazon|Ring|Nest|Hue|Sonos|Bose|Harman|JBL|Sony|Samsung|LG|Philips|Panasonic|Denon|Onkyo|Pioneer)\b/i;
+                    const filtered = [...hrScanDevices]
+                      .filter(d => !NON_HR_PATTERNS.test(d.name))
+                      .sort((a, b) => b.rssi - a.rssi);
+                    if (filtered.length === 0) return (
+                      <p className="text-center text-blue-400/50 text-xs py-2">No heart rate monitors detected nearby.<br/>Make sure your device is powered on.</p>
+                    );
+                    return (
+                    <div className="max-h-52 overflow-y-auto space-y-1.5 pr-0.5">
+                      {filtered.map((d) => {
                         const bars = d.rssi >= -60 ? 3 : d.rssi >= -75 ? 2 : 1;
                         const barColor = bars === 3 ? "text-green-400" : bars === 2 ? "text-yellow-400" : "text-red-400/60";
                         return (
@@ -4275,7 +4284,8 @@ export default function Home() {
                         );
                       })}
                     </div>
-                  )}
+                    );
+                  })()}
 
                   {/* No devices found after scan */}
                   {hrScanDone && !hrScanActive && hrScanDevices.length === 0 && (
