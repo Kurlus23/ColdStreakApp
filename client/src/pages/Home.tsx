@@ -1792,7 +1792,7 @@ export default function Home() {
       } else {
         await BleClient.disconnect(deviceId).catch(() => {});
         btDeviceRef.current = null;
-        toast({ title: "Device connected — protocol unknown", description: "Could not read temperature from this device.", variant: "destructive" });
+        toast({ title: "Device connected — protocol unknown [D1]", description: "Could not read temperature from this device.", variant: "destructive" });
       }
     } catch (err: any) {
       const msg = err?.message ?? "";
@@ -1890,7 +1890,7 @@ export default function Home() {
       } else {
         await BleClient.disconnect(deviceId).catch(() => {});
         btDeviceRef.current = null;
-        toast({ title: "Device connected — protocol unknown", description: "Could not read temperature from this device.", variant: "destructive" });
+        toast({ title: "Device connected — protocol unknown [D1]", description: "Could not read temperature from this device.", variant: "destructive" });
       }
     } catch (err: any) {
       const msg = err?.message ?? "";
