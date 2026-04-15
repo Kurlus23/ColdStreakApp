@@ -95,6 +95,19 @@ All options are stored in `attached_assets/generated_images/`:
   - Show a "Custom" option in the wallpaper picker that opens the device photo library
   - If cloud storage is added later (e.g. Cloudinary), migrate to URL-based storage per the avatar roadmap pattern
 
+## Post-iOS Launch (Before v2.0)
+
+### Smartwatch Companion Apps
+Priority order: Apple Watch first (existing iOS ecosystem), then Garmin, then Amazfit. Each is a standalone project requiring platform-specific development.
+
+- **Apple Watch** — watchOS app written in Swift/SwiftUI alongside the Xcode project. Features: press Digital Crown or a button to start/stop the ColdStreak timer (via WatchConnectivity messaging to the iPhone app); automatically start an HKWorkoutSession so the watch records continuous heart rate throughout the plunge; heart rate data syncs back into ColdStreak session automatically. Requires HealthKit + WatchKit entitlements in App Store Connect and a new watchOS target in the Xcode project. This is the highest-priority watch platform given the existing iOS distribution.
+
+- **Garmin (Connect IQ)** — Garmin widget or datafield app written in Monkey C using the Connect IQ SDK. Communicates with the phone via the Garmin Connect companion API. Start/stop timer from the watch; HR auto-recorded by Garmin's native workout tracking and optionally pushed to ColdStreak. Covers a large user base (Fenix, Forerunner, Epix, Venu series). Requires a Connect IQ developer account and publishing to the Garmin Connect IQ store.
+
+- **Amazfit T-Rex 2 / Zepp OS** — Zepp OS mini-program written in JavaScript-adjacent syntax (most approachable of the three). Start/stop timer from the watch face; HR data from Zepp's native BioTracker sensor passed to the phone companion app. Requires a Zepp developer account and publishing to the Zepp app store. Zepp OS 2.0+ required (T-Rex 2, GTR 4, GTS 4, Falcon support this).
+
+**Shared design principle across all platforms**: the watch is a remote control + HR sensor only — all data storage, Cold Score calculation, and session history remain in the ColdStreak iPhone/Android app.
+
 ## v2.0 Roadmap Notes
 - **WiFi Thermometer Support (Pymeter PY-W25TT)** — Dual-sensor WiFi thermometer that can monitor both water temperature (cold plunge) and equipment bay temperature (chiller efficiency). Integration plan: research whether the PY-W25TT exposes a local HTTP API or requires a cloud/manufacturer API; build a setup screen where the user assigns which sensor is "water temp" vs. "equipment bay"; display equipment bay temp separately in the Devices tab (not used for Cold Score calculation). If cloud API is required, handle API key entry in Settings. The equipment bay sensor could optionally trigger alerts if the bay exceeds a temperature threshold.
 
