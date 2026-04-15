@@ -34,6 +34,28 @@ export function useAuth() {
     return () => window.removeEventListener("coldstreak:force-logout", handler);
   }, []);
 
+  // On mount: silently validate the stored token against the server.
+  // If expired or revoked, clear auth state immediately so the user
+  // is never stuck in a "logged in but nothing works" state.
+  useEffect(() => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return;
+    fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        if (res.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+          setUser(null);
+        } else if (res.ok) {
+          res.json().then((fresh: AuthUser) => {
+            localStorage.setItem(USER_KEY, JSON.stringify(fresh));
+            setUser(fresh);
+          });
+        }
+      })
+      .catch(() => { /* network offline — keep existing state */ });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const persist = (token: string, u: AuthUser) => {
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(u));

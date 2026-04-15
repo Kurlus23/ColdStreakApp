@@ -4,7 +4,10 @@ import { getAuthToken } from "@/hooks/use-auth";
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    if (res.status === 401 && text.includes("User not found")) {
+    // If we have a stored token but the server says 401, the token is
+    // expired or revoked — clear auth state immediately so the user
+    // isn't stuck in a "logged in but nothing works" state.
+    if (res.status === 401 && localStorage.getItem("coldstreak-auth-token")) {
       localStorage.removeItem("coldstreak-auth-token");
       localStorage.removeItem("coldstreak-auth-user");
       window.dispatchEvent(new Event("coldstreak:force-logout"));

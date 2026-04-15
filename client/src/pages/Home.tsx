@@ -266,13 +266,8 @@ export default function Home() {
     () => Number(localStorage.getItem("weeklyGoalMinutes") ?? 11)
   );
 
-  // Auto-open login modal on load when not signed in — but only if the
-  // intro video has already been seen (i.e. not a brand-new first-time user).
-  // First-timers see the intro video first; the signup nudge fires after
-  // their first plunge instead.
-  useEffect(() => {
-    if (!auth.user && introSeen) setShowLoginModal(true);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // No auto-open login modal — users discover signup organically through
+  // the nudge that fires after their first plunge.
 
   // Close login modal automatically once user is authenticated
   useEffect(() => {
