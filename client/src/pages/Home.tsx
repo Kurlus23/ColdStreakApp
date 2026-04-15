@@ -266,9 +266,12 @@ export default function Home() {
     () => Number(localStorage.getItem("weeklyGoalMinutes") ?? 11)
   );
 
-  // Auto-open login modal on first load when not signed in
+  // Auto-open login modal on load when not signed in — but only if the
+  // intro video has already been seen (i.e. not a brand-new first-time user).
+  // First-timers see the intro video first; the signup nudge fires after
+  // their first plunge instead.
   useEffect(() => {
-    if (!auth.user) setShowLoginModal(true);
+    if (!auth.user && introSeen) setShowLoginModal(true);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close login modal automatically once user is authenticated
@@ -6552,9 +6555,9 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364-.707.707M6.343 17.657l-.707.707m12.728 0-.707-.707M6.343 6.343l-.707-.707M12 7a5 5 0 100 10A5 5 0 0012 7z" />
                 </svg>
               </div>
-              <h3 className="text-white font-bold text-lg leading-tight">Don't lose your streak!</h3>
+              <h3 className="text-white font-bold text-lg leading-tight">Don't lose your plunge history!</h3>
               <p className="text-blue-300 text-sm leading-relaxed">
-                Create a free account to sync your plunge history across devices, unlock leaderboards, and earn badges.
+                Create a free account to save your history across devices, track your streaks, unlock leaderboards, and earn badges.
               </p>
             </div>
             <div className="space-y-2 pt-1">
