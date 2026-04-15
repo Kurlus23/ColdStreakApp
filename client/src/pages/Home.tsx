@@ -2490,26 +2490,26 @@ export default function Home() {
                 >●C</button>
               </div>
 
-              {/* Calibration offset — shown for 10 s after BT disconnect to prevent flashing */}
+              {/* Calibration offset — shown while thermometer is connected */}
               {btOffsetVisible && (
-                <div className="flex items-center gap-1 mt-1 mb-1">
-                  <span className="text-blue-400/60 text-[9px] uppercase tracking-widest shrink-0">Offset</span>
-                  <div className="flex items-center gap-0.5 ml-auto">
-                    <button
-                      data-testid="button-tile-offset-down"
-                      onClick={() => setBtTempOffset(prev => Math.max(-20, prev - 1))}
-                      className="w-5 h-5 rounded flex items-center justify-center bg-blue-800/60 text-blue-300 text-sm font-bold leading-none hover:bg-blue-700/70 active:scale-95 transition-all"
-                    >−</button>
+                <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-blue-700/30">
+                  <button
+                    data-testid="button-tile-offset-down"
+                    onClick={() => setBtTempOffset(prev => Math.max(-20, prev - 1))}
+                    className="w-6 h-6 rounded-md flex items-center justify-center bg-blue-800/70 text-blue-200 text-base font-bold hover:bg-blue-700/70 active:scale-95 transition-all"
+                  >−</button>
+                  <div className="flex flex-col items-center leading-none">
+                    <span className="text-blue-400/60 text-[8px] uppercase tracking-widest">Offset</span>
                     <span
                       data-testid="text-tile-offset"
-                      className="text-blue-300 text-[10px] font-bold w-8 text-center"
+                      className="text-blue-200 text-[11px] font-bold"
                     >{btTempOffset >= 0 ? "+" : ""}{btTempOffset}°</span>
-                    <button
-                      data-testid="button-tile-offset-up"
-                      onClick={() => setBtTempOffset(prev => Math.min(20, prev + 1))}
-                      className="w-5 h-5 rounded flex items-center justify-center bg-blue-800/60 text-blue-300 text-sm font-bold leading-none hover:bg-blue-700/70 active:scale-95 transition-all"
-                    >+</button>
                   </div>
+                  <button
+                    data-testid="button-tile-offset-up"
+                    onClick={() => setBtTempOffset(prev => Math.min(20, prev + 1))}
+                    className="w-6 h-6 rounded-md flex items-center justify-center bg-blue-800/70 text-blue-200 text-base font-bold hover:bg-blue-700/70 active:scale-95 transition-all"
+                  >+</button>
                 </div>
               )}
 
