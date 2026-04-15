@@ -1300,13 +1300,11 @@ export default function Home() {
             thermoReconnectTimerRef.current = setTimeout(autoReconnectThermo, 2500);
           }
         });
-        // Probe each protocol in order; tryThermoProtocol waits for a real
-        // notification before committing — prevents iOS silent-success on GATT.
-        let started = false;
-        let protocol: "gatt" | "govee" | "tp25" | null = null;
-        if (!started && await tryThermoProtocol(deviceId, "tp25"))  { protocol = "tp25";  started = true; }
-        if (!started && await tryThermoProtocol(deviceId, "gatt"))  { protocol = "gatt";  started = true; }
-        if (!started && await tryThermoProtocol(deviceId, "govee")) { protocol = "govee"; started = true; }
+        // Probe all protocols in parallel — first valid temperature notification wins.
+        const _det1 = await detectThermoProtocol(deviceId);
+        const protocol = _det1?.protocol ?? null;
+        const started = protocol !== null;
+        if (_det1) setTemperature(Math.min(60, Math.max(25, Math.round(_det1.tempF + btTempOffsetRef.current))));
 
         if (!cancelled) {
           if (started && protocol) {
@@ -1382,59 +1380,56 @@ export default function Home() {
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Subscribe to a thermometer protocol and wait up to 3 s for the first real
-   * temperature notification. Returns true only when valid data arrives —
-   * this prevents iOS from silently "succeeding" on a service the device
-   * doesn't actually have (which would block later protocol attempts).
-   * On failure the characteristic is unsubscribed before returning.
+   * Try all three thermometer protocols simultaneously and return the first one
+   * that yields a valid temperature notification within 10 s. Parallel probing
+   * avoids the "device cooldown" problem where a failed sequential attempt
+   * prevents the next protocol from getting a response. All losing subscriptions
+   * are cleaned up automatically once a winner is found.
    */
-  function tryThermoProtocol(deviceId: string, protocol: "gatt" | "govee" | "tp25"): Promise<boolean> {
-    const svc  = protocol === "gatt"  ? HEALTH_THERM_SERVICE
-               : protocol === "govee" ? GOVEE_SERVICE : TP25_SERVICE;
-    const char = protocol === "gatt"  ? HEALTH_THERM_CHAR
-               : protocol === "govee" ? GOVEE_CHAR_DATA : TP25_CHAR_NOTIF;
+  function detectThermoProtocol(deviceId: string): Promise<{ protocol: "gatt" | "govee" | "tp25"; tempF: number } | null> {
+    const candidates = [
+      { name: "tp25"  as const, svc: TP25_SERVICE,         char: TP25_CHAR_NOTIF   },
+      { name: "gatt"  as const, svc: HEALTH_THERM_SERVICE, char: HEALTH_THERM_CHAR },
+      { name: "govee" as const, svc: GOVEE_SERVICE,         char: GOVEE_CHAR_DATA   },
+    ];
 
-    return new Promise<boolean>((resolve) => {
+    return new Promise((resolve) => {
       let settled = false;
-      let timer: ReturnType<typeof setTimeout>;
+      const mainTimer = setTimeout(() => settle(null), 10_000);
 
-      const settle = (ok: boolean) => {
+      function settle(result: { protocol: "gatt" | "govee" | "tp25"; tempF: number } | null) {
         if (settled) return;
         settled = true;
-        clearTimeout(timer);
-        resolve(ok);
-      };
+        clearTimeout(mainTimer);
+        resolve(result);
+      }
 
-      BleClient.startNotifications(deviceId, svc, char, (dv) => {
-        lastThermoNotifRef.current = Date.now();
-        let tempF: number | null = null;
-        if (protocol === "gatt")       tempF = parseBtTemperature(dv);
-        else if (protocol === "govee") {
-          tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
-          if (tempF !== null && (tempF <= 25 || tempF >= 120)) tempF = null;
-        }
-        else if (protocol === "tp25")  tempF = parseTp25Temperature(dv);
-        if (tempF !== null) {
-          setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
-          settle(true);
-        }
-      }).then(async () => {
-        // Send activation commands so the device actually starts pushing data
-        if (protocol === "tp25") {
-          await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
-            new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)).catch(() => {});
-        } else if (protocol === "govee") {
-          await BleClient.writeWithoutResponse(deviceId, GOVEE_SERVICE, GOVEE_CHAR_PROTO,
-            new DataView(new Uint8Array([0xAA, 0x01]).buffer)).catch(() => {});
-        }
-        // Timeout: GATT/Govee send every ~1 s so 3 s is enough; TP25 needs up to
-        // 7 s on iOS for custom service discovery + subscribe + write round-trip.
-        const timeoutMs = protocol === "tp25" ? 7_000 : 3_000;
-        timer = setTimeout(async () => {
-          await BleClient.stopNotifications(deviceId, svc, char).catch(() => {});
-          settle(false);
-        }, timeoutMs);
-      }).catch(() => settle(false)); // startNotifications threw → service not found
+      for (const { name, svc, char } of candidates) {
+        BleClient.startNotifications(deviceId, svc, char, (dv) => {
+          lastThermoNotifRef.current = Date.now();
+          let tempF: number | null = null;
+          if (name === "gatt") tempF = parseBtTemperature(dv);
+          else if (name === "govee") {
+            tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
+            if (tempF !== null && (tempF <= 25 || tempF >= 120)) tempF = null;
+          }
+          else if (name === "tp25") tempF = parseTp25Temperature(dv);
+          if (tempF !== null) settle({ protocol: name, tempF });
+        }).then(async () => {
+          // If another protocol already won, clean up this one immediately
+          if (settled) { BleClient.stopNotifications(deviceId, svc, char).catch(() => {}); return; }
+          // Send activation commands so the device starts pushing data
+          if (name === "tp25") {
+            await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
+              new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)).catch(() => {});
+          } else if (name === "govee") {
+            await BleClient.writeWithoutResponse(deviceId, GOVEE_SERVICE, GOVEE_CHAR_PROTO,
+              new DataView(new Uint8Array([0xAA, 0x01]).buffer)).catch(() => {});
+          }
+          // Re-check after async work — may have been settled while awaiting
+          if (settled) { BleClient.stopNotifications(deviceId, svc, char).catch(() => {}); }
+        }).catch(() => {}); // service not found — let other protocols win
+      }
     });
   }
 
@@ -1761,11 +1756,13 @@ export default function Home() {
         }
       });
 
-      let connected = false;
-
-      if (!connected && await tryThermoProtocol(deviceId, "tp25"))  { btProtocolRef.current = "tp25";  setBtProtocol("tp25");  connected = true; }
-      if (!connected && await tryThermoProtocol(deviceId, "gatt"))  { btProtocolRef.current = "gatt";  setBtProtocol("gatt");  connected = true; }
-      if (!connected && await tryThermoProtocol(deviceId, "govee")) { btProtocolRef.current = "govee"; setBtProtocol("govee"); connected = true; }
+      const _det2 = await detectThermoProtocol(deviceId);
+      const connected = _det2 !== null;
+      if (_det2) {
+        btProtocolRef.current = _det2.protocol;
+        setBtProtocol(_det2.protocol);
+        setTemperature(Math.min(60, Math.max(25, Math.round(_det2.tempF + btTempOffsetRef.current))));
+      }
 
       if (connected) {
         startThermoKeepalive(deviceId, btProtocolRef.current!);
@@ -1858,10 +1855,13 @@ export default function Home() {
           thermoReconnectTimerRef.current = setTimeout(autoReconnectThermo, 2500);
         }
       });
-      let connected = false;
-      if (!connected && await tryThermoProtocol(deviceId, "tp25"))  { btProtocolRef.current = "tp25";  setBtProtocol("tp25");  connected = true; }
-      if (!connected && await tryThermoProtocol(deviceId, "gatt"))  { btProtocolRef.current = "gatt";  setBtProtocol("gatt");  connected = true; }
-      if (!connected && await tryThermoProtocol(deviceId, "govee")) { btProtocolRef.current = "govee"; setBtProtocol("govee"); connected = true; }
+      const _det3 = await detectThermoProtocol(deviceId);
+      const connected = _det3 !== null;
+      if (_det3) {
+        btProtocolRef.current = _det3.protocol;
+        setBtProtocol(_det3.protocol);
+        setTemperature(Math.min(60, Math.max(25, Math.round(_det3.tempF + btTempOffsetRef.current))));
+      }
       if (connected) {
         startThermoKeepalive(deviceId, btProtocolRef.current!);
         setBtConnected(true);
@@ -1897,14 +1897,15 @@ export default function Home() {
           thermoReconnectTimerRef.current = setTimeout(autoReconnectThermo, 2500);
         }
       });
-      let connected = false;
-      let protocol: "gatt" | "govee" | "tp25" | null = null;
-      if (!connected && await tryThermoProtocol(deviceId, "tp25"))  { protocol = "tp25";  connected = true; }
-      if (!connected && await tryThermoProtocol(deviceId, "gatt"))  { protocol = "gatt";  connected = true; }
-      if (!connected && await tryThermoProtocol(deviceId, "govee")) { protocol = "govee"; connected = true; }
+      const _det4 = await detectThermoProtocol(deviceId);
+      const protocol = _det4?.protocol ?? null;
+      const connected = protocol !== null;
+      if (_det4) {
+        btProtocolRef.current = _det4.protocol;
+        setBtProtocol(_det4.protocol);
+        setTemperature(Math.min(60, Math.max(25, Math.round(_det4.tempF + btTempOffsetRef.current))));
+      }
       if (connected) {
-        btProtocolRef.current = protocol;
-        setBtProtocol(protocol);
         startThermoKeepalive(deviceId, protocol!);
         setBtConnected(true);
         toast({ title: "Thermometer reconnected", description: `${name} — temperature will update automatically.` });
