@@ -286,7 +286,7 @@ export default function Home() {
     const delta = btTempOffset - btTempOffsetRef.current;
     localStorage.setItem("coldstreak-bt-temp-offset", String(btTempOffset));
     btTempOffsetRef.current = btTempOffset;
-    if (delta !== 0 && btDeviceRef.current) {
+    if (delta !== 0) {
       setTemperature(curr => Math.min(60, Math.max(25, curr + delta)));
     }
   }, [btTempOffset]);
@@ -1409,11 +1409,13 @@ export default function Home() {
           await BleClient.writeWithoutResponse(deviceId, GOVEE_SERVICE, GOVEE_CHAR_PROTO,
             new DataView(new Uint8Array([0xAA, 0x01]).buffer)).catch(() => {});
         }
-        // 3 s grace period — a real GATT device sends every ~1 s; TP25 responds to the write above
+        // Timeout: GATT/Govee send every ~1 s so 3 s is enough; TP25 needs up to
+        // 7 s on iOS for custom service discovery + subscribe + write round-trip.
+        const timeoutMs = protocol === "tp25" ? 7_000 : 3_000;
         timer = setTimeout(async () => {
           await BleClient.stopNotifications(deviceId, svc, char).catch(() => {});
           settle(false);
-        }, 3_000);
+        }, timeoutMs);
       }).catch(() => settle(false)); // startNotifications threw → service not found
     });
   }
@@ -2453,23 +2455,20 @@ export default function Home() {
 
               {/* Calibration offset — shown while thermometer is connected */}
               {btOffsetVisible && (
-                <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-blue-700/30">
+                <div className="flex items-center justify-center gap-1 mt-1.5 pt-1.5 border-t border-blue-700/30">
                   <button
                     data-testid="button-tile-offset-down"
                     onClick={() => setBtTempOffset(prev => Math.max(-20, prev - 1))}
-                    className="w-6 h-6 rounded-md flex items-center justify-center bg-blue-800/70 text-blue-200 text-base font-bold hover:bg-blue-700/70 active:scale-95 transition-all"
+                    className="w-6 h-6 rounded-md flex items-center justify-center bg-blue-800/70 text-blue-200 text-sm font-bold hover:bg-blue-700/70 active:scale-95 transition-all"
                   >−</button>
-                  <div className="flex flex-col items-center leading-none">
-                    <span className="text-blue-400/60 text-[8px] uppercase tracking-widest">Offset</span>
-                    <span
-                      data-testid="text-tile-offset"
-                      className="text-blue-200 text-[11px] font-bold"
-                    >{btTempOffset >= 0 ? "+" : ""}{btTempOffset}°</span>
-                  </div>
+                  <span
+                    data-testid="text-tile-offset"
+                    className="text-blue-300 text-[11px] font-bold w-10 text-center"
+                  >{btTempOffset >= 0 ? "+" : ""}{btTempOffset}°</span>
                   <button
                     data-testid="button-tile-offset-up"
                     onClick={() => setBtTempOffset(prev => Math.min(20, prev + 1))}
-                    className="w-6 h-6 rounded-md flex items-center justify-center bg-blue-800/70 text-blue-200 text-base font-bold hover:bg-blue-700/70 active:scale-95 transition-all"
+                    className="w-6 h-6 rounded-md flex items-center justify-center bg-blue-800/70 text-blue-200 text-sm font-bold hover:bg-blue-700/70 active:scale-95 transition-all"
                   >+</button>
                 </div>
               )}
