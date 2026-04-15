@@ -225,6 +225,9 @@ export default function Home() {
   const [hrScanActive, setHrScanActive] = useState(false);
   const [hrScanDone, setHrScanDone] = useState(false);
   const [hrScanDevices, setHrScanDevices] = useState<{deviceId: string; name: string; rssi: number}[]>([]);
+  const [thermoScanActive, setThermoScanActive] = useState(false);
+  const [thermoScanDone, setThermoScanDone] = useState(false);
+  const [thermoScanDevices, setThermoScanDevices] = useState<{deviceId: string; name: string; rssi: number}[]>([]);
   // HR manual address entry
   const [hrManualEntry, setHrManualEntry] = useState(false);
   const [hrManualAddress, setHrManualAddress] = useState("");
@@ -1722,6 +1725,118 @@ export default function Home() {
       setBtConnecting(false);
     }
   };
+
+  // Name patterns that identify likely thermometer devices
+  const THERMO_NAME_PATTERN = /govee|gvh|h5\d{2}|thermopro|tp-?\d{2,3}|tp25|tp357|tp358|inkbird|inkbird|ibt-?\d|ibs-?t|temp.*sensor|smart.*therm|thermo/i;
+
+  async function startThermoScan() {
+    if (!assertBleAvailable()) return;
+    try {
+      setThermoScanDevices([]);
+      setThermoScanDone(false);
+      setThermoScanActive(true);
+      await BleClient.initialize();
+      await BleClient.requestLEScan({}, (result) => {
+        const name = result.device.name ?? "";
+        if (!name) return;
+        if (!THERMO_NAME_PATTERN.test(name)) return;
+        const rssi = result.rssi ?? -99;
+        setThermoScanDevices(prev => {
+          const idx = prev.findIndex(d => d.deviceId === result.device.deviceId);
+          if (idx >= 0) {
+            const updated = [...prev];
+            updated[idx] = { ...updated[idx], rssi };
+            return updated;
+          }
+          return [...prev, { deviceId: result.device.deviceId, name, rssi }];
+        });
+      });
+      setTimeout(() => {
+        BleClient.stopLEScan().catch(() => {});
+        setThermoScanActive(false);
+        setThermoScanDone(true);
+      }, 20_000);
+    } catch (err: any) {
+      setThermoScanActive(false);
+      const msg = err?.message ?? "";
+      if (!msg.includes("cancelled")) {
+        toast({ title: "Scan failed", description: msg || "Could not scan for devices.", variant: "destructive" });
+      }
+    }
+  }
+
+  async function stopThermoScan() {
+    await BleClient.stopLEScan().catch(() => {});
+    setThermoScanActive(false);
+    setThermoScanDone(true);
+  }
+
+  async function connectFromThermoScan(deviceId: string, name: string) {
+    await BleClient.stopLEScan().catch(() => {});
+    setThermoScanActive(false);
+    setThermoScanDevices([]);
+    setThermoScanDone(false);
+    setBtConnecting(true);
+    setBtThermoTimedOut(false);
+    try {
+      btDeviceRef.current = deviceId;
+      setBtDeviceName(name);
+      localStorage.setItem("coldstreak-bt-thermo", JSON.stringify({ deviceId, name }));
+      await BleClient.connect(deviceId, () => {
+        if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
+        setBtConnected(false);
+        if (btDeviceRef.current) {
+          if (thermoReconnectTimerRef.current) clearTimeout(thermoReconnectTimerRef.current);
+          thermoReconnectTimerRef.current = setTimeout(autoReconnectThermo, 2500);
+        }
+      });
+      let connected = false;
+      try {
+        await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
+          const tempF = parseBtTemperature(dv);
+          if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+        });
+        btProtocolRef.current = "gatt";
+        connected = true;
+      } catch { /* try next */ }
+      if (!connected) {
+        try {
+          await BleClient.startNotifications(deviceId, GOVEE_SERVICE, GOVEE_CHAR_DATA, (dv) => {
+            const tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
+            if (tempF !== null && tempF > 25 && tempF < 120) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+          });
+          try { await BleClient.writeWithoutResponse(deviceId, GOVEE_SERVICE, GOVEE_CHAR_PROTO, new DataView(new Uint8Array([0xAA, 0x01]).buffer)); } catch { /* ignore */ }
+          btProtocolRef.current = "govee";
+          connected = true;
+        } catch { /* try next */ }
+      }
+      if (!connected) {
+        try {
+          await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
+            const tempF = parseTp25Temperature(dv);
+            if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+          });
+          try { await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE, new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)); } catch { /* ignore */ }
+          btProtocolRef.current = "tp25";
+          connected = true;
+        } catch { /* unknown protocol */ }
+      }
+      if (connected) {
+        startThermoKeepalive(deviceId, btProtocolRef.current!);
+        setBtConnected(true);
+        toast({ title: "Thermometer connected", description: `${name} — temperature will update automatically.` });
+      } else {
+        await BleClient.disconnect(deviceId).catch(() => {});
+        btDeviceRef.current = null;
+        toast({ title: "Device connected — protocol unknown", description: "Could not read temperature from this device.", variant: "destructive" });
+      }
+    } catch (err: any) {
+      const msg = err?.message ?? "";
+      if (!msg.includes("cancelled")) toast({ title: "Connection failed", description: msg || "Could not connect.", variant: "destructive" });
+    } finally {
+      setBtConnecting(false);
+    }
+  }
 
   // Reconnect to a previously paired thermometer from the UI (without picker)
   async function reconnectThermoFromUI(deviceId: string, name: string) {
@@ -4150,16 +4265,62 @@ export default function Home() {
                     } catch { return null; }
                   })()}
 
-                  {/* Pair a different / new thermometer */}
-                  <button
-                    data-testid="button-bt-connect-devices"
-                    onClick={connectThermometer}
-                    disabled={btConnecting}
-                    className="w-full py-2 rounded-xl bg-cyan-900/20 border border-cyan-700/30 text-cyan-400/80 text-xs font-semibold hover:bg-cyan-900/40 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    <Bluetooth className="w-3.5 h-3.5" />
-                    {localStorage.getItem("coldstreak-bt-thermo") ? "Pair a different thermometer" : "Pair Thermometer"}
-                  </button>
+                  {/* Thermometer scan / discovered list */}
+                  {thermoScanActive ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between bg-cyan-900/20 border border-cyan-700/30 rounded-xl px-3 py-2">
+                        <div className="flex items-center gap-2 text-cyan-300 text-xs">
+                          <span className="w-3 h-3 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                          Scanning…{thermoScanDevices.length > 0 && <span className="text-cyan-300/60"> ({thermoScanDevices.length} found)</span>}
+                        </div>
+                        <button data-testid="button-thermo-scan-stop" onClick={stopThermoScan} className="text-cyan-400/70 text-[10px] hover:text-cyan-300 transition-colors">Stop</button>
+                      </div>
+                      {thermoScanDevices.length === 0 && (
+                        <p className="text-cyan-400/50 text-[11px] text-center py-1 leading-relaxed">
+                          Press the <span className="text-white font-semibold">pairing button</span> on your thermometer<br/>and it will appear here.
+                        </p>
+                      )}
+                      {thermoScanDevices.length > 0 && (
+                        <div className="max-h-48 overflow-y-auto space-y-1.5 pr-0.5">
+                          {[...thermoScanDevices].sort((a, b) => b.rssi - a.rssi).map((d) => {
+                            const bars = d.rssi >= -60 ? 3 : d.rssi >= -75 ? 2 : 1;
+                            const barColor = bars === 3 ? "text-green-400" : bars === 2 ? "text-yellow-400" : "text-red-400/60";
+                            return (
+                              <button
+                                key={d.deviceId}
+                                data-testid={`button-thermo-device-${d.deviceId}`}
+                                onClick={() => connectFromThermoScan(d.deviceId, d.name)}
+                                disabled={btConnecting}
+                                className="w-full flex items-center gap-3 bg-cyan-900/30 border border-cyan-700/30 rounded-xl px-3 py-2.5 hover:bg-cyan-800/40 transition-colors text-left disabled:opacity-40"
+                              >
+                                <Snowflake className="w-4 h-4 text-cyan-400 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-white text-sm font-medium truncate">{d.name}</div>
+                                  <div className="text-cyan-400/50 text-[10px] font-mono truncate">{d.deviceId}</div>
+                                </div>
+                                <div className={`flex items-end gap-[2px] ${barColor} shrink-0`} title={`${d.rssi} dBm`}>
+                                  <span className="w-[3px] rounded-sm bg-current" style={{height: 6, opacity: bars >= 1 ? 1 : 0.2}} />
+                                  <span className="w-[3px] rounded-sm bg-current" style={{height: 10, opacity: bars >= 2 ? 1 : 0.2}} />
+                                  <span className="w-[3px] rounded-sm bg-current" style={{height: 14, opacity: bars >= 3 ? 1 : 0.2}} />
+                                </div>
+                                <span className="text-cyan-300 text-[10px] font-semibold shrink-0">Connect</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      data-testid="button-bt-connect-devices"
+                      onClick={startThermoScan}
+                      disabled={btConnecting}
+                      className="w-full py-2 rounded-xl bg-cyan-900/20 border border-cyan-700/30 text-cyan-400/80 text-xs font-semibold hover:bg-cyan-900/40 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <Bluetooth className="w-3.5 h-3.5" />
+                      {localStorage.getItem("coldstreak-bt-thermo") ? "Pair a different thermometer" : "Pair Thermometer"}
+                    </button>
+                  )}
                 </div>
               )}
               {/* Temperature calibration offset */}
