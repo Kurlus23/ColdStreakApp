@@ -218,6 +218,7 @@ export default function Home() {
   const btDeviceRef = useRef<string | null>(null); // stores deviceId (string)
   const btKeepaliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const btProtocolRef = useRef<"gatt" | "govee" | "tp25" | null>(null);
+  const lastThermoNotifRef = useRef<number>(0); // epoch ms of last received BLE notification
   const thermoReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const thermoReconnectCountRef = useRef(0);
   const [savedDevicesKey, setSavedDevicesKey] = useState(0); // bump to re-render saved device rows
@@ -1289,6 +1290,7 @@ export default function Home() {
         if (!started) {
           try {
             await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
+              lastThermoNotifRef.current = Date.now();
               const tempF = parseBtTemperature(dv);
               if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
             });
@@ -1300,6 +1302,7 @@ export default function Home() {
         if (!started) {
           try {
             await BleClient.startNotifications(deviceId, GOVEE_SERVICE, GOVEE_CHAR_DATA, (dv) => {
+              lastThermoNotifRef.current = Date.now();
               const tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
               if (tempF !== null && tempF > 25 && tempF < 120)
                 setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
@@ -1316,6 +1319,7 @@ export default function Home() {
         if (!started) {
           try {
             await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
+              lastThermoNotifRef.current = Date.now();
               const tempF = parseTp25Temperature(dv);
               if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
             });
@@ -1403,18 +1407,52 @@ export default function Home() {
   // Helper: start keep-alive pings so the thermometer doesn't time out
   function startThermoKeepalive(deviceId: string, protocol: "gatt" | "govee" | "tp25") {
     if (btKeepaliveRef.current) clearInterval(btKeepaliveRef.current);
-    if (protocol === "tp25") {
-      btKeepaliveRef.current = setInterval(() => {
+    lastThermoNotifRef.current = Date.now(); // reset so first interval doesn't fire immediately
+
+    btKeepaliveRef.current = setInterval(() => {
+      if (!btDeviceRef.current) return;
+
+      // ── Notification watchdog ────────────────────────────────────────────────
+      // iOS silently drops characteristic notification subscriptions while the
+      // GATT connection stays open. If we haven't received a notification in
+      // 12 s, stop → restart the subscription to revive it.
+      const staleness = Date.now() - lastThermoNotifRef.current;
+      if (staleness > 12_000) {
+        lastThermoNotifRef.current = Date.now(); // prevent rapid re-trigger while async
+        const service = protocol === "gatt" ? HEALTH_THERM_SERVICE
+                      : protocol === "govee" ? GOVEE_SERVICE
+                      : TP25_SERVICE;
+        const char   = protocol === "gatt" ? HEALTH_THERM_CHAR
+                      : protocol === "govee" ? GOVEE_CHAR_DATA
+                      : TP25_CHAR_NOTIF;
+        (async () => {
+          try { await BleClient.stopNotifications(deviceId, service, char); } catch { /* already gone */ }
+          try {
+            await BleClient.startNotifications(deviceId, service, char, (dv) => {
+              lastThermoNotifRef.current = Date.now();
+              let tempF: number | null = null;
+              if (protocol === "gatt") tempF = parseBtTemperature(dv);
+              else if (protocol === "govee") {
+                tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
+                if (tempF !== null && (tempF <= 25 || tempF >= 120)) tempF = null;
+              }
+              else if (protocol === "tp25") tempF = parseTp25Temperature(dv);
+              if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+            });
+          } catch { /* connection may have dropped — let disconnect handler handle it */ }
+        })();
+      }
+
+      // ── Protocol-specific keepalive pings ────────────────────────────────────
+      if (protocol === "tp25") {
         BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
           new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)).catch(() => {});
-      }, 10_000);
-    } else if (protocol === "govee") {
-      btKeepaliveRef.current = setInterval(() => {
+      } else if (protocol === "govee") {
         BleClient.writeWithoutResponse(deviceId, GOVEE_SERVICE, GOVEE_CHAR_PROTO,
           new DataView(new Uint8Array([0xAA, 0x01]).buffer)).catch(() => {});
-      }, 10_000);
-    }
-    // GATT health thermometer is indication-based, no keep-alive needed
+      }
+      // GATT health thermometer is indication-based; no write keepalive needed
+    }, 10_000);
   }
 
   // ─── Thermometer auto-reconnect ──────────────────────────────────────────────
@@ -1448,6 +1486,7 @@ export default function Home() {
       if (protocol === "gatt" && !reconnected) {
         try {
           await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
+            lastThermoNotifRef.current = Date.now();
             const tempF = parseBtTemperature(dv);
             if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
           });
@@ -1457,6 +1496,7 @@ export default function Home() {
       if (protocol === "govee" && !reconnected) {
         try {
           await BleClient.startNotifications(deviceId, GOVEE_SERVICE, GOVEE_CHAR_DATA, (dv) => {
+            lastThermoNotifRef.current = Date.now();
             const tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
             if (tempF !== null && tempF > 25 && tempF < 120)
               setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
@@ -1468,6 +1508,7 @@ export default function Home() {
       if (protocol === "tp25" && !reconnected) {
         try {
           await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
+            lastThermoNotifRef.current = Date.now();
             const tempF = parseTp25Temperature(dv);
             if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
           });
@@ -1691,6 +1732,7 @@ export default function Home() {
       // ── Attempt 1: standard health_thermometer GATT ──────────────────────
       try {
         await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
+          lastThermoNotifRef.current = Date.now();
           const tempF = parseBtTemperature(dv);
           if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
         });
@@ -1702,6 +1744,7 @@ export default function Home() {
       if (!connected) {
         try {
           await BleClient.startNotifications(deviceId, GOVEE_SERVICE, GOVEE_CHAR_DATA, (dv) => {
+            lastThermoNotifRef.current = Date.now();
             const tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
             if (tempF !== null && tempF > 25 && tempF < 120) {
               setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
@@ -1720,6 +1763,7 @@ export default function Home() {
       if (!connected) {
         try {
           await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
+            lastThermoNotifRef.current = Date.now();
             const tempF = parseTp25Temperature(dv);
             if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
           });
@@ -1826,6 +1870,7 @@ export default function Home() {
       let connected = false;
       try {
         await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
+          lastThermoNotifRef.current = Date.now();
           const tempF = parseBtTemperature(dv);
           if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
         });
@@ -1835,6 +1880,7 @@ export default function Home() {
       if (!connected) {
         try {
           await BleClient.startNotifications(deviceId, GOVEE_SERVICE, GOVEE_CHAR_DATA, (dv) => {
+            lastThermoNotifRef.current = Date.now();
             const tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
             if (tempF !== null && tempF > 25 && tempF < 120) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
           });
@@ -1846,6 +1892,7 @@ export default function Home() {
       if (!connected) {
         try {
           await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
+            lastThermoNotifRef.current = Date.now();
             const tempF = parseTp25Temperature(dv);
             if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
           });
@@ -1894,6 +1941,7 @@ export default function Home() {
       if (!connected) {
         try {
           await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
+            lastThermoNotifRef.current = Date.now();
             const tempF = parseBtTemperature(dv);
             if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
           });
@@ -1903,6 +1951,7 @@ export default function Home() {
       if (!connected) {
         try {
           await BleClient.startNotifications(deviceId, GOVEE_SERVICE, GOVEE_CHAR_DATA, (dv) => {
+            lastThermoNotifRef.current = Date.now();
             const tempF = parseGoveeTemperature(dv) ?? parseBtTemperature(dv);
             if (tempF !== null && tempF > 25 && tempF < 120)
               setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
@@ -1914,6 +1963,7 @@ export default function Home() {
       if (!connected) {
         try {
           await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
+            lastThermoNotifRef.current = Date.now();
             const tempF = parseTp25Temperature(dv);
             if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
           });
