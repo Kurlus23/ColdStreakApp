@@ -1175,12 +1175,40 @@ export default function Home() {
 
   function parseGoveeTemperature(dv: DataView): number | null {
     try {
-      // Govee encodes temp+humidity as a 3-byte big-endian integer
-      // e.g. bytes [03, 21, 5D] → 0x03215D = 205149 → temp = 20.51°C, humi = 49%
-      if (dv.byteLength < 3) return null;
-      const raw = (dv.getUint8(0) << 16) | (dv.getUint8(1) << 8) | dv.getUint8(2);
-      const tempC = (raw / 1000) / 10; // first 3 digits / 10 = °C
-      return (tempC * 9 / 5) + 32; // convert to °F
+      const hex = Array.from({ length: dv.byteLength }, (_, i) =>
+        dv.getUint8(i).toString(16).padStart(2, "0")).join(" ");
+      console.log("[Govee] raw bytes:", hex);
+
+      const toF = (c: number) => (c * 9 / 5) + 32;
+      const inRange = (f: number) => f >= 25 && f <= 120;
+
+      // Format A: 6-byte packet with AA/EC header — H5054, H5051 (pool thermometers)
+      // [header][cmd][temp_hi][temp_lo][hum_hi][hum_lo]
+      // temp = uint16_be(bytes 2-3) / 100 in °C
+      if (dv.byteLength >= 4) {
+        const tempC_a = ((dv.getUint8(2) << 8) | dv.getUint8(3)) / 100;
+        const tempF_a = toF(tempC_a);
+        if (inRange(tempF_a)) { console.log("[Govee] FormatA →", tempF_a.toFixed(1), "°F"); return tempF_a; }
+      }
+
+      // Format B: signed int16 in bytes 0-1 / 100 in °C — H5074, H5075, H5179
+      if (dv.byteLength >= 2) {
+        const raw16 = dv.getInt16(0, false); // big-endian signed
+        const tempF_b = toF(raw16 / 100);
+        if (inRange(tempF_b)) { console.log("[Govee] FormatB →", tempF_b.toFixed(1), "°F"); return tempF_b; }
+      }
+
+      // Format C: 3-byte packed big-endian integer (advertisement-style)
+      // e.g. [03, 21, 5D] → 0x03215D = 205149 → floor(205149/100)/100 = 20.51°C, humi = 49%
+      if (dv.byteLength >= 3) {
+        const raw = (dv.getUint8(0) << 16) | (dv.getUint8(1) << 8) | dv.getUint8(2);
+        const tempC_c = Math.floor(raw / 100) / 100;
+        const tempF_c = toF(tempC_c);
+        if (inRange(tempF_c)) { console.log("[Govee] FormatC →", tempF_c.toFixed(1), "°F"); return tempF_c; }
+      }
+
+      console.log("[Govee] no format matched");
+      return null;
     } catch { return null; }
   }
 
@@ -4208,6 +4236,30 @@ export default function Home() {
                     <span className="text-green-300 text-sm font-medium flex-1 truncate">{btDeviceName || "Thermometer"}</span>
                     <span className="text-green-400/70 text-xs font-bold">{btConnected ? `${temperature}°${useCelsius ? "C" : "F"}` : "—"}</span>
                   </div>
+                  {/* Calibration offset — only visible when connected */}
+                  <div className="flex items-center gap-2 pt-1 border-t border-blue-700/30">
+                    <span className="text-blue-400/70 text-xs flex-1">Calibration offset</span>
+                    <button
+                      data-testid="button-temp-offset-down"
+                      onClick={() => setBtTempOffset(v => Math.max(-20, +(v - 1).toFixed(0)))}
+                      className="w-7 h-7 rounded-lg bg-blue-800/60 text-white text-base font-bold flex items-center justify-center hover:bg-blue-700/60 transition-colors"
+                    >−</button>
+                    <span data-testid="text-temp-offset" className="text-white text-xs font-bold w-10 text-center">
+                      {btTempOffset > 0 ? `+${btTempOffset}` : btTempOffset}°{useCelsius ? "C" : "F"}
+                    </span>
+                    <button
+                      data-testid="button-temp-offset-up"
+                      onClick={() => setBtTempOffset(v => Math.min(20, +(v + 1).toFixed(0)))}
+                      className="w-7 h-7 rounded-lg bg-blue-800/60 text-white text-base font-bold flex items-center justify-center hover:bg-blue-700/60 transition-colors"
+                    >+</button>
+                    {btTempOffset !== 0 && (
+                      <button
+                        data-testid="button-temp-offset-reset"
+                        onClick={() => setBtTempOffset(0)}
+                        className="text-blue-400/60 text-[10px] hover:text-blue-300 transition-colors"
+                      >reset</button>
+                    )}
+                  </div>
                   <button
                     data-testid="button-bt-disconnect-devices"
                     onClick={disconnectThermometer}
@@ -4323,30 +4375,6 @@ export default function Home() {
                   )}
                 </div>
               )}
-              {/* Temperature calibration offset */}
-              <div className="flex items-center gap-2 pt-1">
-                <span className="text-blue-400/70 text-xs flex-1">Calibration offset</span>
-                <button
-                  data-testid="button-temp-offset-down"
-                  onClick={() => setBtTempOffset(v => Math.max(-10, +(v - 1).toFixed(0)))}
-                  className="w-7 h-7 rounded-lg bg-blue-800/60 text-white text-base font-bold flex items-center justify-center hover:bg-blue-700/60 transition-colors"
-                >−</button>
-                <span data-testid="text-temp-offset" className="text-white text-xs font-bold w-10 text-center">
-                  {btTempOffset > 0 ? `+${btTempOffset}` : btTempOffset}°{useCelsius ? "C" : "F"}
-                </span>
-                <button
-                  data-testid="button-temp-offset-up"
-                  onClick={() => setBtTempOffset(v => Math.min(10, +(v + 1).toFixed(0)))}
-                  className="w-7 h-7 rounded-lg bg-blue-800/60 text-white text-base font-bold flex items-center justify-center hover:bg-blue-700/60 transition-colors"
-                >+</button>
-                {btTempOffset !== 0 && (
-                  <button
-                    data-testid="button-temp-offset-reset"
-                    onClick={() => setBtTempOffset(0)}
-                    className="text-blue-400/60 text-[10px] hover:text-blue-300 transition-colors"
-                  >reset</button>
-                )}
-              </div>
             </div>
 
             {/* Heart Rate Monitor */}
