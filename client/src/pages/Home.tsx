@@ -792,6 +792,8 @@ export default function Home() {
   const [showSettingsRestore, setShowSettingsRestore] = useState(false);
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
+  const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
+  const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
   const [badgeDetailModal, setBadgeDetailModal] = useState<
     | { type: "days"; tierId: string }
     | { type: "temp-tier"; tierId: string }
@@ -3248,8 +3250,8 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Promo code */}
-                <div className="border-t border-blue-700/30 pt-3">
+                {/* Promo code — hidden on iOS (Apple guideline 3.1.1) */}
+                {Capacitor.getPlatform() !== 'ios' && <div className="border-t border-blue-700/30 pt-3">
                   <button
                     data-testid="button-toggle-promo"
                     onClick={() => setPromoCode("")}
@@ -3285,7 +3287,7 @@ export default function Home() {
                       {promoLoading ? "…" : "Redeem"}
                     </button>
                   </div>
-                </div>
+                </div>}
               </div>
             )}
 
@@ -3556,6 +3558,13 @@ export default function Home() {
                           className="w-full py-2 rounded-xl bg-transparent border border-blue-700/50 text-blue-400 text-xs font-semibold hover:border-red-500/50 hover:text-red-400 transition-colors"
                         >
                           Sign out
+                        </button>
+                        <button
+                          data-testid="button-delete-account"
+                          onClick={() => setShowDeleteAccountConfirm(true)}
+                          className="w-full py-2 rounded-xl bg-transparent border border-red-800/40 text-red-500/70 text-xs font-semibold hover:border-red-500 hover:text-red-400 transition-colors"
+                        >
+                          Delete Account
                         </button>
                       </div>
                     ) : forgotMode ? (
@@ -6613,6 +6622,21 @@ export default function Home() {
               </div>
             )}
 
+            {Capacitor.getPlatform() === 'ios' ? (
+              <div className="space-y-3">
+                <p className="text-blue-300 text-xs text-center">Purchase ColdStreak Pro on our website and restore access here.</p>
+                <button
+                  data-testid="button-checkout-ios"
+                  onClick={() => {
+                    Analytics.proUpgradeStarted();
+                    window.open("https://coldstreakapp.com", "_system");
+                  }}
+                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white font-bold text-sm shadow-lg shadow-cyan-500/20 transition-all active:scale-[0.98]"
+                >
+                  Visit ColdStreakApp.com
+                </button>
+              </div>
+            ) : (
             <div className={(proPlan === "monthly" || proPlan === "annual") ? "" : "grid grid-cols-2 gap-3"}>
               {!(proPlan === "monthly" || proPlan === "annual") && (
               <button
@@ -6649,6 +6673,7 @@ export default function Home() {
                 {proLoading ? "…" : `Get Lifetime — $${lifetimePrice.toFixed(2)}`}
               </button>
             </div>
+            )}
 
             <div className="space-y-2">
               <div className="relative flex items-center">
@@ -6684,6 +6709,57 @@ export default function Home() {
                   {restoreLoading ? "…" : "Restore"}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteAccountConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm bg-gradient-to-b from-blue-950 to-slate-950 rounded-3xl border border-red-800/50 shadow-2xl p-6 space-y-4">
+            <div className="text-center space-y-2">
+              <div className="text-3xl">⚠️</div>
+              <h2 className="text-white font-bold text-lg">Delete Account?</h2>
+              <p className="text-blue-300 text-sm leading-relaxed">This permanently deletes your account and all plunge data. This cannot be undone.</p>
+            </div>
+            <div className="space-y-2">
+              <button
+                data-testid="button-confirm-delete-account"
+                disabled={deleteAccountLoading}
+                onClick={async () => {
+                  setDeleteAccountLoading(true);
+                  try {
+                    const token = localStorage.getItem("coldstreak-auth-token");
+                    const res = await fetch("/api/auth/account", {
+                      method: "DELETE",
+                      headers: token ? { Authorization: `Bearer ${token}` } : {},
+                    });
+                    if (res.ok) {
+                      localStorage.clear();
+                      auth.logout();
+                      setShowDeleteAccountConfirm(false);
+                      toast({ title: "Account deleted", description: "Your account and data have been permanently removed." });
+                    } else {
+                      toast({ title: "Error", description: "Could not delete account. Please try again.", variant: "destructive" });
+                    }
+                  } catch {
+                    toast({ title: "Network error", description: "Please check your connection.", variant: "destructive" });
+                  } finally {
+                    setDeleteAccountLoading(false);
+                  }
+                }}
+                className="w-full py-3 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                {deleteAccountLoading ? "Deleting…" : "Yes, Delete My Account"}
+              </button>
+              <button
+                data-testid="button-cancel-delete-account"
+                onClick={() => setShowDeleteAccountConfirm(false)}
+                className="w-full py-3 rounded-2xl border border-blue-700/50 text-blue-400 font-semibold text-sm transition-all hover:border-blue-500"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

@@ -302,6 +302,12 @@ export async function registerRoutes(
   app.delete("/api/auth/account", async (req, res) => {
     const payload = extractUser(req);
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(payload.userId);
+    if (user?.email) {
+      await storage.deleteProUser(user.email).catch(() => {});
+      customerIdCache.delete(user.email);
+      subscriptionCache.delete(user.email);
+    }
     await storage.deleteUser(payload.userId);
     res.json({ ok: true });
   });
