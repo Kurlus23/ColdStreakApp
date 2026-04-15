@@ -1418,8 +1418,13 @@ export default function Home() {
         }).then(async () => {
           // If another protocol already won, clean up this one immediately
           if (settled) { BleClient.stopNotifications(deviceId, svc, char).catch(() => {}); return; }
-          // Send activation commands so the device starts pushing data
+          // Send activation commands so the device starts pushing data.
+          // TP25 write is delayed 2 s so GATT/Govee (which need no write) can
+          // respond first — the activation write can switch the device into a
+          // proprietary mode that blocks GATT notifications.
           if (name === "tp25") {
+            await new Promise(r => setTimeout(r, 2000));
+            if (settled) { BleClient.stopNotifications(deviceId, svc, char).catch(() => {}); return; }
             await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
               new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)).catch(() => {});
           } else if (name === "govee") {
