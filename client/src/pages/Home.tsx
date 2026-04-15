@@ -1407,6 +1407,8 @@ export default function Home() {
       for (const { name, svc, char } of candidates) {
         BleClient.startNotifications(deviceId, svc, char, (dv) => {
           lastThermoNotifRef.current = Date.now();
+          const bytes = Array.from(new Uint8Array(dv.buffer)).map(b => b.toString(16).padStart(2,"0")).join(" ");
+          console.log(`[BLE] ${name} notification: ${bytes}`);
           let tempF: number | null = null;
           if (name === "gatt") tempF = parseBtTemperature(dv);
           else if (name === "govee") {
@@ -1414,8 +1416,10 @@ export default function Home() {
             if (tempF !== null && (tempF <= 25 || tempF >= 120)) tempF = null;
           }
           else if (name === "tp25") tempF = parseTp25Temperature(dv);
+          console.log(`[BLE] ${name} parsed tempF=${tempF}`);
           if (tempF !== null) settle({ protocol: name, tempF });
         }).then(async () => {
+          console.log(`[BLE] ${name} subscribed OK`);
           // If another protocol already won, clean up this one immediately
           if (settled) { BleClient.stopNotifications(deviceId, svc, char).catch(() => {}); return; }
           // Send activation commands so the device starts pushing data.
@@ -1425,15 +1429,16 @@ export default function Home() {
           if (name === "tp25") {
             await new Promise(r => setTimeout(r, 2000));
             if (settled) { BleClient.stopNotifications(deviceId, svc, char).catch(() => {}); return; }
+            console.log(`[BLE] tp25 sending activation write`);
             await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
-              new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)).catch(() => {});
+              new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)).catch((e) => console.log(`[BLE] tp25 write error: ${e}`));
           } else if (name === "govee") {
             await BleClient.writeWithoutResponse(deviceId, GOVEE_SERVICE, GOVEE_CHAR_PROTO,
               new DataView(new Uint8Array([0xAA, 0x01]).buffer)).catch(() => {});
           }
           // Re-check after async work — may have been settled while awaiting
           if (settled) { BleClient.stopNotifications(deviceId, svc, char).catch(() => {}); }
-        }).catch(() => {}); // service not found — let other protocols win
+        }).catch((e) => console.log(`[BLE] ${name} subscribe FAILED: ${e}`)); // service not found
       }
     });
   }
