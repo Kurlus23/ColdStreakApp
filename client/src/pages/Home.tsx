@@ -279,8 +279,15 @@ export default function Home() {
   }, [temperature]);
 
   useEffect(() => {
+    // Calculate the delta BEFORE updating the ref so we can shift the
+    // currently displayed temperature immediately — no need to wait for
+    // the next BLE notification to arrive.
+    const delta = btTempOffset - btTempOffsetRef.current;
     localStorage.setItem("coldstreak-bt-temp-offset", String(btTempOffset));
     btTempOffsetRef.current = btTempOffset;
+    if (delta !== 0 && btDeviceRef.current) {
+      setTemperature(curr => Math.min(60, Math.max(25, curr + delta)));
+    }
   }, [btTempOffset]);
 
   // Keep the calibration offset visible for 10 s after a disconnect so the
@@ -2490,7 +2497,7 @@ export default function Home() {
                   <div className="flex items-center gap-0.5 ml-auto">
                     <button
                       data-testid="button-tile-offset-down"
-                      onClick={() => setBtTempOffset(prev => { const v = Math.max(-10, prev - 1); localStorage.setItem("coldstreak-bt-temp-offset", String(v)); return v; })}
+                      onClick={() => setBtTempOffset(prev => Math.max(-20, prev - 1))}
                       className="w-5 h-5 rounded flex items-center justify-center bg-blue-800/60 text-blue-300 text-sm font-bold leading-none hover:bg-blue-700/70 active:scale-95 transition-all"
                     >−</button>
                     <span
@@ -2499,7 +2506,7 @@ export default function Home() {
                     >{btTempOffset >= 0 ? "+" : ""}{btTempOffset}°</span>
                     <button
                       data-testid="button-tile-offset-up"
-                      onClick={() => setBtTempOffset(prev => { const v = Math.min(10, prev + 1); localStorage.setItem("coldstreak-bt-temp-offset", String(v)); return v; })}
+                      onClick={() => setBtTempOffset(prev => Math.min(20, prev + 1))}
                       className="w-5 h-5 rounded flex items-center justify-center bg-blue-800/60 text-blue-300 text-sm font-bold leading-none hover:bg-blue-700/70 active:scale-95 transition-all"
                     >+</button>
                   </div>
