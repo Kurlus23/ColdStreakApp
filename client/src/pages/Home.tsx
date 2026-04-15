@@ -218,6 +218,7 @@ export default function Home() {
   const btDeviceRef = useRef<string | null>(null); // stores deviceId (string)
   const btKeepaliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const btProtocolRef = useRef<"gatt" | "govee" | "tp25" | null>(null);
+  const [btProtocol, setBtProtocol] = useState<"gatt" | "govee" | "tp25" | null>(null);
   const lastThermoNotifRef = useRef<number>(0); // epoch ms of last received BLE notification
   const thermoReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const thermoReconnectCountRef = useRef(0);
@@ -1149,10 +1150,11 @@ export default function Home() {
   const TP25_CHAR_WRITE = "1086fff1-3343-4817-8bb2-b32206336ce8";
   const TP25_CHAR_NOTIF = "1086fff2-3343-4817-8bb2-b32206336ce8";
 
-  // Parse a ThermoPro TP25 TLVC notification — returns probe 1 temp in °F
+  // Parse a ThermoPro TP25 TLVC notification — returns the COLDEST valid probe in °F.
+  // For cold plunge, the probe in ice water is always colder than probes in air.
   // Packet structure: [type][len][p1_hi][p1_lo][p2_hi][p2_lo]...[checksum]
-  // Probe temps start at byte 2 (skip type + len header bytes)
-  // Each probe = big-endian uint16; encoding is tenths of °C (0xFFFF = no probe)
+  //   OR with 3-byte header: [type][subtype][len][p1_hi][p1_lo]...
+  // Each probe = big-endian uint16; tenths of °C (0xFFFF / 0x0000 = no probe).
   function parseTp25Temperature(dv: DataView): number | null {
     try {
       const hex = Array.from({ length: dv.byteLength }, (_, i) =>
@@ -1160,22 +1162,38 @@ export default function Home() {
       console.log("[TP25] raw bytes:", hex);
       if (dv.byteLength < 4) return null;
 
-      // Skip TLVC header (bytes 0-1 = type + length); probe data starts at byte 2.
-      // Walk aligned 2-byte pairs representing each probe, ignoring the trailing checksum.
-      for (let i = 2; i + 1 < dv.byteLength; i += 2) {
-        const raw = (dv.getUint8(i) << 8) | dv.getUint8(i + 1);
-        if (raw === 0xFFFF || raw === 0x0000) continue; // no probe / disconnected
+      let coldest: number | null = null;
 
-        // Attempt A: encoded as tenths of °C (standard for most meat thermometers)
-        const tempC_a = raw / 10;
-        const tempF_a = (tempC_a * 9) / 5 + 32;
-        if (tempF_a >= 25 && tempF_a <= 110) return tempF_a;
+      // Try both 2-byte header (offset 2) and 3-byte header (offset 3) variants
+      for (const startOffset of [2, 3, 0]) {
+        for (let i = startOffset; i + 1 < dv.byteLength; i += 2) {
+          const rawBE = (dv.getUint8(i) << 8) | dv.getUint8(i + 1);
+          const rawLE = (dv.getUint8(i + 1) << 8) | dv.getUint8(i);
 
-        // Attempt B: encoded as tenths of °F (some TP25 firmware variants)
-        const tempF_b = raw / 10;
-        if (tempF_b >= 25 && tempF_b <= 110) return tempF_b;
+          for (const raw of [rawBE, rawLE]) {
+            if (raw === 0xFFFF || raw === 0x0000) continue; // no probe / disconnected
+
+            // Attempt A: tenths of °C (most meat thermometers)
+            const tempC_a = raw / 10;
+            const tempF_a = (tempC_a * 9) / 5 + 32;
+            if (tempF_a >= 25 && tempF_a <= 75) {
+              // Prefer the coldest reading (probe in ice water, not room-temp probes)
+              if (coldest === null || tempF_a < coldest) coldest = tempF_a;
+            }
+
+            // Attempt B: tenths of °F (some firmware variants)
+            const tempF_b = raw / 10;
+            if (tempF_b >= 25 && tempF_b <= 75) {
+              if (coldest === null || tempF_b < coldest) coldest = tempF_b;
+            }
+          }
+        }
+        // Stop at first header offset that yields any valid reading
+        if (coldest !== null) break;
       }
-      return null;
+
+      if (coldest !== null) console.log("[TP25] parsed coldest probe →", coldest.toFixed(1), "°F");
+      return coldest;
     } catch { return null; }
   }
 
@@ -1286,9 +1304,9 @@ export default function Home() {
         // notification before committing — prevents iOS silent-success on GATT.
         let started = false;
         let protocol: "gatt" | "govee" | "tp25" | null = null;
+        if (!started && await tryThermoProtocol(deviceId, "tp25"))  { protocol = "tp25";  started = true; }
         if (!started && await tryThermoProtocol(deviceId, "gatt"))  { protocol = "gatt";  started = true; }
         if (!started && await tryThermoProtocol(deviceId, "govee")) { protocol = "govee"; started = true; }
-        if (!started && await tryThermoProtocol(deviceId, "tp25"))  { protocol = "tp25";  started = true; }
 
         if (!cancelled) {
           if (started && protocol) {
@@ -1745,9 +1763,9 @@ export default function Home() {
 
       let connected = false;
 
-      if (!connected && await tryThermoProtocol(deviceId, "gatt"))  { btProtocolRef.current = "gatt";  connected = true; }
-      if (!connected && await tryThermoProtocol(deviceId, "govee")) { btProtocolRef.current = "govee"; connected = true; }
-      if (!connected && await tryThermoProtocol(deviceId, "tp25"))  { btProtocolRef.current = "tp25";  connected = true; }
+      if (!connected && await tryThermoProtocol(deviceId, "tp25"))  { btProtocolRef.current = "tp25";  setBtProtocol("tp25");  connected = true; }
+      if (!connected && await tryThermoProtocol(deviceId, "gatt"))  { btProtocolRef.current = "gatt";  setBtProtocol("gatt");  connected = true; }
+      if (!connected && await tryThermoProtocol(deviceId, "govee")) { btProtocolRef.current = "govee"; setBtProtocol("govee"); connected = true; }
 
       if (connected) {
         startThermoKeepalive(deviceId, btProtocolRef.current!);
@@ -1841,9 +1859,9 @@ export default function Home() {
         }
       });
       let connected = false;
-      if (!connected && await tryThermoProtocol(deviceId, "gatt"))  { btProtocolRef.current = "gatt";  connected = true; }
-      if (!connected && await tryThermoProtocol(deviceId, "govee")) { btProtocolRef.current = "govee"; connected = true; }
-      if (!connected && await tryThermoProtocol(deviceId, "tp25"))  { btProtocolRef.current = "tp25";  connected = true; }
+      if (!connected && await tryThermoProtocol(deviceId, "tp25"))  { btProtocolRef.current = "tp25";  setBtProtocol("tp25");  connected = true; }
+      if (!connected && await tryThermoProtocol(deviceId, "gatt"))  { btProtocolRef.current = "gatt";  setBtProtocol("gatt");  connected = true; }
+      if (!connected && await tryThermoProtocol(deviceId, "govee")) { btProtocolRef.current = "govee"; setBtProtocol("govee"); connected = true; }
       if (connected) {
         startThermoKeepalive(deviceId, btProtocolRef.current!);
         setBtConnected(true);
@@ -1881,11 +1899,12 @@ export default function Home() {
       });
       let connected = false;
       let protocol: "gatt" | "govee" | "tp25" | null = null;
+      if (!connected && await tryThermoProtocol(deviceId, "tp25"))  { protocol = "tp25";  connected = true; }
       if (!connected && await tryThermoProtocol(deviceId, "gatt"))  { protocol = "gatt";  connected = true; }
       if (!connected && await tryThermoProtocol(deviceId, "govee")) { protocol = "govee"; connected = true; }
-      if (!connected && await tryThermoProtocol(deviceId, "tp25"))  { protocol = "tp25";  connected = true; }
       if (connected) {
         btProtocolRef.current = protocol;
+        setBtProtocol(protocol);
         startThermoKeepalive(deviceId, protocol!);
         setBtConnected(true);
         toast({ title: "Thermometer reconnected", description: `${name} — temperature will update automatically.` });
@@ -1914,6 +1933,7 @@ export default function Home() {
     thermoReconnectCountRef.current = 0;
     btDeviceRef.current = null;
     btProtocolRef.current = null;
+    setBtProtocol(null);
     setBtConnected(false);
     setBtDeviceName("");
     try {
@@ -2417,6 +2437,9 @@ export default function Home() {
                     <span className="text-green-400 text-[9px] font-semibold">Live</span>
                   </div>
                   <span className="text-green-400/60 text-[8px] leading-none truncate max-w-[56px]">{btDeviceName || "Thermometer"}</span>
+                  {btProtocol && (
+                    <span className="text-blue-400/50 text-[7px] leading-none uppercase tracking-wide">{btProtocol}</span>
+                  )}
                 </button>
               </div>
 
