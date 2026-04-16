@@ -1400,17 +1400,18 @@ export default function Home() {
     const char    = protocol === "gatt" ? HEALTH_THERM_CHAR   : TP25_CHAR_NOTIF;
     try { await BleClient.stopNotifications(deviceId, service, char); } catch { /* already gone */ }
     try {
-      let firstPacket = true;
+      let packetCount = 0;
       await BleClient.startNotifications(deviceId, service, char, (dv) => {
         lastThermoNotifRef.current = Date.now();
         const hex = Array.from({ length: dv.byteLength }, (_, i) =>
           dv.getUint8(i).toString(16).padStart(2, "0")).join(" ");
+        packetCount++;
         let tempF: number | null = null;
         if (protocol === "gatt") tempF = parseBtTemperature(dv);
         else if (protocol === "tp25") tempF = parseTp25Temperature(dv);
-        if (firstPacket) {
-          firstPacket = false;
-          toast({ title: `[stream] ${protocol} → ${tempF ?? "null"}°F`, description: hex.slice(0, 60), duration: 20000 });
+        // Show first 3 packets so we can see both ACK and temperature notifications
+        if (packetCount <= 3) {
+          toast({ title: `[pkt${packetCount}] ${protocol} → ${tempF ?? "null"}°F`, description: hex.slice(0, 60), duration: 30000 });
         }
         if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
       });
