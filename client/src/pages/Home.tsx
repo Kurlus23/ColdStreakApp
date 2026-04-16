@@ -1168,18 +1168,13 @@ export default function Home() {
           for (const raw of [rawBE, rawLE]) {
             if (raw === 0xFFFF || raw === 0x0000) continue; // no probe / disconnected
 
-            // Attempt A: tenths of °C (most meat thermometers)
-            const tempC_a = raw / 10;
-            const tempF_a = (tempC_a * 9) / 5 + 32;
-            if (tempF_a >= 25 && tempF_a <= 75) {
+            // TP25 uses tenths of °C internally — interpret raw as tenths of °C only.
+            // (Attempting tenths-of-°F caused false positives from header bytes.)
+            const tempC = raw / 10;
+            const tempF = (tempC * 9) / 5 + 32;
+            if (tempF >= 25 && tempF <= 75) {
               // Prefer the coldest reading (probe in ice water, not room-temp probes)
-              if (coldest === null || tempF_a < coldest) coldest = tempF_a;
-            }
-
-            // Attempt B: tenths of °F (some firmware variants)
-            const tempF_b = raw / 10;
-            if (tempF_b >= 25 && tempF_b <= 75) {
-              if (coldest === null || tempF_b < coldest) coldest = tempF_b;
+              if (coldest === null || tempF < coldest) coldest = tempF;
             }
           }
         }
@@ -1350,36 +1345,20 @@ export default function Home() {
         BleClient.stopNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF).catch(() => {});
         toast({ title: "[BLE] tp25 timed out — no valid data", duration: 12000 });
         resolve(null);
-      }, 16_000);
+      }, 8_000);
       BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
         const tempF = parseTp25Temperature(dv);
         const bytes = Array.from(new Uint8Array(dv.buffer)).map(b => b.toString(16).padStart(2,"0")).join(" ");
         toast({ title: `[BLE] tp25 data → ${tempF ?? "null"}°F`, description: bytes.slice(0, 47), duration: 12000 });
         if (tempF !== null) { clearTimeout(timer); resolve(tempF); }
       }).then(async () => {
-        toast({ title: "[BLE] tp25 subscribed ✓ — waiting 2s passively…", duration: 12000 });
-        await new Promise(r => setTimeout(r, 2000));
-        // Try acknowledged write first (device may require WRITE REQUEST not WRITE COMMAND)
-        const cmds: [string, Uint8Array][] = [
-          ["cmd-A [21 03 01 25]", new Uint8Array([0x21, 0x03, 0x01, 0x25])],
-          ["cmd-B [21 03 02 26]", new Uint8Array([0x21, 0x03, 0x02, 0x26])],
-          ["cmd-C [AA 0D 00 00 00 00 B7]", new Uint8Array([0xAA, 0x0D, 0x00, 0x00, 0x00, 0x00, 0xB7])],
-        ];
-        for (const [label, bytes] of cmds) {
-          try {
-            await BleClient.write(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
-              new DataView(bytes.buffer));
-            toast({ title: `[BLE] wrote ${label} ✓`, duration: 12000 });
-          } catch {
-            try {
-              await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
-                new DataView(bytes.buffer));
-              toast({ title: `[BLE] wwr ${label} ✓`, duration: 12000 });
-            } catch (we2) {
-              toast({ title: `[BLE] write ${label} ✗`, description: String(we2).slice(0, 60), duration: 12000 });
-            }
-          }
-          await new Promise(r => setTimeout(r, 2000));
+        toast({ title: "[BLE] tp25 subscribed ✓ — sending activation…", duration: 8000 });
+        try {
+          await BleClient.write(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
+            new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer));
+        } catch {
+          await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
+            new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer)).catch(() => {});
         }
       }).catch((e) => {
         clearTimeout(timer);
@@ -1455,6 +1434,8 @@ export default function Home() {
     };
 
     try {
+      // iOS requires getDevices() before connect() when the peripheral cache has been cleared
+      try { await BleClient.getDevices([deviceId]); } catch { /* not fatal */ }
       await BleClient.connect(deviceId, () => {
         if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
         setBtConnected(false);
@@ -1480,7 +1461,7 @@ export default function Home() {
             const tempF = parseTp25Temperature(dv);
             if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
           });
-          try { await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE, new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)); } catch { /* ignore */ }
+          try { await BleClient.write(deviceId, TP25_SERVICE, TP25_CHAR_WRITE, new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer)); } catch { /* ignore */ }
           reconnected = true;
         } catch { /* not TP25 */ }
       }
