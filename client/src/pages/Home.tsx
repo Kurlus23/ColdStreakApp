@@ -1392,10 +1392,39 @@ export default function Home() {
     return null;
   }
 
+  // Helper: subscribe to thermo notifications and update temperature state continuously
+  async function startThermoStream(deviceId: string, protocol: "gatt" | "tp25") {
+    const service = protocol === "gatt" ? HEALTH_THERM_SERVICE : TP25_SERVICE;
+    const char    = protocol === "gatt" ? HEALTH_THERM_CHAR   : TP25_CHAR_NOTIF;
+    try { await BleClient.stopNotifications(deviceId, service, char); } catch { /* already gone */ }
+    try {
+      await BleClient.startNotifications(deviceId, service, char, (dv) => {
+        lastThermoNotifRef.current = Date.now();
+        let tempF: number | null = null;
+        if (protocol === "gatt") tempF = parseBtTemperature(dv);
+        else if (protocol === "tp25") tempF = parseTp25Temperature(dv);
+        if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+      });
+      // TP25 needs an activation write every time we subscribe
+      if (protocol === "tp25") {
+        try {
+          await BleClient.write(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
+            new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer));
+        } catch {
+          await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
+            new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer)).catch(() => {});
+        }
+      }
+    } catch { /* connection may have dropped — let disconnect handler handle it */ }
+  }
+
   // Helper: start keep-alive pings so the thermometer doesn't time out
   function startThermoKeepalive(deviceId: string, protocol: "gatt" | "tp25") {
     if (btKeepaliveRef.current) clearInterval(btKeepaliveRef.current);
-    lastThermoNotifRef.current = Date.now(); // reset so first interval doesn't fire immediately
+    lastThermoNotifRef.current = 0; // force immediate stream start
+
+    // Start the persistent notification stream immediately
+    startThermoStream(deviceId, protocol);
 
     btKeepaliveRef.current = setInterval(() => {
       if (!btDeviceRef.current) return;
@@ -1403,32 +1432,12 @@ export default function Home() {
       // ── Notification watchdog ────────────────────────────────────────────────
       // iOS silently drops characteristic notification subscriptions while the
       // GATT connection stays open. If we haven't received a notification in
-      // 12 s, stop → restart the subscription to revive it.
+      // 15 s, restart the subscription (and re-send activation for TP25).
       const staleness = Date.now() - lastThermoNotifRef.current;
-      if (staleness > 12_000) {
+      if (staleness > 15_000) {
         lastThermoNotifRef.current = Date.now(); // prevent rapid re-trigger while async
-        const service = protocol === "gatt" ? HEALTH_THERM_SERVICE : TP25_SERVICE;
-        const char   = protocol === "gatt" ? HEALTH_THERM_CHAR   : TP25_CHAR_NOTIF;
-        (async () => {
-          try { await BleClient.stopNotifications(deviceId, service, char); } catch { /* already gone */ }
-          try {
-            await BleClient.startNotifications(deviceId, service, char, (dv) => {
-              lastThermoNotifRef.current = Date.now();
-              let tempF: number | null = null;
-              if (protocol === "gatt") tempF = parseBtTemperature(dv);
-              else if (protocol === "tp25") tempF = parseTp25Temperature(dv);
-              if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
-            });
-          } catch { /* connection may have dropped — let disconnect handler handle it */ }
-        })();
+        startThermoStream(deviceId, protocol);
       }
-
-      // ── Protocol-specific keepalive pings ────────────────────────────────────
-      if (protocol === "tp25") {
-        BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
-          new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)).catch(() => {});
-      }
-      // GATT health thermometer is indication-based; no write keepalive needed
     }, 10_000);
   }
 
@@ -1460,32 +1469,8 @@ export default function Home() {
         scheduleRetry();
       });
 
-      let reconnected = false;
-
-      if (protocol === "gatt" && !reconnected) {
-        try {
-          await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
-            lastThermoNotifRef.current = Date.now();
-            const tempF = parseBtTemperature(dv);
-            if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
-          });
-          reconnected = true;
-        } catch { /* not this profile */ }
-      }
-      if (protocol === "tp25" && !reconnected) {
-        try {
-          await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
-            lastThermoNotifRef.current = Date.now();
-            const tempF = parseTp25Temperature(dv);
-            if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
-          });
-          try { await BleClient.write(deviceId, TP25_SERVICE, TP25_CHAR_WRITE, new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer)); } catch { /* ignore */ }
-          reconnected = true;
-        } catch { /* not TP25 */ }
-      }
-
-      if (reconnected) {
-        startThermoKeepalive(deviceId, btProtocolRef.current!);
+      if (protocol) {
+        startThermoKeepalive(deviceId, protocol);
         setBtConnected(true);
         thermoReconnectCountRef.current = 0;
       } else {
