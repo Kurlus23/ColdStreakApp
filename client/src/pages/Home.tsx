@@ -1128,6 +1128,8 @@ export default function Home() {
       // IEEE-11073 32-bit FLOAT: bytes 1-3 = 24-bit signed mantissa (LE), byte 4 = signed exponent
       const mantissaRaw = value.getUint8(1) | (value.getUint8(2) << 8) | (value.getUint8(3) << 16);
       const mantissa = mantissaRaw & 0x800000 ? mantissaRaw - 0x1000000 : mantissaRaw;
+      // Reject zero-mantissa (uninitialized/garbage payload) and IEEE-11073 NaN sentinel
+      if (mantissa === 0 || mantissaRaw === 0x7FFFFF) return null;
       const exponent = value.getInt8(4);
       const tempValue = mantissa * Math.pow(10, exponent);
       return isFahrenheit ? tempValue : (tempValue * 9 / 5) + 32;
