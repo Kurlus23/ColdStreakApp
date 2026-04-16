@@ -1409,9 +1409,17 @@ export default function Home() {
         let tempF: number | null = null;
         if (protocol === "gatt") tempF = parseBtTemperature(dv);
         else if (protocol === "tp25") tempF = parseTp25Temperature(dv);
-        // Show first 3 packets so we can see both ACK and temperature notifications
+        // Show first 3 packets; for TP25 also show candidate bytes for protocol analysis
         if (packetCount <= 3) {
-          toast({ title: `[pkt${packetCount}] ${protocol} → ${tempF ?? "null"}°F`, description: hex.slice(0, 60), duration: 30000 });
+          if (protocol === "tp25" && dv.byteLength >= 12) {
+            const b4 = dv.getUint8(4);
+            const b11 = dv.getUint8(11);
+            const b4f = ((b4 * 9 / 5) + 32).toFixed(1);
+            const b11f = ((b11 * 9 / 5) + 32).toFixed(1);
+            toast({ title: `[pkt${packetCount}] b4=${b4}(${b4f}°F) b11=${b11}(${b11f}°F)`, description: hex.slice(0, 60), duration: 30000 });
+          } else {
+            toast({ title: `[pkt${packetCount}] ${protocol} → ${tempF ?? "null"}°F`, description: hex.slice(0, 60), duration: 30000 });
+          }
         }
         if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
       });
@@ -1703,6 +1711,7 @@ export default function Home() {
       if (_det2) {
         btProtocolRef.current = _det2.protocol;
         setBtProtocol(_det2.protocol);
+        localStorage.setItem("coldstreak-bt-thermo-protocol", _det2.protocol);
         setTemperature(Math.min(60, Math.max(25, Math.round(_det2.tempF + btTempOffsetRef.current))));
       }
 
@@ -1802,6 +1811,7 @@ export default function Home() {
       if (_det3) {
         btProtocolRef.current = _det3.protocol;
         setBtProtocol(_det3.protocol);
+        localStorage.setItem("coldstreak-bt-thermo-protocol", _det3.protocol);
         setTemperature(Math.min(60, Math.max(25, Math.round(_det3.tempF + btTempOffsetRef.current))));
       }
       if (connected) {
@@ -1831,6 +1841,8 @@ export default function Home() {
       await BleClient.initialize();
       btDeviceRef.current = deviceId;
       setBtDeviceName(name);
+      // iOS requires getDevices() before connect() when peripheral cache may have been cleared
+      try { await BleClient.getDevices([deviceId]); } catch { /* not fatal */ }
       await BleClient.connect(deviceId, () => {
         if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
         setBtConnected(false);
@@ -1839,21 +1851,32 @@ export default function Home() {
           thermoReconnectTimerRef.current = setTimeout(autoReconnectThermo, 2500);
         }
       });
-      const _det4 = await detectThermoProtocol(deviceId);
-      const protocol = _det4?.protocol ?? null;
-      const connected = protocol !== null;
-      if (_det4) {
-        btProtocolRef.current = _det4.protocol;
-        setBtProtocol(_det4.protocol);
-        setTemperature(Math.min(60, Math.max(25, Math.round(_det4.tempF + btTempOffsetRef.current))));
-      }
-      if (connected) {
-        startThermoKeepalive(deviceId, protocol!);
+
+      // Use cached protocol if known — avoids 12 s detection on every reconnect
+      const cachedProtocol = btProtocolRef.current ??
+        (localStorage.getItem("coldstreak-bt-thermo-protocol") as "gatt" | "tp25" | null);
+
+      if (cachedProtocol) {
+        btProtocolRef.current = cachedProtocol;
+        setBtProtocol(cachedProtocol);
+        startThermoKeepalive(deviceId, cachedProtocol);
         setBtConnected(true);
         toast({ title: "Thermometer reconnected", description: `${name} — temperature will update automatically.` });
       } else {
-        btDeviceRef.current = null;
-        toast({ title: "Could not reconnect", description: "Device in range but could not start notifications.", variant: "destructive" });
+        // No cached protocol — run full detection as fallback
+        const _det = await detectThermoProtocol(deviceId);
+        if (_det) {
+          btProtocolRef.current = _det.protocol;
+          setBtProtocol(_det.protocol);
+          localStorage.setItem("coldstreak-bt-thermo-protocol", _det.protocol);
+          setTemperature(Math.min(60, Math.max(25, Math.round(_det.tempF + btTempOffsetRef.current))));
+          startThermoKeepalive(deviceId, _det.protocol);
+          setBtConnected(true);
+          toast({ title: "Thermometer reconnected", description: `${name} — temperature will update automatically.` });
+        } else {
+          btDeviceRef.current = null;
+          toast({ title: "Could not reconnect", description: "Device in range but could not read temperature.", variant: "destructive" });
+        }
       }
     } catch (err: any) {
       btDeviceRef.current = null;
