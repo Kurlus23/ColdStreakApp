@@ -1458,16 +1458,28 @@ export default function Home() {
     try { await BleClient.stopNotifications(deviceId, service, char); } catch { /* already gone */ }
     try {
       let packetCount = 0;
+      let streamFirst: number[] | null = null;
       await BleClient.startNotifications(deviceId, service, char, (dv) => {
         lastThermoNotifRef.current = Date.now();
-        const hex = Array.from({ length: dv.byteLength }, (_, i) =>
-          dv.getUint8(i).toString(16).padStart(2, "0")).join(" ");
+        const arr = Array.from(new Uint8Array(dv.buffer));
+        const hex = arr.map(b => b.toString(16).padStart(2,"0")).join(" ");
         packetCount++;
         let tempF: number | null = null;
         if (protocol === "gatt") tempF = parseBtTemperature(dv);
         else if (protocol === "tp25") tempF = parseTp25Temperature(dv);
+
         if (packetCount === 1) {
-          toast({ title: `[thermo] ${protocol} → ${tempF !== null ? tempF.toFixed(1) + "°F" : "no data"}`, description: hex.slice(0, 60), duration: 8000 });
+          streamFirst = arr;
+          const b4 = dv.byteLength > 4 ? dv.getUint8(4) : "?";
+          const b11 = dv.byteLength > 11 ? dv.getUint8(11) : "?";
+          toast({ title: `[stream#1] b4=${b4} b11=${b11} → ${tempF !== null ? tempF.toFixed(1)+"°F" : "null"}`, description: hex.slice(0, 60), duration: 20000 });
+        }
+        // Every 5 packets show live byte4/11 so we can watch them change
+        if (protocol === "tp25" && packetCount % 5 === 0 && dv.byteLength > 11) {
+          const b4 = dv.getUint8(4);
+          const b11 = dv.getUint8(11);
+          const changed = streamFirst ? arr.map((b,i) => b !== streamFirst![i] ? `b${i}:${streamFirst![i].toString(16)}→${b.toString(16)}` : "").filter(Boolean) : [];
+          toast({ title: `[stream#${packetCount}] b4=${b4} b11=${b11}`, description: changed.length ? changed.join(" | ").slice(0,55) : "no change", duration: 12000 });
         }
         if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
       });
