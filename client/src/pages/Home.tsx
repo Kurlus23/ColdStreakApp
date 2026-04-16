@@ -1369,24 +1369,25 @@ export default function Home() {
     }
 
     // ── Step 2: fall back to TP25 proprietary protocol ────────────────────────
-    toast({ title: "[BLE] trying tp25…", duration: 3000 });
+    toast({ title: "[BLE] trying tp25…", duration: 12000 });
     const tp25Result = await new Promise<number | null>((resolve) => {
       const timer = setTimeout(() => {
         BleClient.stopNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF).catch(() => {});
+        toast({ title: "[BLE] tp25 timed out — no valid data", duration: 12000 });
         resolve(null);
-      }, 6_000);
+      }, 8_000);
       BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
         const tempF = parseTp25Temperature(dv);
         const bytes = Array.from(new Uint8Array(dv.buffer)).map(b => b.toString(16).padStart(2,"0")).join(" ");
-        toast({ title: `[BLE] tp25 data`, description: `${bytes.slice(0,23)} → ${tempF ?? "null"}°F`, duration: 8000 });
+        toast({ title: `[BLE] tp25 data → ${tempF ?? "null"}°F`, description: bytes.slice(0, 47), duration: 12000 });
         if (tempF !== null) { clearTimeout(timer); resolve(tempF); }
       }).then(async () => {
-        toast({ title: "[BLE] tp25 subscribed ✓", duration: 3000 });
+        toast({ title: "[BLE] tp25 subscribed ✓ — sending activation", duration: 12000 });
         await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
           new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)).catch(() => {});
       }).catch((e) => {
         clearTimeout(timer);
-        toast({ title: "[BLE] tp25 failed ✗", description: String(e).slice(0, 60), duration: 5000 });
+        toast({ title: "[BLE] tp25 failed ✗", description: String(e).slice(0, 80), duration: 12000 });
         resolve(null);
       });
     });
