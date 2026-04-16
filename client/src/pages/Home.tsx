@@ -1382,37 +1382,56 @@ export default function Home() {
           }
         }
 
-        // ── Phase 3: subscribe to the indicate/notify characteristic ───────
+        // ── Phase 3: subscribe to 8ec90003 (indicate) with 4s timeout ────
+        const withTimeout = <T,>(p: Promise<T>, ms: number, label: string): Promise<T | null> =>
+          Promise.race([p, new Promise<null>(r => setTimeout(() => { toast({ title: `[IND] ${label} timed out`, duration: 15000 }); r(null); }, ms))]);
+
+        let indSubscribed = false;
         if (indicateSvcUuid && indicateCharUuid) {
-          toast({ title: `[IND] subscribing to ${indicateCharUuid.slice(0,8)}…`, duration: 20000 });
-          try {
-            await BleClient.startNotifications(deviceId, indicateSvcUuid, indicateCharUuid, (dv) => {
-              const bytes = hx(dv);
-              toast({ title: `[IND] ${indicateCharUuid!.slice(0,8)} data`, description: bytes.slice(0, 60), duration: 30000 });
+          toast({ title: `[IND] subscribing to ${indicateCharUuid.slice(0,8)}…`, duration: 15000 });
+          const result = await withTimeout(
+            BleClient.startNotifications(deviceId, indicateSvcUuid, indicateCharUuid, (dv) => {
+              toast({ title: `[IND] data!`, description: hx(dv).slice(0, 60), duration: 30000 });
               const tempF = parseBtTemperature(dv);
               if (tempF !== null) done(tempF);
-            });
-            toast({ title: `[IND] subscribed ✓`, duration: 10000 });
-          } catch (e) {
-            toast({ title: `[IND] subscribe failed`, description: String(e).slice(0,60), duration: 20000 });
-          }
+            }).then(() => "ok").catch((e: unknown) => { toast({ title: `[IND] sub failed`, description: String(e).slice(0,50), duration: 20000 }); return null; }),
+            4000, "subscribe"
+          );
+          if (result === "ok") { indSubscribed = true; toast({ title: `[IND] subscribed ✓`, duration: 10000 }); }
         }
 
-        // Also subscribe to fff2 for comparison
+        // Subscribe to fff2 — track every packet; show diff vs first
+        let fff2First: number[] | null = null;
+        let fff2Count = 0;
         await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
-          toast({ title: `[fff2] data`, description: hx(dv).slice(0, 60), duration: 20000 });
+          fff2Count++;
+          const arr = Array.from(new Uint8Array(dv.buffer));
+          if (!fff2First) {
+            fff2First = arr;
+            toast({ title: `[fff2 #1] baseline`, description: hx(dv).slice(0, 60), duration: 30000 });
+          } else {
+            const diffBytes = arr.map((b, i) => b !== fff2First![i] ? `b${i}:${fff2First![i].toString(16)}→${b.toString(16)}` : "").filter(Boolean);
+            if (diffBytes.length > 0) {
+              toast({ title: `[fff2 #${fff2Count}] DIFF`, description: diffBytes.join(" | ").slice(0, 60), duration: 30000 });
+            }
+          }
         }).catch(() => {});
 
-        // ── Phase 4: write cmd-B to BOTH channels ─────────────────────────
-        const cmdB = new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer);
-        // Write to known fff1 channel
-        await BleClient.write(deviceId, TP25_SERVICE, TP25_CHAR_WRITE, cmdB).catch(() =>
-          BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE, cmdB).catch(() => {}));
-        // Write cmd-B to the indicate char too (may trigger temperature indication)
-        if (indicateSvcUuid && indicateCharUuid) {
-          await BleClient.write(deviceId, indicateSvcUuid, indicateCharUuid, cmdB).catch(() =>
-            BleClient.writeWithoutResponse(deviceId, indicateSvcUuid!, indicateCharUuid!, cmdB).catch(() => {}));
-          toast({ title: `[IND] wrote cmd-B — waiting for response…`, duration: 15000 });
+        // ── Phase 4: try cmd-A, cmd-B, cmd-C to both fff1 and 8ec90003 ───
+        const commands: [string, DataView][] = [
+          ["cmd-A", new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)],
+          ["cmd-B", new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer)],
+          ["cmd-C", new DataView(new Uint8Array([0x21, 0x03, 0x03, 0x27]).buffer)],
+        ];
+        for (const [label, dv] of commands) {
+          await BleClient.write(deviceId, TP25_SERVICE, TP25_CHAR_WRITE, dv).catch(() =>
+            BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE, dv).catch(() => {}));
+          if (indSubscribed && indicateSvcUuid && indicateCharUuid) {
+            await BleClient.write(deviceId, indicateSvcUuid, indicateCharUuid, dv).catch(() =>
+              BleClient.writeWithoutResponse(deviceId, indicateSvcUuid!, indicateCharUuid!, dv).catch(() => {}));
+          }
+          toast({ title: `[cmds] wrote ${label} — watching 3s…`, duration: 5000 });
+          await new Promise(r => setTimeout(r, 3000));
         }
       } catch (e) {
         clearTimeout(timer);
