@@ -1350,16 +1350,24 @@ export default function Home() {
         BleClient.stopNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF).catch(() => {});
         toast({ title: "[BLE] tp25 timed out — no valid data", duration: 12000 });
         resolve(null);
-      }, 8_000);
+      }, 12_000);
       BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
         const tempF = parseTp25Temperature(dv);
         const bytes = Array.from(new Uint8Array(dv.buffer)).map(b => b.toString(16).padStart(2,"0")).join(" ");
         toast({ title: `[BLE] tp25 data → ${tempF ?? "null"}°F`, description: bytes.slice(0, 47), duration: 12000 });
         if (tempF !== null) { clearTimeout(timer); resolve(tempF); }
       }).then(async () => {
-        toast({ title: "[BLE] tp25 subscribed ✓ — sending activation", duration: 12000 });
-        await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
-          new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)).catch(() => {});
+        toast({ title: "[BLE] tp25 subscribed ✓ — waiting 3s passively…", duration: 12000 });
+        // Wait 3 s to see if device sends data automatically without any write
+        await new Promise(r => setTimeout(r, 3000));
+        // Now send the activation write and report result
+        try {
+          await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
+            new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer));
+          toast({ title: "[BLE] tp25 activation write sent ✓", duration: 12000 });
+        } catch (we) {
+          toast({ title: "[BLE] tp25 write failed ✗", description: String(we).slice(0, 80), duration: 12000 });
+        }
       }).catch((e) => {
         clearTimeout(timer);
         toast({ title: "[BLE] tp25 failed ✗", description: String(e).slice(0, 80), duration: 12000 });
