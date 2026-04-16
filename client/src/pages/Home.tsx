@@ -1437,8 +1437,17 @@ export default function Home() {
       if (staleness > 15_000) {
         lastThermoNotifRef.current = Date.now(); // prevent rapid re-trigger while async
         startThermoStream(deviceId, protocol);
+        return;
       }
-    }, 10_000);
+
+      // ── TP25 poll: device doesn't stream continuously — cmd-B requests a reading ──
+      if (protocol === "tp25") {
+        BleClient.write(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
+          new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer))
+          .catch(() => BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
+            new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer)).catch(() => {}));
+      }
+    }, 3_000);
   }
 
   // ─── Thermometer auto-reconnect ──────────────────────────────────────────────
