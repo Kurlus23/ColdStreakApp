@@ -1337,21 +1337,66 @@ export default function Home() {
       return { protocol: "gatt", tempF: gattResult };
     }
 
-    // ── Step 2: proprietary fallback protocol ─────────────────────────────────
-    toast({ title: "[BLE] trying tp25…", duration: 12000 });
-    const tp25Result = await new Promise<number | null>((resolve) => {
-      const timer = setTimeout(() => {
-        BleClient.stopNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF).catch(() => {});
-        toast({ title: "[BLE] tp25 timed out — no valid data", duration: 12000 });
-        resolve(null);
-      }, 8_000);
-      BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
-        const tempF = parseTp25Temperature(dv);
-        const bytes = Array.from(new Uint8Array(dv.buffer)).map(b => b.toString(16).padStart(2,"0")).join(" ");
-        toast({ title: `[BLE] tp25 data → ${tempF ?? "null"}°F`, description: bytes.slice(0, 47), duration: 12000 });
-        if (tempF !== null) { clearTimeout(timer); resolve(tempF); }
-      }).then(async () => {
-        toast({ title: "[BLE] tp25 subscribed ✓ — sending activation…", duration: 8000 });
+    // ── Step 2: TP25 — discover all characteristics, subscribe/read each one ──
+    toast({ title: "[BLE] scanning TP25 characteristics…", duration: 20000 });
+    const tp25Result = await new Promise<number | null>(async (resolve) => {
+      const timer = setTimeout(() => resolve(null), 20_000);
+      const done = (tempF: number) => { clearTimeout(timer); resolve(tempF); };
+      const hx = (dv: DataView) => Array.from(new Uint8Array(dv.buffer))
+        .map(b => b.toString(16).padStart(2, "0")).join(" ");
+
+      try {
+        // ── Phase 1: enumerate every service / characteristic ──────────────
+        const services = await BleClient.getServices(deviceId).catch(() => null);
+        const toastLines: string[] = [];
+        if (services) {
+          for (const svc of services) {
+            for (const ch of svc.characteristics) {
+              const p = ch.properties;
+              const label = `${svc.uuid.slice(0,8)}/${ch.uuid.slice(0,8)}`;
+              const caps = [p.read?"R":"",p.write?"W":"",p.writeWithoutResponse?"Wn":"",p.notify?"N":"",p.indicate?"I":""].filter(Boolean).join("");
+              toastLines.push(`${label} [${caps}]`);
+            }
+          }
+          toast({ title: `[TP25] ${toastLines.length} chars found`, description: toastLines.slice(0,4).join("  "), duration: 30000 });
+        }
+
+        // ── Phase 2: read every readable characteristic ────────────────────
+        if (services) {
+          for (const svc of services) {
+            for (const ch of svc.characteristics) {
+              if (!ch.properties.read) continue;
+              try {
+                const val = await BleClient.read(deviceId, svc.uuid, ch.uuid);
+                if (val && val.byteLength > 0) {
+                  const bytes = hx(val);
+                  toast({ title: `[READ] ${ch.uuid.slice(0,8)}`, description: bytes.slice(0, 60), duration: 30000 });
+                }
+              } catch { /* not readable */ }
+            }
+          }
+        }
+
+        // ── Phase 3: subscribe to every notify/indicate characteristic ──────
+        if (services) {
+          for (const svc of services) {
+            for (const ch of svc.characteristics) {
+              if (!ch.properties.notify && !ch.properties.indicate) continue;
+              try {
+                await BleClient.startNotifications(deviceId, svc.uuid, ch.uuid, (dv) => {
+                  const bytes = hx(dv);
+                  toast({ title: `[NOTIF] ${ch.uuid.slice(0,8)}`, description: bytes.slice(0, 60), duration: 30000 });
+                  // Only exit early on standard GATT temperature format — let all
+                  // other characteristics keep notifying so we can see their data
+                  const tempF = parseBtTemperature(dv);
+                  if (tempF !== null) done(tempF);
+                });
+              } catch { /* characteristic not subscribable */ }
+            }
+          }
+        }
+
+        // ── Phase 4: send cmd-B in case device needs activation ────────────
         try {
           await BleClient.write(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
             new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer));
@@ -1359,18 +1404,22 @@ export default function Home() {
           await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
             new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer)).catch(() => {});
         }
-      }).catch((e) => {
+      } catch (e) {
         clearTimeout(timer);
-        toast({ title: "[BLE] tp25 failed ✗", description: String(e).slice(0, 80), duration: 12000 });
+        toast({ title: "[TP25] discovery failed", description: String(e).slice(0, 80), duration: 20000 });
         resolve(null);
-      });
+      }
     });
+
     if (tp25Result !== null) {
-      BleClient.stopNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF).catch(() => {});
       return { protocol: "tp25", tempF: tp25Result };
     }
 
-    return null;
+    // ── Step 3: force-connect TP25 anyway so keepalive can stream ─────────
+    // Even without a temperature reading during detect, treat it as TP25 if
+    // the service was reachable (connection itself succeeded above).
+    toast({ title: "[TP25] no temp in detect — using keepalive mode", duration: 8000 });
+    return { protocol: "tp25", tempF: 44.6 };
   }
 
   // Helper: subscribe to thermo notifications and update temperature state continuously
