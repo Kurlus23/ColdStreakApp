@@ -1148,46 +1148,25 @@ export default function Home() {
   const TP25_CHAR_NOTIF = "1086fff2-3343-4817-8bb2-b32206336ce8";
 
   // Parse a ThermoPro TP25 TLVC notification — returns the COLDEST valid probe in °F.
-  // For cold plunge, the probe in ice water is always colder than probes in air.
-  // Packet structure: [type][len][p1_hi][p1_lo][p2_hi][p2_lo]...[checksum]
-  //   OR with 3-byte header: [type][subtype][len][p1_hi][p1_lo]...
-  // Each probe = big-endian uint16; tenths of °C (0xFFFF / 0x0000 = no probe).
+  // TP25 notification packet format (confirmed via field testing):
+  //   [e0][02][resp_type][probe_count][probe1_tempC][flags][alarm_hi][alarm_lo]
+  //   [00][00][seq_lo][ambient_tempC][00][20][48][00]...
+  //   byte 4  = probe 1 temperature in whole °C (0 = disconnected, >80 = status byte)
+  //   byte 11 = transmitter ambient temperature in whole °C
   function parseTp25Temperature(dv: DataView): number | null {
     try {
-      const hex = Array.from({ length: dv.byteLength }, (_, i) =>
-        dv.getUint8(i).toString(16).padStart(2, "0")).join(" ");
-      console.log("[TP25] raw bytes:", hex);
-      if (dv.byteLength < 4) return null;
-
-      let coldest: number | null = null;
-
-      // Try both 2-byte header (offset 2) and 3-byte header (offset 3) variants
-      for (const startOffset of [2, 3, 0]) {
-        for (let i = startOffset; i + 1 < dv.byteLength; i += 2) {
-          const rawBE = (dv.getUint8(i) << 8) | dv.getUint8(i + 1);
-          const rawLE = (dv.getUint8(i + 1) << 8) | dv.getUint8(i);
-
-          for (const raw of [rawBE, rawLE]) {
-            if (raw === 0xFFFF || raw === 0x0000) continue; // no probe / disconnected
-            // Exclude implausibly small raw values — these are header/status bytes,
-            // not temperature. raw < 20 = < 2°C = < 35.6°F which would be solid ice.
-            if (raw < 20) continue;
-
-            // TP25 uses tenths of °C internally — interpret raw as tenths of °C only.
-            const tempC = raw / 10;
-            const tempF = (tempC * 9) / 5 + 32;
-            if (tempF >= 35 && tempF <= 110) {
-              // Prefer the coldest reading (probe in water, not disconnected room-temp probes)
-              if (coldest === null || tempF < coldest) coldest = tempF;
-            }
-          }
-        }
-        // Stop at first header offset that yields any valid reading
-        if (coldest !== null) break;
+      if (dv.byteLength < 8) return null;
+      // TP25 packet: [e0 02 resp_type probe_count] [probe1_tempC ...] ... [ambient_tempC ...]
+      // Byte 4  = probe 1 temperature in whole °C (confirmed via field testing)
+      // Byte 11 = transmitter ambient temperature in whole °C (confirmed: 25 = 77°F room temp)
+      // Valid probe range: 1–80°C (34–176°F). 0 = probe disconnected; >80 = alarm/status byte.
+      const probe1C = dv.getUint8(4);
+      if (probe1C >= 1 && probe1C <= 80) {
+        const tempF = (probe1C * 9) / 5 + 32;
+        console.log("[TP25] byte4 probe →", probe1C, "°C =", tempF.toFixed(1), "°F");
+        return tempF;
       }
-
-      if (coldest !== null) console.log("[TP25] parsed coldest probe →", coldest.toFixed(1), "°F");
-      return coldest;
+      return null;
     } catch { return null; }
   }
 
@@ -1409,17 +1388,8 @@ export default function Home() {
         let tempF: number | null = null;
         if (protocol === "gatt") tempF = parseBtTemperature(dv);
         else if (protocol === "tp25") tempF = parseTp25Temperature(dv);
-        // Show first 3 packets; for TP25 also show candidate bytes for protocol analysis
-        if (packetCount <= 3) {
-          if (protocol === "tp25" && dv.byteLength >= 12) {
-            const b4 = dv.getUint8(4);
-            const b11 = dv.getUint8(11);
-            const b4f = ((b4 * 9 / 5) + 32).toFixed(1);
-            const b11f = ((b11 * 9 / 5) + 32).toFixed(1);
-            toast({ title: `[pkt${packetCount}] b4=${b4}(${b4f}°F) b11=${b11}(${b11f}°F)`, description: hex.slice(0, 60), duration: 30000 });
-          } else {
-            toast({ title: `[pkt${packetCount}] ${protocol} → ${tempF ?? "null"}°F`, description: hex.slice(0, 60), duration: 30000 });
-          }
+        if (packetCount === 1) {
+          toast({ title: `[thermo] ${protocol} → ${tempF !== null ? tempF.toFixed(1) + "°F" : "no data"}`, description: hex.slice(0, 60), duration: 8000 });
         }
         if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
       });
