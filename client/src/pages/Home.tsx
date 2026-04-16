@@ -1346,19 +1346,25 @@ export default function Home() {
         .map(b => b.toString(16).padStart(2, "0")).join(" ");
 
       try {
-        // ── Phase 1: enumerate every service / characteristic ──────────────
+        // ── Phase 1: enumerate and find the indicate characteristic ────────
         const services = await BleClient.getServices(deviceId).catch(() => null);
-        const toastLines: string[] = [];
+        let indicateSvcUuid: string | null = null;
+        let indicateCharUuid: string | null = null;
+
         if (services) {
           for (const svc of services) {
             for (const ch of svc.characteristics) {
               const p = ch.properties;
-              const label = `${svc.uuid.slice(0,8)}/${ch.uuid.slice(0,8)}`;
               const caps = [p.read?"R":"",p.write?"W":"",p.writeWithoutResponse?"Wn":"",p.notify?"N":"",p.indicate?"I":""].filter(Boolean).join("");
-              toastLines.push(`${label} [${caps}]`);
+              // Show full UUID for every char so we can hardcode later
+              toast({ title: `[char] ${caps}`, description: `svc:${svc.uuid.slice(0,8)} char:${ch.uuid}`, duration: 30000 });
+              // Prefer indicate over notify (fff2 is notify; 8ec90003 is indicate)
+              if (p.indicate && !indicateCharUuid) {
+                indicateSvcUuid = svc.uuid;
+                indicateCharUuid = ch.uuid;
+              }
             }
           }
-          toast({ title: `[TP25] ${toastLines.length} chars found`, description: toastLines.slice(0,4).join("  "), duration: 30000 });
         }
 
         // ── Phase 2: read every readable characteristic ────────────────────
@@ -1369,40 +1375,44 @@ export default function Home() {
               try {
                 const val = await BleClient.read(deviceId, svc.uuid, ch.uuid);
                 if (val && val.byteLength > 0) {
-                  const bytes = hx(val);
-                  toast({ title: `[READ] ${ch.uuid.slice(0,8)}`, description: bytes.slice(0, 60), duration: 30000 });
+                  toast({ title: `[READ] ${ch.uuid.slice(0,8)}`, description: hx(val).slice(0, 60), duration: 30000 });
                 }
               } catch { /* not readable */ }
             }
           }
         }
 
-        // ── Phase 3: subscribe to every notify/indicate characteristic ──────
-        if (services) {
-          for (const svc of services) {
-            for (const ch of svc.characteristics) {
-              if (!ch.properties.notify && !ch.properties.indicate) continue;
-              try {
-                await BleClient.startNotifications(deviceId, svc.uuid, ch.uuid, (dv) => {
-                  const bytes = hx(dv);
-                  toast({ title: `[NOTIF] ${ch.uuid.slice(0,8)}`, description: bytes.slice(0, 60), duration: 30000 });
-                  // Only exit early on standard GATT temperature format — let all
-                  // other characteristics keep notifying so we can see their data
-                  const tempF = parseBtTemperature(dv);
-                  if (tempF !== null) done(tempF);
-                });
-              } catch { /* characteristic not subscribable */ }
-            }
+        // ── Phase 3: subscribe to the indicate/notify characteristic ───────
+        if (indicateSvcUuid && indicateCharUuid) {
+          toast({ title: `[IND] subscribing to ${indicateCharUuid.slice(0,8)}…`, duration: 20000 });
+          try {
+            await BleClient.startNotifications(deviceId, indicateSvcUuid, indicateCharUuid, (dv) => {
+              const bytes = hx(dv);
+              toast({ title: `[IND] ${indicateCharUuid!.slice(0,8)} data`, description: bytes.slice(0, 60), duration: 30000 });
+              const tempF = parseBtTemperature(dv);
+              if (tempF !== null) done(tempF);
+            });
+            toast({ title: `[IND] subscribed ✓`, duration: 10000 });
+          } catch (e) {
+            toast({ title: `[IND] subscribe failed`, description: String(e).slice(0,60), duration: 20000 });
           }
         }
 
-        // ── Phase 4: send cmd-B in case device needs activation ────────────
-        try {
-          await BleClient.write(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
-            new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer));
-        } catch {
-          await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
-            new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer)).catch(() => {});
+        // Also subscribe to fff2 for comparison
+        await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
+          toast({ title: `[fff2] data`, description: hx(dv).slice(0, 60), duration: 20000 });
+        }).catch(() => {});
+
+        // ── Phase 4: write cmd-B to BOTH channels ─────────────────────────
+        const cmdB = new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer);
+        // Write to known fff1 channel
+        await BleClient.write(deviceId, TP25_SERVICE, TP25_CHAR_WRITE, cmdB).catch(() =>
+          BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE, cmdB).catch(() => {}));
+        // Write cmd-B to the indicate char too (may trigger temperature indication)
+        if (indicateSvcUuid && indicateCharUuid) {
+          await BleClient.write(deviceId, indicateSvcUuid, indicateCharUuid, cmdB).catch(() =>
+            BleClient.writeWithoutResponse(deviceId, indicateSvcUuid!, indicateCharUuid!, cmdB).catch(() => {}));
+          toast({ title: `[IND] wrote cmd-B — waiting for response…`, duration: 15000 });
         }
       } catch (e) {
         clearTimeout(timer);
