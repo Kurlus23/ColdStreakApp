@@ -1337,69 +1337,65 @@ export default function Home() {
 
   /**
    * Try all three thermometer protocols simultaneously and return the first one
-   * that yields a valid temperature notification within 10 s. Parallel probing
-   * avoids the "device cooldown" problem where a failed sequential attempt
-   * prevents the next protocol from getting a response. All losing subscriptions
-   * are cleaned up automatically once a winner is found.
+   * Tries GATT first (standard Health Thermometer), then falls back to the
+   * proprietary TP25 protocol if GATT fails or times out. Sequential probing
+   * avoids iOS BLE stack interference that occurs when both subscriptions run
+   * simultaneously. GATT is tried first because it was confirmed working before.
    */
-  function detectThermoProtocol(deviceId: string): Promise<{ protocol: "gatt" | "tp25"; tempF: number } | null> {
-    const candidates = [
-      { name: "tp25" as const, svc: TP25_SERVICE,         char: TP25_CHAR_NOTIF   },
-      { name: "gatt" as const, svc: HEALTH_THERM_SERVICE, char: HEALTH_THERM_CHAR },
-    ];
-
-    return new Promise((resolve) => {
-      let settled = false;
-      const mainTimer = setTimeout(() => settle(null), 10_000);
-
-      function settle(result: { protocol: "gatt" | "tp25"; tempF: number } | null) {
-        if (settled) return;
-        settled = true;
-        clearTimeout(mainTimer);
-        resolve(result);
-      }
-
-      // Diagnostic state — shown on-screen so we can debug without USB
-      const subOk: string[] = [];
-      const subFail: string[] = [];
-      const notifLog: string[] = [];
-
-      for (const { name, svc, char } of candidates) {
-        BleClient.startNotifications(deviceId, svc, char, (dv) => {
-          lastThermoNotifRef.current = Date.now();
-          const bytes = Array.from(new Uint8Array(dv.buffer)).map(b => b.toString(16).padStart(2,"0")).join(" ");
-          let tempF: number | null = null;
-          if (name === "gatt") tempF = parseBtTemperature(dv);
-          else if (name === "tp25") tempF = parseTp25Temperature(dv);
-          // Only log the first notification per protocol to keep toasts manageable
-          if (!notifLog.find(l => l.startsWith(name))) {
-            notifLog.push(`${name}: ${bytes.slice(0,23)} → ${tempF ?? "null"}°F`);
-            toast({ title: `[BLE] ${name} data`, description: `${bytes.slice(0,23)} → ${tempF ?? "null"}°F`, duration: 8000 });
-          }
-          if (tempF !== null) settle({ protocol: name, tempF });
-        }).then(async () => {
-          subOk.push(name);
-          toast({ title: `[BLE] ${name} subscribed ✓`, duration: 4000 });
-          // If another protocol already won, clean up this one immediately
-          if (settled) { BleClient.stopNotifications(deviceId, svc, char).catch(() => {}); return; }
-          // Send activation commands so the device starts pushing data.
-          // TP25 write is delayed 2 s so GATT (which needs no write) can
-          // respond first — the activation write can switch the device into a
-          // proprietary mode that blocks GATT notifications.
-          if (name === "tp25") {
-            await new Promise(r => setTimeout(r, 2000));
-            if (settled) { BleClient.stopNotifications(deviceId, svc, char).catch(() => {}); return; }
-            await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
-              new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)).catch(() => {});
-          }
-          // Re-check after async work — may have been settled while awaiting
-          if (settled) { BleClient.stopNotifications(deviceId, svc, char).catch(() => {}); }
-        }).catch((e) => {
-          subFail.push(name);
-          toast({ title: `[BLE] ${name} failed ✗`, description: String(e).slice(0, 60), duration: 6000 });
-        });
-      }
+  async function detectThermoProtocol(deviceId: string): Promise<{ protocol: "gatt" | "tp25"; tempF: number } | null> {
+    // ── Step 1: try standard GATT Health Thermometer ──────────────────────────
+    toast({ title: "[BLE] trying gatt…", duration: 3000 });
+    const gattResult = await new Promise<number | null>((resolve) => {
+      const timer = setTimeout(() => {
+        BleClient.stopNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR).catch(() => {});
+        resolve(null);
+      }, 4_000);
+      BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
+        const tempF = parseBtTemperature(dv);
+        const bytes = Array.from(new Uint8Array(dv.buffer)).map(b => b.toString(16).padStart(2,"0")).join(" ");
+        toast({ title: `[BLE] gatt data`, description: `${bytes.slice(0,23)} → ${tempF ?? "null"}°F`, duration: 8000 });
+        if (tempF !== null) { clearTimeout(timer); resolve(tempF); }
+      }).then(() => {
+        toast({ title: "[BLE] gatt subscribed ✓", duration: 3000 });
+      }).catch((e) => {
+        clearTimeout(timer);
+        toast({ title: "[BLE] gatt failed ✗", description: String(e).slice(0, 60), duration: 5000 });
+        resolve(null);
+      });
     });
+    if (gattResult !== null) {
+      BleClient.stopNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR).catch(() => {});
+      return { protocol: "gatt", tempF: gattResult };
+    }
+
+    // ── Step 2: fall back to TP25 proprietary protocol ────────────────────────
+    toast({ title: "[BLE] trying tp25…", duration: 3000 });
+    const tp25Result = await new Promise<number | null>((resolve) => {
+      const timer = setTimeout(() => {
+        BleClient.stopNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF).catch(() => {});
+        resolve(null);
+      }, 6_000);
+      BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
+        const tempF = parseTp25Temperature(dv);
+        const bytes = Array.from(new Uint8Array(dv.buffer)).map(b => b.toString(16).padStart(2,"0")).join(" ");
+        toast({ title: `[BLE] tp25 data`, description: `${bytes.slice(0,23)} → ${tempF ?? "null"}°F`, duration: 8000 });
+        if (tempF !== null) { clearTimeout(timer); resolve(tempF); }
+      }).then(async () => {
+        toast({ title: "[BLE] tp25 subscribed ✓", duration: 3000 });
+        await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
+          new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)).catch(() => {});
+      }).catch((e) => {
+        clearTimeout(timer);
+        toast({ title: "[BLE] tp25 failed ✗", description: String(e).slice(0, 60), duration: 5000 });
+        resolve(null);
+      });
+    });
+    if (tp25Result !== null) {
+      BleClient.stopNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF).catch(() => {});
+      return { protocol: "tp25", tempF: tp25Result };
+    }
+
+    return null;
   }
 
   // Helper: start keep-alive pings so the thermometer doesn't time out
