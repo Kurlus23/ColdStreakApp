@@ -1343,32 +1343,7 @@ export default function Home() {
    * simultaneously. GATT is tried first because it was confirmed working before.
    */
   async function detectThermoProtocol(deviceId: string): Promise<{ protocol: "gatt" | "tp25"; tempF: number } | null> {
-    // ── Step 1: try standard GATT Health Thermometer ──────────────────────────
-    toast({ title: "[BLE] trying gatt…", duration: 3000 });
-    const gattResult = await new Promise<number | null>((resolve) => {
-      const timer = setTimeout(() => {
-        BleClient.stopNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR).catch(() => {});
-        resolve(null);
-      }, 4_000);
-      BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
-        const tempF = parseBtTemperature(dv);
-        const bytes = Array.from(new Uint8Array(dv.buffer)).map(b => b.toString(16).padStart(2,"0")).join(" ");
-        toast({ title: `[BLE] gatt data`, description: `${bytes.slice(0,23)} → ${tempF ?? "null"}°F`, duration: 8000 });
-        if (tempF !== null) { clearTimeout(timer); resolve(tempF); }
-      }).then(() => {
-        toast({ title: "[BLE] gatt subscribed ✓", duration: 3000 });
-      }).catch((e) => {
-        clearTimeout(timer);
-        toast({ title: "[BLE] gatt failed ✗", description: String(e).slice(0, 60), duration: 5000 });
-        resolve(null);
-      });
-    });
-    if (gattResult !== null) {
-      BleClient.stopNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR).catch(() => {});
-      return { protocol: "gatt", tempF: gattResult };
-    }
-
-    // ── Step 2: fall back to TP25 proprietary protocol ────────────────────────
+    // ── TP25 proprietary protocol (GATT confirmed absent on this device) ──────
     toast({ title: "[BLE] trying tp25…", duration: 12000 });
     const tp25Result = await new Promise<number | null>((resolve) => {
       const timer = setTimeout(() => {
