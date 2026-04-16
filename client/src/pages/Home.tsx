@@ -1338,7 +1338,23 @@ export default function Home() {
    * simultaneously. GATT is tried first because it was confirmed working before.
    */
   async function detectThermoProtocol(deviceId: string): Promise<{ protocol: "gatt" | "tp25"; tempF: number } | null> {
-    // ── TP25 proprietary protocol (GATT confirmed absent on this device) ──────
+    // ── Step 1: standard GATT Health Thermometer (works with Inkbird and most BLE thermometers) ──
+    const gattResult = await new Promise<number | null>((resolve) => {
+      const timer = setTimeout(() => {
+        BleClient.stopNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR).catch(() => {});
+        resolve(null);
+      }, 4_000);
+      BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
+        const tempF = parseBtTemperature(dv);
+        if (tempF !== null) { clearTimeout(timer); resolve(tempF); }
+      }).catch(() => { clearTimeout(timer); resolve(null); });
+    });
+    if (gattResult !== null) {
+      BleClient.stopNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR).catch(() => {});
+      return { protocol: "gatt", tempF: gattResult };
+    }
+
+    // ── Step 2: proprietary fallback protocol ─────────────────────────────────
     toast({ title: "[BLE] trying tp25…", duration: 12000 });
     const tp25Result = await new Promise<number | null>((resolve) => {
       const timer = setTimeout(() => {
@@ -1691,7 +1707,7 @@ export default function Home() {
       } else {
         await BleClient.disconnect(deviceId).catch(() => {});
         btDeviceRef.current = null;
-        toast({ title: "[D1] Device connected — protocol unknown", description: "Could not read temperature from this device.", variant: "destructive" });
+        toast({ title: "Device connected — protocol unknown", description: "Could not read temperature from this device.", variant: "destructive" });
       }
     } catch (err: any) {
       const msg = err?.message ?? "";
@@ -1789,7 +1805,7 @@ export default function Home() {
       } else {
         await BleClient.disconnect(deviceId).catch(() => {});
         btDeviceRef.current = null;
-        toast({ title: "[D1] Device connected — protocol unknown", description: "Could not read temperature from this device.", variant: "destructive" });
+        toast({ title: "Device connected — protocol unknown", description: "Could not read temperature from this device.", variant: "destructive" });
       }
     } catch (err: any) {
       const msg = err?.message ?? "";
@@ -4136,7 +4152,7 @@ export default function Home() {
                 {btConnected && <span className="ml-auto flex items-center gap-1 text-[10px] text-green-400"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />Connected</span>}
               </div>
               <p className="text-blue-400/80 text-xs leading-relaxed">
-                Connect a BLE thermometer (e.g. ThermoPro TP25) to automatically read your water temperature during a plunge.
+                Connect a BLE thermometer to automatically read your water temperature during a plunge.
               </p>
               {btConnected ? (
                 <div className="space-y-2">
