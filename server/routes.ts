@@ -241,7 +241,7 @@ export async function registerRoutes(
   // Requires header: X-Admin-Reset-Secret to exactly match env ADMIN_RESET_SECRET.
   app.post("/api/admin/force-password-reset", async (req, res) => {
     const expected = process.env.ADMIN_RESET_SECRET;
-    if (!expected || expected.length < 16) {
+    if (!expected || expected.length < 8) {
       return res.status(503).json({ message: "Endpoint not configured" });
     }
     const provided = req.headers["x-admin-reset-secret"];
