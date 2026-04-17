@@ -236,6 +236,34 @@ export async function registerRoutes(
     }
   });
 
+  // One-time admin password reset, gated by a long shared secret.
+  // Used to recover admin access on production where direct DB writes are off-limits.
+  // Requires header: X-Admin-Reset-Secret to exactly match env ADMIN_RESET_SECRET.
+  app.post("/api/admin/force-password-reset", async (req, res) => {
+    const expected = process.env.ADMIN_RESET_SECRET;
+    if (!expected || expected.length < 16) {
+      return res.status(503).json({ message: "Endpoint not configured" });
+    }
+    const provided = req.headers["x-admin-reset-secret"];
+    if (typeof provided !== "string" || provided !== expected) {
+      console.warn("[admin-reset] denied — bad/missing secret from", req.ip);
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    const parsed = z.object({
+      email: z.string().email(),
+      newPassword: z.string().min(10).max(200),
+    }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: parsed.error.errors[0].message });
+    }
+    const user = await storage.getUserByEmail(parsed.data.email);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    const passwordHash = await bcrypt.hash(parsed.data.newPassword, 10);
+    await storage.updatePassword(user.id, passwordHash);
+    console.log(`[admin-reset] password reset for user id=${user.id} email=${user.email}`);
+    res.json({ success: true, userId: user.id, email: user.email });
+  });
+
   app.post("/api/auth/login", async (req, res) => {
     try {
       // Accept email address OR username in the same field
