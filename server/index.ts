@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { storage } from "./storage";
+import jwt from "jsonwebtoken";
 
 const app = express();
 const httpServer = createServer(app);
@@ -30,7 +31,7 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Client-Id");
   }
   if (req.method === "OPTIONS") {
     res.sendStatus(200);
@@ -49,6 +50,65 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+// ── First-touch / activity tracker ────────────────────────────────────────
+// Records API requests that carry a clientId so we have a server-side ground
+// truth for "real visitors" independent of GA. Fire-and-forget — never blocks
+// the response. Per-process throttle keeps DB writes to ~1/device/5min.
+const VISIT_THROTTLE_MS = 5 * 60 * 1000;
+const lastVisitWriteAt = new Map<string, number>();
+// Soft cap to prevent unbounded memory growth in long-running process.
+function pruneVisitCache() {
+  if (lastVisitWriteAt.size <= 10_000) return;
+  const cutoff = Date.now() - VISIT_THROTTLE_MS;
+  for (const [k, t] of lastVisitWriteAt) if (t < cutoff) lastVisitWriteAt.delete(k);
+}
+
+const VISIT_JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
+
+app.use((req, _res, next) => {
+  next();
+  try {
+    if (!req.path.startsWith("/api/")) return;
+    if (req.path.startsWith("/api/admin/visits")) return; // don't self-track admin polling
+    // Accept clientId only via the dedicated header — single canonical channel.
+    const clientId = (req.headers["x-client-id"] as string | undefined) || undefined;
+    if (!clientId || clientId.length < 8 || clientId.length > 128) return;
+
+    // Per-process throttle: skip if we wrote for this client recently.
+    const now = Date.now();
+    const last = lastVisitWriteAt.get(clientId) ?? 0;
+    if (now - last < VISIT_THROTTLE_MS) return;
+    lastVisitWriteAt.set(clientId, now);
+    pruneVisitCache();
+
+    const ua = (req.headers["user-agent"] as string | undefined) || undefined;
+    const platform = /capacitor|coldstreak/i.test(ua || "") ? "native"
+      : /android/i.test(ua || "") ? "android"
+      : /iphone|ipad|ios/i.test(ua || "") ? "ios"
+      : "web";
+
+    // Best-effort: link the device to a verified user when a valid Bearer is present.
+    let userId: number | undefined;
+    const auth = req.headers.authorization;
+    if (auth?.startsWith("Bearer ")) {
+      try {
+        const payload = jwt.verify(auth.slice(7), VISIT_JWT_SECRET) as { id?: number };
+        if (typeof payload?.id === "number") userId = payload.id;
+      } catch { /* invalid token — leave userId undefined */ }
+    }
+
+    storage.recordClientVisit({
+      clientId,
+      userAgent: ua?.slice(0, 200),
+      path: req.path.slice(0, 200),
+      platform,
+      userId,
+    }).catch((err) => console.error("[visits] record failed:", err?.message ?? err));
+  } catch (err) {
+    console.error("[visits] middleware error:", err);
+  }
+});
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

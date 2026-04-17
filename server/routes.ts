@@ -694,6 +694,23 @@ export async function registerRoutes(
     res.json(users);
   });
 
+  // Admin: server-side first-touch / activity ground truth
+  // Reports unique devices that have actually hit our API, independent of GA.
+  app.get("/api/admin/visits/stats", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const stats = await storage.getClientVisitStats();
+    res.json(stats);
+  });
+
+  app.get("/api/admin/visits/recent", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const limit = Math.min(500, Math.max(1, parseInt((req.query.limit as string) ?? "100", 10) || 100));
+    const visits = await storage.getRecentClientVisits(limit);
+    res.json(visits);
+  });
+
   // Admin: disable / enable a user account
   app.patch("/api/admin/users/:id", async (req, res) => {
     const caller = extractUser(req);

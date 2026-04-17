@@ -152,6 +152,19 @@ export default function Admin() {
     enabled: !!auth.user,
   });
 
+  type VisitStats = {
+    totalClients: number;
+    newClients24h: number;
+    newClients7d: number;
+    newClients30d: number;
+    activeClients24h: number;
+    activeClients7d: number;
+  };
+  const { data: visitStats } = useQuery<VisitStats>({
+    queryKey: ["/api/admin/visits/stats"],
+    enabled: !!auth.user,
+  });
+
   const { data: supportMessages } = useQuery<SupportMessage[]>({
     queryKey: ["/api/admin/support-messages"],
     enabled: !!auth.user,
@@ -685,6 +698,37 @@ export default function Admin() {
           </div>
         </div>
       </div>
+
+      {/* ── Visitor ground-truth (server-side, independent of GA) ───────── */}
+      {visitStats && (
+        <div className="mb-6 max-w-5xl">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-bold text-white">Real Visitors <span className="text-xs font-normal text-slate-400">(server-side, our own count)</span></h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[
+              { label: "Total devices", value: visitStats.totalClients, testid: "stat-visits-total" },
+              { label: "New 24h", value: visitStats.newClients24h, testid: "stat-visits-new-24h" },
+              { label: "New 7d", value: visitStats.newClients7d, testid: "stat-visits-new-7d" },
+              { label: "New 30d", value: visitStats.newClients30d, testid: "stat-visits-new-30d" },
+              { label: "Active 24h", value: visitStats.activeClients24h, testid: "stat-visits-active-24h" },
+              { label: "Active 7d", value: visitStats.activeClients7d, testid: "stat-visits-active-7d" },
+            ].map((s) => (
+              <div
+                key={s.label}
+                data-testid={s.testid}
+                className="px-3 py-3 rounded-xl bg-slate-800/60 border border-slate-700/50"
+              >
+                <div className="text-[11px] uppercase tracking-wide text-slate-400">{s.label}</div>
+                <div className="text-2xl font-bold text-white tabular-nums">{s.value}</div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-slate-500">
+            One row per device (per <code>localStorage</code> client id). This is what actually hit our API — separate from Google Analytics "users".
+          </p>
+        </div>
+      )}
 
       {/* ── Users row: Pro (left) | Free (right) ───────────────────────── */}
       {isLoading && <p className="text-blue-300 mb-4">Loading…</p>}

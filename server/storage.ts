@@ -1,12 +1,12 @@
 import { db } from "./db";
 import {
   plunges, leaderboardEntries, proUsers, promoCodes, userLocations, businessListings, users, badgeProfiles, pushSubscriptions,
-  events, eventParticipants, eventCoordinators, eventBans, supportMessages,
+  events, eventParticipants, eventCoordinators, eventBans, supportMessages, clientVisits,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
   type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile, type PushSubscription,
   type BusinessListing, type Event, type EventParticipant, type EventCoordinator, type EventBan,
-  type SupportMessage, type InsertSupportMessage,
+  type SupportMessage, type InsertSupportMessage, type ClientVisit,
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and, not, lt, gte, inArray, sum } from "drizzle-orm";
 
@@ -58,6 +58,11 @@ export interface IStorage {
   verifyEmailToken(token: string): Promise<User | null>;
   updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number }): Promise<User>;
   getUserCount(): Promise<number>;
+
+  // Client visits (server-side first-touch / activity ground truth)
+  recordClientVisit(data: { clientId: string; userAgent?: string; path?: string; platform?: string; userId?: number }): Promise<void>;
+  getRecentClientVisits(limit?: number): Promise<ClientVisit[]>;
+  getClientVisitStats(): Promise<{ totalClients: number; newClients24h: number; newClients7d: number; newClients30d: number; activeClients24h: number; activeClients7d: number }>;
 
   upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null; foundingPlunger?: boolean; avatarUrl?: string | null; bio?: string | null; socialLinks?: string }): Promise<void>;
   updateBadgeProfileMeta(username: string, data: { avatarUrl?: string | null; bio?: string | null; socialLinks?: string }): Promise<void>;
@@ -865,6 +870,50 @@ export class DatabaseStorage implements IStorage {
 
   async resolveSupportMessage(id: number): Promise<void> {
     await db.update(supportMessages).set({ status: "resolved" }).where(eq(supportMessages.id, id));
+  }
+
+  // ── Client visits ──────────────────────────────────────────────────────────
+  async recordClientVisit(data: { clientId: string; userAgent?: string; path?: string; platform?: string; userId?: number }): Promise<void> {
+    await db.insert(clientVisits)
+      .values({
+        clientId: data.clientId,
+        userAgent: data.userAgent ?? null,
+        lastPath: data.path ?? null,
+        platform: data.platform ?? null,
+        userId: data.userId ?? null,
+      })
+      .onConflictDoUpdate({
+        target: clientVisits.clientId,
+        set: {
+          lastSeenAt: new Date(),
+          visitCount: sql`${clientVisits.visitCount} + 1`,
+          userAgent: data.userAgent ?? sql`${clientVisits.userAgent}`,
+          lastPath: data.path ?? sql`${clientVisits.lastPath}`,
+          platform: data.platform ?? sql`${clientVisits.platform}`,
+          userId: data.userId ?? sql`${clientVisits.userId}`,
+        },
+      });
+  }
+
+  async getRecentClientVisits(limit = 100): Promise<ClientVisit[]> {
+    return db.select().from(clientVisits).orderBy(desc(clientVisits.lastSeenAt)).limit(limit);
+  }
+
+  async getClientVisitStats() {
+    const [row] = await db.execute(sql`
+      SELECT
+        COUNT(*)::int                                                                 AS "totalClients",
+        COUNT(*) FILTER (WHERE first_seen_at >= NOW() - INTERVAL '24 hours')::int    AS "newClients24h",
+        COUNT(*) FILTER (WHERE first_seen_at >= NOW() - INTERVAL '7 days')::int      AS "newClients7d",
+        COUNT(*) FILTER (WHERE first_seen_at >= NOW() - INTERVAL '30 days')::int     AS "newClients30d",
+        COUNT(*) FILTER (WHERE last_seen_at  >= NOW() - INTERVAL '24 hours')::int    AS "activeClients24h",
+        COUNT(*) FILTER (WHERE last_seen_at  >= NOW() - INTERVAL '7 days')::int      AS "activeClients7d"
+      FROM client_visits
+    `) as unknown as Array<{
+      totalClients: number; newClients24h: number; newClients7d: number; newClients30d: number;
+      activeClients24h: number; activeClients7d: number;
+    }>;
+    return row ?? { totalClients: 0, newClients24h: 0, newClients7d: 0, newClients30d: 0, activeClients24h: 0, activeClients7d: 0 };
   }
 }
 

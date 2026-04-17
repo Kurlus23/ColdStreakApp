@@ -1,6 +1,22 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { getAuthToken } from "@/hooks/use-auth";
 
+// Lazily read the per-device clientId so every API call carries it as a header
+// (separate from the body/query so it works for plain GETs too).
+function getStoredClientId(): string | null {
+  try {
+    const KEY = "coldstreak-client-id";
+    let id = localStorage.getItem(KEY);
+    if (!id) {
+      id = (typeof crypto !== "undefined" && "randomUUID" in crypto)
+        ? crypto.randomUUID()
+        : `cs-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      localStorage.setItem(KEY, id);
+    }
+    return id;
+  } catch { return null; }
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -20,6 +36,8 @@ function authHeaders(extra?: Record<string, string>): Record<string, string> {
   const token = getAuthToken();
   const headers: Record<string, string> = { ...(extra || {}) };
   if (token) headers["Authorization"] = `Bearer ${token}`;
+  const cid = getStoredClientId();
+  if (cid) headers["X-Client-Id"] = cid;
   return headers;
 }
 

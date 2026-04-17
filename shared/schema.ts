@@ -251,6 +251,22 @@ export const eventBans = pgTable("event_bans", {
 
 export type EventBan = typeof eventBans.$inferSelect;
 
+// ── Client Visits ─────────────────────────────────────────────────────────────
+// First-touch + recurring activity log for every device that hits the API.
+// Provides a server-side ground truth for "real visitors" independent of GA.
+export const clientVisits = pgTable("client_visits", {
+  clientId: text("client_id").primaryKey(), // UUID stored in localStorage on the client
+  firstSeenAt: timestamp("first_seen_at").defaultNow().notNull(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
+  visitCount: integer("visit_count").default(1).notNull(), // increments per request
+  userAgent: text("user_agent"),
+  lastPath: text("last_path"),
+  platform: text("platform"), // "web" | "android" | "ios" — inferred from UA / origin
+  userId: integer("user_id"), // set once the client signs in / claims plunges
+});
+
+export type ClientVisit = typeof clientVisits.$inferSelect;
+
 export const supportMessages = pgTable("support_messages", {
   id: serial("id").primaryKey(),
   userId: integer("user_id"),
