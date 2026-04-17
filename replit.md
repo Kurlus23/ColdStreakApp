@@ -108,8 +108,11 @@ Priority order: Apple Watch first (existing iOS ecosystem), then Garmin, then Am
 
 **Shared design principle across all platforms**: the watch is a remote control + HR sensor only — all data storage, Cold Score calculation, and session history remain in the ColdStreak iPhone/Android app.
 
+## Bluetooth Thermometer Support
+- **Currently supported model: Inkbird IBS-TH2 Plus** (waterproof external probe, standard BLE Health Thermometer GATT service `0x1809` / characteristic `0x2A1C`). Selected after retiring ThermoPro TP25 reverse-engineering work — TP25 used a proprietary protocol (`1086fff0…`) that never returned reliable probe data over its `fff2` notify or `8ec90003` indicate characteristics, even after writing cmd-A/B/C activation packets. IBS-TH2 Plus also supports BLE advertisement broadcasts (no GATT connection needed), which sidesteps the iOS BLE cache/disconnect issues that plagued TP25 — broadcast-mode parsing is a future enhancement; current implementation uses standard GATT subscriptions.
+- **Equipment-bay temperature & fan control** — Handled by standalone hardware (Pymeter PY-20TT or Inkbird IPT-2CH), intentionally **independent of the app** so chiller automation never depends on a phone being nearby.
+
 ## v2.0 Roadmap Notes
-- **WiFi Thermometer Support (Pymeter PY-W25TT)** — Dual-sensor WiFi thermometer that can monitor both water temperature (cold plunge) and equipment bay temperature (chiller efficiency). Integration plan: research whether the PY-W25TT exposes a local HTTP API or requires a cloud/manufacturer API; build a setup screen where the user assigns which sensor is "water temp" vs. "equipment bay"; display equipment bay temp separately in the Devices tab (not used for Cold Score calculation). If cloud API is required, handle API key entry in Settings. The equipment bay sensor could optionally trigger alerts if the bay exceeds a temperature threshold.
 
 
 - **Bitmoji / device photo upload for avatars** — Allow users to upload an image directly from their device (including Bitmoji screenshots). Requires cloud image storage (Cloudinary or similar), privacy policy updates to cover image data collection, ToS clause for user-generated content, and a content moderation plan for App Store / Play Store compliance. Current URL-paste approach intentionally deferred until v2.0.

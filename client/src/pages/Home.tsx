@@ -217,8 +217,8 @@ export default function Home() {
   const [btThermoTimedOut, setBtThermoTimedOut] = useState(false);
   const btDeviceRef = useRef<string | null>(null); // stores deviceId (string)
   const btKeepaliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const btProtocolRef = useRef<"gatt" | "tp25" | null>(null);
-  const [btProtocol, setBtProtocol] = useState<"gatt" | "tp25" | null>(null);
+  const btProtocolRef = useRef<"gatt" | null>(null);
+  const [btProtocol, setBtProtocol] = useState<"gatt" | null>(null);
   const lastThermoNotifRef = useRef<number>(0); // epoch ms of last received BLE notification
   const thermoReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const thermoReconnectCountRef = useRef(0);
@@ -1139,36 +1139,9 @@ export default function Home() {
   }
 
   // Standard Bluetooth Health Thermometer (full 128-bit UUIDs required by BleClient)
+  // Currently supported model: Inkbird IBS-TH2 Plus (uses standard GATT Health Thermometer service).
   const HEALTH_THERM_SERVICE = "00001809-0000-1000-8000-00805f9b34fb";
   const HEALTH_THERM_CHAR    = "00002a1c-0000-1000-8000-00805f9b34fb";
-
-  // ThermoPro TP25 GATT service & characteristic UUIDs (reverse-engineered)
-  const TP25_SERVICE    = "1086fff0-3343-4817-8bb2-b32206336ce8";
-  const TP25_CHAR_WRITE = "1086fff1-3343-4817-8bb2-b32206336ce8";
-  const TP25_CHAR_NOTIF = "1086fff2-3343-4817-8bb2-b32206336ce8";
-
-  // Parse a ThermoPro TP25 TLVC notification — returns the COLDEST valid probe in °F.
-  // TP25 notification packet format (confirmed via field testing):
-  //   [e0][02][resp_type][probe_count][probe1_tempC][flags][alarm_hi][alarm_lo]
-  //   [00][00][seq_lo][ambient_tempC][00][20][48][00]...
-  //   byte 4  = probe 1 temperature in whole °C (0 = disconnected, >80 = status byte)
-  //   byte 11 = transmitter ambient temperature in whole °C
-  function parseTp25Temperature(dv: DataView): number | null {
-    try {
-      if (dv.byteLength < 8) return null;
-      // TP25 packet: [e0 02 resp_type probe_count] [probe1_tempC ...] ... [ambient_tempC ...]
-      // Byte 4  = probe 1 temperature in whole °C (confirmed via field testing)
-      // Byte 11 = transmitter ambient temperature in whole °C (confirmed: 25 = 77°F room temp)
-      // Valid probe range: 1–80°C (34–176°F). 0 = probe disconnected; >80 = alarm/status byte.
-      const probe1C = dv.getUint8(4);
-      if (probe1C >= 1 && probe1C <= 80) {
-        const tempF = (probe1C * 9) / 5 + 32;
-        console.log("[TP25] byte4 probe →", probe1C, "°C =", tempF.toFixed(1), "°F");
-        return tempF;
-      }
-      return null;
-    } catch { return null; }
-  }
 
   // ─── BLE availability helper ─────────────────────────────────────────────
   // True only when BLE will actually work:
@@ -1314,19 +1287,16 @@ export default function Home() {
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Try all three thermometer protocols simultaneously and return the first one
-   * Tries GATT first (standard Health Thermometer), then falls back to the
-   * proprietary TP25 protocol if GATT fails or times out. Sequential probing
-   * avoids iOS BLE stack interference that occurs when both subscriptions run
-   * simultaneously. GATT is tried first because it was confirmed working before.
+   * Subscribe to the standard GATT Health Thermometer service and return the
+   * first temperature reading. This is the protocol used by the Inkbird
+   * IBS-TH2 Plus (currently the only officially supported thermometer model).
    */
-  async function detectThermoProtocol(deviceId: string): Promise<{ protocol: "gatt" | "tp25"; tempF: number } | null> {
-    // ── Step 1: standard GATT Health Thermometer (works with Inkbird and most BLE thermometers) ──
+  async function detectThermoProtocol(deviceId: string): Promise<{ protocol: "gatt"; tempF: number } | null> {
     const gattResult = await new Promise<number | null>((resolve) => {
       const timer = setTimeout(() => {
         BleClient.stopNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR).catch(() => {});
         resolve(null);
-      }, 4_000);
+      }, 6_000);
       BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
         const tempF = parseBtTemperature(dv);
         if (tempF !== null) { clearTimeout(timer); resolve(tempF); }
@@ -1336,168 +1306,23 @@ export default function Home() {
       BleClient.stopNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR).catch(() => {});
       return { protocol: "gatt", tempF: gattResult };
     }
-
-    // ── Step 2: TP25 — discover all characteristics, subscribe/read each one ──
-    toast({ title: "[BLE] scanning TP25 characteristics…", duration: 20000 });
-    const tp25Result = await new Promise<number | null>(async (resolve) => {
-      const timer = setTimeout(() => resolve(null), 20_000);
-      const done = (tempF: number) => { clearTimeout(timer); resolve(tempF); };
-      const hx = (dv: DataView) => Array.from(new Uint8Array(dv.buffer))
-        .map(b => b.toString(16).padStart(2, "0")).join(" ");
-
-      try {
-        // ── Phase 1: enumerate and find the indicate characteristic ────────
-        const services = await BleClient.getServices(deviceId).catch(() => null);
-        let indicateSvcUuid: string | null = null;
-        let indicateCharUuid: string | null = null;
-
-        if (services) {
-          for (const svc of services) {
-            for (const ch of svc.characteristics) {
-              const p = ch.properties;
-              const caps = [p.read?"R":"",p.write?"W":"",p.writeWithoutResponse?"Wn":"",p.notify?"N":"",p.indicate?"I":""].filter(Boolean).join("");
-              // Show full UUID for every char so we can hardcode later
-              toast({ title: `[char] ${caps}`, description: `svc:${svc.uuid.slice(0,8)} char:${ch.uuid}`, duration: 30000 });
-              // Prefer indicate over notify (fff2 is notify; 8ec90003 is indicate)
-              if (p.indicate && !indicateCharUuid) {
-                indicateSvcUuid = svc.uuid;
-                indicateCharUuid = ch.uuid;
-              }
-            }
-          }
-        }
-
-        // ── Phase 2: read every readable characteristic ────────────────────
-        if (services) {
-          for (const svc of services) {
-            for (const ch of svc.characteristics) {
-              if (!ch.properties.read) continue;
-              try {
-                const val = await BleClient.read(deviceId, svc.uuid, ch.uuid);
-                if (val && val.byteLength > 0) {
-                  toast({ title: `[READ] ${ch.uuid.slice(0,8)}`, description: hx(val).slice(0, 60), duration: 30000 });
-                }
-              } catch { /* not readable */ }
-            }
-          }
-        }
-
-        // ── Phase 3: subscribe to 8ec90003 (indicate) with 4s timeout ────
-        const withTimeout = <T,>(p: Promise<T>, ms: number, label: string): Promise<T | null> =>
-          Promise.race([p, new Promise<null>(r => setTimeout(() => { toast({ title: `[IND] ${label} timed out`, duration: 15000 }); r(null); }, ms))]);
-
-        let indSubscribed = false;
-        if (indicateSvcUuid && indicateCharUuid) {
-          toast({ title: `[IND] subscribing to ${indicateCharUuid.slice(0,8)}…`, duration: 15000 });
-          const result = await withTimeout(
-            BleClient.startNotifications(deviceId, indicateSvcUuid, indicateCharUuid, (dv) => {
-              toast({ title: `[IND] data!`, description: hx(dv).slice(0, 60), duration: 30000 });
-              const tempF = parseBtTemperature(dv);
-              if (tempF !== null) done(tempF);
-            }).then(() => "ok").catch((e: unknown) => { toast({ title: `[IND] sub failed`, description: String(e).slice(0,50), duration: 20000 }); return null; }),
-            4000, "subscribe"
-          );
-          if (result === "ok") { indSubscribed = true; toast({ title: `[IND] subscribed ✓`, duration: 10000 }); }
-        }
-
-        // Subscribe to fff2 — track every packet; show diff vs first
-        let fff2First: number[] | null = null;
-        let fff2Count = 0;
-        await BleClient.startNotifications(deviceId, TP25_SERVICE, TP25_CHAR_NOTIF, (dv) => {
-          fff2Count++;
-          const arr = Array.from(new Uint8Array(dv.buffer));
-          if (!fff2First) {
-            fff2First = arr;
-            toast({ title: `[fff2 #1] baseline`, description: hx(dv).slice(0, 60), duration: 30000 });
-          } else {
-            const diffBytes = arr.map((b, i) => b !== fff2First![i] ? `b${i}:${fff2First![i].toString(16)}→${b.toString(16)}` : "").filter(Boolean);
-            if (diffBytes.length > 0) {
-              toast({ title: `[fff2 #${fff2Count}] DIFF`, description: diffBytes.join(" | ").slice(0, 60), duration: 30000 });
-            }
-          }
-        }).catch(() => {});
-
-        // ── Phase 4: try cmd-A, cmd-B, cmd-C to both fff1 and 8ec90003 ───
-        const commands: [string, DataView][] = [
-          ["cmd-A", new DataView(new Uint8Array([0x21, 0x03, 0x01, 0x25]).buffer)],
-          ["cmd-B", new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer)],
-          ["cmd-C", new DataView(new Uint8Array([0x21, 0x03, 0x03, 0x27]).buffer)],
-        ];
-        for (const [label, dv] of commands) {
-          await BleClient.write(deviceId, TP25_SERVICE, TP25_CHAR_WRITE, dv).catch(() =>
-            BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE, dv).catch(() => {}));
-          if (indSubscribed && indicateSvcUuid && indicateCharUuid) {
-            await BleClient.write(deviceId, indicateSvcUuid, indicateCharUuid, dv).catch(() =>
-              BleClient.writeWithoutResponse(deviceId, indicateSvcUuid!, indicateCharUuid!, dv).catch(() => {}));
-          }
-          toast({ title: `[cmds] wrote ${label} — watching 3s…`, duration: 5000 });
-          await new Promise(r => setTimeout(r, 3000));
-        }
-      } catch (e) {
-        clearTimeout(timer);
-        toast({ title: "[TP25] discovery failed", description: String(e).slice(0, 80), duration: 20000 });
-        resolve(null);
-      }
-    });
-
-    if (tp25Result !== null) {
-      return { protocol: "tp25", tempF: tp25Result };
-    }
-
-    // ── Step 3: force-connect TP25 anyway so keepalive can stream ─────────
-    // Even without a temperature reading during detect, treat it as TP25 if
-    // the service was reachable (connection itself succeeded above).
-    toast({ title: "[TP25] no temp in detect — using keepalive mode", duration: 8000 });
-    return { protocol: "tp25", tempF: 44.6 };
+    return null;
   }
 
   // Helper: subscribe to thermo notifications and update temperature state continuously
-  async function startThermoStream(deviceId: string, protocol: "gatt" | "tp25") {
-    const service = protocol === "gatt" ? HEALTH_THERM_SERVICE : TP25_SERVICE;
-    const char    = protocol === "gatt" ? HEALTH_THERM_CHAR   : TP25_CHAR_NOTIF;
-    try { await BleClient.stopNotifications(deviceId, service, char); } catch { /* already gone */ }
+  async function startThermoStream(deviceId: string, _protocol: "gatt") {
+    try { await BleClient.stopNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR); } catch { /* already gone */ }
     try {
-      let packetCount = 0;
-      let streamFirst: number[] | null = null;
-      await BleClient.startNotifications(deviceId, service, char, (dv) => {
+      await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
         lastThermoNotifRef.current = Date.now();
-        const arr = Array.from(new Uint8Array(dv.buffer));
-        const hex = arr.map(b => b.toString(16).padStart(2,"0")).join(" ");
-        packetCount++;
-        let tempF: number | null = null;
-        if (protocol === "gatt") tempF = parseBtTemperature(dv);
-        else if (protocol === "tp25") tempF = parseTp25Temperature(dv);
-
-        if (packetCount === 1) {
-          streamFirst = arr;
-          const b4 = dv.byteLength > 4 ? dv.getUint8(4) : "?";
-          const b11 = dv.byteLength > 11 ? dv.getUint8(11) : "?";
-          toast({ title: `[stream#1] b4=${b4} b11=${b11} → ${tempF !== null ? tempF.toFixed(1)+"°F" : "null"}`, description: hex.slice(0, 60), duration: 20000 });
-        }
-        // Every 5 packets show live byte4/11 so we can watch them change
-        if (protocol === "tp25" && packetCount % 5 === 0 && dv.byteLength > 11) {
-          const b4 = dv.getUint8(4);
-          const b11 = dv.getUint8(11);
-          const changed = streamFirst ? arr.map((b,i) => b !== streamFirst![i] ? `b${i}:${streamFirst![i].toString(16)}→${b.toString(16)}` : "").filter(Boolean) : [];
-          toast({ title: `[stream#${packetCount}] b4=${b4} b11=${b11}`, description: changed.length ? changed.join(" | ").slice(0,55) : "no change", duration: 12000 });
-        }
+        const tempF = parseBtTemperature(dv);
         if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
       });
-      // TP25 needs an activation write every time we subscribe
-      if (protocol === "tp25") {
-        try {
-          await BleClient.write(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
-            new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer));
-        } catch {
-          await BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
-            new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer)).catch(() => {});
-        }
-      }
     } catch { /* connection may have dropped — let disconnect handler handle it */ }
   }
 
   // Helper: start keep-alive pings so the thermometer doesn't time out
-  function startThermoKeepalive(deviceId: string, protocol: "gatt" | "tp25") {
+  function startThermoKeepalive(deviceId: string, protocol: "gatt") {
     if (btKeepaliveRef.current) clearInterval(btKeepaliveRef.current);
     lastThermoNotifRef.current = 0; // force immediate stream start
 
@@ -1510,20 +1335,11 @@ export default function Home() {
       // ── Notification watchdog ────────────────────────────────────────────────
       // iOS silently drops characteristic notification subscriptions while the
       // GATT connection stays open. If we haven't received a notification in
-      // 15 s, restart the subscription (and re-send activation for TP25).
+      // 15 s, restart the subscription.
       const staleness = Date.now() - lastThermoNotifRef.current;
       if (staleness > 15_000) {
         lastThermoNotifRef.current = Date.now(); // prevent rapid re-trigger while async
         startThermoStream(deviceId, protocol);
-        return;
-      }
-
-      // ── TP25 poll: device doesn't stream continuously — cmd-B requests a reading ──
-      if (protocol === "tp25") {
-        BleClient.write(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
-          new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer))
-          .catch(() => BleClient.writeWithoutResponse(deviceId, TP25_SERVICE, TP25_CHAR_WRITE,
-            new DataView(new Uint8Array([0x21, 0x03, 0x02, 0x26]).buffer)).catch(() => {}));
       }
     }, 3_000);
   }
@@ -1749,7 +1565,7 @@ export default function Home() {
 
       // Show all nearby BLE devices — user picks their thermometer
       const device = await BleClient.requestDevice({
-        optionalServices: [TP25_SERVICE, HEALTH_THERM_SERVICE],
+        optionalServices: [HEALTH_THERM_SERVICE],
       });
 
       const deviceId = device.deviceId;
@@ -1802,8 +1618,11 @@ export default function Home() {
     }
   };
 
-  // Name patterns that identify likely thermometer devices
-  const THERMO_NAME_PATTERN = /thermopro|tp-?\d{2,3}|tp25|tp357|tp358|inkbird|ibt-?\d|ibs-?t|temp.*sensor|smart.*therm|thermo/i;
+  // Name patterns that identify likely thermometer devices.
+  // Currently officially supported: Inkbird IBS-TH2 Plus (advertises as "sps" or "IBS-TH2").
+  // We keep a slightly broader pattern so other Inkbird/standard BLE thermometers
+  // still appear in the scan list, but only the IBS-TH2 Plus is officially supported.
+  const THERMO_NAME_PATTERN = /inkbird|ibs-?t|ibs-?th|sps|temp.*sensor|smart.*therm|thermo/i;
 
   async function startThermoScan() {
     if (!assertBleAvailable()) return;
@@ -1912,9 +1731,9 @@ export default function Home() {
         }
       });
 
-      // Use cached protocol if known — avoids 12 s detection on every reconnect
+      // Use cached protocol if known — avoids re-running detection on every reconnect
       const cachedProtocol = btProtocolRef.current ??
-        (localStorage.getItem("coldstreak-bt-thermo-protocol") as "gatt" | "tp25" | null);
+        (localStorage.getItem("coldstreak-bt-thermo-protocol") as "gatt" | null);
 
       if (cachedProtocol) {
         btProtocolRef.current = cachedProtocol;
@@ -4242,6 +4061,9 @@ export default function Home() {
               </div>
               <p className="text-blue-400/80 text-xs leading-relaxed">
                 Connect a BLE thermometer to automatically read your water temperature during a plunge.
+              </p>
+              <p className="text-blue-400/60 text-[11px] leading-relaxed -mt-1">
+                <span className="text-cyan-300/80 font-semibold">Currently supported:</span> Inkbird IBS-TH2 Plus (waterproof external probe). Support for other models is on the roadmap.
               </p>
               {btConnected ? (
                 <div className="space-y-2">
