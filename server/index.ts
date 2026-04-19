@@ -3,7 +3,31 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
+
+// Idempotent bootstrap for tables added after the initial deploy that may not
+// yet exist on the prod DB. Cheap, runs once on startup, never throws.
+async function ensureRuntimeTables() {
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS share_events (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        client_id TEXT,
+        kind TEXT NOT NULL,
+        target_id TEXT,
+        channel TEXT,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS share_events_user_id_idx    ON share_events(user_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS share_events_created_at_idx ON share_events(created_at DESC)`);
+  } catch (err) {
+    console.error("[bootstrap] ensureRuntimeTables failed:", err);
+  }
+}
 
 const app = express();
 const httpServer = createServer(app);
@@ -192,6 +216,7 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
+      void ensureRuntimeTables();
     },
   );
 })();
