@@ -64,6 +64,29 @@ export interface IStorage {
   getRecentClientVisits(limit?: number): Promise<ClientVisit[]>;
   getClientVisitStats(): Promise<{ totalClients: number; newClients24h: number; newClients7d: number; newClients30d: number; activeClients24h: number; activeClients7d: number }>;
 
+  // Combined per-user usage report (signup + plunges + streaks + last seen)
+  getUserActivityReport(): Promise<Array<{
+    id: number;
+    email: string;
+    username: string | null;
+    displayName: string | null;
+    emailVerified: boolean;
+    isAdmin: boolean;
+    isPro: boolean;
+    signedUpAt: Date;
+    totalPlunges: number;
+    uniqueDays: number;
+    currentStreak: number;
+    longestStreak: number;
+    firstPlungeAt: Date | null;
+    lastPlungeAt: Date | null;
+    coldestTemp: number | null;
+    longestDurationSec: number | null;
+    lastApiSeenAt: Date | null;
+    totalApiVisits: number;
+    platforms: string | null;
+  }>>;
+
   upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null; foundingPlunger?: boolean; avatarUrl?: string | null; bio?: string | null; socialLinks?: string }): Promise<void>;
   updateBadgeProfileMeta(username: string, data: { avatarUrl?: string | null; bio?: string | null; socialLinks?: string }): Promise<void>;
   getBadgeProfile(username: string): Promise<BadgeProfile | null>;
@@ -897,6 +920,105 @@ export class DatabaseStorage implements IStorage {
 
   async getRecentClientVisits(limit = 100): Promise<ClientVisit[]> {
     return db.select().from(clientVisits).orderBy(desc(clientVisits.lastSeenAt)).limit(limit);
+  }
+
+  async getUserActivityReport() {
+    const rows = (await db.execute(sql`
+      WITH plunge_stats AS (
+        SELECT
+          user_id,
+          COUNT(*)::int                                                                    AS total_plunges,
+          COUNT(DISTINCT DATE(created_at))::int                                            AS unique_days,
+          MIN(created_at)                                                                  AS first_plunge_at,
+          MAX(created_at)                                                                  AS last_plunge_at,
+          MIN(temperature) FILTER (WHERE temperature IS NOT NULL)::float                   AS coldest_temp,
+          MAX(duration)    FILTER (WHERE duration   IS NOT NULL)::int                      AS longest_duration_sec,
+          ARRAY_AGG(DISTINCT DATE(created_at) ORDER BY DATE(created_at) DESC)              AS plunge_days
+        FROM plunges
+        WHERE user_id IS NOT NULL
+        GROUP BY user_id
+      ),
+      visit_stats AS (
+        SELECT
+          user_id,
+          MAX(last_seen_at)        AS last_api_seen_at,
+          SUM(visit_count)::int    AS total_api_visits,
+          STRING_AGG(DISTINCT platform, ', ') AS platforms
+        FROM client_visits
+        WHERE user_id IS NOT NULL
+        GROUP BY user_id
+      )
+      SELECT
+        u.id, u.email, u.username, u.display_name, u.email_verified, u.is_admin,
+        u.created_at AS signed_up_at,
+        (pu.email IS NOT NULL) AS is_pro,
+        COALESCE(ps.total_plunges, 0)         AS total_plunges,
+        COALESCE(ps.unique_days, 0)           AS unique_days,
+        ps.first_plunge_at, ps.last_plunge_at,
+        ps.coldest_temp, ps.longest_duration_sec, ps.plunge_days,
+        vs.last_api_seen_at, COALESCE(vs.total_api_visits, 0) AS total_api_visits, vs.platforms
+      FROM users u
+      LEFT JOIN plunge_stats ps ON ps.user_id = u.id
+      LEFT JOIN visit_stats  vs ON vs.user_id = u.id
+      LEFT JOIN pro_users    pu ON LOWER(pu.email) = LOWER(u.email)
+      ORDER BY u.created_at DESC
+    `)) as unknown as Array<any>;
+
+    const dayKey = (d: Date | string) => {
+      const dt = typeof d === "string" ? new Date(d) : d;
+      return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
+    };
+    const todayKey = dayKey(new Date());
+    const yesterdayKey = dayKey(new Date(Date.now() - 86400000));
+
+    return rows.map((r) => {
+      const days: string[] = Array.isArray(r.plunge_days)
+        ? r.plunge_days.map((d: any) => dayKey(d))
+        : [];
+      // unique + sorted desc
+      const uniqDesc = Array.from(new Set(days)).sort((a, b) => (a < b ? 1 : -1));
+      // current streak — must include today or yesterday to count
+      let currentStreak = 0;
+      if (uniqDesc[0] === todayKey || uniqDesc[0] === yesterdayKey) {
+        currentStreak = 1;
+        for (let i = 1; i < uniqDesc.length; i++) {
+          const prev = new Date(uniqDesc[i - 1] + "T00:00:00Z").getTime();
+          const cur  = new Date(uniqDesc[i]     + "T00:00:00Z").getTime();
+          if (prev - cur === 86400000) currentStreak += 1; else break;
+        }
+      }
+      // longest streak across all-time
+      const uniqAsc = [...uniqDesc].reverse();
+      let longestStreak = 0, run = 0, lastTs = -Infinity;
+      for (const k of uniqAsc) {
+        const ts = new Date(k + "T00:00:00Z").getTime();
+        run = (ts - lastTs === 86400000) ? run + 1 : 1;
+        if (run > longestStreak) longestStreak = run;
+        lastTs = ts;
+      }
+
+      return {
+        id: r.id,
+        email: r.email,
+        username: r.username ?? null,
+        displayName: r.display_name ?? null,
+        emailVerified: !!r.email_verified,
+        isAdmin: !!r.is_admin,
+        isPro: !!r.is_pro,
+        signedUpAt: r.signed_up_at,
+        totalPlunges: Number(r.total_plunges) || 0,
+        uniqueDays: Number(r.unique_days) || 0,
+        currentStreak,
+        longestStreak,
+        firstPlungeAt: r.first_plunge_at ?? null,
+        lastPlungeAt: r.last_plunge_at ?? null,
+        coldestTemp: r.coldest_temp ?? null,
+        longestDurationSec: r.longest_duration_sec ?? null,
+        lastApiSeenAt: r.last_api_seen_at ?? null,
+        totalApiVisits: Number(r.total_api_visits) || 0,
+        platforms: r.platforms ?? null,
+      };
+    });
   }
 
   async getClientVisitStats() {

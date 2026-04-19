@@ -165,6 +165,20 @@ export default function Admin() {
     enabled: !!auth.user,
   });
 
+  type UserActivity = {
+    id: number; email: string; username: string | null; displayName: string | null;
+    emailVerified: boolean; isAdmin: boolean; isPro: boolean;
+    signedUpAt: string;
+    totalPlunges: number; uniqueDays: number; currentStreak: number; longestStreak: number;
+    firstPlungeAt: string | null; lastPlungeAt: string | null;
+    coldestTemp: number | null; longestDurationSec: number | null;
+    lastApiSeenAt: string | null; totalApiVisits: number; platforms: string | null;
+  };
+  const { data: userActivity } = useQuery<UserActivity[]>({
+    queryKey: ["/api/admin/user-activity"],
+    enabled: !!auth.user,
+  });
+
   const { data: supportMessages } = useQuery<SupportMessage[]>({
     queryKey: ["/api/admin/support-messages"],
     enabled: !!auth.user,
@@ -726,6 +740,84 @@ export default function Admin() {
           </div>
           <p className="mt-2 text-xs text-slate-500">
             One row per device (per <code>localStorage</code> client id). This is what actually hit our API — separate from Google Analytics "users".
+          </p>
+        </div>
+      )}
+
+      {/* ── Per-user activity report ───────────────────────────────────── */}
+      {userActivity && (
+        <div className="mb-6 max-w-7xl">
+          <h2 className="text-base font-bold text-white mb-2">
+            User Activity <span className="text-xs font-normal text-slate-400">({userActivity.length} accounts)</span>
+          </h2>
+          <div className="overflow-x-auto rounded-xl border border-slate-700/50 bg-slate-800/40">
+            <table className="min-w-full text-xs">
+              <thead className="bg-slate-900/60 text-slate-300">
+                <tr>
+                  <th className="text-left px-3 py-2">Email</th>
+                  <th className="text-left px-3 py-2">Role</th>
+                  <th className="text-right px-3 py-2">Plunges</th>
+                  <th className="text-right px-3 py-2">Days</th>
+                  <th className="text-right px-3 py-2">Streak</th>
+                  <th className="text-right px-3 py-2">Best</th>
+                  <th className="text-right px-3 py-2">Coldest °F</th>
+                  <th className="text-right px-3 py-2">Longest</th>
+                  <th className="text-left px-3 py-2">Signed Up</th>
+                  <th className="text-left px-3 py-2">Last Plunge</th>
+                  <th className="text-left px-3 py-2">Last API Hit</th>
+                  <th className="text-left px-3 py-2">Platforms</th>
+                </tr>
+              </thead>
+              <tbody>
+                {userActivity.map((u) => {
+                  const fmtDate = (s: string | null) => s ? new Date(s).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "2-digit" }) : "—";
+                  const fmtDur = (sec: number | null) => {
+                    if (sec == null) return "—";
+                    const m = Math.floor(sec / 60);
+                    const s = sec % 60;
+                    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+                  };
+                  const role = u.isAdmin ? "admin" : u.isPro ? "pro" : "free";
+                  const roleColor = u.isAdmin ? "bg-purple-900/40 text-purple-300 border-purple-700/50"
+                    : u.isPro ? "bg-amber-900/40 text-amber-300 border-amber-700/50"
+                    : "bg-slate-700/40 text-slate-300 border-slate-600/50";
+                  const stalled = u.totalPlunges === 0;
+                  return (
+                    <tr
+                      key={u.id}
+                      data-testid={`row-user-activity-${u.id}`}
+                      className={`border-t border-slate-700/40 ${stalled ? "bg-red-950/20" : "hover:bg-slate-800/40"}`}
+                    >
+                      <td className="px-3 py-2 text-slate-200">
+                        <div className="font-medium">{u.email}</div>
+                        {(u.username || u.displayName) && (
+                          <div className="text-[11px] text-slate-400">
+                            {u.displayName ?? u.username}{u.username && u.displayName ? ` (@${u.username})` : ""}
+                          </div>
+                        )}
+                        {!u.emailVerified && <div className="text-[10px] text-amber-400">unverified</div>}
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className={`inline-block px-1.5 py-0.5 rounded border text-[10px] uppercase ${roleColor}`}>{role}</span>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-white font-semibold">{u.totalPlunges}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-slate-300">{u.uniqueDays}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-blue-300">{u.currentStreak}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-slate-400">{u.longestStreak}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-cyan-300">{u.coldestTemp ?? "—"}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-slate-300">{fmtDur(u.longestDurationSec)}</td>
+                      <td className="px-3 py-2 text-slate-400">{fmtDate(u.signedUpAt)}</td>
+                      <td className="px-3 py-2 text-slate-400">{fmtDate(u.lastPlungeAt)}</td>
+                      <td className="px-3 py-2 text-slate-400">{fmtDate(u.lastApiSeenAt)}</td>
+                      <td className="px-3 py-2 text-slate-400">{u.platforms ?? "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-xs text-slate-500">
+            Streak = consecutive days ending today/yesterday. "Last API Hit" only fills in for sessions after the visitor tracker rolled out (today's deploy).
           </p>
         </div>
       )}

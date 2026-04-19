@@ -731,6 +731,13 @@ export async function registerRoutes(
     res.json(stats);
   });
 
+  app.get("/api/admin/user-activity", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const report = await storage.getUserActivityReport();
+    res.json(report);
+  });
+
   app.get("/api/admin/visits/recent", async (req, res) => {
     const caller = extractUser(req);
     if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
