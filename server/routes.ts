@@ -731,6 +731,64 @@ export async function registerRoutes(
     res.json(stats);
   });
 
+  // Per-key (clientId or IP) rolling-window rate limiter for the share endpoint.
+  // Keeps cardinality bounded by pruning idle keys aggressively.
+  const SHARE_RATE_WINDOW_MS = 60_000;
+  const SHARE_RATE_MAX = 20; // 20 share-events / minute / key
+  const shareRateBuckets = new Map<string, number[]>();
+  const shareRateLimited = (key: string): boolean => {
+    const now = Date.now();
+    const arr = shareRateBuckets.get(key) ?? [];
+    const fresh = arr.filter((t) => now - t < SHARE_RATE_WINDOW_MS);
+    if (fresh.length >= SHARE_RATE_MAX) {
+      shareRateBuckets.set(key, fresh);
+      return true;
+    }
+    fresh.push(now);
+    shareRateBuckets.set(key, fresh);
+    if (shareRateBuckets.size > 5000) {
+      // prune ~half of stale entries when map gets big
+      for (const [k, ts] of shareRateBuckets) {
+        if (!ts.length || now - ts[ts.length - 1] > SHARE_RATE_WINDOW_MS) shareRateBuckets.delete(k);
+      }
+    }
+    return false;
+  };
+
+  // Public-ish: log a share event. No auth required (anonymous shares count too),
+  // but if Bearer is present we attach userId. Body must specify { kind, targetId?, channel? }.
+  app.post("/api/share-events", async (req, res) => {
+    try {
+      const clientId = (req.headers["x-client-id"] as string | undefined) || undefined;
+      const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() || req.ip || "unknown";
+      const rlKey = (clientId && clientId.length >= 8 ? `c:${clientId}` : `i:${ip}`);
+      if (shareRateLimited(rlKey)) return res.status(429).json({ ok: false, message: "Too many share events" });
+    } catch { /* never let rate-limit logic crash the endpoint */ }
+
+    try {
+      const parsed = z.object({
+        kind: z.enum(["plunge", "profile", "badge_profile", "event"]),
+        targetId: z.string().max(200).optional(),
+        channel: z.enum(["native", "webshare", "clipboard", "file", "unknown"]).optional(),
+      }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0].message });
+
+      const caller = extractUser(req);
+      const clientId = (req.headers["x-client-id"] as string | undefined) || undefined;
+      await storage.recordShareEvent({
+        userId: caller?.userId ?? undefined,
+        clientId: clientId && clientId.length >= 8 && clientId.length <= 128 ? clientId : undefined,
+        kind: parsed.data.kind,
+        targetId: parsed.data.targetId,
+        channel: parsed.data.channel,
+      });
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[share-events] failed:", err);
+      res.status(500).json({ ok: false });
+    }
+  });
+
   app.get("/api/admin/user-activity", async (req, res) => {
     const caller = extractUser(req);
     if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });

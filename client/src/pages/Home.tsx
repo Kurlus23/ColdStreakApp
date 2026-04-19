@@ -4604,6 +4604,8 @@ export default function Home() {
                         await shareContent({
                           title: `${username} on ColdStreak`,
                           url: `https://coldstreakapp.com/profile/${encodeURIComponent(username)}`,
+                          trackAs: "badge_profile",
+                          trackId: username,
                         });
                       }}
                       className="flex-1 flex items-center justify-center gap-2 bg-blue-800/60 border border-blue-600/40 text-blue-200 text-sm font-medium py-2 rounded-xl active:scale-95 transition-transform"
@@ -6079,6 +6081,8 @@ export default function Home() {
                       "Think you can beat me?",
                       "ColdStreak",
                     ].join("\n"),
+                    trackAs: "plunge",
+                    trackId: photoPromptId ?? undefined,
                   });
 
                   sharingLockRef.current = false;

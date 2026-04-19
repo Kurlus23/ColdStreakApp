@@ -1036,6 +1036,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     await shareContent({
       title: `Join me at ${evt.name}`,
       url: `${window.location.origin}/event/${evt.shareCode}`,
+      trackAs: "event",
+      trackId: evt.shareCode,
     });
     setCopiedCode(evt.shareCode);
     setTimeout(() => setCopiedCode(null), 2500);

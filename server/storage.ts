@@ -1,7 +1,7 @@
 import { db } from "./db";
 import {
   plunges, leaderboardEntries, proUsers, promoCodes, userLocations, businessListings, users, badgeProfiles, pushSubscriptions,
-  events, eventParticipants, eventCoordinators, eventBans, supportMessages, clientVisits,
+  events, eventParticipants, eventCoordinators, eventBans, supportMessages, clientVisits, shareEvents,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
   type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile, type PushSubscription,
@@ -64,6 +64,11 @@ export interface IStorage {
   getRecentClientVisits(limit?: number): Promise<ClientVisit[]>;
   getClientVisitStats(): Promise<{ totalClients: number; newClients24h: number; newClients7d: number; newClients30d: number; activeClients24h: number; activeClients7d: number }>;
 
+  // Share events (track every Share button press, native share, etc.)
+  recordShareEvent(data: { userId?: number; clientId?: string; kind: string; targetId?: string; channel?: string }): Promise<void>;
+  getShareCountsByUser(): Promise<Map<number, { total: number; byKind: Record<string, number>; lastAt: Date | null }>>;
+  getRecentShares(limit?: number): Promise<Array<{ id: number; userId: number | null; clientId: string | null; kind: string; targetId: string | null; channel: string | null; createdAt: Date }>>;
+
   // Combined per-user usage report (signup + plunges + streaks + last seen)
   getUserActivityReport(): Promise<Array<{
     id: number;
@@ -85,6 +90,9 @@ export interface IStorage {
     lastApiSeenAt: Date | null;
     totalApiVisits: number;
     platforms: string | null;
+    totalShares: number;
+    sharesByKind: Record<string, number>;
+    lastShareAt: Date | null;
   }>>;
 
   upsertBadgeProfile(data: { username: string; featuredBadges: string; plungeCount: number; uniqueDays: number; coldestTemp: number | null; foundingPlunger?: boolean; avatarUrl?: string | null; bio?: string | null; socialLinks?: string }): Promise<void>;
@@ -922,7 +930,49 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(clientVisits).orderBy(desc(clientVisits.lastSeenAt)).limit(limit);
   }
 
+  async recordShareEvent(data: { userId?: number; clientId?: string; kind: string; targetId?: string; channel?: string }): Promise<void> {
+    await db.insert(shareEvents).values({
+      userId: data.userId ?? null,
+      clientId: data.clientId ?? null,
+      kind: data.kind,
+      targetId: data.targetId ?? null,
+      channel: data.channel ?? null,
+    });
+  }
+
+  async getShareCountsByUser() {
+    const rows = (await db.execute(sql`
+      SELECT user_id,
+             COUNT(*)::int                                                     AS total,
+             COUNT(*) FILTER (WHERE kind = 'plunge')::int                       AS plunge_shares,
+             COUNT(*) FILTER (WHERE kind = 'profile' OR kind = 'badge_profile')::int AS profile_shares,
+             COUNT(*) FILTER (WHERE kind = 'event')::int                        AS event_shares,
+             MAX(created_at)                                                    AS last_at
+      FROM share_events
+      WHERE user_id IS NOT NULL
+      GROUP BY user_id
+    `)) as unknown as Array<{ user_id: number; total: number; plunge_shares: number; profile_shares: number; event_shares: number; last_at: Date | null }>;
+    const map = new Map<number, { total: number; byKind: Record<string, number>; lastAt: Date | null }>();
+    for (const r of rows) {
+      map.set(r.user_id, {
+        total: Number(r.total) || 0,
+        byKind: {
+          plunge: Number(r.plunge_shares) || 0,
+          profile: Number(r.profile_shares) || 0,
+          event: Number(r.event_shares) || 0,
+        },
+        lastAt: r.last_at ?? null,
+      });
+    }
+    return map;
+  }
+
+  async getRecentShares(limit = 100) {
+    return db.select().from(shareEvents).orderBy(desc(shareEvents.createdAt)).limit(limit);
+  }
+
   async getUserActivityReport() {
+    const shareCounts = await this.getShareCountsByUser();
     const rows = (await db.execute(sql`
       WITH plunge_stats AS (
         SELECT
@@ -997,6 +1047,7 @@ export class DatabaseStorage implements IStorage {
         lastTs = ts;
       }
 
+      const sc = shareCounts.get(r.id);
       return {
         id: r.id,
         email: r.email,
@@ -1017,6 +1068,9 @@ export class DatabaseStorage implements IStorage {
         lastApiSeenAt: r.last_api_seen_at ?? null,
         totalApiVisits: Number(r.total_api_visits) || 0,
         platforms: r.platforms ?? null,
+        totalShares: sc?.total ?? 0,
+        sharesByKind: sc?.byKind ?? { plunge: 0, profile: 0, event: 0 },
+        lastShareAt: sc?.lastAt ?? null,
       };
     });
   }

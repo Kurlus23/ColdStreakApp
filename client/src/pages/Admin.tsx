@@ -173,6 +173,7 @@ export default function Admin() {
     firstPlungeAt: string | null; lastPlungeAt: string | null;
     coldestTemp: number | null; longestDurationSec: number | null;
     lastApiSeenAt: string | null; totalApiVisits: number; platforms: string | null;
+    totalShares: number; sharesByKind: Record<string, number>; lastShareAt: string | null;
   };
   const { data: userActivity } = useQuery<UserActivity[]>({
     queryKey: ["/api/admin/user-activity"],
@@ -762,8 +763,10 @@ export default function Admin() {
                   <th className="text-right px-3 py-2">Best</th>
                   <th className="text-right px-3 py-2">Coldest °F</th>
                   <th className="text-right px-3 py-2">Longest</th>
+                  <th className="text-right px-3 py-2">Shares</th>
                   <th className="text-left px-3 py-2">Signed Up</th>
                   <th className="text-left px-3 py-2">Last Plunge</th>
+                  <th className="text-left px-3 py-2">Last Share</th>
                   <th className="text-left px-3 py-2">Last API Hit</th>
                   <th className="text-left px-3 py-2">Platforms</th>
                 </tr>
@@ -806,8 +809,19 @@ export default function Admin() {
                       <td className="px-3 py-2 text-right tabular-nums text-slate-400">{u.longestStreak}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-cyan-300">{u.coldestTemp ?? "—"}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-slate-300">{fmtDur(u.longestDurationSec)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-pink-300">
+                        <div className="font-semibold">{u.totalShares}</div>
+                        {u.totalShares > 0 && (
+                          <div className="text-[10px] text-slate-500">
+                            {u.sharesByKind.plunge ? `${u.sharesByKind.plunge}p ` : ""}
+                            {u.sharesByKind.profile ? `${u.sharesByKind.profile}u ` : ""}
+                            {u.sharesByKind.event ? `${u.sharesByKind.event}e` : ""}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-slate-400">{fmtDate(u.signedUpAt)}</td>
                       <td className="px-3 py-2 text-slate-400">{fmtDate(u.lastPlungeAt)}</td>
+                      <td className="px-3 py-2 text-slate-400">{fmtDate(u.lastShareAt)}</td>
                       <td className="px-3 py-2 text-slate-400">{fmtDate(u.lastApiSeenAt)}</td>
                       <td className="px-3 py-2 text-slate-400">{u.platforms ?? "—"}</td>
                     </tr>

@@ -146,6 +146,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
         await navigator.share({ files: [file], title: "ColdStreak" });
+        try { (await import("@/lib/share")).logShareEvent("plunge", { targetId: plunge.id, channel: "file" }); } catch {}
         return;
       } catch (err: any) {
         if (err?.name === "AbortError") return; // user cancelled — don't fall through
@@ -212,6 +213,8 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
         "Think you can beat me?",
         "ColdStreak",
       ].join("\n"),
+      trackAs: "plunge",
+      trackId: plunge.id,
     });
   };
 

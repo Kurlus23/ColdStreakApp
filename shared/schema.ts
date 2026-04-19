@@ -267,6 +267,18 @@ export const clientVisits = pgTable("client_visits", {
 
 export type ClientVisit = typeof clientVisits.$inferSelect;
 
+export const shareEvents = pgTable("share_events", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),                  // null for anonymous shares
+  clientId: text("client_id"),                 // device id (so we can attribute anon)
+  kind: text("kind").notNull(),                // "plunge" | "profile" | "event" | "badge_profile"
+  targetId: text("target_id"),                 // plunge id / event slug / username — free-form
+  channel: text("channel"),                    // "native" | "webshare" | "clipboard" | "file" | "unknown"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type ShareEvent = typeof shareEvents.$inferSelect;
+
 export const supportMessages = pgTable("support_messages", {
   id: serial("id").primaryKey(),
   userId: integer("user_id"),

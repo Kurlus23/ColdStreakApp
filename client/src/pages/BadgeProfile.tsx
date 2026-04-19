@@ -352,6 +352,8 @@ export default function BadgeProfile() {
                 await shareContent({
                   title: `${profile.username} on ColdStreak`,
                   url: `https://coldstreakapp.com/profile/${encodeURIComponent(profile.username)}`,
+                  trackAs: "profile",
+                  trackId: profile.username,
                 });
               }}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-800/60 border border-blue-600/40 text-blue-200 text-xs font-semibold hover:bg-blue-700/60 transition-all active:scale-95"

@@ -273,6 +273,8 @@ export default function EventPage() {
             await shareContent({
               title: evt.name,
               url: `${window.location.origin}/event/${code}`,
+              trackAs: "event",
+              trackId: code,
             });
             setCopied(true);
             setTimeout(() => setCopied(false), 2500);
