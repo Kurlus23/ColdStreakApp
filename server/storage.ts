@@ -941,7 +941,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getShareCountsByUser() {
-    const rows = (await db.execute(sql`
+    const result = await db.execute(sql`
       SELECT user_id,
              COUNT(*)::int                                                     AS total,
              COUNT(*) FILTER (WHERE kind = 'plunge')::int                       AS plunge_shares,
@@ -951,7 +951,8 @@ export class DatabaseStorage implements IStorage {
       FROM share_events
       WHERE user_id IS NOT NULL
       GROUP BY user_id
-    `)) as unknown as Array<{ user_id: number; total: number; plunge_shares: number; profile_shares: number; event_shares: number; last_at: Date | null }>;
+    `);
+    const rows = ((result as any)?.rows ?? result ?? []) as Array<{ user_id: number; total: number; plunge_shares: number; profile_shares: number; event_shares: number; last_at: Date | null }>;
     const map = new Map<number, { total: number; byKind: Record<string, number>; lastAt: Date | null }>();
     for (const r of rows) {
       map.set(r.user_id, {
@@ -973,7 +974,7 @@ export class DatabaseStorage implements IStorage {
 
   async getUserActivityReport() {
     const shareCounts = await this.getShareCountsByUser();
-    const rows = (await db.execute(sql`
+    const _uaResult = await db.execute(sql`
       WITH plunge_stats AS (
         SELECT
           user_id,
@@ -1012,7 +1013,8 @@ export class DatabaseStorage implements IStorage {
       LEFT JOIN visit_stats  vs ON vs.user_id = u.id
       LEFT JOIN pro_users    pu ON LOWER(pu.email) = LOWER(u.email)
       ORDER BY u.created_at DESC
-    `)) as unknown as Array<any>;
+    `);
+    const rows = (((_uaResult as any)?.rows ?? _uaResult ?? []) as Array<any>);
 
     const dayKey = (d: Date | string) => {
       const dt = typeof d === "string" ? new Date(d) : d;
@@ -1076,7 +1078,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getClientVisitStats() {
-    const [row] = await db.execute(sql`
+    const result = await db.execute(sql`
       SELECT
         COUNT(*)::int                                                                 AS "totalClients",
         COUNT(*) FILTER (WHERE first_seen_at >= NOW() - INTERVAL '24 hours')::int    AS "newClients24h",
@@ -1085,10 +1087,12 @@ export class DatabaseStorage implements IStorage {
         COUNT(*) FILTER (WHERE last_seen_at  >= NOW() - INTERVAL '24 hours')::int    AS "activeClients24h",
         COUNT(*) FILTER (WHERE last_seen_at  >= NOW() - INTERVAL '7 days')::int      AS "activeClients7d"
       FROM client_visits
-    `) as unknown as Array<{
+    `);
+    const rows = (((result as any)?.rows ?? result ?? []) as Array<{
       totalClients: number; newClients24h: number; newClients7d: number; newClients30d: number;
       activeClients24h: number; activeClients7d: number;
-    }>;
+    }>);
+    const row = rows[0];
     return row ?? { totalClients: 0, newClients24h: 0, newClients7d: 0, newClients30d: 0, activeClients24h: 0, activeClients7d: 0 };
   }
 }
