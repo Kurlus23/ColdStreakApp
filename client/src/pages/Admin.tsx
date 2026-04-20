@@ -1,10 +1,107 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, type ReactNode } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { GripVertical, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
+
+// ─── Reorderable admin tiles ─────────────────────────────────────────────
+type TileId = "top-tools" | "visitors" | "user-activity" | "users" | "bottom-panels";
+const DEFAULT_TILE_ORDER: TileId[] = ["top-tools", "visitors", "user-activity", "users", "bottom-panels"];
+const TILE_ORDER_KEY = "coldstreak-admin-tile-order-v1";
+
+function useTileOrder() {
+  const [order, setOrder] = useState<TileId[]>(() => {
+    try {
+      const raw = localStorage.getItem(TILE_ORDER_KEY);
+      if (!raw) return DEFAULT_TILE_ORDER;
+      const saved = JSON.parse(raw) as unknown;
+      if (Array.isArray(saved)) {
+        const valid = saved.filter((id): id is TileId => DEFAULT_TILE_ORDER.includes(id as TileId));
+        const missing = DEFAULT_TILE_ORDER.filter((id) => !valid.includes(id));
+        return [...valid, ...missing];
+      }
+    } catch { /* ignore */ }
+    return DEFAULT_TILE_ORDER;
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem(TILE_ORDER_KEY, JSON.stringify(order)); } catch { /* ignore */ }
+  }, [order]);
+
+  const move = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0) return;
+    setOrder((prev) => {
+      if (from >= prev.length || to >= prev.length) return prev;
+      const next = [...prev];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
+  };
+  const moveUp = (i: number) => move(i, Math.max(0, i - 1));
+  const moveDown = (i: number) => move(i, i + 1);
+  const reset = () => setOrder(DEFAULT_TILE_ORDER);
+
+  return { order, move, moveUp, moveDown, reset };
+}
+
+function DraggableTile({
+  id, index, total, label, onMove, onMoveUp, onMoveDown, children,
+}: {
+  id: TileId;
+  index: number;
+  total: number;
+  label: string;
+  onMove: (from: number, to: number) => void;
+  onMoveUp: (i: number) => void;
+  onMoveDown: (i: number) => void;
+  children: ReactNode;
+}) {
+  const [dragOver, setDragOver] = useState(false);
+  return (
+    <div
+      data-testid={`tile-${id}`}
+      draggable
+      onDragStart={(e) => { e.dataTransfer.setData("text/plain", String(index)); e.dataTransfer.effectAllowed = "move"; }}
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (!dragOver) setDragOver(true); }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragOver(false);
+        const from = Number(e.dataTransfer.getData("text/plain"));
+        if (Number.isFinite(from)) onMove(from, index);
+      }}
+      className={`relative group rounded-2xl transition-all ${dragOver ? "ring-2 ring-cyan-400/70 ring-offset-2 ring-offset-blue-950" : ""}`}
+    >
+      <div className="absolute -top-2 right-2 z-10 flex items-center gap-1 bg-blue-900/80 backdrop-blur border border-blue-700/50 rounded-lg px-1.5 py-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+        <span className="text-[10px] text-slate-400 hidden sm:inline pr-1" aria-hidden>{label}</span>
+        <button
+          type="button"
+          data-testid={`button-tile-up-${id}`}
+          onClick={() => onMoveUp(index)}
+          disabled={index === 0}
+          className="p-0.5 text-slate-300 hover:text-cyan-300 disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Move up"
+        ><ArrowUp className="w-3.5 h-3.5" /></button>
+        <button
+          type="button"
+          data-testid={`button-tile-down-${id}`}
+          onClick={() => onMoveDown(index)}
+          disabled={index === total - 1}
+          className="p-0.5 text-slate-300 hover:text-cyan-300 disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Move down"
+        ><ArrowDown className="w-3.5 h-3.5" /></button>
+        <span className="p-0.5 text-slate-500 cursor-grab active:cursor-grabbing" title="Drag to reorder">
+          <GripVertical className="w-3.5 h-3.5" />
+        </span>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 interface SupportMessage {
   id: number;
@@ -541,20 +638,18 @@ export default function Admin() {
     incomplete: "bg-yellow-600", past_due: "bg-orange-600",
   };
 
-  return (
-    <div className="min-h-screen bg-blue-950 text-white p-4 xl:p-6">
+  const tileOrder = useTileOrder();
+  const tileLabels: Record<TileId, string> = {
+    "top-tools": "Tools",
+    "visitors": "Visitors",
+    "user-activity": "Activity",
+    "users": "Users",
+    "bottom-panels": "Panels",
+  };
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="text-xl font-bold">ColdStreak Admin</h1>
-        <button
-          data-testid="button-admin-signout"
-          onClick={() => auth.logout()}
-          className="text-blue-400 text-xs hover:text-red-400 transition-colors"
-        >Sign out</button>
-      </div>
-
-      {/* ── Top tools: Lookup + Verify ──────────────────────────────────── */}
+  // Build the JSX for each tile up-front so we can render them in any order.
+  const tiles: Record<TileId, ReactNode> = {} as Record<TileId, ReactNode>;
+  tiles["top-tools"] = (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5 max-w-5xl">
         {/* Customer Lookup */}
         <div className="bg-blue-900/60 rounded-xl p-4">
@@ -713,9 +808,9 @@ export default function Admin() {
           </div>
         </div>
       </div>
+  );
 
-      {/* ── Visitor ground-truth (server-side, independent of GA) ───────── */}
-      {visitStats && (
+  tiles["visitors"] = visitStats ? (
         <div className="mb-6 max-w-5xl">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-base font-bold text-white">Real Visitors <span className="text-xs font-normal text-slate-400">(server-side, our own count)</span></h2>
@@ -743,10 +838,9 @@ export default function Admin() {
             One row per device (per <code>localStorage</code> client id). This is what actually hit our API — separate from Google Analytics "users".
           </p>
         </div>
-      )}
+  ) : null;
 
-      {/* ── Per-user activity report ───────────────────────────────────── */}
-      {userActivity && (
+  tiles["user-activity"] = userActivity ? (
         <div className="mb-6 max-w-7xl">
           <h2 className="text-base font-bold text-white mb-2">
             User Activity <span className="text-xs font-normal text-slate-400">({userActivity.length} accounts)</span>
@@ -834,11 +928,11 @@ export default function Admin() {
             Streak = consecutive days ending today/yesterday. "Last API Hit" only fills in for sessions after the visitor tracker rolled out (today's deploy).
           </p>
         </div>
-      )}
+  ) : null;
 
-      {/* ── Users row: Pro (left) | Free (right) ───────────────────────── */}
+  tiles["users"] = (
+    <>
       {isLoading && <p className="text-blue-300 mb-4">Loading…</p>}
-
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6 max-w-5xl">
 
         {/* Pro Users */}
@@ -1072,8 +1166,10 @@ export default function Admin() {
           </div>
         )}
       </div>
+    </>
+  );
 
-      {/* ── Bottom panels: [Inbox + Business] | [Community + Events] ─────── */}
+  tiles["bottom-panels"] = (
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 max-w-5xl">
 
         {/* Left column: Inbox + Business Locations */}
@@ -1431,6 +1527,47 @@ export default function Admin() {
 
         </div>
       </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-blue-950 text-white p-4 xl:p-6">
+
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="text-xl font-bold">ColdStreak Admin</h1>
+        <div className="flex items-center gap-3">
+          <button
+            data-testid="button-reset-tile-order"
+            onClick={tileOrder.reset}
+            className="flex items-center gap-1 text-slate-400 text-xs hover:text-cyan-300 transition-colors"
+            title="Reset panel order"
+          >
+            <RotateCcw className="w-3 h-3" /> Reset layout
+          </button>
+          <button
+            data-testid="button-admin-signout"
+            onClick={() => auth.logout()}
+            className="text-blue-400 text-xs hover:text-red-400 transition-colors"
+          >Sign out</button>
+        </div>
+      </div>
+
+      {/* ── Reorderable tiles ──────────────────────────────────────────── */}
+      {tileOrder.order.map((id, i) => (
+        <DraggableTile
+          key={id}
+          id={id}
+          index={i}
+          total={tileOrder.order.length}
+          label={tileLabels[id]}
+          onMove={tileOrder.move}
+          onMoveUp={tileOrder.moveUp}
+          onMoveDown={tileOrder.moveDown}
+        >
+          {tiles[id]}
+        </DraggableTile>
+      ))}
+
     </div>
   );
 }
