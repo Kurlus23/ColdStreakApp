@@ -268,7 +268,8 @@ export default function Admin() {
     signedUpAt: string;
     totalPlunges: number; uniqueDays: number; currentStreak: number; longestStreak: number;
     firstPlungeAt: string | null; lastPlungeAt: string | null;
-    coldestTemp: number | null; longestDurationSec: number | null; totalColdScore: number;
+    plungesThisMonth: number;
+    lastPlungeTemp: number | null; lastPlungeDurationSec: number | null; lastPlungeScore: number | null;
     lastApiSeenAt: string | null; totalApiVisits: number; platforms: string | null;
     totalShares: number; sharesByKind: Record<string, number>; lastShareAt: string | null;
   };
@@ -854,10 +855,10 @@ export default function Admin() {
                   <th className="text-right px-3 py-2">Plunges</th>
                   <th className="text-right px-3 py-2">Days</th>
                   <th className="text-right px-3 py-2">Streak</th>
-                  <th className="text-right px-3 py-2">Best</th>
-                  <th className="text-right px-3 py-2">Coldest °F</th>
-                  <th className="text-right px-3 py-2">Longest</th>
-                  <th className="text-right px-3 py-2">Cold Score</th>
+                  <th className="text-right px-3 py-2">This Month</th>
+                  <th className="text-right px-3 py-2">Last °F</th>
+                  <th className="text-right px-3 py-2">Last Long</th>
+                  <th className="text-right px-3 py-2">Last Score</th>
                   <th className="text-right px-3 py-2">Shares</th>
                   <th className="text-left px-3 py-2">Signed Up</th>
                   <th className="text-left px-3 py-2">Last Plunge</th>
@@ -901,10 +902,10 @@ export default function Admin() {
                       <td className="px-3 py-2 text-right tabular-nums text-white font-semibold">{u.totalPlunges}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-slate-300">{u.uniqueDays}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-blue-300">{u.currentStreak}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-slate-400">{u.longestStreak}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-cyan-300">{u.coldestTemp ?? "—"}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-slate-300">{fmtDur(u.longestDurationSec)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-emerald-300 font-semibold">{u.totalColdScore ? u.totalColdScore.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "—"}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-slate-400">{u.plungesThisMonth}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-cyan-300">{u.lastPlungeTemp ?? "—"}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-slate-300">{fmtDur(u.lastPlungeDurationSec)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-emerald-300 font-semibold">{u.lastPlungeScore != null ? u.lastPlungeScore.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "—"}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-pink-300">
                         <div className="font-semibold">{u.totalShares}</div>
                         {u.totalShares > 0 && (
