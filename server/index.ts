@@ -107,10 +107,18 @@ app.use((req, _res, next) => {
     pruneVisitCache();
 
     const ua = (req.headers["user-agent"] as string | undefined) || undefined;
-    const platform = /capacitor|coldstreak/i.test(ua || "") ? "native"
-      : /android/i.test(ua || "") ? "android"
-      : /iphone|ipad|ios/i.test(ua || "") ? "ios"
-      : "web";
+    // Prefer the explicit platform sent by the client (knows about Capacitor
+    // native vs PWA standalone vs regular browser). Fall back to UA sniffing.
+    const headerPlatform = req.headers["x-client-platform"];
+    let platform: string;
+    if (typeof headerPlatform === "string" && headerPlatform.length > 0 && headerPlatform.length <= 40) {
+      platform = headerPlatform;
+    } else {
+      platform = /capacitor|coldstreak/i.test(ua || "") ? "Native App"
+        : /android/i.test(ua || "") ? "Android Web"
+        : /iphone|ipad|ios/i.test(ua || "") ? "iOS Safari"
+        : "Desktop Web";
+    }
 
     // Best-effort: link the device to a verified user when a valid Bearer is present.
     let userId: number | undefined;

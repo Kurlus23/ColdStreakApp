@@ -1,5 +1,34 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { getAuthToken } from "@/hooks/use-auth";
+import { Capacitor } from "@capacitor/core";
+
+// Detect the actual runtime so admins can see if a user is on the native iOS app,
+// the iOS PWA, mobile Safari, Chrome on Android, etc. Server-side UA sniffing
+// can't tell PWA from regular browser, so we send this as a header.
+function detectClientPlatform(): string {
+  try {
+    const cap = Capacitor.getPlatform();
+    if (cap === "ios") return "iOS App";
+    if (cap === "android") return "Android App";
+    const ua = navigator.userAgent || "";
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const isAndroid = /Android/i.test(ua);
+    const isPwaStandalone =
+      (typeof window !== "undefined" && window.matchMedia?.("(display-mode: standalone)").matches) ||
+      // iOS Safari uses navigator.standalone instead of display-mode
+      (navigator as unknown as { standalone?: boolean }).standalone === true;
+    if (isPwaStandalone) {
+      if (isIOS) return "iOS PWA";
+      if (isAndroid) return "Android PWA";
+      return "Desktop PWA";
+    }
+    if (isIOS) return "iOS Safari";
+    if (isAndroid) return "Android Web";
+    return "Desktop Web";
+  } catch {
+    return "Unknown";
+  }
+}
 
 // Lazily read the per-device clientId so every API call carries it as a header
 // (separate from the body/query so it works for plain GETs too).
@@ -38,6 +67,7 @@ function authHeaders(extra?: Record<string, string>): Record<string, string> {
   if (token) headers["Authorization"] = `Bearer ${token}`;
   const cid = getStoredClientId();
   if (cid) headers["X-Client-Id"] = cid;
+  headers["X-Client-Platform"] = detectClientPlatform();
   return headers;
 }
 
