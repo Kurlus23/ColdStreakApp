@@ -6,16 +6,6 @@
 
 html, body {
   margin: 0;
-  height: 100%;
-  overflow: hidden;
-  overscroll-behavior: none;
-}
-
-#root {
-  height: 100dvh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
   overscroll-behavior: none;
 }
 
