@@ -4556,11 +4556,6 @@ export default function Home() {
                       ) : (
                         <Trophy className="w-7 h-7 text-yellow-400" data-testid="icon-badge-tab-trophy" />
                       )}
-                      {totalEarned > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-blue-950 text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
-                          {totalEarned}
-                        </span>
-                      )}
                     </div>
                     <div className="min-w-0">
                       <h2 className="text-white font-bold text-lg leading-tight">
