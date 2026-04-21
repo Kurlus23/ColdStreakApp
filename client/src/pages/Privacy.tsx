@@ -11,7 +11,7 @@ export default function Privacy() {
             <a className="text-cyan-600 text-sm font-semibold hover:underline">← Back to ColdStreak</a>
           </Link>
           <h1 className="text-3xl font-bold text-slate-900 mt-4 mb-1">Privacy Policy</h1>
-          <p className="text-slate-500 text-sm">Last updated: April 2026</p>
+          <p className="text-slate-500 text-sm">Last updated: March 2026</p>
         </div>
 
         <div className="space-y-8 text-sm leading-relaxed">
@@ -53,9 +53,6 @@ export default function Privacy() {
               <li>
                 <span className="font-semibold text-slate-800">Device settings and preferences</span> — stored locally on your device only (body weight, home location label, alarm preferences, private spots). Not transmitted to our servers.
               </li>
-              <li>
-                <span className="font-semibold text-slate-800">Approximate location and timezone</span> — when you use the App with an account, we record your device's reported timezone (e.g. "America/Los_Angeles") and an approximate region (typically country, and where available city/state) derived from your network IP address. This is used for internal analytics, to display plunge times accurately in your local time, and to understand where our community is active. We do not store your IP address itself in your account profile, and this approximate location is never displayed publicly or shared with other users.
-              </li>
             </ul>
           </section>
 
@@ -79,7 +76,6 @@ export default function Privacy() {
               <li>To display verified business listing information to users of the Explore feature.</li>
               <li>To operate the community Events feature — displaying event details, organizer names, and sign-up lists to all users of the App, and enforcing automatic event expiry.</li>
               <li>To resolve a city/state name from your device coordinates when you enable GPS (location data is not stored beyond the resolved place name or coordinates you explicitly choose to pin).</li>
-              <li>To record your device timezone and an approximate region (derived from your network IP) so we can render plunge times in your local time and understand the geographic distribution of our community for product decisions.</li>
               <li>To detect and fix errors in the App through anonymous crash reports.</li>
             </ul>
           </section>

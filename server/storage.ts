@@ -938,14 +938,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   // ── User geo enrichment ────────────────────────────────────────────────────
-  // Updates user.timezone immediately when client header has it.
-  // Sets user.country fast from Cloudflare header.
-  // Lazily fetches city/region from a free geo-IP service the first time we
-  // see the user without a region. Cached per process to avoid repeats.
-  private static _geoLookupAttempted = new Set<number>();
-  async enrichUserGeo(userId: number, timezone?: string, country?: string, ip?: string): Promise<void> {
+  // Updates user.timezone from the client-reported IANA timezone header (no
+  // personal data — comparable to user-agent metadata) and user.country from
+  // Cloudflare's cf-ipcountry header (already part of the request routing
+  // infrastructure). We deliberately do NOT call any third-party IP-geolocation
+  // service for finer-grained location, to stay within the existing privacy
+  // disclosures.
+  async enrichUserGeo(userId: number, timezone?: string, country?: string, _ip?: string): Promise<void> {
+    if (!timezone && !country) return;
     const [u] = await db.select({
-      id: users.id, timezone: users.timezone, country: users.country, region: users.region,
+      id: users.id, timezone: users.timezone, country: users.country,
     }).from(users).where(eq(users.id, userId));
     if (!u) return;
 
@@ -954,41 +956,6 @@ export class DatabaseStorage implements IStorage {
     if (country && country !== u.country) patch.country = country;
     if (Object.keys(patch).length > 0) {
       await db.update(users).set(patch).where(eq(users.id, userId));
-    }
-
-    // Region (state/city) lookup — only once per user per process, only if missing.
-    const needsRegion = !u.region;
-    const goodIp = ip && !/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1|fc00:|fd00:)/.test(ip);
-    if (needsRegion && goodIp && !DatabaseStorage._geoLookupAttempted.has(userId)) {
-      DatabaseStorage._geoLookupAttempted.add(userId);
-      // Fire-and-forget; we already added to the dedupe set, so failures won't retry this process.
-      (async () => {
-        try {
-          const ctrl = new AbortController();
-          const t = setTimeout(() => ctrl.abort(), 3000);
-          const r = await fetch(`https://ipapi.co/${encodeURIComponent(ip!)}/json/`, {
-            signal: ctrl.signal,
-            headers: { "User-Agent": "ColdStreak-Geo/1.0" },
-          });
-          clearTimeout(t);
-          if (!r.ok) return;
-          const j: any = await r.json();
-          // Build "City, Region" or just whichever is present.
-          const region = [j.city, j.region].filter(Boolean).join(", ").slice(0, 80) || null;
-          const cc = (typeof j.country_code === "string" && j.country_code.length === 2) ? j.country_code.toUpperCase() : null;
-          const tz = (typeof j.timezone === "string" && j.timezone.length <= 64) ? j.timezone : null;
-          const update: Partial<typeof users.$inferInsert> = {};
-          if (region) update.region = region;
-          if (cc) update.country = cc;
-          if (tz) update.timezone = tz;
-          if (Object.keys(update).length > 0) {
-            await db.update(users).set(update).where(eq(users.id, userId));
-          }
-        } catch (err) {
-          // Network/timeout/JSON failures are fine — leave the dedupe in place
-          // so we don't hammer the free service if it's down.
-        }
-      })();
     }
   }
 

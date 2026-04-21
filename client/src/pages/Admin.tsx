@@ -946,11 +946,10 @@ export default function Admin() {
                       <td className="px-3 py-2 text-slate-400">{fmtDate(u.lastApiSeenAt)}</td>
                       <td className="px-3 py-2 text-slate-400">{u.platforms ?? "—"}</td>
                       <td className="px-3 py-2 text-slate-300">
-                        {(u.region || u.country || u.timezone) ? (
+                        {(u.country || u.timezone) ? (
                           <div className="leading-tight">
-                            {u.region && <div data-testid={`text-region-${u.id}`}>{u.region}</div>}
                             {u.country && (
-                              <div className="text-[10px] text-slate-400" data-testid={`text-country-${u.id}`}>{u.country}</div>
+                              <div className="font-medium" data-testid={`text-country-${u.id}`}>{u.country}</div>
                             )}
                             {u.timezone && (
                               <div className="text-[10px] text-slate-500" data-testid={`text-timezone-${u.id}`}>{u.timezone}</div>
