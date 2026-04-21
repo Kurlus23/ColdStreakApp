@@ -2565,7 +2565,7 @@ export default function Home() {
                   <>
                     &nbsp;&nbsp;·&nbsp;&nbsp;
                     <span className="text-orange-400" data-testid="text-personal-best">
-                      PB: {personalBest.toFixed(1)}
+                      Best: {personalBest.toFixed(1)}
                     </span>
                   </>
                 )}
