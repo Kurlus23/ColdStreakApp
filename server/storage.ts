@@ -1016,6 +1016,8 @@ export class DatabaseStorage implements IStorage {
           COUNT(*) FILTER (WHERE date_trunc('month', created_at) = date_trunc('month', NOW()))::int AS plunges_this_month,
           MIN(created_at)                                                                  AS first_plunge_at,
           MAX(created_at)                                                                  AS last_plunge_at,
+          MAX(score)::float                                                                AS best_score_lifetime,
+          MAX(score) FILTER (WHERE date_trunc('month', created_at) = date_trunc('month', NOW()))::float AS best_score_this_month,
           ARRAY_AGG(DISTINCT DATE(created_at) ORDER BY DATE(created_at) DESC)              AS plunge_days
         FROM plunges
         WHERE user_id IS NOT NULL
@@ -1050,6 +1052,7 @@ export class DatabaseStorage implements IStorage {
         COALESCE(ps.unique_days, 0)           AS unique_days,
         ps.first_plunge_at, ps.last_plunge_at,
         COALESCE(ps.plunges_this_month, 0) AS plunges_this_month,
+        ps.best_score_lifetime, ps.best_score_this_month,
         ps.plunge_days,
         lp.last_plunge_temp, lp.last_plunge_duration_sec, lp.last_plunge_score,
         vs.last_api_seen_at, COALESCE(vs.total_api_visits, 0) AS total_api_visits, vs.platforms
@@ -1115,6 +1118,8 @@ export class DatabaseStorage implements IStorage {
         lastPlungeTemp: r.last_plunge_temp ?? null,
         lastPlungeDurationSec: r.last_plunge_duration_sec ?? null,
         lastPlungeScore: r.last_plunge_score ?? null,
+        bestScoreThisMonth: r.best_score_this_month ?? null,
+        bestScoreLifetime: r.best_score_lifetime ?? null,
         lastApiSeenAt: r.last_api_seen_at ?? null,
         totalApiVisits: Number(r.total_api_visits) || 0,
         platforms: r.platforms ?? null,

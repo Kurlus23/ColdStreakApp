@@ -270,6 +270,7 @@ export default function Admin() {
     firstPlungeAt: string | null; lastPlungeAt: string | null;
     plungesThisMonth: number;
     lastPlungeTemp: number | null; lastPlungeDurationSec: number | null; lastPlungeScore: number | null;
+    bestScoreThisMonth: number | null; bestScoreLifetime: number | null;
     lastApiSeenAt: string | null; totalApiVisits: number; platforms: string | null;
     timezone: string | null; country: string | null; region: string | null;
     totalShares: number; sharesByKind: Record<string, number>; lastShareAt: string | null;
@@ -859,7 +860,7 @@ export default function Admin() {
                   <th className="text-right px-3 py-2">This Month</th>
                   <th className="text-right px-3 py-2">Last °F</th>
                   <th className="text-right px-3 py-2">Last Long</th>
-                  <th className="text-right px-3 py-2">Last Score</th>
+                  <th className="text-right px-3 py-2" title="Current (last plunge) / Best this month / Best lifetime">Score (cur/mo/life)</th>
                   <th className="text-right px-3 py-2">Shares</th>
                   <th className="text-left px-3 py-2">Signed Up</th>
                   <th className="text-left px-3 py-2">Last Plunge</th>
@@ -929,7 +930,20 @@ export default function Admin() {
                       <td className="px-3 py-2 text-right tabular-nums text-slate-400">{u.plungesThisMonth}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-cyan-300">{u.lastPlungeTemp ?? "—"}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-slate-300">{fmtDur(u.lastPlungeDurationSec)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-emerald-300 font-semibold">{u.lastPlungeScore != null ? u.lastPlungeScore.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "—"}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {(() => {
+                          const fmt = (v: number | null) => v != null ? v.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "—";
+                          return (
+                            <div className="flex items-baseline justify-end gap-1 leading-tight">
+                              <span className="text-emerald-300 font-semibold" data-testid={`text-score-current-${u.id}`} title="Most recent plunge">{fmt(u.lastPlungeScore)}</span>
+                              <span className="text-slate-600">/</span>
+                              <span className="text-amber-300" data-testid={`text-score-month-${u.id}`} title="Best this month">{fmt(u.bestScoreThisMonth)}</span>
+                              <span className="text-slate-600">/</span>
+                              <span className="text-yellow-300 font-bold" data-testid={`text-score-lifetime-${u.id}`} title="Best lifetime">{fmt(u.bestScoreLifetime)}</span>
+                            </div>
+                          );
+                        })()}
+                      </td>
                       <td className="px-3 py-2 text-right tabular-nums text-pink-300">
                         <div className="font-semibold">{u.totalShares}</div>
                         {u.totalShares > 0 && (
