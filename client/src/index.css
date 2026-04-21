@@ -4,21 +4,6 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body {
-  margin: 0;
-  overscroll-behavior: none;
-  background-color: #172554;
-}
-
-@layer utilities {
-  .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  .bottom-nav {
-    bottom: calc(5rem + env(safe-area-inset-bottom));
-  }
-}
-
 @layer base {
   :root {
     --font-sans: 'DM Sans', sans-serif;
