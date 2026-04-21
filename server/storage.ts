@@ -87,6 +87,7 @@ export interface IStorage {
     lastPlungeAt: Date | null;
     coldestTemp: number | null;
     longestDurationSec: number | null;
+    totalColdScore: number;
     lastApiSeenAt: Date | null;
     totalApiVisits: number;
     platforms: string | null;
@@ -984,6 +985,7 @@ export class DatabaseStorage implements IStorage {
           MAX(created_at)                                                                  AS last_plunge_at,
           MIN(temperature) FILTER (WHERE temperature IS NOT NULL)::float                   AS coldest_temp,
           MAX(duration)    FILTER (WHERE duration   IS NOT NULL)::int                      AS longest_duration_sec,
+          COALESCE(SUM(score), 0)::float                                                   AS total_cold_score,
           ARRAY_AGG(DISTINCT DATE(created_at) ORDER BY DATE(created_at) DESC)              AS plunge_days
         FROM plunges
         WHERE user_id IS NOT NULL
@@ -1006,7 +1008,7 @@ export class DatabaseStorage implements IStorage {
         COALESCE(ps.total_plunges, 0)         AS total_plunges,
         COALESCE(ps.unique_days, 0)           AS unique_days,
         ps.first_plunge_at, ps.last_plunge_at,
-        ps.coldest_temp, ps.longest_duration_sec, ps.plunge_days,
+        ps.coldest_temp, ps.longest_duration_sec, ps.total_cold_score, ps.plunge_days,
         vs.last_api_seen_at, COALESCE(vs.total_api_visits, 0) AS total_api_visits, vs.platforms
       FROM users u
       LEFT JOIN plunge_stats ps ON ps.user_id = u.id
@@ -1067,6 +1069,7 @@ export class DatabaseStorage implements IStorage {
         lastPlungeAt: r.last_plunge_at ?? null,
         coldestTemp: r.coldest_temp ?? null,
         longestDurationSec: r.longest_duration_sec ?? null,
+        totalColdScore: Number(r.total_cold_score) || 0,
         lastApiSeenAt: r.last_api_seen_at ?? null,
         totalApiVisits: Number(r.total_api_visits) || 0,
         platforms: r.platforms ?? null,
