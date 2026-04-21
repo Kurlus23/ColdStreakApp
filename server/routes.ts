@@ -809,14 +809,27 @@ export async function registerRoutes(
   });
 
   // Admin: clear another user's avatar (set back to default trophy)
-  app.post("/api/admin/users/:username/clear-avatar", async (req, res) => {
+  // Accepts either a numeric user id or a username/displayName as :key
+  app.post("/api/admin/users/:key/clear-avatar", async (req, res) => {
     const caller = extractUser(req);
     if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
-    const username = req.params.username;
-    if (!username) return res.status(400).json({ message: "Username required" });
-    await storage.updateBadgeProfileMeta(username, { avatarUrl: null });
-    console.log(`[admin] cleared avatar for ${username} (by ${caller?.email})`);
-    res.json({ success: true, username });
+    const key = req.params.key;
+    if (!key) return res.status(400).json({ message: "User key required" });
+
+    let profileKey: string | null = null;
+    const asId = parseInt(key, 10);
+    if (!isNaN(asId) && String(asId) === key) {
+      const u = await storage.getUserById(asId);
+      if (!u) return res.status(404).json({ message: "User not found" });
+      profileKey = u.username || u.displayName || null;
+    } else {
+      profileKey = key;
+    }
+    if (!profileKey) return res.status(400).json({ message: "User has no username or display name" });
+
+    await storage.updateBadgeProfileMeta(profileKey, { avatarUrl: null });
+    console.log(`[admin] cleared avatar for "${profileKey}" (by ${caller?.email})`);
+    res.json({ success: true, profileKey });
   });
 
   // Admin: disable / enable a user account

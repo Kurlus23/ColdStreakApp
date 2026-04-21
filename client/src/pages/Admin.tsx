@@ -895,27 +895,28 @@ export default function Admin() {
                           </div>
                         )}
                         {!u.emailVerified && <div className="text-[10px] text-amber-400">unverified</div>}
-                        {u.username && (
-                          <button
-                            data-testid={`button-clear-avatar-${u.id}`}
-                            onClick={async () => {
-                              if (!confirm(`Clear avatar for ${u.username} (reset to trophy)?`)) return;
-                              const token = localStorage.getItem("coldstreak-auth-token");
-                              const res = await fetch(`/api/admin/users/${encodeURIComponent(u.username!)}/clear-avatar`, {
-                                method: "POST",
-                                headers: { Authorization: `Bearer ${token}` },
-                              });
-                              if (res.ok) {
-                                alert(`Cleared avatar for ${u.username}`);
-                              } else {
-                                alert(`Failed: ${res.status}`);
-                              }
-                            }}
-                            className="text-[10px] text-blue-400 hover:text-blue-300 underline mt-0.5"
-                          >
-                            clear avatar
-                          </button>
-                        )}
+                        <button
+                          data-testid={`button-clear-avatar-${u.id}`}
+                          onClick={async () => {
+                            const label = u.username || u.displayName || u.email;
+                            if (!confirm(`Clear avatar for ${label} (reset to trophy)?`)) return;
+                            const token = localStorage.getItem("coldstreak-auth-token");
+                            const res = await fetch(`/api/admin/users/${u.id}/clear-avatar`, {
+                              method: "POST",
+                              headers: { Authorization: `Bearer ${token}` },
+                            });
+                            if (res.ok) {
+                              const j = await res.json().catch(() => ({}));
+                              alert(`Cleared avatar for "${j.profileKey ?? label}"`);
+                            } else {
+                              const t = await res.text().catch(() => "");
+                              alert(`Failed: ${res.status} ${t}`);
+                            }
+                          }}
+                          className="text-[10px] text-blue-400 hover:text-blue-300 underline mt-0.5"
+                        >
+                          clear avatar
+                        </button>
                       </td>
                       <td className="px-3 py-2">
                         <span className={`inline-block px-1.5 py-0.5 rounded border text-[10px] uppercase ${roleColor}`}>{role}</span>
