@@ -2264,7 +2264,7 @@ export default function Home() {
 
       {/* ─── TIMER SCREEN ─── */}
       {screen === "timer" && (
-        <div className="absolute bottom-20 left-0 right-0 px-3 pb-2">
+        <div className="absolute bottom-nav left-0 right-0 px-3 pb-2">
 
           {/* 3-column cards */}
           <div className="grid grid-cols-3 gap-2.5 mb-3">
@@ -2511,7 +2511,7 @@ export default function Home() {
 
       {/* ─── HISTORY SCREEN ─── */}
       {screen === "history" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
+        <div className="absolute top-20 bottom-nav left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
           <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-4 border border-blue-800/50 min-h-full min-w-0">
             {/* Header row: title + close */}
             <div className="flex items-center justify-between mb-2">
@@ -3061,7 +3061,7 @@ export default function Home() {
 
       {/* ─── EXPLORE SCREEN ─── */}
       {screen === "explore" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto">
+        <div className="absolute top-20 bottom-nav left-0 right-0 overflow-y-auto">
           <Explore
             username={username}
             onClose={() => navTo("timer")}
@@ -3076,7 +3076,7 @@ export default function Home() {
 
       {/* ─── SETTINGS SCREEN ─── */}
       {screen === "settings" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
+        <div className="absolute top-20 bottom-nav left-0 right-0 overflow-y-auto px-4 py-3">
           <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-5 border border-blue-800/50 space-y-6 min-h-full">
             <div className="flex items-center justify-between">
               <h2 className="text-white font-bold text-lg flex items-center gap-2">
@@ -3936,7 +3936,7 @@ export default function Home() {
 
       {/* ─── GEAR SCREEN ─── */}
       {screen === "gear" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 flex flex-col">
+        <div className="absolute top-20 bottom-nav left-0 right-0 flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0">
             <h2 className="text-white font-bold text-lg flex items-center gap-2">
@@ -4019,7 +4019,7 @@ export default function Home() {
 
       {/* ─── DEVICES SCREEN ─── */}
       {screen === "devices" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
+        <div className="absolute top-20 bottom-nav left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
           <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-4 border border-blue-800/50 min-h-full min-w-0 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-white font-bold text-lg flex items-center gap-2">
@@ -4479,7 +4479,7 @@ export default function Home() {
 
       {/* ─── DEVICES PRO FROST OVERLAY ─── */}
       {screen === "devices" && !isPro && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 z-20 backdrop-blur-md bg-blue-950/60 flex flex-col items-center justify-center gap-5 px-8">
+        <div className="absolute top-20 bottom-nav left-0 right-0 z-20 backdrop-blur-md bg-blue-950/60 flex flex-col items-center justify-center gap-5 px-8">
           <Crown className="w-12 h-12 text-yellow-400/90" />
           <div className="text-center">
             <div className="text-white font-bold text-xl mb-2">Pro Feature</div>
@@ -4537,7 +4537,7 @@ export default function Home() {
 
 
         return (
-          <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
+          <div className="absolute top-20 bottom-nav left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
             <div className="space-y-3 min-w-0">
 
               {/* Header */}
@@ -4944,7 +4944,7 @@ export default function Home() {
 
       {/* ─── LEGAL SCREEN ─── */}
       {screen === "legal" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
+        <div className="absolute top-20 bottom-nav left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
           <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-5 border border-blue-800/50 space-y-4 min-h-full min-w-0">
             <div className="flex items-center justify-between">
               <h2 className="text-white font-bold text-lg flex items-center gap-2">
@@ -6271,8 +6271,8 @@ export default function Home() {
       )}
 
       {/* ─── BOTTOM NAV ─── */}
-      <div className="absolute bottom-0 left-0 right-0 h-20 bg-blue-950/90 backdrop-blur-md border-t border-blue-800/60">
-        <div className="flex items-center h-full max-w-xl mx-auto px-2">
+      <div className="absolute bottom-0 left-0 right-0 bg-blue-950/90 backdrop-blur-md border-t border-blue-800/60 pb-safe">
+        <div className="flex items-center h-20 max-w-xl mx-auto px-2">
           {/* History */}
           <button
             data-testid="nav-history"
