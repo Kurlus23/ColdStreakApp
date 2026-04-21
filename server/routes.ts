@@ -179,6 +179,10 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  // ── Object Storage upload routes ────────────────────────────────────────
+  const { registerObjectStorageRoutes } = await import("./replit_integrations/object_storage");
+  registerObjectStorageRoutes(app);
+
   // ── Android App Links verification ──────────────────────────────────────
   app.get("/.well-known/assetlinks.json", (_req, res) => {
     const sha256 = process.env.ANDROID_SHA256_CERT;
@@ -1654,9 +1658,27 @@ export async function registerRoutes(
     if (!callerUser?.displayName) return res.status(400).json({ error: "No display name set" });
     const displayName = callerUser.displayName;
 
-    // Validate avatarUrl is a URL or null
-    if (avatarUrl !== undefined && avatarUrl !== null) {
-      try { new URL(avatarUrl); } catch { return res.status(400).json({ error: "Invalid avatar URL" }); }
+    // Validate avatarUrl is a URL, an object-storage path (/objects/...), or null
+    let normalizedAvatarUrl: string | null | undefined = avatarUrl;
+    if (avatarUrl !== undefined && avatarUrl !== null && avatarUrl !== "") {
+      const isObjectPath = typeof avatarUrl === "string" && avatarUrl.startsWith("/objects/");
+      if (isObjectPath) {
+        try {
+          const { ObjectStorageService } = await import("./replit_integrations/object_storage");
+          const svc = new ObjectStorageService();
+          normalizedAvatarUrl = await svc.trySetObjectEntityAclPolicy(avatarUrl, {
+            owner: String(caller.userId),
+            visibility: "public",
+          });
+        } catch (err) {
+          console.error("[badge-profile] Failed to set avatar ACL:", err);
+          return res.status(400).json({ error: "Invalid uploaded image" });
+        }
+      } else {
+        try { new URL(avatarUrl); } catch { return res.status(400).json({ error: "Invalid avatar URL" }); }
+      }
+    } else if (avatarUrl === "") {
+      normalizedAvatarUrl = null;
     }
 
     // Validate socialLinks keys
@@ -1672,7 +1694,7 @@ export async function registerRoutes(
     }
 
     await storage.updateBadgeProfileMeta(displayName, {
-      avatarUrl: avatarUrl ?? undefined,
+      avatarUrl: normalizedAvatarUrl ?? undefined,
       bio: typeof bio === "string" ? bio.slice(0, 200) : undefined,
       socialLinks: socialLinks !== undefined ? JSON.stringify(parsedLinks) : undefined,
     });

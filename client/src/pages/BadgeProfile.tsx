@@ -1,7 +1,7 @@
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TEMP_TIERS, DAYS_TIERS, STATE_EMOJI, usePassportBadges, computeStateBadges } from "@/lib/passport";
-import { X, Pencil, Share2, ChevronDown, ChevronUp, Check } from "lucide-react";
+import { X, Pencil, Share2, ChevronDown, ChevronUp, Check, Upload, Loader2 } from "lucide-react";
 import { SiInstagram, SiSnapchat, SiFacebook, SiTiktok, SiX, SiYoutube } from "react-icons/si";
 import { getAuthToken } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
@@ -96,6 +96,8 @@ export default function BadgeProfile() {
 
   const [showEdit, setShowEdit] = useState(false);
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [editBio, setEditBio] = useState("");
   const [editLinks, setEditLinks] = useState<SocialLinks>({});
   const [saved, setSaved] = useState(false);
@@ -368,39 +370,90 @@ export default function BadgeProfile() {
           <div className="bg-blue-900/80 rounded-2xl border border-blue-700/50 px-4 py-4 space-y-4">
             <p className="text-white font-semibold text-sm">Edit Your Profile</p>
 
-            {/* Avatar URL */}
+            {/* Avatar Upload */}
             <div>
-              <label className="text-blue-300 text-xs font-semibold block mb-1">Avatar Image URL</label>
-              <input
-                data-testid="input-avatar-url"
-                type="url"
-                placeholder="https://… paste a direct image link"
-                value={editAvatarUrl}
-                onChange={(e) => setEditAvatarUrl(e.target.value)}
-                className="w-full bg-blue-950/70 border border-blue-700 rounded-xl px-3 py-2 text-white text-xs placeholder:text-blue-600 focus:outline-none focus:border-cyan-500"
-              />
-              <div className="mt-2 bg-blue-950/60 rounded-xl px-3 py-2.5 border border-blue-700/40 space-y-1.5">
-                <p className="text-blue-300 text-[10px] font-semibold">How to get your Imgur link:</p>
-                <ol className="text-blue-400 text-[10px] space-y-0.5 list-none">
-                  <li>1. Go to <span className="text-cyan-300 font-medium">imgur.com</span> and upload your photo</li>
-                  <li>2. Click on the uploaded image to open it</li>
-                  <li>3. Right-click the image → <span className="text-white">"Copy image address"</span></li>
-                  <li>4. The link will start with <span className="text-white font-mono">https://i.imgur.com/</span></li>
-                  <li>5. Paste it in the field above</li>
-                </ol>
-                <p className="text-blue-500 text-[10px]">Works with any photo — including a Bitmoji or Snapchat screenshot.</p>
-              </div>
-              {editAvatarUrl && (
-                <div className="mt-2 flex items-center gap-2">
+              <label className="text-blue-300 text-xs font-semibold block mb-1">Profile Photo</label>
+              <div className="flex items-center gap-3">
+                {editAvatarUrl ? (
                   <img
                     src={editAvatarUrl}
                     alt="Preview"
-                    className="w-10 h-10 rounded-full object-cover border border-blue-600"
+                    className="w-14 h-14 rounded-full object-cover border-2 border-blue-600 flex-shrink-0"
                     onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }}
+                    data-testid="img-avatar-preview"
                   />
-                  <span className="text-blue-500 text-[10px]">Preview</span>
+                ) : (
+                  <div className="w-14 h-14 rounded-full bg-blue-950/70 border-2 border-blue-700 border-dashed flex items-center justify-center flex-shrink-0">
+                    <Upload className="w-5 h-5 text-blue-500" />
+                  </div>
+                )}
+                <div className="flex-1 space-y-1.5">
+                  <label
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-700/40 border border-cyan-600/50 text-cyan-200 text-xs font-semibold cursor-pointer hover:bg-cyan-600/40 transition-colors"
+                    data-testid="label-upload-avatar"
+                  >
+                    {avatarUploading ? (
+                      <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading…</>
+                    ) : (
+                      <><Upload className="w-3.5 h-3.5" /> {editAvatarUrl ? "Change photo" : "Upload photo"}</>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={avatarUploading}
+                      data-testid="input-avatar-file"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        e.target.value = "";
+                        if (file.size > 5 * 1024 * 1024) {
+                          setAvatarError("Image must be under 5 MB");
+                          return;
+                        }
+                        setAvatarError(null);
+                        setAvatarUploading(true);
+                        try {
+                          const reqRes = await fetch("/api/uploads/request-url", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type || "image/jpeg" }),
+                          });
+                          if (!reqRes.ok) throw new Error("Could not get upload URL");
+                          const { uploadURL, objectPath } = await reqRes.json();
+                          const putRes = await fetch(uploadURL, {
+                            method: "PUT",
+                            body: file,
+                            headers: { "Content-Type": file.type || "image/jpeg" },
+                          });
+                          if (!putRes.ok) throw new Error("Upload failed");
+                          setEditAvatarUrl(objectPath);
+                        } catch (err: any) {
+                          setAvatarError(err?.message || "Upload failed");
+                        } finally {
+                          setAvatarUploading(false);
+                        }
+                      }}
+                    />
+                  </label>
+                  {editAvatarUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setEditAvatarUrl("")}
+                      className="block text-[10px] text-blue-400 hover:text-red-400"
+                      data-testid="button-remove-avatar"
+                    >
+                      Remove photo
+                    </button>
+                  )}
                 </div>
+              </div>
+              {avatarError && (
+                <p className="mt-2 text-[10px] text-red-400" data-testid="text-avatar-error">{avatarError}</p>
               )}
+              <p className="mt-2 text-[10px] text-blue-500">
+                JPG / PNG up to 5 MB. Bitmoji screenshots work great.
+              </p>
             </div>
 
             {/* Bio */}
