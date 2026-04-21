@@ -2556,10 +2556,21 @@ export default function Home() {
             style={{ textShadow: "0 1px 6px rgba(0,0,0,0.8)" }}
           >
             Weekly: {weeklyMinutes.toFixed(1)} / {weeklyGoalMinutes} min&nbsp;&nbsp;·&nbsp;&nbsp;
-            {isActive
-              ? <span className="text-cyan-300">Best: {personalBest > 0 ? personalBest.toFixed(1) : "—"}</span>
-              : `Streak: ${streak} days`
-            }
+            {isActive ? (
+              <span className="text-cyan-300">Best: {personalBest > 0 ? personalBest.toFixed(1) : "—"}</span>
+            ) : (
+              <>
+                Streak: {streak} days
+                {personalBest > 0 && (
+                  <>
+                    &nbsp;&nbsp;·&nbsp;&nbsp;
+                    <span className="text-orange-400" data-testid="text-personal-best">
+                      PB: {personalBest.toFixed(1)}
+                    </span>
+                  </>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}
