@@ -845,6 +845,11 @@ export default function Home() {
   const [username, setUsername] = useState<string>(() => {
     return localStorage.getItem("coldstreak-username") ?? "";
   });
+  const { data: ownBadgeProfile } = useQuery<{ avatarUrl?: string | null }>({
+    queryKey: ["/api/badge-profile", username],
+    enabled: !!username,
+  });
+  const ownAvatarUrl = ownBadgeProfile?.avatarUrl ?? null;
   // Plunge data stored for leaderboard submission after save
   const promptPlungeRef = useRef<{ score: string; duration: number; temperature: number; timerUsed: boolean } | null>(null);
 
@@ -4540,7 +4545,17 @@ export default function Home() {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="relative shrink-0">
-                      <Trophy className="w-7 h-7 text-yellow-400" />
+                      {ownAvatarUrl ? (
+                        <img
+                          src={ownAvatarUrl}
+                          alt={username || "avatar"}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400/70 shadow-md"
+                          data-testid="img-badge-tab-avatar"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      ) : (
+                        <Trophy className="w-7 h-7 text-yellow-400" data-testid="icon-badge-tab-trophy" />
+                      )}
                       {totalEarned > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-blue-950 text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                           {totalEarned}
