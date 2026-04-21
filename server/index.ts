@@ -130,7 +130,13 @@ app.use((req, _res, next) => {
       try {
         const payload = jwt.verify(auth.slice(7), VISIT_JWT_SECRET) as { id?: number };
         if (typeof payload?.id === "number") userId = payload.id;
-      } catch { /* invalid token — leave userId undefined */ }
+      } catch (e) {
+        // TEMP diagnostic: figure out why visit middleware can't verify the
+        // same JWT routes.ts verifies fine. Remove once confirmed working.
+        console.error("[visits] jwt verify failed:", (e as Error)?.message,
+          "secretLen=", VISIT_JWT_SECRET.length,
+          "envSet=", !!process.env.SESSION_SECRET);
+      }
     }
 
     const tzHeader = req.headers["x-client-timezone"];
