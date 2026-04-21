@@ -808,6 +808,17 @@ export async function registerRoutes(
     res.json(visits);
   });
 
+  // Admin: clear another user's avatar (set back to default trophy)
+  app.post("/api/admin/users/:username/clear-avatar", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const username = req.params.username;
+    if (!username) return res.status(400).json({ message: "Username required" });
+    await storage.updateBadgeProfileMeta(username, { avatarUrl: null });
+    console.log(`[admin] cleared avatar for ${username} (by ${caller?.email})`);
+    res.json({ success: true, username });
+  });
+
   // Admin: disable / enable a user account
   app.patch("/api/admin/users/:id", async (req, res) => {
     const caller = extractUser(req);
