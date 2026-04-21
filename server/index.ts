@@ -88,7 +88,10 @@ function pruneVisitCache() {
   for (const [k, t] of lastVisitWriteAt) if (t < cutoff) lastVisitWriteAt.delete(k);
 }
 
-const VISIT_JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
+// Must match the secret used by routes.ts to sign auth tokens, otherwise
+// jwt.verify() silently fails here and we lose the ability to attribute
+// visits/geo to a user.
+const VISIT_JWT_SECRET = process.env.SESSION_SECRET || "coldstreak-dev-secret";
 
 app.use((req, _res, next) => {
   next();
