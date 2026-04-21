@@ -15,6 +15,9 @@ export const users = pgTable("users", {
   bodyWeight: integer("body_weight"),
   isAdmin: boolean("is_admin").default(false).notNull(),
   isDisabled: boolean("is_disabled").default(false).notNull(),
+  timezone: text("timezone"), // IANA tz from client (e.g., "America/Los_Angeles")
+  country: text("country"),   // ISO-2 country code (e.g., "US", "GB")
+  region: text("region"),     // State / region / city (free-form, geo-derived)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -36,6 +39,7 @@ export const plunges = pgTable("plunges", {
   locationId: text("location_id"), // passport location id (nullable)
   timerUsed: boolean("timer_used").default(false).notNull(), // true = in-app timer; false = manually entered
   calories: integer("calories"), // kcal estimate locked at log time (nullable for legacy rows)
+  timezone: text("timezone"), // IANA tz captured at log time (nullable for legacy rows)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

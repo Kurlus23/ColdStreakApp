@@ -55,7 +55,7 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Client-Id");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Client-Id,X-Client-Platform,X-Client-Timezone");
   }
   if (req.method === "OPTIONS") {
     res.sendStatus(200);
@@ -130,12 +130,24 @@ app.use((req, _res, next) => {
       } catch { /* invalid token — leave userId undefined */ }
     }
 
+    const tzHeader = req.headers["x-client-timezone"];
+    const timezone = (typeof tzHeader === "string" && tzHeader.length > 0 && tzHeader.length <= 64)
+      ? tzHeader : undefined;
+    const cfCountry = req.headers["cf-ipcountry"];
+    const country = (typeof cfCountry === "string" && cfCountry.length === 2 && cfCountry !== "XX")
+      ? cfCountry.toUpperCase() : undefined;
+    const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim()
+      || req.socket.remoteAddress || undefined;
+
     storage.recordClientVisit({
       clientId,
       userAgent: ua?.slice(0, 200),
       path: req.path.slice(0, 200),
       platform,
       userId,
+      timezone,
+      country,
+      ip,
     }).catch((err) => console.error("[visits] record failed:", err?.message ?? err));
   } catch (err) {
     console.error("[visits] middleware error:", err);

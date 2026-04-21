@@ -271,6 +271,7 @@ export default function Admin() {
     plungesThisMonth: number;
     lastPlungeTemp: number | null; lastPlungeDurationSec: number | null; lastPlungeScore: number | null;
     lastApiSeenAt: string | null; totalApiVisits: number; platforms: string | null;
+    timezone: string | null; country: string | null; region: string | null;
     totalShares: number; sharesByKind: Record<string, number>; lastShareAt: string | null;
   };
   const { data: userActivity } = useQuery<UserActivity[]>({
@@ -865,6 +866,7 @@ export default function Admin() {
                   <th className="text-left px-3 py-2">Last Share</th>
                   <th className="text-left px-3 py-2">Last API Hit</th>
                   <th className="text-left px-3 py-2">Platforms</th>
+                  <th className="text-left px-3 py-2">Location</th>
                 </tr>
               </thead>
               <tbody>
@@ -943,6 +945,19 @@ export default function Admin() {
                       <td className="px-3 py-2 text-slate-400">{fmtDate(u.lastShareAt)}</td>
                       <td className="px-3 py-2 text-slate-400">{fmtDate(u.lastApiSeenAt)}</td>
                       <td className="px-3 py-2 text-slate-400">{u.platforms ?? "—"}</td>
+                      <td className="px-3 py-2 text-slate-300">
+                        {(u.region || u.country || u.timezone) ? (
+                          <div className="leading-tight">
+                            {u.region && <div data-testid={`text-region-${u.id}`}>{u.region}</div>}
+                            {u.country && (
+                              <div className="text-[10px] text-slate-400" data-testid={`text-country-${u.id}`}>{u.country}</div>
+                            )}
+                            {u.timezone && (
+                              <div className="text-[10px] text-slate-500" data-testid={`text-timezone-${u.id}`}>{u.timezone}</div>
+                            )}
+                          </div>
+                        ) : "—"}
+                      </td>
                     </tr>
                   );
                 })}

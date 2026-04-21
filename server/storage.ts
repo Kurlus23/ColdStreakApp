@@ -906,7 +906,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // ── Client visits ──────────────────────────────────────────────────────────
-  async recordClientVisit(data: { clientId: string; userAgent?: string; path?: string; platform?: string; userId?: number }): Promise<void> {
+  async recordClientVisit(data: {
+    clientId: string; userAgent?: string; path?: string; platform?: string;
+    userId?: number; timezone?: string; country?: string; ip?: string;
+  }): Promise<void> {
     await db.insert(clientVisits)
       .values({
         clientId: data.clientId,
@@ -926,6 +929,67 @@ export class DatabaseStorage implements IStorage {
           userId: data.userId ?? sql`${clientVisits.userId}`,
         },
       });
+
+    // Enrich the linked user record (best effort; never throw to caller).
+    if (data.userId) {
+      try { await this.enrichUserGeo(data.userId, data.timezone, data.country, data.ip); }
+      catch (err) { console.error("[geo] enrich failed:", (err as any)?.message ?? err); }
+    }
+  }
+
+  // ── User geo enrichment ────────────────────────────────────────────────────
+  // Updates user.timezone immediately when client header has it.
+  // Sets user.country fast from Cloudflare header.
+  // Lazily fetches city/region from a free geo-IP service the first time we
+  // see the user without a region. Cached per process to avoid repeats.
+  private static _geoLookupAttempted = new Set<number>();
+  async enrichUserGeo(userId: number, timezone?: string, country?: string, ip?: string): Promise<void> {
+    const [u] = await db.select({
+      id: users.id, timezone: users.timezone, country: users.country, region: users.region,
+    }).from(users).where(eq(users.id, userId));
+    if (!u) return;
+
+    const patch: Partial<typeof users.$inferInsert> = {};
+    if (timezone && timezone !== u.timezone) patch.timezone = timezone;
+    if (country && country !== u.country) patch.country = country;
+    if (Object.keys(patch).length > 0) {
+      await db.update(users).set(patch).where(eq(users.id, userId));
+    }
+
+    // Region (state/city) lookup — only once per user per process, only if missing.
+    const needsRegion = !u.region;
+    const goodIp = ip && !/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1|fc00:|fd00:)/.test(ip);
+    if (needsRegion && goodIp && !DatabaseStorage._geoLookupAttempted.has(userId)) {
+      DatabaseStorage._geoLookupAttempted.add(userId);
+      // Fire-and-forget; we already added to the dedupe set, so failures won't retry this process.
+      (async () => {
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 3000);
+          const r = await fetch(`https://ipapi.co/${encodeURIComponent(ip!)}/json/`, {
+            signal: ctrl.signal,
+            headers: { "User-Agent": "ColdStreak-Geo/1.0" },
+          });
+          clearTimeout(t);
+          if (!r.ok) return;
+          const j: any = await r.json();
+          // Build "City, Region" or just whichever is present.
+          const region = [j.city, j.region].filter(Boolean).join(", ").slice(0, 80) || null;
+          const cc = (typeof j.country_code === "string" && j.country_code.length === 2) ? j.country_code.toUpperCase() : null;
+          const tz = (typeof j.timezone === "string" && j.timezone.length <= 64) ? j.timezone : null;
+          const update: Partial<typeof users.$inferInsert> = {};
+          if (region) update.region = region;
+          if (cc) update.country = cc;
+          if (tz) update.timezone = tz;
+          if (Object.keys(update).length > 0) {
+            await db.update(users).set(update).where(eq(users.id, userId));
+          }
+        } catch (err) {
+          // Network/timeout/JSON failures are fine — leave the dedupe in place
+          // so we don't hammer the free service if it's down.
+        }
+      })();
+    }
   }
 
   async getRecentClientVisits(limit = 100): Promise<ClientVisit[]> {
@@ -1012,6 +1076,7 @@ export class DatabaseStorage implements IStorage {
       )
       SELECT
         u.id, u.email, u.username, u.display_name, u.email_verified, u.is_admin,
+        u.timezone, u.country, u.region,
         u.created_at AS signed_up_at,
         (pu.email IS NOT NULL) AS is_pro,
         COALESCE(ps.total_plunges, 0)         AS total_plunges,
@@ -1086,6 +1151,9 @@ export class DatabaseStorage implements IStorage {
         lastApiSeenAt: r.last_api_seen_at ?? null,
         totalApiVisits: Number(r.total_api_visits) || 0,
         platforms: r.platforms ?? null,
+        timezone: r.timezone ?? null,
+        country: r.country ?? null,
+        region: r.region ?? null,
         totalShares: sc?.total ?? 0,
         sharesByKind: sc?.byKind ?? { plunge: 0, profile: 0, event: 0 },
         lastShareAt: sc?.lastAt ?? null,

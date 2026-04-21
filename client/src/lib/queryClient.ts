@@ -68,6 +68,10 @@ function authHeaders(extra?: Record<string, string>): Record<string, string> {
   const cid = getStoredClientId();
   if (cid) headers["X-Client-Id"] = cid;
   headers["X-Client-Platform"] = detectClientPlatform();
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) headers["X-Client-Timezone"] = tz;
+  } catch { /* not all engines support tz */ }
   return headers;
 }
 

@@ -453,6 +453,10 @@ export async function registerRoutes(
       const plungeData: any = { ...input, score: String(input.score) };
       if (customDateStr) plungeData.createdAt = new Date(customDateStr);
       if (authUser) plungeData.userId = authUser.userId;
+      const tzHeader = req.headers["x-client-timezone"];
+      if (typeof tzHeader === "string" && tzHeader.length > 0 && tzHeader.length <= 64) {
+        plungeData.timezone = tzHeader;
+      }
       const newPlunge = await storage.createPlunge(plungeData);
       res.status(201).json(newPlunge);
     } catch (err) {
