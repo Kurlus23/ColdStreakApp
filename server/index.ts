@@ -124,23 +124,14 @@ app.use((req, _res, next) => {
     }
 
     // Best-effort: link the device to a verified user when a valid Bearer is present.
+    // Note: routes.ts signs tokens with field name `userId` (NOT `id`).
     let userId: number | undefined;
     const auth = req.headers.authorization;
-    // TEMP diagnostic
-    console.error("[visits] path=", req.path,
-      "hasAuth=", !!auth,
-      "authPrefix=", auth ? auth.slice(0, 10) : "none",
-      "headers=", Object.keys(req.headers).filter(k => k.startsWith("x-") || k === "authorization").join(","));
     if (auth?.startsWith("Bearer ")) {
       try {
-        const payload = jwt.verify(auth.slice(7), VISIT_JWT_SECRET) as { id?: number };
-        if (typeof payload?.id === "number") userId = payload.id;
-        console.error("[visits] verify OK userId=", userId);
-      } catch (e) {
-        console.error("[visits] jwt verify failed:", (e as Error)?.message,
-          "secretLen=", VISIT_JWT_SECRET.length,
-          "envSet=", !!process.env.SESSION_SECRET);
-      }
+        const payload = jwt.verify(auth.slice(7), VISIT_JWT_SECRET) as { userId?: number };
+        if (typeof payload?.userId === "number") userId = payload.userId;
+      } catch { /* invalid token — leave userId undefined */ }
     }
 
     const tzHeader = req.headers["x-client-timezone"];
