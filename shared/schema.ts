@@ -298,3 +298,21 @@ export const supportMessages = pgTable("support_messages", {
 export const insertSupportMessageSchema = createInsertSchema(supportMessages).omit({ id: true, createdAt: true });
 export type SupportMessage = typeof supportMessages.$inferSelect;
 export type InsertSupportMessage = z.infer<typeof insertSupportMessageSchema>;
+
+// ── Churn Surveys ─────────────────────────────────────────────────────────────
+// Sent automatically when a user goes inactive (>=7 days since last plunge).
+// One row per send; respondedAt + reason populate when the user opens the link.
+export const churnSurveys = pgTable("churn_surveys", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  email: text("email").notNull(),
+  token: text("token").notNull().unique(),
+  daysInactive: integer("days_inactive").notNull(),
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+  respondedAt: timestamp("responded_at"),
+  reason: text("reason"),         // "too_cold" | "lost_interest" | "app_issue" | "found_other" | "life_busy" | "other"
+  comment: text("comment"),
+  cameBack: boolean("came_back").default(false).notNull(), // flipped true when they plunge again after sentAt
+});
+
+export type ChurnSurvey = typeof churnSurveys.$inferSelect;

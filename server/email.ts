@@ -163,6 +163,34 @@ export async function sendAdminReplyEmail(opts: {
   `);
 }
 
+export async function sendChurnSurveyEmail(opts: {
+  to: string;
+  displayName: string | null;
+  daysInactive: number;
+  surveyUrl: string;
+}): Promise<void> {
+  const greeting = opts.displayName ? `Hey ${opts.displayName},` : "Hey there,";
+  await sendEmail(opts.to, "🧊 We miss you at ColdStreak — quick question?", `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">
+      <h1 style="color:#22d3ee;margin:0 0 8px">🧊 ColdStreak</h1>
+      <h2 style="color:#fff;margin:0 0 16px;font-size:20px">We miss you in the cold</h2>
+      <p style="color:#94a3b8;margin:0 0 16px;line-height:1.6">${greeting}</p>
+      <p style="color:#94a3b8;margin:0 0 16px;line-height:1.6">
+        It's been about <strong style="color:#e2e8f0">${opts.daysInactive} days</strong> since your last plunge. Would you mind telling us why? It takes 10 seconds and genuinely helps us improve.
+      </p>
+      <a href="${opts.surveyUrl}"
+         style="display:inline-block;background:#22d3ee;color:#0f172a;font-weight:700;
+                text-decoration:none;padding:14px 28px;border-radius:12px;font-size:15px;">
+        Tell us what happened
+      </a>
+      <p style="color:#64748b;margin:24px 0 0;font-size:13px;line-height:1.6">
+        No pressure — if you're back in the water already, ignore this and keep plunging. 🥶<br><br>
+        — The ColdStreak Team
+      </p>
+    </div>
+  `);
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   await sendEmail(to, "Reset your ColdStreak password", `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">

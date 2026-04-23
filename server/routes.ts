@@ -2197,5 +2197,43 @@ export async function registerRoutes(
   // Run once at startup too
   storage.deleteExpiredEvents().catch(() => {});
 
+  // ── Churn-survey routes ─────────────────────────────────────────────────
+  // Public token-auth endpoints (no JWT — token IS the auth):
+  app.get("/api/churn-survey/:token", async (req, res) => {
+    const { getSurveyByToken } = await import("./churn-survey");
+    const data = await getSurveyByToken(req.params.token);
+    if (!data) return res.status(404).json({ message: "Survey not found" });
+    res.json(data);
+  });
+
+  app.post("/api/churn-survey/:token", async (req, res) => {
+    const { recordSurveyResponse } = await import("./churn-survey");
+    const parsed = z.object({
+      reason: z.string().min(1).max(40),
+      comment: z.string().max(2000).optional(),
+    }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid input" });
+    const r = await recordSurveyResponse(req.params.token, parsed.data.reason, parsed.data.comment ?? null);
+    if (!r.ok) return res.status(400).json({ message: r.reason });
+    res.json({ ok: true });
+  });
+
+  // Admin-only endpoints:
+  app.get("/api/admin/churn-surveys", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const { listChurnSurveys } = await import("./churn-survey");
+    res.json(await listChurnSurveys());
+  });
+
+  app.post("/api/admin/churn-surveys/run", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const { runChurnSurveyScan, reconcileCameBack } = await import("./churn-survey");
+    await reconcileCameBack();
+    const result = await runChurnSurveyScan();
+    res.json(result);
+  });
+
   return httpServer;
 }

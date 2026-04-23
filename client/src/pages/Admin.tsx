@@ -1317,6 +1317,9 @@ export default function Admin() {
             </div>
           )}
 
+          {/* Churn Surveys */}
+          <ChurnSurveysPanel />
+
           {/* Business Locations */}
           <div className="border border-amber-800/40 rounded-xl overflow-hidden">
             <button
@@ -1621,6 +1624,124 @@ export default function Admin() {
         </DraggableTile>
       ))}
 
+    </div>
+  );
+}
+
+// ─── Churn Surveys panel ──────────────────────────────────────────────────────
+type ChurnSurveyRow = {
+  id: number;
+  email: string;
+  daysInactive: number;
+  sentAt: string;
+  respondedAt: string | null;
+  reason: string | null;
+  comment: string | null;
+  cameBack: boolean;
+};
+
+const REASON_LABELS: Record<string, string> = {
+  too_cold: "🥶 Too cold/hard",
+  lost_interest: "😴 Lost interest",
+  life_busy: "📅 Life busy",
+  app_issue: "🐞 App issue",
+  found_other: "🔁 Other tool",
+  other: "💬 Other",
+};
+
+function ChurnSurveysPanel() {
+  const [expanded, setExpanded] = useState(false);
+  const { data = [], isLoading } = useQuery<ChurnSurveyRow[]>({
+    queryKey: ["/api/admin/churn-surveys"],
+    enabled: expanded,
+  });
+  const runScan = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/churn-surveys/run", {});
+      return res.json() as Promise<{ candidates: number; sent: number; failures: Array<{ email: string; reason: string }> }>;
+    },
+    onSuccess: (r) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/churn-surveys"] });
+      alert(`Scan complete — candidates: ${r.candidates}, sent: ${r.sent}, failed: ${r.failures.length}`);
+    },
+  });
+
+  const responded = data.filter(r => r.respondedAt);
+  const came = data.filter(r => r.cameBack).length;
+
+  return (
+    <div className="border border-purple-800/40 rounded-xl overflow-hidden">
+      <button
+        data-testid="button-toggle-churn"
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-purple-950/60 text-left"
+      >
+        <span className="font-semibold text-purple-200 text-sm">
+          📉 Churn Surveys
+          <span className="ml-2 text-xs font-normal text-purple-400">
+            ({data.length} sent · {responded.length} replies · {came} came back)
+          </span>
+        </span>
+        <span className="text-purple-500 text-xs">{expanded ? "▲ Hide" : "▼ Show"}</span>
+      </button>
+      {expanded && (
+        <div className="p-3 space-y-2 bg-purple-950/20">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <p className="text-purple-300 text-xs">
+              Sent automatically when a verified user goes 7+ days without a plunge. Each user is emailed at most once every 60 days.
+            </p>
+            <button
+              onClick={() => runScan.mutate()}
+              disabled={runScan.isPending}
+              data-testid="button-run-churn-scan"
+              className="px-3 py-1.5 bg-purple-700 hover:bg-purple-600 text-white text-xs font-semibold rounded-lg disabled:opacity-50 whitespace-nowrap"
+            >
+              {runScan.isPending ? "Scanning…" : "Run scan now"}
+            </button>
+          </div>
+
+          {isLoading ? (
+            <p className="text-purple-400 text-sm text-center py-4">Loading…</p>
+          ) : data.length === 0 ? (
+            <p className="text-purple-400 text-sm text-center py-4">No surveys sent yet.</p>
+          ) : (
+            data.map(r => (
+              <div
+                key={r.id}
+                data-testid={`churn-survey-${r.id}`}
+                className={`rounded-xl border p-3 ${
+                  r.respondedAt ? "border-cyan-700/50 bg-slate-800/60" : "border-slate-700 bg-slate-900/40"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-white text-sm font-semibold" data-testid={`text-email-${r.id}`}>{r.email}</span>
+                  <div className="flex items-center gap-2 text-xs">
+                    {r.cameBack && (
+                      <span className="px-2 py-0.5 rounded bg-green-900/60 text-green-300 font-semibold">↩ Came back</span>
+                    )}
+                    <span className="text-slate-400">{new Date(r.sentAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <div className="text-xs text-slate-400 mt-1">
+                  {r.daysInactive} days inactive when sent
+                </div>
+                {r.respondedAt ? (
+                  <div className="mt-2 space-y-1">
+                    <div className="text-sm text-cyan-300">
+                      <span className="font-semibold">{r.reason ? (REASON_LABELS[r.reason] ?? r.reason) : "—"}</span>
+                    </div>
+                    {r.comment && (
+                      <p className="text-slate-200 text-sm whitespace-pre-wrap bg-slate-900/60 rounded-lg px-3 py-2">{r.comment}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-xs text-slate-500 mt-1 italic">Not yet opened</div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }

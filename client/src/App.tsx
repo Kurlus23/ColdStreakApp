@@ -13,6 +13,7 @@ import BadgeProfile from "@/pages/BadgeProfile";
 import DeleteAccount from "@/pages/DeleteAccount";
 import EventPage from "@/pages/EventPage";
 import Admin from "@/pages/Admin";
+import ChurnSurvey from "@/pages/ChurnSurvey";
 import { Sentry } from "@/lib/monitoring";
 import { useState, useEffect } from "react";
 
@@ -66,6 +67,7 @@ function Router() {
       <Route path="/profile/:username" component={BadgeProfile} />
       <Route path="/delete-account" component={DeleteAccount} />
       <Route path="/event/:code" component={EventPage} />
+      <Route path="/feedback/:token" component={ChurnSurvey} />
       <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>

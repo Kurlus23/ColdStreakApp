@@ -24,8 +24,46 @@ async function ensureRuntimeTables() {
     `);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS share_events_user_id_idx    ON share_events(user_id)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS share_events_created_at_idx ON share_events(created_at DESC)`);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS churn_surveys (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        email TEXT NOT NULL,
+        token TEXT NOT NULL UNIQUE,
+        days_inactive INTEGER NOT NULL,
+        sent_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        responded_at TIMESTAMP,
+        reason TEXT,
+        comment TEXT,
+        came_back BOOLEAN NOT NULL DEFAULT FALSE
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS churn_surveys_user_id_idx ON churn_surveys(user_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS churn_surveys_sent_at_idx ON churn_surveys(sent_at DESC)`);
   } catch (err) {
     console.error("[bootstrap] ensureRuntimeTables failed:", err);
+  }
+}
+
+// Daily(ish) inactivity-survey scanner. Imported lazily so a syntax error in
+// the survey module can never block server boot.
+async function startChurnSurveyScheduler() {
+  try {
+    const { runChurnSurveyScan, reconcileCameBack } = await import("./churn-survey");
+    const tick = async () => {
+      try {
+        await reconcileCameBack();
+        await runChurnSurveyScan();
+      } catch (err) {
+        console.error("[churn-survey] tick failed:", err);
+      }
+    };
+    // Run once 5 min after boot to give DB time to settle, then every 12h.
+    setTimeout(tick, 5 * 60 * 1000);
+    setInterval(tick, 12 * 60 * 60 * 1000);
+  } catch (err) {
+    console.error("[churn-survey] scheduler failed to start:", err);
   }
 }
 
@@ -241,6 +279,7 @@ app.use((req, res, next) => {
     () => {
       log(`serving on port ${port}`);
       void ensureRuntimeTables();
+      void startChurnSurveyScheduler();
     },
   );
 })();
