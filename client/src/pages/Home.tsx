@@ -544,13 +544,14 @@ export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'user' | 'settings' | 'support'>('user');
 
-  // Intro video
+  // Intro video — disabled by default for now while we sort out the iOS WebView
+  // codec issue. Flip the comparisons back to `!== "false"` to re-enable.
   const [showIntro, setShowIntro] = useState(() =>
-    localStorage.getItem("coldstreak-intro-enabled") !== "false" &&
+    localStorage.getItem("coldstreak-intro-enabled") === "true" &&
     localStorage.getItem("coldstreak-intro-seen") !== "true"
   );
   const [introSeen, setIntroSeen] = useState(() => localStorage.getItem("coldstreak-intro-seen") === "true");
-  const [introToggle, setIntroToggle] = useState(() => localStorage.getItem("coldstreak-intro-enabled") !== "false");
+  const [introToggle, setIntroToggle] = useState(() => localStorage.getItem("coldstreak-intro-enabled") === "true");
   const introVideoRef = useRef<HTMLVideoElement>(null);
   const [introMuted, setIntroMuted] = useState(true);
   const [introReady, setIntroReady] = useState(false);
