@@ -37,17 +37,9 @@ struct ReadyView: View {
                     sensitivity: .low, isContinuous: false, isHapticFeedbackEnabled: true
                 )
 
-            HStack(spacing: 4) {
-                Button("−") { crownTemp = max(28, crownTemp - 1) }
-                    .buttonStyle(.bordered)
-                    .controlSize(.mini)
-                Text("Water temp")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Button("+") { crownTemp = min(70, crownTemp + 1) }
-                    .buttonStyle(.bordered)
-                    .controlSize(.mini)
-            }
+            Text("Water temp")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
 
             Spacer(minLength: 4)
 
