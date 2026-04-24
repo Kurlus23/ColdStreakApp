@@ -559,6 +559,16 @@ export default function Home() {
     setIntroSeen(true);
     setShowIntro(false);
   };
+  // Safety net: if the video can't decode (codec issue in Capacitor WebView, etc.)
+  // or never starts playing within 4s, just dismiss so the user isn't stuck staring
+  // at a black screen. Also runs on hard onError (network/decode failure).
+  useEffect(() => {
+    if (!showIntro) return;
+    const timeout = setTimeout(() => {
+      if (!introReady) dismissIntro();
+    }, 4000);
+    return () => clearTimeout(timeout);
+  }, [showIntro, introReady]);
   const toggleIntro = (val: boolean) => {
     localStorage.setItem("coldstreak-intro-enabled", val ? "true" : "false");
     setIntroToggle(val);
@@ -2256,6 +2266,8 @@ export default function Home() {
             className={`w-full h-full object-contain transition-opacity duration-300 ${introReady ? "opacity-100" : "opacity-0"}`}
             onPlay={handleIntroPlay}
             onEnded={dismissIntro}
+            onError={dismissIntro}
+            onStalled={() => { if (!introReady) dismissIntro(); }}
           />
 
           {/* Controls — only show once video is playing */}
