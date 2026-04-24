@@ -70,7 +70,14 @@ struct PlungeView: View {
         Task {
             HapticService.shared.stop()
             HapticService.shared.finished()
+            #if targetEnvironment(simulator)
+            // Simulator: bypass workout session and transition manually
+            session.endedAt = Date()
+            session.recoveryStartedAt = Date()
+            session.phase = .recovery
+            #else
             await PlungeWorkoutManager.shared.stop()
+            #endif
             timer?.invalidate(); timer = nil
             isStopping = false
         }
