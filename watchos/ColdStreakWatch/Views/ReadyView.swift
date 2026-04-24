@@ -58,11 +58,9 @@ struct ReadyView: View {
         .task {
             guard !permissionRequested else { return }
             permissionRequested = true
-            do {
-                try await PlungeWorkoutManager.shared.requestAuthorization()
-            } catch {
-                errorMessage = "Health permission needed"
-            }
+            // HealthKit permission is best-effort. If denied or unavailable
+            // (e.g. simulator), the app still works — HR just won't display.
+            try? await PlungeWorkoutManager.shared.requestAuthorization()
         }
         .onChange(of: crownTemp) { _, newValue in
             session.waterTempF = newValue
