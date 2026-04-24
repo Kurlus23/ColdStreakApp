@@ -23,48 +23,50 @@ struct RecoveryView: View {
     }
 
     private var content: some View {
-        VStack(spacing: 6) {
-            Text("Recovery")
-                .font(.headline)
-                .foregroundStyle(.cyan)
+        ScrollView {
+            VStack(spacing: 6) {
+                Text("Recovery")
+                    .font(.headline)
+                    .foregroundStyle(.cyan)
 
-            Text(formatted(elapsed: recoveryElapsed))
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(.white)
+                Text(formatted(elapsed: recoveryElapsed))
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.white)
 
-            HStack(spacing: 12) {
-                Label {
-                    Text(session.currentHR > 0 ? "\(session.currentHR)" : "—")
-                        .monospacedDigit()
-                } icon: {
-                    Image(systemName: "heart.fill").foregroundStyle(.red)
+                HStack(spacing: 12) {
+                    Label {
+                        Text(session.currentHR > 0 ? "\(session.currentHR)" : "—")
+                            .monospacedDigit()
+                    } icon: {
+                        Image(systemName: "heart.fill").foregroundStyle(.red)
+                    }
+                    .font(.title3)
+
+                    if let baseline = session.restingHRBaseline {
+                        Text("→ \(Int(baseline))")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                .font(.title3)
 
-                if let baseline = session.restingHRBaseline {
-                    Text("→ \(Int(baseline))")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
+                Text(returnedHint)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Spacer(minLength: 8)
+
+                Button("Done") { advanceToSummary() }
+                    .tint(.cyan)
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+
+                Button("Skip recovery", role: .destructive) { advanceToSummary() }
+                    .font(.caption)
             }
-
-            Text(returnedHint)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            Spacer(minLength: 4)
-
-            Button("Done") { advanceToSummary() }
-                .tint(.cyan)
-                .font(.headline)
-                .frame(maxWidth: .infinity)
+            .padding(.horizontal, 4)
         }
-        .padding(.horizontal, 4)
-        .containerBackground(.black.gradient, for: .tabView)
-        .onAppear { startTicking() }
-        .onDisappear { timer?.invalidate(); timer = nil }
     }
 
     private var returnedHint: String {

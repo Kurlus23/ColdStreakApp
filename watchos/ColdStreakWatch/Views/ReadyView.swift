@@ -29,15 +29,17 @@ struct ReadyView: View {
             Text("\(Int(crownTemp))°F")
                 .font(.system(size: 44, weight: .heavy, design: .rounded))
                 .foregroundStyle(tempFocused ? .cyan : .white)
-                .focusable()
+                .focusable(true)
                 .focused($tempFocused)
                 .digitalCrownRotation(
                     $crownTemp,
                     from: 28, through: 70, by: 1,
                     sensitivity: .low, isContinuous: false, isHapticFeedbackEnabled: true
                 )
+                .digitalCrownAccessory(.visible)
+                .onTapGesture { tempFocused = true }
 
-            Text("Water temp")
+            Text(tempFocused ? "Spin crown to adjust" : "Tap to adjust")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
 
