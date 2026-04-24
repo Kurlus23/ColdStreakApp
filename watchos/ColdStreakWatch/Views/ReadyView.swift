@@ -90,18 +90,29 @@ struct ReadyView: View {
             session.startedAt = Date()
             session.phase = .plunging
             #else
-            // Real hardware: try the real workout session, but never block forever.
-            // If anything throws or stalls, fall back to UI-only mode.
+            // 1) Wait for HealthKit authorization to RESOLVE (not just be requested).
+            //    On first launch the system dialog might still be on screen here —
+            //    we need to wait for the user to tap before starting the workout
+            //    session, otherwise the workout-start race can lose HR streaming.
+            do {
+                try await PlungeWorkoutManager.shared.requestAuthorization()
+            } catch {
+                errorMessage = "Heart rate permission error: \(error.localizedDescription)"
+            }
+
+            // 2) Best-effort baselines (HRV, resting HR) — fine if these fail.
             async let hrv = HRVService.shared.recentAverageHRV(lookbackMinutes: 5)
             async let resting = HRVService.shared.mostRecentRestingHR()
             session.hrvBaseline = await hrv
             session.restingHRBaseline = await resting
 
-            let started = await withTimeout(seconds: 4) {
-                try? await PlungeWorkoutManager.shared.start(for: session)
-                return true
-            }
-            if started != true || session.startedAt == nil {
+            // 3) Start the real workout session. If this throws, surface the
+            //    actual error so we know HR won't track — but still let her log
+            //    the plunge in HR-less mode rather than getting stuck.
+            do {
+                try await PlungeWorkoutManager.shared.start(for: session)
+            } catch {
+                errorMessage = "Couldn't start heart rate tracking: \(error.localizedDescription)"
                 session.startedAt = Date()
                 session.phase = .plunging
             }
@@ -113,19 +124,5 @@ struct ReadyView: View {
             }
             isStarting = false
         }
-    }
-}
-
-/// Returns the operation's result, or nil if `seconds` elapse first.
-private func withTimeout<T: Sendable>(seconds: Double, _ op: @escaping @Sendable () async -> T) async -> T? {
-    await withTaskGroup(of: T?.self) { group in
-        group.addTask { await op() }
-        group.addTask {
-            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-            return nil
-        }
-        let first = await group.next() ?? nil
-        group.cancelAll()
-        return first
     }
 }
