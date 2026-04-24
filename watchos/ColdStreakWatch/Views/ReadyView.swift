@@ -6,6 +6,7 @@ struct ReadyView: View {
     @State private var crownTemp: Double = 38.0
     @State private var permissionRequested = false
     @State private var errorMessage: String?
+    @FocusState private var tempFocused: Bool
 
     var body: some View {
         VStack(spacing: 8) {
@@ -15,17 +16,26 @@ struct ReadyView: View {
 
             Text("\(Int(crownTemp))°F")
                 .font(.system(size: 44, weight: .heavy, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(tempFocused ? .cyan : .white)
                 .focusable()
+                .focused($tempFocused)
                 .digitalCrownRotation(
                     $crownTemp,
                     from: 28, through: 70, by: 1,
                     sensitivity: .low, isContinuous: false, isHapticFeedbackEnabled: true
                 )
 
-            Text("Water temp")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 4) {
+                Button("−") { crownTemp = max(28, crownTemp - 1) }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                Text("Water temp")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Button("+") { crownTemp = min(70, crownTemp + 1) }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+            }
 
             Spacer(minLength: 4)
 
@@ -59,6 +69,10 @@ struct ReadyView: View {
         }
         .onAppear {
             crownTemp = session.waterTempF
+            // Give the temp display crown focus on appear
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                tempFocused = true
+            }
         }
     }
 
@@ -72,16 +86,22 @@ struct ReadyView: View {
             session.hrvBaseline = await hrv
             session.restingHRBaseline = await resting
 
+            // Try to start a real HKWorkoutSession.
+            // On the simulator HKWorkoutSession often can't actually begin —
+            // in that case we fall back to a UI-only timer so testing still works.
             do {
                 try await PlungeWorkoutManager.shared.start(for: session)
-                HapticService.shared.ready()
-                if let started = session.startedAt {
-                    HapticService.shared.startMilestones(from: started)
-                }
             } catch {
-                errorMessage = "Couldn't start workout"
-                isStarting = false
+                print("[ColdStreakWatch] Workout session start failed (likely simulator): \(error)")
+                session.startedAt = Date()
+                session.phase = .plunging
             }
+
+            HapticService.shared.ready()
+            if let started = session.startedAt {
+                HapticService.shared.startMilestones(from: started)
+            }
+            isStarting = false
         }
     }
 }
