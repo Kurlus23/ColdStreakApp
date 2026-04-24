@@ -34,6 +34,8 @@ import { buildShareImage, dataUrlToBlob, loadImage, buildShareBlobFromPreloaded 
 import { isNative, nativeShare } from "@/lib/nativeShare";
 import { shareContent } from "@/lib/share";
 import { saveCustomAlarmUrl, loadCustomAlarmUrl, clearCustomAlarmUrl } from "@/lib/alarm-storage";
+import { drainWatchQueue, startWatchListener, stopWatchListener } from "@/lib/watchSync";
+import { ensureHealthKitAuth, fetchHrAvgForWindow, isHealthKitPossible } from "@/lib/healthKit";
 import { Explore, GEAR_ITEMS, type GearCategory } from "@/pages/Explore";
 import {
   PASSPORT_LOCATIONS, usePassportBadges, distanceMiles,
@@ -591,6 +593,41 @@ export default function Home() {
     confetti({ particleCount: 140, spread: 80, origin: { y: 0.55 }, colors: ["#06b6d4", "#3b82f6", "#ffffff", "#fbbf24"] });
     setTimeout(() => confetti({ particleCount: 80, spread: 60, origin: { y: 0.4 }, colors: ["#06b6d4", "#a5f3fc", "#ffffff"] }), 600);
     setTimeout(() => setShowProCelebration(false), 6000);
+  }, []);
+
+  // Apple Watch sync: drain any plunges queued by the watch app while the iPhone
+  // app was closed, and listen live for new arrivals while it's open.
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== "ios") return;
+
+    const onSynced = (count: number) => {
+      if (count > 0) {
+        toast({
+          title: count === 1 ? "Watch plunge synced ⌚" : `${count} watch plunges synced ⌚`,
+          description: "Pulled from your Apple Watch.",
+        });
+      }
+    };
+
+    drainWatchQueue({ onSynced });
+    startWatchListener({ onSynced });
+
+    // Best-effort: ask once for HealthKit permission so the iPhone-side fallback
+    // can populate hrAvg from Apple Health for plunges logged without a BLE strap.
+    if (isHealthKitPossible()) {
+      ensureHealthKitAuth();
+    }
+
+    const onResume = () => { drainWatchQueue({ onSynced }); };
+    const sub = CapApp.addListener("appStateChange", ({ isActive }) => {
+      if (isActive) onResume();
+    });
+
+    return () => {
+      stopWatchListener();
+      sub.then(s => s.remove()).catch(() => {});
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Native app: handle deep link return from Stripe checkout via Android App Links.
@@ -1873,16 +1910,34 @@ export default function Home() {
   // ─────────────────────────────────────────────────────────────────────────
   // ─────────────────────────────────────────────────────────────────────────
 
-  const doLogPlunge = useCallback((durationSec: number) => {
+  const doLogPlunge = useCallback(async (durationSec: number, startedAtOverride?: Date) => {
     const score = plungeScore(durationSec, temperature);
     const weightAtLogTime = Number(localStorage.getItem("coldstreak-body-weight") || 150);
     const caloriesAtLogTime = Math.round(estimateCalories(durationSec, temperature, weightAtLogTime));
+
+    // Live BLE readings take priority if any were captured during this plunge.
+    let hrAvg: number | null = hrReadingsRef.current.length > 0
+      ? Math.round(hrReadingsRef.current.reduce((a, b) => a + b, 0) / hrReadingsRef.current.length)
+      : null;
+
+    // Fallback: pull HR from Apple Health for the timer window. Picks up data
+    // from any device that syncs to Apple Health — Apple Watch, Garmin, Whoop,
+    // Oura, Fitbit, T-Rex via 3rd-party sync apps, etc. Capped at 2s so the
+    // save toast never feels stuck.
+    if (hrAvg === null && isHealthKitPossible()) {
+      try {
+        const endedAt = new Date();
+        const startedAt = startedAtOverride ?? new Date(endedAt.getTime() - durationSec * 1000);
+        const pull = fetchHrAvgForWindow(startedAt, endedAt);
+        const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000));
+        hrAvg = (await Promise.race([pull, timeout])) ?? null;
+      } catch { /* never block the save on HealthKit */ }
+    }
+
     createPlunge.mutate(
       {
         duration: durationSec, temperature, score: String(score), timerUsed: true, calories: caloriesAtLogTime,
-        hrAvg: hrReadingsRef.current.length > 0
-          ? Math.round(hrReadingsRef.current.reduce((a, b) => a + b, 0) / hrReadingsRef.current.length)
-          : null,
+        hrAvg,
         spo2Avg: null,
       },
       {
@@ -2060,7 +2115,8 @@ export default function Home() {
         const totalDuration = minutesInput * 60 + secondsInput;
         const elapsed = totalDuration - countdown;
         if (elapsed > 0) {
-          doLogPlunge(elapsed);
+          const startedAt = new Date(Date.now() - elapsed * 1000);
+          doLogPlunge(elapsed, startedAt);
           setCountdown(0);
         } else {
           resetCountdown();
@@ -2069,12 +2125,14 @@ export default function Home() {
       }
       if (countdown > 0) { resetCountdown(); return; }
     } else {
-      const elapsed = startTimeRef.current
-        ? Math.floor((Date.now() - startTimeRef.current) / 1000)
+      const startMs = startTimeRef.current;
+      const elapsed = startMs
+        ? Math.floor((Date.now() - startMs) / 1000)
         : seconds;
       if (isRunning && elapsed > 0) {
         setIsRunning(false);
-        doLogPlunge(elapsed);
+        const startedAt = startMs ? new Date(startMs) : new Date(Date.now() - elapsed * 1000);
+        doLogPlunge(elapsed, startedAt);
         setSeconds(0);
         startTimeRef.current = null;
       } else {

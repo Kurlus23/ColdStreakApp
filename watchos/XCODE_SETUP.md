@@ -27,7 +27,8 @@ watchos/
 │       ├── Info.plist
 │       └── ColdStreakWatch.entitlements
 ├── ios-bridge/
-│   └── WatchSyncPlugin.swift    ← drop into the iOS Capacitor app target
+│   ├── WatchSyncPlugin.swift    ← drop into the iOS Capacitor app target
+│   └── HealthKitPlugin.swift    ← drop into the iOS Capacitor app target
 └── XCODE_SETUP.md (this file)
 ```
 
@@ -80,99 +81,41 @@ You should now see the existing `App` iOS target inside Xcode.
 
 ---
 
-## Step 5 — Add the iOS-side bridge plugin
+## Step 5 — Add the iOS-side bridge plugins
 
-The watch sends each completed plunge to the iPhone via `WatchConnectivity`. We receive it in a Capacitor plugin and the JS layer drains it into the existing `/api/plunges` endpoint.
+The watch sends each completed plunge to the iPhone via `WatchConnectivity`. The iPhone also pulls HR/HRV from Apple Health for plunges logged directly on the phone. Both pieces are Capacitor plugins.
+
+### 5a — WatchSyncPlugin (receives plunges from the watch)
 
 1. In Xcode, select the **iOS App** target group (`App/App/`).
-2. Drag `watchos/ios-bridge/WatchSyncPlugin.swift` into it. Check the **App** target only (NOT the watch target).
-3. Add the plugin to your Capacitor bridge: open `ios/App/App/AppDelegate.swift` (or wherever your `CAPBridgeViewController` lives) and ensure plugins are auto-discovered. Capacitor 5+ auto-registers `@objc(WatchSyncPlugin)` annotated plugins — no extra config required.
+2. Drag `watchos/ios-bridge/WatchSyncPlugin.swift` into it. In the import dialog: ✓ "Copy items if needed", ✓ "Create groups", and check the **App** target only (NOT the watch target).
+3. No additional registration needed — Capacitor 5+ auto-registers any `@objc(...)` annotated plugin at launch.
 
-### JS side (in your existing React app)
+### 5b — HealthKitPlugin (lets the iPhone enrich plunges with HR/HRV from Apple Health)
 
-Create `client/src/lib/watchSync.ts`:
+This covers users whose tracker syncs to Apple Health but isn't an Apple Watch — Garmin, Whoop, Fitbit, Oura, T-Rex via 3rd-party sync apps, etc.
 
-```ts
-import { registerPlugin, type PluginListenerHandle } from '@capacitor/core';
-import { apiRequest } from '@/lib/queryClient';
+1. Drag `watchos/ios-bridge/HealthKitPlugin.swift` into the same iOS **App** target group.
+2. Select the **App** target → **Signing & Capabilities** → **+ Capability** → add **HealthKit**.
+3. Open the iOS app's `Info.plist` and add this row (right-click → Add Row):
+   - **Key:** `NSHealthShareUsageDescription`
+   - **Type:** String
+   - **Value:** `ColdStreak reads heart rate and HRV during your plunges to estimate strain and recovery.`
 
-interface WatchPlunge {
-  _id: string;
-  startedAt: number;          // unix seconds
-  endedAt: number;
-  durationSec: number;
-  waterTempF: number;
-  maxHR: number;
-  minHR: number;
-  hrvBaselineMs?: number | null;
-  hrvPostMs?: number | null;
-  restingHRBaseline?: number | null;
-  recoverySec?: number | null;
-}
+### JS side — already wired up
 
-interface WatchSyncPlugin {
-  getPendingPlunges(): Promise<{ plunges: WatchPlunge[] }>;
-  clearPendingPlunges(opts: { ids: string[] }): Promise<void>;
-  addListener(
-    event: 'watchPlungeReceived',
-    cb: (p: WatchPlunge) => void
-  ): Promise<PluginListenerHandle>;
-}
+The JS bridges are already in the repo:
 
-const WatchSync = registerPlugin<WatchSyncPlugin>('WatchSync');
+- `client/src/lib/watchSync.ts` — drains the watch queue and POSTs each plunge to `/api/plunges`
+- `client/src/lib/healthKit.ts` — pulls HR/HRV from Apple Health
+- `client/src/pages/Home.tsx` — calls them on app mount and inside `doLogPlunge` as a fallback when no live BLE strap is connected
 
-function toApiPayload(p: WatchPlunge) {
-  return {
-    duration: p.durationSec,
-    temperature: p.waterTempF,
-    temperatureUnit: 'F' as const,
-    completedAt: new Date(p.endedAt * 1000).toISOString(),
-    notes: [
-      p.maxHR ? `Max HR ${p.maxHR}` : null,
-      p.hrvBaselineMs && p.hrvPostMs
-        ? `HRV ${Math.round(p.hrvBaselineMs)}→${Math.round(p.hrvPostMs)} ms`
-        : null,
-      p.recoverySec ? `Recovered in ${p.recoverySec}s` : null,
-    ].filter(Boolean).join(' • ') || undefined,
-    source: 'watch',
-  };
-}
+No further React work required. Just rebuild the iOS app after dragging the two `.swift` files in:
 
-async function uploadOne(p: WatchPlunge) {
-  await apiRequest('POST', '/api/plunges', toApiPayload(p));
-}
-
-export async function drainWatchPlunges() {
-  try {
-    const { plunges } = await WatchSync.getPendingPlunges();
-    if (!plunges?.length) return;
-    const uploaded: string[] = [];
-    for (const p of plunges) {
-      try { await uploadOne(p); uploaded.push(p._id); } catch {/* keep for retry */}
-    }
-    if (uploaded.length) await WatchSync.clearPendingPlunges({ ids: uploaded });
-  } catch {/* plugin not available on web */}
-}
-
-export function listenForWatchPlunges() {
-  WatchSync.addListener('watchPlungeReceived', () => { void drainWatchPlunges(); })
-    .catch(() => { /* web build */ });
-}
+```bash
+npm run build
+npx cap sync ios
 ```
-
-Then in `client/src/App.tsx` (after auth is loaded):
-
-```ts
-import { drainWatchPlunges, listenForWatchPlunges } from '@/lib/watchSync';
-
-useEffect(() => {
-  if (!authToken) return;
-  void drainWatchPlunges();
-  listenForWatchPlunges();
-}, [authToken]);
-```
-
-> ⚠️ **Adjust `toApiPayload`** to match the exact shape of your existing `POST /api/plunges` body. Open `server/routes.ts` to confirm field names — the mapping above is a reasonable default.
 
 ---
 

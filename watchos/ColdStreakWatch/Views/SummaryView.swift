@@ -87,12 +87,19 @@ struct SummaryView: View {
     }
 
     private func save() {
+        let avgHR: Int = {
+            let s = session.hrSamples.filter { $0 > 0 }
+            guard !s.isEmpty else { return 0 }
+            return Int((Double(s.reduce(0, +)) / Double(s.count)).rounded())
+        }()
+
         let payload: [String: Any] = [
             "source": "watch",
             "startedAt": (session.startedAt ?? Date()).timeIntervalSince1970,
             "endedAt": (session.endedAt ?? Date()).timeIntervalSince1970,
             "durationSec": session.durationSec,
             "waterTempF": session.waterTempF,
+            "avgHR": avgHR,
             "maxHR": session.maxHR,
             "minHR": session.minHR,
             "hrvBaselineMs": session.hrvBaseline as Any,
