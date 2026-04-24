@@ -9,6 +9,20 @@ struct RecoveryView: View {
     private let recoveryWindowSec: TimeInterval = 180   // 3 min then auto-advance to summary
 
     var body: some View {
+        ZStack {
+            Image("ColdStreakIcon")
+                .resizable()
+                .scaledToFit()
+                .opacity(0.08)
+                .allowsHitTesting(false)
+            content
+        }
+        .containerBackground(.black.gradient, for: .tabView)
+        .onAppear { startTicking() }
+        .onDisappear { timer?.invalidate(); timer = nil }
+    }
+
+    private var content: some View {
         VStack(spacing: 6) {
             Text("Recovery")
                 .font(.headline)

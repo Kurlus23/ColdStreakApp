@@ -8,6 +8,25 @@ struct PlungeView: View {
     @State private var isStopping = false
 
     var body: some View {
+        ZStack {
+            Image("ColdStreakIcon")
+                .resizable()
+                .scaledToFit()
+                .opacity(0.08)
+                .allowsHitTesting(false)
+            content
+        }
+        .containerBackground(.black.gradient, for: .tabView)
+        .onAppear { startTicking() }
+        .onDisappear { timer?.invalidate(); timer = nil }
+        .onChange(of: scenePhase) { _, phase in
+            // Always-on display: while inactive, dim non-essentials but keep timer.
+            // (HKWorkoutSession keeps the screen on automatically; we just react to dim state.)
+            _ = phase
+        }
+    }
+
+    private var content: some View {
         VStack(spacing: 6) {
             // BIG timer
             Text(formatted(elapsed: elapsedTick))

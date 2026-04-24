@@ -5,6 +5,18 @@ struct SummaryView: View {
     @State private var saved = false
 
     var body: some View {
+        ZStack {
+            Image("ColdStreakIcon")
+                .resizable()
+                .scaledToFit()
+                .opacity(0.08)
+                .allowsHitTesting(false)
+            content
+        }
+        .containerBackground(.black.gradient, for: .tabView)
+    }
+
+    private var content: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Plunge Summary")
