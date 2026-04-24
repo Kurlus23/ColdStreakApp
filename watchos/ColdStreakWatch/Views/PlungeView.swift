@@ -42,7 +42,7 @@ struct PlungeView: View {
             .disabled(isStopping)
         }
         .padding(.horizontal, 4)
-        .containerBackground(.black.gradient, for: .window)
+        .containerBackground(.black.gradient, for: .tabView)
         .onAppear { startTicking() }
         .onDisappear { timer?.invalidate(); timer = nil }
         .onChange(of: scenePhase) { _, phase in

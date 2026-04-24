@@ -48,7 +48,7 @@ struct RecoveryView: View {
                 .frame(maxWidth: .infinity)
         }
         .padding(.horizontal, 4)
-        .containerBackground(.black.gradient, for: .window)
+        .containerBackground(.black.gradient, for: .tabView)
         .onAppear { startTicking() }
         .onDisappear { timer?.invalidate(); timer = nil }
     }
