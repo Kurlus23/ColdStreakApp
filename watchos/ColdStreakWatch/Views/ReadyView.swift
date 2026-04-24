@@ -78,28 +78,48 @@ struct ReadyView: View {
         isStarting = true
         errorMessage = nil
         Task {
-            // Pull baseline HRV + resting HR passively (no UI wait)
+            #if targetEnvironment(simulator)
+            // Simulator: HKWorkoutSession hangs / can't actually run.
+            // Skip it entirely so the UI flow is testable.
+            session.startedAt = Date()
+            session.phase = .plunging
+            #else
+            // Real hardware: try the real workout session, but never block forever.
+            // If anything throws or stalls, fall back to UI-only mode.
             async let hrv = HRVService.shared.recentAverageHRV(lookbackMinutes: 5)
             async let resting = HRVService.shared.mostRecentRestingHR()
             session.hrvBaseline = await hrv
             session.restingHRBaseline = await resting
 
-            // Try to start a real HKWorkoutSession.
-            // On the simulator HKWorkoutSession often can't actually begin —
-            // in that case we fall back to a UI-only timer so testing still works.
-            do {
-                try await PlungeWorkoutManager.shared.start(for: session)
-            } catch {
-                print("[ColdStreakWatch] Workout session start failed (likely simulator): \(error)")
+            let started = await withTimeout(seconds: 4) {
+                try? await PlungeWorkoutManager.shared.start(for: session)
+                return true
+            }
+            if started != true || session.startedAt == nil {
                 session.startedAt = Date()
                 session.phase = .plunging
             }
+            #endif
 
             HapticService.shared.ready()
-            if let started = session.startedAt {
-                HapticService.shared.startMilestones(from: started)
+            if let s = session.startedAt {
+                HapticService.shared.startMilestones(from: s)
             }
             isStarting = false
         }
+    }
+}
+
+/// Returns the operation's result, or nil if `seconds` elapse first.
+private func withTimeout<T: Sendable>(seconds: Double, _ op: @escaping @Sendable () async -> T) async -> T? {
+    await withTaskGroup(of: T?.self) { group in
+        group.addTask { await op() }
+        group.addTask {
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            return nil
+        }
+        let first = await group.next() ?? nil
+        group.cancelAll()
+        return first
     }
 }
