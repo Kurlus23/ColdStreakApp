@@ -42,7 +42,18 @@ final class PlungeWorkoutManager: NSObject {
 
         let session = try HKWorkoutSession(healthStore: healthStore, configuration: config)
         let builder = session.associatedWorkoutBuilder()
-        builder.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: config)
+        let dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: config)
+
+        // EXPLICITLY enable heart rate collection — don't rely on the activity-type
+        // defaults, which can omit HR for `.other` workouts. We also enable active
+        // energy so the workout still contributes to Move ring.
+        if let hrType = HKObjectType.quantityType(forIdentifier: .heartRate) {
+            dataSource.enableCollection(for: hrType, predicate: nil)
+        }
+        if let energyType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned) {
+            dataSource.enableCollection(for: energyType, predicate: nil)
+        }
+        builder.dataSource = dataSource
 
         session.delegate = self
         builder.delegate = self

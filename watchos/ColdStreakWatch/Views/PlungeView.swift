@@ -51,6 +51,15 @@ struct PlungeView: View {
                     .foregroundStyle(.cyan)
             }
 
+            // Diagnostic line — shows HR sample count + a hint after 20s of no HR
+            // so we can tell where the chain is breaking. Remove later once HR is
+            // confirmed working in the wild.
+            Text(hrStatusText)
+                .font(.system(size: 10))
+                .foregroundStyle(session.hrSamples.isEmpty && elapsedTick > 20 ? .yellow : .gray)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+
             Spacer(minLength: 4)
 
             Button(role: .destructive, action: stop) {
@@ -69,6 +78,20 @@ struct PlungeView: View {
             // (HKWorkoutSession keeps the screen on automatically; we just react to dim state.)
             _ = phase
         }
+    }
+
+    private var hrStatusText: String {
+        let count = session.hrSamples.count
+        if count > 0 {
+            return "HR samples: \(count)"
+        }
+        if elapsedTick < 15 {
+            return "Connecting heart sensor…"
+        }
+        if elapsedTick < 25 {
+            return "Waiting for first sample…"
+        }
+        return "No HR — open Health → Apps → ColdStreak and enable Heart Rate"
     }
 
     private func startTicking() {
