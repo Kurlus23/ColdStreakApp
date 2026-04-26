@@ -4,7 +4,7 @@ import { Camera as CapCamera, CameraResultType, CameraSource } from "@capacitor/
 import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
-import { BleClient } from "@capacitor-community/bluetooth-le";
+import { BleClient, type ScanResult } from "@capacitor-community/bluetooth-le";
 import { savePhoto } from "@/lib/photoStore";
 import { tagAndSaveToRoll, readPlungeMetaFromPhoto, type PlungePhotoMeta } from "@/lib/cameraRoll";
 import icebergBg from "@assets/image_1775083022624.png";
@@ -223,8 +223,11 @@ export default function Home() {
   const [btThermoTimedOut, setBtThermoTimedOut] = useState(false);
   const btDeviceRef = useRef<string | null>(null); // stores deviceId (string)
   const btKeepaliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const btProtocolRef = useRef<"gatt" | null>(null);
-  const [btProtocol, setBtProtocol] = useState<"gatt" | null>(null);
+  // "beacon" = read temperature from BLE advertisement payload (Inkbird IBS-TH2 Plus).
+  // "gatt" was the legacy GATT-subscription path; kept in the type only so cached
+  // localStorage values from older app versions don't fail at parse time.
+  const btProtocolRef = useRef<"beacon" | "gatt" | null>(null);
+  const [btProtocol, setBtProtocol] = useState<"beacon" | "gatt" | null>(null);
   const lastThermoNotifRef = useRef<number>(0); // epoch ms of last received BLE notification
   // DIAGNOSTIC: most-recent raw BLE payload, parsed value, and unit flag.
   // Surfaced in the BT settings area so we can debug Inkbird parsing.
@@ -1180,52 +1183,20 @@ export default function Home() {
     Analytics.track("csv_exported", { plunge_count: plunges.length });
   };
 
-  // ── Bluetooth Thermometer ────────────────────────────────────────────────
-  function parseBtTemperature(value: DataView): number | null {
-    // DIAGNOSTIC: dump every byte of every notification so we can see what
-    // the Inkbird is actually sending. Surfaced in the BT debug panel.
-    try {
-      const bytes: string[] = [];
-      for (let i = 0; i < value.byteLength; i++) {
-        bytes.push(value.getUint8(i).toString(16).padStart(2, "0"));
-      }
-      const hex = bytes.join(" ");
-      let parsed: number | null = null;
-      let unit: "F" | "C" = "C";
-      try {
-        const flags = value.getUint8(0);
-        const isFahrenheit = (flags & 0x01) !== 0;
-        unit = isFahrenheit ? "F" : "C";
-        const mantissaRaw = value.getUint8(1) | (value.getUint8(2) << 8) | (value.getUint8(3) << 16);
-        const mantissa = mantissaRaw & 0x800000 ? mantissaRaw - 0x1000000 : mantissaRaw;
-        if (!(mantissa === 0 || mantissaRaw === 0x7FFFFF)) {
-          const exponent = value.getInt8(4);
-          parsed = mantissa * Math.pow(10, exponent);
-        }
-      } catch { /* keep parsed=null */ }
-      setBtDebugInfo({ hex, parsed, unit, bytes: value.byteLength, at: Date.now() });
-    } catch { /* ignore — diagnostic must never break parsing */ }
-
-    try {
-      const flags = value.getUint8(0);
-      const isFahrenheit = (flags & 0x01) !== 0;
-      // IEEE-11073 32-bit FLOAT: bytes 1-3 = 24-bit signed mantissa (LE), byte 4 = signed exponent
-      const mantissaRaw = value.getUint8(1) | (value.getUint8(2) << 8) | (value.getUint8(3) << 16);
-      const mantissa = mantissaRaw & 0x800000 ? mantissaRaw - 0x1000000 : mantissaRaw;
-      // Reject zero-mantissa (uninitialized/garbage payload) and IEEE-11073 NaN sentinel
-      if (mantissa === 0 || mantissaRaw === 0x7FFFFF) return null;
-      const exponent = value.getInt8(4);
-      const tempValue = mantissa * Math.pow(10, exponent);
-      return isFahrenheit ? tempValue : (tempValue * 9 / 5) + 32;
-    } catch {
-      return null;
-    }
-  }
-
-  // Standard Bluetooth Health Thermometer (full 128-bit UUIDs required by BleClient)
-  // Currently supported model: Inkbird IBS-TH2 Plus (uses standard GATT Health Thermometer service).
-  const HEALTH_THERM_SERVICE = "00001809-0000-1000-8000-00805f9b34fb";
-  const HEALTH_THERM_CHAR    = "00002a1c-0000-1000-8000-00805f9b34fb";
+  // ── Inkbird IBS-TH2 Plus thermometer ─────────────────────────────────────
+  // The IBS-TH2 Plus does NOT use the standard Health Thermometer GATT
+  // service (despite some device-info implying it does). Instead it
+  // broadcasts the live sensor reading inside the BLE *advertisement*
+  // payload — i.e. anyone scanning nearby sees the temperature without
+  // needing to pair or connect over GATT. We listen for these broadcasts
+  // and parse the manufacturer-specific data block.
+  //
+  // Format (matched to the open-source Home Assistant `inkbird-ble`
+  // library that has been validated against real IBS-TH2 Plus units):
+  //   bytes 0-1: temperature × 100, signed int16 little-endian, in °C
+  //   bytes 2-3: humidity × 100, unsigned int16 little-endian
+  //   byte  6:   external probe in use (0 = internal, 1 = external)
+  //   byte  7:   battery percentage
 
   // ─── BLE availability helper ─────────────────────────────────────────────
   // True only when BLE will actually work:
@@ -1283,30 +1254,20 @@ export default function Home() {
         await BleClient.initialize();
         btDeviceRef.current = deviceId;
         setBtDeviceName(name);
-        await BleClient.connect(deviceId, () => {
-          if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
-          setBtConnected(false);
-          if (btDeviceRef.current) {
-            if (thermoReconnectTimerRef.current) clearTimeout(thermoReconnectTimerRef.current);
-            thermoReconnectTimerRef.current = setTimeout(autoReconnectThermo, 2500);
-          }
-        });
-        // Probe all protocols in parallel — first valid temperature notification wins.
+        // Beacon mode — no GATT connection. Just listen for advertisements.
         const _det1 = await detectThermoProtocol(deviceId);
-        const protocol = _det1?.protocol ?? null;
-        const started = protocol !== null;
-        if (_det1) setTemperature(Math.min(60, Math.max(25, Math.round(_det1.tempF + btTempOffsetRef.current))));
-
-        if (!cancelled) {
-          if (started && protocol) {
-            startThermoKeepalive(deviceId, protocol);
-            setBtConnected(true);
-            toast({ title: "Thermometer reconnected", description: name });
-          } else {
-            // Connected at BLE level but no temp profile matched — disconnect cleanly
-            await BleClient.disconnect(deviceId).catch(() => {});
-            btDeviceRef.current = null;
-          }
+        if (cancelled) return;
+        if (_det1) {
+          btProtocolRef.current = "beacon";
+          setBtProtocol("beacon");
+          setTemperature(Math.min(60, Math.max(25, Math.round(_det1.tempF + btTempOffsetRef.current))));
+          startThermoKeepalive(deviceId, "beacon");
+          setBtConnected(true);
+          toast({ title: "Thermometer reconnected", description: name });
+        } else {
+          // Device wasn't broadcasting — clear state, user can manually retry from UI.
+          btDeviceRef.current = null;
+          await BleClient.stopLEScan().catch(() => {});
         }
       } catch (err: any) {
         btDeviceRef.current = null;
@@ -1370,94 +1331,189 @@ export default function Home() {
   }, []);
   // ─────────────────────────────────────────────────────────────────────────
 
-  /**
-   * Subscribe to the standard GATT Health Thermometer service and return the
-   * first temperature reading. This is the protocol used by the Inkbird
-   * IBS-TH2 Plus (currently the only officially supported thermometer model).
-   */
-  async function detectThermoProtocol(deviceId: string): Promise<{ protocol: "gatt"; tempF: number } | null> {
-    const gattResult = await new Promise<number | null>((resolve) => {
-      const timer = setTimeout(() => {
-        BleClient.stopNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR).catch(() => {});
-        resolve(null);
-      }, 6_000);
-      BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
-        const tempF = parseBtTemperature(dv);
-        if (tempF !== null) { clearTimeout(timer); resolve(tempF); }
-      }).catch(() => { clearTimeout(timer); resolve(null); });
-    });
-    if (gattResult !== null) {
-      BleClient.stopNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR).catch(() => {});
-      return { protocol: "gatt", tempF: gattResult };
-    }
-    return null;
-  }
-
-  // Helper: subscribe to thermo notifications and update temperature state continuously
-  async function startThermoStream(deviceId: string, _protocol: "gatt") {
-    try { await BleClient.stopNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR); } catch { /* already gone */ }
+  // ── Inkbird advertisement parser ─────────────────────────────────────────
+  // Returns °F, or null if the bytes don't look like a valid Inkbird payload.
+  function parseInkbirdManufacturerData(dv: DataView): number | null {
+    if (dv.byteLength < 7) return null;
     try {
-      await BleClient.startNotifications(deviceId, HEALTH_THERM_SERVICE, HEALTH_THERM_CHAR, (dv) => {
-        lastThermoNotifRef.current = Date.now();
-        const tempF = parseBtTemperature(dv);
-        if (tempF !== null) setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
-      });
-    } catch { /* connection may have dropped — let disconnect handler handle it */ }
+      const tempRaw = dv.getInt16(0, true); // signed int16, little-endian
+      const tempC = tempRaw / 100;
+      // Sanity range: real-world sensor spec is -40°C to 85°C
+      if (!isFinite(tempC) || tempC < -40 || tempC > 85) return null;
+      return (tempC * 9) / 5 + 32;
+    } catch {
+      return null;
+    }
   }
 
-  // Helper: start keep-alive pings so the thermometer doesn't time out
-  function startThermoKeepalive(deviceId: string, protocol: "gatt") {
-    if (btKeepaliveRef.current) clearInterval(btKeepaliveRef.current);
-    lastThermoNotifRef.current = 0; // force immediate stream start
+  // Parse a single BLE scan result. Tries every manufacturer-specific data
+  // entry in case the device uses a non-standard company ID. Also dumps
+  // the raw bytes to btDebugInfo so the user can screenshot if needed.
+  function parseInkbirdScanResult(result: ScanResult): number | null {
+    const mfrData = result.manufacturerData;
+    if (!mfrData) {
+      setBtDebugInfo({ hex: "(no manufacturer data in advertisement)", parsed: null, unit: "F", bytes: 0, at: Date.now() });
+      return null;
+    }
 
-    // Start the persistent notification stream immediately
-    startThermoStream(deviceId, protocol);
+    let validTempF: number | null = null;
+    const debugLines: string[] = [];
+    let totalBytes = 0;
+
+    for (const [mfrId, dv] of Object.entries(mfrData)) {
+      const bytes: string[] = [];
+      for (let i = 0; i < dv.byteLength; i++) {
+        bytes.push(dv.getUint8(i).toString(16).padStart(2, "0"));
+      }
+      totalBytes += dv.byteLength;
+      const parsed = parseInkbirdManufacturerData(dv);
+      debugLines.push(`mfr ${mfrId}: ${bytes.join(" ")}${parsed !== null ? ` → ${parsed.toFixed(1)}°F` : ""}`);
+      if (parsed !== null && validTempF === null) validTempF = parsed;
+    }
+
+    setBtDebugInfo({
+      hex: debugLines.join(" | ") || "(empty)",
+      parsed: validTempF,
+      unit: "F",
+      bytes: totalBytes,
+      at: Date.now(),
+    });
+
+    return validTempF;
+  }
+
+  /**
+   * Listen for Inkbird BLE advertisements from a specific device. Resolves
+   * with the first valid temperature reading (in °F) within 12 s, or null
+   * if none arrives. The scan keeps running after resolve — the caller
+   * should subsequently rely on `startThermoKeepalive` to maintain it and
+   * call `disconnectThermometer` (which stops the scan) to tear down.
+   */
+  async function detectThermoProtocol(deviceId: string): Promise<{ protocol: "beacon"; tempF: number } | null> {
+    // Stop any prior scan (HR scan, previous thermo scan, etc.)
+    await BleClient.stopLEScan().catch(() => {});
+
+    return new Promise(async (resolve) => {
+      let firstResolved = false;
+
+      const timer = setTimeout(() => {
+        if (!firstResolved) {
+          firstResolved = true;
+          resolve(null);
+        }
+      }, 12_000);
+
+      try {
+        await BleClient.requestLEScan(
+          { allowDuplicates: true },
+          (result) => {
+            // Only react to OUR device's broadcasts
+            if (result.device.deviceId !== deviceId) return;
+            const tempF = parseInkbirdScanResult(result);
+            if (tempF === null) return;
+
+            lastThermoNotifRef.current = Date.now();
+            setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+
+            if (!firstResolved) {
+              firstResolved = true;
+              clearTimeout(timer);
+              resolve({ protocol: "beacon", tempF });
+            }
+          }
+        );
+      } catch {
+        if (!firstResolved) {
+          firstResolved = true;
+          clearTimeout(timer);
+          resolve(null);
+        }
+      }
+    });
+  }
+
+  // Helper: (re)start the long-running advertisement scan that pulls live
+  // temperature out of every Inkbird beacon. Idempotent — safe to call
+  // even if a scan is already running.
+  async function startThermoStream(deviceId: string, _protocol: "beacon" | "gatt") {
+    await BleClient.stopLEScan().catch(() => {});
+    try {
+      await BleClient.requestLEScan(
+        { allowDuplicates: true },
+        (result) => {
+          if (result.device.deviceId !== deviceId) return;
+          const tempF = parseInkbirdScanResult(result);
+          if (tempF === null) return;
+          lastThermoNotifRef.current = Date.now();
+          setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+        }
+      );
+    } catch { /* watchdog will retry */ }
+  }
+
+  // Helper: keep the beacon scan alive. The Inkbird broadcasts roughly
+  // every 1–2 s, so if we go 15 s without a sample the scan was likely
+  // pre-empted (e.g. by the HR scanner) and we restart it.
+  function startThermoKeepalive(deviceId: string, protocol: "beacon" | "gatt") {
+    if (btKeepaliveRef.current) clearInterval(btKeepaliveRef.current);
+    lastThermoNotifRef.current = Date.now(); // we just got a sample to enter this fn
+    let silentRestarts = 0;
+    let lastObservedNotifAt = lastThermoNotifRef.current;
 
     btKeepaliveRef.current = setInterval(() => {
       if (!btDeviceRef.current) return;
-
-      // ── Notification watchdog ────────────────────────────────────────────────
-      // iOS silently drops characteristic notification subscriptions while the
-      // GATT connection stays open. If we haven't received a notification in
-      // 15 s, restart the subscription.
+      // If a fresh sample arrived since our last tick, the scan is healthy.
+      if (lastThermoNotifRef.current !== lastObservedNotifAt) {
+        lastObservedNotifAt = lastThermoNotifRef.current;
+        silentRestarts = 0;
+        return;
+      }
       const staleness = Date.now() - lastThermoNotifRef.current;
       if (staleness > 15_000) {
+        silentRestarts++;
+        // After 3 silent restart attempts (~45s of no broadcasts) the BLE
+        // stack is likely wedged or the device is out of range. Hand off to
+        // autoReconnectThermo, which manages its own timeout-after-3 logic.
+        if (silentRestarts >= 3) {
+          if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
+          setBtConnected(false);
+          autoReconnectThermo();
+          return;
+        }
         lastThermoNotifRef.current = Date.now(); // prevent rapid re-trigger while async
+        lastObservedNotifAt = lastThermoNotifRef.current;
         startThermoStream(deviceId, protocol);
       }
     }, 3_000);
   }
 
   // ─── Thermometer auto-reconnect ──────────────────────────────────────────────
+  // For beacon scanning there's no GATT connection to re-establish — we just
+  // restart the advertisement scan and wait for the next broadcast.
   async function autoReconnectThermo() {
     const deviceId = btDeviceRef.current;
     if (!deviceId) return; // user deliberately disconnected — do nothing
     if (thermoReconnectCountRef.current >= 3) {
       thermoReconnectCountRef.current = 0;
-      btDeviceRef.current = null; // stop further auto-retry
-      setBtThermoTimedOut(true);  // show quiet note in Devices tab instead of a banner
+      btDeviceRef.current = null;
+      setBtThermoTimedOut(true);
+      await BleClient.stopLEScan().catch(() => {});
       return;
     }
     thermoReconnectCountRef.current++;
-    const protocol = btProtocolRef.current;
 
     const scheduleRetry = () => {
-      if (!btDeviceRef.current) return; // disconnected manually in the meantime
+      if (!btDeviceRef.current) return;
       if (thermoReconnectTimerRef.current) clearTimeout(thermoReconnectTimerRef.current);
       thermoReconnectTimerRef.current = setTimeout(autoReconnectThermo, 2500);
     };
 
     try {
-      // iOS requires getDevices() before connect() when the peripheral cache has been cleared
-      try { await BleClient.getDevices([deviceId]); } catch { /* not fatal */ }
-      await BleClient.connect(deviceId, () => {
-        if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
-        setBtConnected(false);
-        scheduleRetry();
-      });
-
-      if (protocol) {
-        startThermoKeepalive(deviceId, protocol);
+      const result = await detectThermoProtocol(deviceId);
+      if (result) {
+        btProtocolRef.current = "beacon";
+        setBtProtocol("beacon");
+        startThermoKeepalive(deviceId, "beacon");
         setBtConnected(true);
         thermoReconnectCountRef.current = 0;
       } else {
@@ -1648,41 +1704,27 @@ export default function Home() {
       await BleClient.initialize();
 
       // Show all nearby BLE devices — user picks their thermometer
-      const device = await BleClient.requestDevice({
-        optionalServices: [HEALTH_THERM_SERVICE],
-      });
+      const device = await BleClient.requestDevice({});
 
       const deviceId = device.deviceId;
       btDeviceRef.current = deviceId;
       setBtDeviceName(device.name ?? "Thermometer");
       localStorage.setItem("coldstreak-bt-thermo", JSON.stringify({ deviceId: device.deviceId, name: device.name ?? "Thermometer" }));
 
-      await BleClient.connect(deviceId, () => {
-        if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
-        setBtConnected(false);
-        if (btDeviceRef.current) {
-          if (thermoReconnectTimerRef.current) clearTimeout(thermoReconnectTimerRef.current);
-          thermoReconnectTimerRef.current = setTimeout(autoReconnectThermo, 2500);
-        }
-      });
-
+      // Beacon mode — listen for advertisements, no GATT connection.
       const _det2 = await detectThermoProtocol(deviceId);
-      const connected = _det2 !== null;
       if (_det2) {
-        btProtocolRef.current = _det2.protocol;
-        setBtProtocol(_det2.protocol);
-        localStorage.setItem("coldstreak-bt-thermo-protocol", _det2.protocol);
+        btProtocolRef.current = "beacon";
+        setBtProtocol("beacon");
+        localStorage.setItem("coldstreak-bt-thermo-protocol", "beacon");
         setTemperature(Math.min(60, Math.max(25, Math.round(_det2.tempF + btTempOffsetRef.current))));
-      }
-
-      if (connected) {
-        startThermoKeepalive(deviceId, btProtocolRef.current!);
+        startThermoKeepalive(deviceId, "beacon");
         setBtConnected(true);
         toast({ title: "Thermometer connected", description: `${device.name ?? "Device"} — temperature will update automatically.` });
       } else {
-        await BleClient.disconnect(deviceId).catch(() => {});
+        await BleClient.stopLEScan().catch(() => {});
         btDeviceRef.current = null;
-        toast({ title: "Device connected — protocol unknown", description: "Could not read temperature from this device.", variant: "destructive" });
+        toast({ title: "No data received", description: "Connected at the BLE level but didn't receive a temperature reading. Make sure the Inkbird is powered on and within range.", variant: "destructive" });
       }
     } catch (err: any) {
       const msg = err?.message ?? "";
@@ -1761,30 +1803,20 @@ export default function Home() {
       btDeviceRef.current = deviceId;
       setBtDeviceName(name);
       localStorage.setItem("coldstreak-bt-thermo", JSON.stringify({ deviceId, name }));
-      await BleClient.connect(deviceId, () => {
-        if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
-        setBtConnected(false);
-        if (btDeviceRef.current) {
-          if (thermoReconnectTimerRef.current) clearTimeout(thermoReconnectTimerRef.current);
-          thermoReconnectTimerRef.current = setTimeout(autoReconnectThermo, 2500);
-        }
-      });
+      // Beacon mode — listen for advertisements, no GATT connection.
       const _det3 = await detectThermoProtocol(deviceId);
-      const connected = _det3 !== null;
       if (_det3) {
-        btProtocolRef.current = _det3.protocol;
-        setBtProtocol(_det3.protocol);
-        localStorage.setItem("coldstreak-bt-thermo-protocol", _det3.protocol);
+        btProtocolRef.current = "beacon";
+        setBtProtocol("beacon");
+        localStorage.setItem("coldstreak-bt-thermo-protocol", "beacon");
         setTemperature(Math.min(60, Math.max(25, Math.round(_det3.tempF + btTempOffsetRef.current))));
-      }
-      if (connected) {
-        startThermoKeepalive(deviceId, btProtocolRef.current!);
+        startThermoKeepalive(deviceId, "beacon");
         setBtConnected(true);
         toast({ title: "Thermometer connected", description: `${name} — temperature will update automatically.` });
       } else {
-        await BleClient.disconnect(deviceId).catch(() => {});
+        await BleClient.stopLEScan().catch(() => {});
         btDeviceRef.current = null;
-        toast({ title: "Device connected — protocol unknown", description: "Could not read temperature from this device.", variant: "destructive" });
+        toast({ title: "No data received", description: "Picked the device but didn't see a temperature broadcast within 12s. Make sure the Inkbird is powered on and within range.", variant: "destructive" });
       }
     } catch (err: any) {
       const msg = err?.message ?? "";
@@ -1804,42 +1836,20 @@ export default function Home() {
       await BleClient.initialize();
       btDeviceRef.current = deviceId;
       setBtDeviceName(name);
-      // iOS requires getDevices() before connect() when peripheral cache may have been cleared
-      try { await BleClient.getDevices([deviceId]); } catch { /* not fatal */ }
-      await BleClient.connect(deviceId, () => {
-        if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
-        setBtConnected(false);
-        if (btDeviceRef.current) {
-          if (thermoReconnectTimerRef.current) clearTimeout(thermoReconnectTimerRef.current);
-          thermoReconnectTimerRef.current = setTimeout(autoReconnectThermo, 2500);
-        }
-      });
-
-      // Use cached protocol if known — avoids re-running detection on every reconnect
-      const cachedProtocol = btProtocolRef.current ??
-        (localStorage.getItem("coldstreak-bt-thermo-protocol") as "gatt" | null);
-
-      if (cachedProtocol) {
-        btProtocolRef.current = cachedProtocol;
-        setBtProtocol(cachedProtocol);
-        startThermoKeepalive(deviceId, cachedProtocol);
+      // Beacon mode — no cached-protocol shortcut needed; just listen.
+      const _det = await detectThermoProtocol(deviceId);
+      if (_det) {
+        btProtocolRef.current = "beacon";
+        setBtProtocol("beacon");
+        localStorage.setItem("coldstreak-bt-thermo-protocol", "beacon");
+        setTemperature(Math.min(60, Math.max(25, Math.round(_det.tempF + btTempOffsetRef.current))));
+        startThermoKeepalive(deviceId, "beacon");
         setBtConnected(true);
         toast({ title: "Thermometer reconnected", description: `${name} — temperature will update automatically.` });
       } else {
-        // No cached protocol — run full detection as fallback
-        const _det = await detectThermoProtocol(deviceId);
-        if (_det) {
-          btProtocolRef.current = _det.protocol;
-          setBtProtocol(_det.protocol);
-          localStorage.setItem("coldstreak-bt-thermo-protocol", _det.protocol);
-          setTemperature(Math.min(60, Math.max(25, Math.round(_det.tempF + btTempOffsetRef.current))));
-          startThermoKeepalive(deviceId, _det.protocol);
-          setBtConnected(true);
-          toast({ title: "Thermometer reconnected", description: `${name} — temperature will update automatically.` });
-        } else {
-          btDeviceRef.current = null;
-          toast({ title: "Could not reconnect", description: "Device in range but could not read temperature.", variant: "destructive" });
-        }
+        await BleClient.stopLEScan().catch(() => {});
+        btDeviceRef.current = null;
+        toast({ title: "Could not reconnect", description: "Didn't see a temperature broadcast. Make sure the Inkbird is powered on and within range.", variant: "destructive" });
       }
     } catch (err: any) {
       btDeviceRef.current = null;
@@ -1853,10 +1863,7 @@ export default function Home() {
   }
 
   const disconnectThermometer = async () => {
-    // Capture before clearing so we can still call BleClient.disconnect
-    const deviceId = btDeviceRef.current;
-    // Clear everything BEFORE disconnecting so the disconnect callback
-    // sees btDeviceRef.current = null and won't schedule a reconnect
+    // Clear everything FIRST so any in-flight scan callbacks become no-ops
     if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
     if (thermoReconnectTimerRef.current) { clearTimeout(thermoReconnectTimerRef.current); thermoReconnectTimerRef.current = null; }
     thermoReconnectCountRef.current = 0;
@@ -1865,9 +1872,9 @@ export default function Home() {
     setBtProtocol(null);
     setBtConnected(false);
     setBtDeviceName("");
-    try {
-      if (deviceId) await BleClient.disconnect(deviceId);
-    } catch { /* ignore */ }
+    setBtDebugInfo(null);
+    // Stop the beacon advertisement scan
+    await BleClient.stopLEScan().catch(() => {});
   };
 
   // ─────────────────────────────────────────────────────────────────────────
