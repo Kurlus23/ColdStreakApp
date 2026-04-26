@@ -119,6 +119,11 @@ extension PlungeWorkoutManager: HKLiveWorkoutBuilderDelegate {
                 self.plungeSession?.recoveryHR = bpm
             }
         }
+        // Push live BPM to the iPhone (best-effort, throttled to ~1 Hz inside).
+        // This is what makes the iPhone's "Heart Rate Monitor" panel show
+        // a live number during a plunge — without it, the iPhone only sees
+        // HR after the plunge ends.
+        PhoneSyncService.shared.sendLiveHR(bpm)
     }
 
     nonisolated func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) { }

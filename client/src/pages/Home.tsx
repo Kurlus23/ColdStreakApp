@@ -659,6 +659,56 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Live HR from the Apple Watch (during a plunge). The watch app pushes BPM
+  // every ~1s via WatchConnectivity sendMessage. We subscribe to the
+  // watchLiveHR event from the WatchSync native plugin and pipe values into
+  // the existing currentHR / hrPeak / hrReadings state so the rest of the
+  // app (recording, summary stats, plunge submit) just works without caring
+  // whether HR came from BLE or the watch.
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== "ios") return;
+
+    let handle: { remove: () => Promise<void> } | null = null;
+    let staleTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const armStaleClear = () => {
+      if (staleTimer) clearTimeout(staleTimer);
+      // If we don't get another sample in 12s, the watch isn't streaming
+      // anymore — clear the iPhone's HR display rather than leaving a stuck
+      // number on screen.
+      staleTimer = setTimeout(() => {
+        setCurrentHR(null);
+      }, 12_000);
+    };
+
+    (async () => {
+      try {
+        const { WatchSync } = await import("@/lib/watchSync");
+        // watchSync.ts re-exports the native plugin handle on demand.
+        const h = await (WatchSync as any).addListener(
+          "watchLiveHR",
+          ({ bpm }: { bpm: number; ts: number }) => {
+            if (typeof bpm !== "number" || bpm <= 0) return;
+            setCurrentHR(bpm);
+            setHrPeak(prev => (prev === null ? bpm : Math.max(prev, bpm)));
+            hrReadingsRef.current.push(bpm);
+            armStaleClear();
+          },
+        );
+        handle = h;
+      } catch (err) {
+        // Plugin not present in this build (e.g. older TestFlight) — silently noop.
+        console.warn("[liveHR] subscription failed:", err);
+      }
+    })();
+
+    return () => {
+      if (staleTimer) clearTimeout(staleTimer);
+      handle?.remove().catch(() => {});
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Native app: handle deep link return from Stripe checkout via Android App Links.
   // Covers both fresh-launch (getLaunchUrl) and resume (appUrlOpen) cases.
   useEffect(() => {
@@ -1388,7 +1438,7 @@ export default function Home() {
   // Inspect a scan result's manufacturer data AND service data, return the
   // first valid temperature found and a per-payload hex breakdown for
   // the diagnostic panel.
-  function inspectScanResultPayloads(result: ScanResult): {
+  function inspectScanResultPayloads(result: ScanResult, decodeTemps: boolean = true): {
     tempF: number | null;
     lines: string[];
     totalBytes: number;
@@ -1403,9 +1453,17 @@ export default function Home() {
 
     if (result.manufacturerData) {
       for (const [mfrId, dv] of Object.entries(result.manufacturerData)) {
+        totalBytes += dv.byteLength;
+        if (!decodeTemps) {
+          // Non-matching devices: track byte count for diagnostic but never
+          // attempt to decode as Inkbird — every random BLE device on the
+          // network has manufacturer data, and parsing it as a temperature
+          // produces meaningless numbers (Govee, MacBooks, AirPods, etc.).
+          lines.push(`mfr ${mfrId} (${dv.byteLength}B)`);
+          continue;
+        }
         const bytes: string[] = [];
         for (let i = 0; i < dv.byteLength; i++) bytes.push(dv.getUint8(i).toString(16).padStart(2, "0"));
-        totalBytes += dv.byteLength;
         const decoded = decodeInkbirdPayload(dv);
         const flagPart = decoded.probeAttached === null ? "" :
           decoded.probeAttached ? " [probe]" : " [internal]";
@@ -1437,7 +1495,7 @@ export default function Home() {
       }
     }
 
-    if (result.serviceData) {
+    if (result.serviceData && decodeTemps) {
       for (const [uuid, dv] of Object.entries(result.serviceData)) {
         const bytes: string[] = [];
         for (let i = 0; i < dv.byteLength; i++) bytes.push(dv.getUint8(i).toString(16).padStart(2, "0"));
@@ -1510,22 +1568,38 @@ export default function Home() {
         // Throttle UI updates so the diagnostic doesn't repaint on every
         // BLE advertisement (which can fire several times a second).
         const now = Date.now();
-        if (!force && now - lastDebugUiUpdateRef.current < 1500) return;
+        if (!force && now - lastDebugUiUpdateRef.current < 2000) return;
         lastDebugUiUpdateRef.current = now;
-        // Show the 5 most recently-seen devices, with match indicator.
-        const entries = Array.from(seen.entries())
-          .sort((a, b) => b[1].lastAt - a[1].lastAt)
-          .slice(0, 5);
-        const sections = entries.map(([id, info]) => {
-          const mark = info.matchKind === "id" ? "✓ID" : info.matchKind === "name" ? "✓NAME" : "✗";
+
+        // Find the matched device (if any). We ONLY care about that one —
+        // showing 5 random devices in range turns the panel into noise.
+        const matched = Array.from(seen.entries()).find(([, info]) => info.matchKind !== "none");
+        const otherCount = seen.size - (matched ? 1 : 0);
+
+        let lines: string[];
+        if (matched) {
+          const [id, info] = matched;
+          const mark = info.matchKind === "id" ? "✓ID" : "✓NAME";
           const shortId = id.length > 8 ? id.slice(-8) : id;
-          const header = `[${mark}] ${info.name || "(no-name)"} ${shortId} rssi=${info.rssi}`;
-          const payload = info.lines.length ? info.lines.join(" | ") : "(no payload)";
-          return `${header} ${payload}`;
-        });
-        const summary = `scans=${scanResultsCount} unique=${seen.size} expected=${(expectedName || "").slice(0, 14)} ${(deviceId || "").slice(-8)}`;
+          const ageSec = Math.round((now - info.lastAt) / 1000);
+          const ageStr = ageSec <= 1 ? "now" : `${ageSec}s ago`;
+          const tempStr = info.parsedF !== null ? `  ⇒ ${info.parsedF.toFixed(1)}°F` : "";
+          lines = [
+            `[${mark}] ${info.name || "(no-name)"} ${shortId} rssi=${info.rssi} (${ageStr})${tempStr}`,
+            ...(info.lines.length ? info.lines.map(l => `  ${l}`) : ["  (no payload yet)"]),
+          ];
+        } else if (seen.size === 0) {
+          lines = ["No BLE devices in range yet — keep the thermometer awake (press its button)."];
+        } else {
+          lines = [
+            `❌ "${expectedName || "thermometer"}" not broadcasting`,
+            `   Looking for: name="${expectedName || "(unknown)"}" id ends in ${(deviceId || "").slice(-8)}`,
+            `   Make sure it's powered on and within ~10 ft.`,
+          ];
+        }
+        const summary = `scans=${scanResultsCount} · ${seen.size} BLE device${seen.size === 1 ? "" : "s"} in range · ${otherCount} ignored`;
         setBtDebugInfo({
-          hex: sections.join("\n") || "(scanning…)",
+          hex: lines.join("\n"),
           parsed: null,
           unit: "F",
           bytes: 0,
@@ -1556,16 +1630,20 @@ export default function Home() {
             const name = result.device.name ?? "";
             const rssi = result.rssi ?? -99;
 
-            const { tempF, lines, totalBytes } = inspectScanResultPayloads(result);
-
             const matchKind: "id" | "name" | "none" =
               id === deviceId ? "id"
               : (expectedName && name && name === expectedName) ? "name"
               : "none";
 
+            // Only decode payload as Inkbird for matched devices. For
+            // everything else we still record name/rssi so the diagnostic can
+            // count "X devices in range" but we DON'T pretend their bytes
+            // are a temperature.
+            const { tempF, lines, totalBytes } = inspectScanResultPayloads(result, matchKind !== "none");
+
             seen.set(id, { name, rssi, lines, totalBytes, parsedF: tempF, matchKind, lastAt: Date.now() });
 
-            // Refresh debug panel (throttled to once per ~500ms by React batching)
+            // Refresh debug panel (throttled to once per ~2s by renderDebug)
             renderDebug();
 
             if (matchKind === "none") return;

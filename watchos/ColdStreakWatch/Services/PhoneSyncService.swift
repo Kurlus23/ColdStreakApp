@@ -4,10 +4,19 @@ import WatchConnectivity
 /// Sends completed plunge payloads from the watch back to the iOS app.
 /// Uses `transferUserInfo` so the message is queued and delivered reliably even when the
 /// iOS app is closed — the system wakes it in the background to receive.
+///
+/// Also pushes LIVE heart-rate samples to the iPhone during a plunge via
+/// `sendMessage` (best-effort, fire-and-forget). The iPhone-side
+/// `WatchSyncPlugin` listens for `kind: "liveHR"` messages and emits a
+/// `watchLiveHR` event to the JS layer for live BPM display.
 final class PhoneSyncService: NSObject, WCSessionDelegate {
     static let shared = PhoneSyncService()
 
     private override init() { super.init() }
+
+    // Throttle live HR sends: HKLiveWorkoutBuilder fires several times per
+    // second when HR is changing — the iPhone only needs ~1 Hz.
+    private var lastLiveHRSentAt: Date = .distantPast
 
     func activate() {
         guard WCSession.isSupported() else { return }
@@ -25,6 +34,37 @@ final class PhoneSyncService: NSObject, WCSessionDelegate {
             return
         }
         s.transferUserInfo(payload)
+    }
+
+    /// Live HR push to the iPhone during a plunge. Best-effort:
+    /// - sendMessage for instant delivery while iPhone is reachable
+    /// - falls back to updateApplicationContext if not reachable so the
+    ///   iPhone gets the latest value next time it opens
+    /// Throttled to ~1 Hz to keep the radio cool and avoid spamming JS.
+    func sendLiveHR(_ bpm: Int) {
+        guard WCSession.isSupported() else { return }
+        let s = WCSession.default
+        guard s.activationState == .activated else { return }
+
+        let now = Date()
+        if now.timeIntervalSince(lastLiveHRSentAt) < 1.0 { return }
+        lastLiveHRSentAt = now
+
+        let payload: [String: Any] = [
+            "kind": "liveHR",
+            "bpm": bpm,
+            "ts": now.timeIntervalSince1970,
+        ]
+
+        if s.isReachable {
+            s.sendMessage(payload, replyHandler: nil, errorHandler: { _ in
+                // sendMessage failed — fall back to context so the iPhone
+                // gets the latest value when it next syncs.
+                try? s.updateApplicationContext(payload)
+            })
+        } else {
+            try? s.updateApplicationContext(payload)
+        }
     }
 
     // MARK: - Offline queue

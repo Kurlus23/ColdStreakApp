@@ -31,13 +31,13 @@ interface WatchPlungePayload {
 interface WatchSyncPlugin {
   getPendingPlunges: () => Promise<{ plunges: WatchPlungePayload[] }>;
   clearPendingPlunges: (opts: { ids: string[] }) => Promise<void>;
-  addListener: (
-    event: "watchPlungeReceived",
-    cb: (p: WatchPlungePayload) => void,
-  ) => Promise<{ remove: () => Promise<void> }>;
+  addListener: {
+    (event: "watchPlungeReceived", cb: (p: WatchPlungePayload) => void): Promise<{ remove: () => Promise<void> }>;
+    (event: "watchLiveHR", cb: (p: { bpm: number; ts: number }) => void): Promise<{ remove: () => Promise<void> }>;
+  };
 }
 
-const WatchSync = registerPlugin<WatchSyncPlugin>("WatchSync");
+export const WatchSync = registerPlugin<WatchSyncPlugin>("WatchSync");
 
 function plungeScore(durationSeconds: number, tempF: number): number {
   // Mirrors client/src/pages/Home.tsx plungeScore — kept in sync to avoid

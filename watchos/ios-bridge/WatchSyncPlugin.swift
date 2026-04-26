@@ -7,6 +7,10 @@ import WatchConnectivity
 /// 2) Persists them to UserDefaults (so nothing is lost if the JS app isn't open)
 /// 3) Notifies JS listeners ("watchPlungeReceived") when the app is foregrounded
 /// 4) Exposes `getPendingPlunges()` and `clearPendingPlunges()` for JS to drain the queue
+/// 5) Receives LIVE heart-rate samples from the watch during a plunge via
+///    `sendMessage` and emits `watchLiveHR` to JS so the iPhone UI can show
+///    real-time BPM (Apple Watch refuses to expose HR over BLE; this is the
+///    supported path).
 ///
 /// JS USAGE (in client/src):
 ///   import { registerPlugin } from '@capacitor/core';
@@ -14,6 +18,7 @@ import WatchConnectivity
 ///     getPendingPlunges: () => Promise<{ plunges: any[] }>;
 ///     clearPendingPlunges: (opts: { ids: string[] }) => Promise<void>;
 ///     addListener: (event: 'watchPlungeReceived', cb: (p: any) => void) => any;
+///     addListener: (event: 'watchLiveHR', cb: (p: { bpm: number; ts: number }) => void) => any;
 ///   }>('WatchSync');
 ///
 ///   // On app start, drain pending and POST each to /api/plunges:
@@ -22,6 +27,7 @@ import WatchConnectivity
 ///   await WatchSync.clearPendingPlunges({ ids: plunges.map(p => p._id) });
 ///
 ///   WatchSync.addListener('watchPlungeReceived', async (p) => { /* same drain logic */ });
+///   WatchSync.addListener('watchLiveHR', ({ bpm }) => setCurrentHR(bpm));
 @objc(WatchSyncPlugin)
 public class WatchSyncPlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate {
     public let identifier = "WatchSyncPlugin"
@@ -80,6 +86,38 @@ public class WatchSyncPlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate {
 
         DispatchQueue.main.async { [weak self] in
             self?.notifyListeners("watchPlungeReceived", data: enriched)
+        }
+    }
+
+    /// Live HR (and any other realtime payloads) from the watch.
+    /// The watch sends `{ kind: "liveHR", bpm: Int, ts: TimeInterval }`.
+    public func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+        handleLivePayload(message)
+    }
+
+    public func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
+        handleLivePayload(message)
+        replyHandler(["ok": true])
+    }
+
+    /// Application context fallback (used when sendMessage isn't deliverable —
+    /// e.g. iPhone screen off or app not foregrounded).
+    public func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
+        handleLivePayload(applicationContext)
+    }
+
+    private func handleLivePayload(_ payload: [String: Any]) {
+        guard let kind = payload["kind"] as? String else { return }
+        switch kind {
+        case "liveHR":
+            let bpm = (payload["bpm"] as? Int) ?? Int((payload["bpm"] as? Double) ?? 0)
+            let ts = (payload["ts"] as? TimeInterval) ?? Date().timeIntervalSince1970
+            guard bpm > 0 else { return }
+            DispatchQueue.main.async { [weak self] in
+                self?.notifyListeners("watchLiveHR", data: ["bpm": bpm, "ts": ts])
+            }
+        default:
+            break
         }
     }
 }
