@@ -4781,6 +4781,15 @@ export default function Home() {
                               it on your watch and tap <span className="font-semibold text-white">Start Plunge</span>, and
                               live BPM will be sent to your iPhone automatically.
                             </div>
+                            <div className="mt-2 pt-2 border-t border-purple-700/40">
+                              <div className="text-purple-100 text-[11px] font-semibold">First time setup</div>
+                              <div className="text-purple-200/80 text-[11px] leading-snug mt-0.5">
+                                When the Health permission dialog pops up, tap <span className="font-semibold text-white">Allow All</span> (or at minimum: Heart Rate, HRV, and Active Energy). All three are required for live HR to record.
+                              </div>
+                              <div className="text-purple-200/60 text-[10px] leading-snug mt-1">
+                                Already installed? Open <span className="font-semibold text-purple-100">iPhone Settings → Health → Data Access &amp; Devices → ColdStreak</span> and turn all three on.
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
