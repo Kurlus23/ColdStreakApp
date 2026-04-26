@@ -239,6 +239,13 @@ export default function Home() {
   // started after the user picks a device.
   const thermoScanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hrScanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Throttle UI updates from BLE — Inkbird broadcasts ~every 1–2 s, which
+  // makes the displayed temperature and the diagnostic panel flicker too
+  // fast to read. We update at most every 3 s for the temperature and
+  // 1.5 s for the diagnostic, while still letting the watchdog know a
+  // sample arrived (via lastThermoNotifRef) on every broadcast.
+  const lastTempUiUpdateRef = useRef<number>(0);
+  const lastDebugUiUpdateRef = useRef<number>(0);
   const [savedDevicesKey, setSavedDevicesKey] = useState(0); // bump to re-render saved device rows
   // HR custom scanner
   const [hrScanActive, setHrScanActive] = useState(false);
@@ -1345,10 +1352,10 @@ export default function Home() {
   // Returns °F, or null if the bytes don't look like a valid Inkbird payload.
   // Try to parse a temperature from any DataView using the standard Inkbird
   // layout: signed int16 little-endian at offset 0, divided by 100 = °C.
-  function parseTempFromBytes(dv: DataView): number | null {
-    if (dv.byteLength < 2) return null;
+  function parseTempFromBytes(dv: DataView, offset: number = 0): number | null {
+    if (dv.byteLength < offset + 2) return null;
     try {
-      const tempRaw = dv.getInt16(0, true);
+      const tempRaw = dv.getInt16(offset, true);
       const tempC = tempRaw / 100;
       if (!isFinite(tempC) || tempC < -40 || tempC > 85) return null;
       return (tempC * 9) / 5 + 32;
@@ -1357,26 +1364,76 @@ export default function Home() {
     }
   }
 
+  // Decode an Inkbird IBS-TH2 Plus manufacturer payload. Layout is:
+  //   bytes 0-1: signed int16 LE / 100 = °C   (probe temp if attached, else air sensor)
+  //   bytes 2-3: signed int16 LE / 100 = humidity %  (TH2 Plus has no internal humidity
+  //              when in probe mode — value is then "internal/case temp ×100")
+  //   byte  6 : 0x01 = external probe attached, 0x00 = using internal sensor
+  //   byte  7 : battery %
+  // We return the *external probe* temp when byte 6 says it's attached; otherwise
+  // null (we don't want the internal case temp to dominate the display).
+  function decodeInkbirdPayload(dv: DataView): {
+    probeF: number | null;
+    sensor2F: number | null;   // bytes 2-3 interpreted as a temperature (TH2 Plus internal)
+    probeAttached: boolean | null;
+    battery: number | null;
+  } {
+    const probeF = parseTempFromBytes(dv, 0);
+    const sensor2F = dv.byteLength >= 4 ? parseTempFromBytes(dv, 2) : null;
+    const probeAttached = dv.byteLength >= 7 ? dv.getUint8(6) === 1 : null;
+    const battery = dv.byteLength >= 8 ? dv.getUint8(7) : null;
+    return { probeF, sensor2F, probeAttached, battery };
+  }
+
   // Inspect a scan result's manufacturer data AND service data, return the
   // first valid temperature found and a per-payload hex breakdown for
   // the diagnostic panel.
-  function inspectScanResultPayloads(result: ScanResult): { tempF: number | null; lines: string[]; totalBytes: number } {
+  function inspectScanResultPayloads(result: ScanResult): {
+    tempF: number | null;
+    lines: string[];
+    totalBytes: number;
+    probeAttached: boolean | null;
+    battery: number | null;
+  } {
     const lines: string[] = [];
     let totalBytes = 0;
-    // Only auto-resolve from manufacturer data with a plausible length
-    // (Inkbird IBS-TH2 Plus payload is typically 7–9 bytes). Service-data
-    // matches are still shown in the diagnostic but not used to resolve,
-    // since arbitrary 2-byte service payloads can decode to a fake temp.
-    let mfrTempF: number | null = null;
+    let resolvedTempF: number | null = null;
+    let probeAttached: boolean | null = null;
+    let battery: number | null = null;
 
     if (result.manufacturerData) {
       for (const [mfrId, dv] of Object.entries(result.manufacturerData)) {
         const bytes: string[] = [];
         for (let i = 0; i < dv.byteLength; i++) bytes.push(dv.getUint8(i).toString(16).padStart(2, "0"));
         totalBytes += dv.byteLength;
-        const parsed = parseTempFromBytes(dv);
-        lines.push(`mfr ${mfrId}: ${bytes.join(" ")}${parsed !== null ? ` → ${parsed.toFixed(1)}°F` : ""}`);
-        if (parsed !== null && mfrTempF === null && dv.byteLength >= 6) mfrTempF = parsed;
+        const decoded = decodeInkbirdPayload(dv);
+        const flagPart = decoded.probeAttached === null ? "" :
+          decoded.probeAttached ? " [probe]" : " [internal]";
+        const battPart = decoded.battery === null ? "" : ` batt=${decoded.battery}%`;
+        const tempPart = decoded.probeF !== null
+          ? ` t1=${decoded.probeF.toFixed(1)}°F${decoded.sensor2F !== null ? ` t2=${decoded.sensor2F.toFixed(1)}°F` : ""}`
+          : "";
+        lines.push(`mfr ${mfrId} (${dv.byteLength}B): ${bytes.join(" ")}${tempPart}${flagPart}${battPart}`);
+        // Only auto-resolve from manufacturer payloads ≥ 6 bytes — service-data
+        // and short payloads can decode to false-positive temps. Prefer the
+        // probe reading when byte 6 explicitly says the probe is attached.
+        if (resolvedTempF === null && dv.byteLength >= 6) {
+          if (decoded.probeAttached === true && decoded.probeF !== null) {
+            resolvedTempF = decoded.probeF;
+            probeAttached = true;
+            battery = decoded.battery;
+          } else if (decoded.probeAttached === false && decoded.probeF !== null) {
+            // Probe not attached — internal air temp. Keep showing it (better
+            // than nothing) but flag it so the UI can warn.
+            resolvedTempF = decoded.probeF;
+            probeAttached = false;
+            battery = decoded.battery;
+          } else if (decoded.probeAttached === null && decoded.probeF !== null) {
+            // No probe-flag byte at all — accept the t1 reading but mark unknown.
+            resolvedTempF = decoded.probeF;
+            battery = decoded.battery;
+          }
+        }
       }
     }
 
@@ -1387,24 +1444,31 @@ export default function Home() {
         totalBytes += dv.byteLength;
         const parsed = parseTempFromBytes(dv);
         const shortUuid = uuid.length > 10 ? uuid.slice(0, 8) : uuid;
-        lines.push(`svc ${shortUuid}: ${bytes.join(" ")}${parsed !== null ? ` → ${parsed.toFixed(1)}°F` : ""}`);
+        lines.push(`svc ${shortUuid} (${dv.byteLength}B): ${bytes.join(" ")}${parsed !== null ? ` → ${parsed.toFixed(1)}°F` : ""}`);
       }
     }
 
-    return { tempF: mfrTempF, lines, totalBytes };
+    return { tempF: resolvedTempF, lines, totalBytes, probeAttached, battery };
   }
 
   // Backward-compat shim used by startThermoStream. Updates btDebugInfo
-  // for matched broadcasts only (keepalive path).
+  // for matched broadcasts only (keepalive path), throttled to ~1.5 s so
+  // the panel doesn't repaint on every advertisement.
   function parseInkbirdScanResult(result: ScanResult): number | null {
-    const { tempF, lines, totalBytes } = inspectScanResultPayloads(result);
-    setBtDebugInfo({
-      hex: lines.join(" | ") || "(no payload)",
-      parsed: tempF,
-      unit: "F",
-      bytes: totalBytes,
-      at: Date.now(),
-    });
+    const { tempF, lines, totalBytes, probeAttached, battery } = inspectScanResultPayloads(result);
+    const now = Date.now();
+    if (now - lastDebugUiUpdateRef.current >= 1500) {
+      lastDebugUiUpdateRef.current = now;
+      const flag = probeAttached === true ? " [probe]" : probeAttached === false ? " [internal]" : "";
+      const bat = battery !== null ? ` batt=${battery}%` : "";
+      setBtDebugInfo({
+        hex: (lines.join(" | ") || "(no payload)") + flag + bat,
+        parsed: tempF,
+        unit: "F",
+        bytes: totalBytes,
+        at: now,
+      });
+    }
     return tempF;
   }
 
@@ -1442,7 +1506,12 @@ export default function Home() {
       }>();
       let scanResultsCount = 0;
 
-      const renderDebug = () => {
+      const renderDebug = (force: boolean = false) => {
+        // Throttle UI updates so the diagnostic doesn't repaint on every
+        // BLE advertisement (which can fire several times a second).
+        const now = Date.now();
+        if (!force && now - lastDebugUiUpdateRef.current < 1500) return;
+        lastDebugUiUpdateRef.current = now;
         // Show the 5 most recently-seen devices, with match indicator.
         const entries = Array.from(seen.entries())
           .sort((a, b) => b[1].lastAt - a[1].lastAt)
@@ -1460,7 +1529,7 @@ export default function Home() {
           parsed: null,
           unit: "F",
           bytes: 0,
-          at: Date.now(),
+          at: now,
           // Stash the summary in the hex string so the existing panel UI
           // shows it without needing a separate field.
           ...({ summary } as any),
@@ -1502,8 +1571,13 @@ export default function Home() {
             if (matchKind === "none") return;
             if (tempF === null) return;
 
-            lastThermoNotifRef.current = Date.now();
-            setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+            const nowMs = Date.now();
+            lastThermoNotifRef.current = nowMs;
+            // First reading should display immediately; subsequent ones throttle.
+            if (!firstResolved || nowMs - lastTempUiUpdateRef.current >= 3000) {
+              lastTempUiUpdateRef.current = nowMs;
+              setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+            }
 
             if (!firstResolved) {
               firstResolved = true;
@@ -1536,8 +1610,14 @@ export default function Home() {
           if (result.device.deviceId !== deviceId) return;
           const tempF = parseInkbirdScanResult(result);
           if (tempF === null) return;
-          lastThermoNotifRef.current = Date.now();
-          setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+          const nowMs = Date.now();
+          // Watchdog needs to know a sample arrived on EVERY broadcast,
+          // even when we throttle the visible UI update.
+          lastThermoNotifRef.current = nowMs;
+          if (nowMs - lastTempUiUpdateRef.current >= 3000) {
+            lastTempUiUpdateRef.current = nowMs;
+            setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+          }
         }
       );
     } catch { /* watchdog will retry */ }
