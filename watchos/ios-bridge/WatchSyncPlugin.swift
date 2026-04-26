@@ -1,5 +1,6 @@
 import Foundation
 import Capacitor
+import UIKit
 import WatchConnectivity
 
 /// Capacitor plugin that:
@@ -115,6 +116,18 @@ public class WatchSyncPlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate {
             guard bpm > 0 else { return }
             DispatchQueue.main.async { [weak self] in
                 self?.notifyListeners("watchLiveHR", data: ["bpm": bpm, "ts": ts])
+            }
+        case "openHealthSettings":
+            // Watch tapped "fix permissions". Open the iPhone's per-app
+            // settings page where Health permissions live. From there the
+            // user taps "Health" to reach the Heart Rate / HRV / Active
+            // Energy toggles. (iOS doesn't expose a direct deep-link to
+            // Health → Data Access → ColdStreak, so this is the closest
+            // we can land.)
+            DispatchQueue.main.async {
+                guard let url = URL(string: UIApplication.openSettingsURLString),
+                      UIApplication.shared.canOpenURL(url) else { return }
+                UIApplication.shared.open(url, options: [:], completionHandler: nil)
             }
         default:
             break

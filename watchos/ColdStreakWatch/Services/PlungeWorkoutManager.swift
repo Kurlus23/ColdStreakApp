@@ -40,6 +40,28 @@ final class PlungeWorkoutManager: NSObject {
         try await healthStore.requestAuthorization(toShare: toShare, read: toRead)
     }
 
+    /// Indirect signal that the user denied (or never granted) the HealthKit
+    /// permission dialog. Apple deliberately hides READ-permission status to
+    /// prevent fingerprinting, but SHARE/write status IS visible. If the user
+    /// denied any of our SHARE types in the dialog, they almost certainly
+    /// denied the READ ones too — this is the only signal we have to detect
+    /// the "Active Energy off → no HR" failure mode.
+    ///
+    /// Returns `true` when at least one of our SHARE-side permissions is
+    /// known to be denied. Returns `false` if all are granted OR if we can't
+    /// tell yet (e.g. dialog never shown).
+    var permissionsLikelyMissing: Bool {
+        guard hkAvailable else { return false } // simulator etc — don't nag
+        let typesToCheck: [HKSampleType] = [
+            HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
+            HKObjectType.quantityType(forIdentifier: .heartRate)!,
+            HKObjectType.workoutType()
+        ]
+        return typesToCheck.contains { healthStore.authorizationStatus(for: $0) == .sharingDenied }
+    }
+
+    private var hkAvailable: Bool { HKHealthStore.isHealthDataAvailable() }
+
     // MARK: - Lifecycle
 
     func start(for plungeSession: PlungeSession) async throws {

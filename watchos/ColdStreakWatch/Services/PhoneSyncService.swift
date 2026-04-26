@@ -36,6 +36,31 @@ final class PhoneSyncService: NSObject, WCSessionDelegate {
         s.transferUserInfo(payload)
     }
 
+    /// Asks the iPhone app to open Settings → Health → Data Access &
+    /// Devices → ColdStreak. The watch can't open the iPhone's Settings
+    /// directly, so we send a WatchConnectivity message and the iPhone-side
+    /// `WatchSyncPlugin` handles the URL launch. Best-effort: if the
+    /// iPhone app isn't running, the message will be delivered next time it
+    /// opens (via applicationContext fallback).
+    func requestOpenHealthSettings() {
+        guard WCSession.isSupported() else { return }
+        let s = WCSession.default
+        guard s.activationState == .activated else { return }
+
+        let payload: [String: Any] = [
+            "kind": "openHealthSettings",
+            "ts": Date().timeIntervalSince1970,
+        ]
+
+        if s.isReachable {
+            s.sendMessage(payload, replyHandler: nil, errorHandler: { _ in
+                try? s.updateApplicationContext(payload)
+            })
+        } else {
+            try? s.updateApplicationContext(payload)
+        }
+    }
+
     /// Live HR push to the iPhone during a plunge. Best-effort:
     /// - sendMessage for instant delivery while iPhone is reachable
     /// - falls back to updateApplicationContext if not reachable so the
