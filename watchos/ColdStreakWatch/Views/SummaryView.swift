@@ -27,24 +27,6 @@ struct SummaryView: View {
                 row("Water", value: "\(Int(session.waterTempF))°F")
                 row("Max HR", value: session.maxHR > 0 ? "\(session.maxHR) bpm" : "—")
                 row("Min HR", value: session.minHR > 0 ? "\(session.minHR) bpm" : "—")
-                // If HR was never recorded, surface the actual reason in the
-                // summary so the user knows what to fix instead of just seeing dashes.
-                if session.maxHR == 0 {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Why no heart rate?")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.orange)
-                        Text(PlungeWorkoutManager.shared.likelyCause)
-                            .font(.system(size: 10))
-                            .foregroundStyle(.orange.opacity(0.85))
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(PlungeWorkoutManager.shared.diagnosticSummary)
-                            .font(.system(size: 8))
-                            .foregroundStyle(.gray)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.vertical, 4)
-                }
                 if let recovery = recoveryStr {
                     row("HR recovered in", value: recovery)
                 }
