@@ -226,6 +226,9 @@ export default function Home() {
   const btProtocolRef = useRef<"gatt" | null>(null);
   const [btProtocol, setBtProtocol] = useState<"gatt" | null>(null);
   const lastThermoNotifRef = useRef<number>(0); // epoch ms of last received BLE notification
+  // DIAGNOSTIC: most-recent raw BLE payload, parsed value, and unit flag.
+  // Surfaced in the BT settings area so we can debug Inkbird parsing.
+  const [btDebugInfo, setBtDebugInfo] = useState<{ hex: string; parsed: number | null; unit: "F" | "C"; bytes: number; at: number } | null>(null);
   const thermoReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const thermoReconnectCountRef = useRef(0);
   const [savedDevicesKey, setSavedDevicesKey] = useState(0); // bump to re-render saved device rows
@@ -1179,6 +1182,30 @@ export default function Home() {
 
   // ── Bluetooth Thermometer ────────────────────────────────────────────────
   function parseBtTemperature(value: DataView): number | null {
+    // DIAGNOSTIC: dump every byte of every notification so we can see what
+    // the Inkbird is actually sending. Surfaced in the BT debug panel.
+    try {
+      const bytes: string[] = [];
+      for (let i = 0; i < value.byteLength; i++) {
+        bytes.push(value.getUint8(i).toString(16).padStart(2, "0"));
+      }
+      const hex = bytes.join(" ");
+      let parsed: number | null = null;
+      let unit: "F" | "C" = "C";
+      try {
+        const flags = value.getUint8(0);
+        const isFahrenheit = (flags & 0x01) !== 0;
+        unit = isFahrenheit ? "F" : "C";
+        const mantissaRaw = value.getUint8(1) | (value.getUint8(2) << 8) | (value.getUint8(3) << 16);
+        const mantissa = mantissaRaw & 0x800000 ? mantissaRaw - 0x1000000 : mantissaRaw;
+        if (!(mantissa === 0 || mantissaRaw === 0x7FFFFF)) {
+          const exponent = value.getInt8(4);
+          parsed = mantissa * Math.pow(10, exponent);
+        }
+      } catch { /* keep parsed=null */ }
+      setBtDebugInfo({ hex, parsed, unit, bytes: value.byteLength, at: Date.now() });
+    } catch { /* ignore — diagnostic must never break parsing */ }
+
     try {
       const flags = value.getUint8(0);
       const isFahrenheit = (flags & 0x01) !== 0;
