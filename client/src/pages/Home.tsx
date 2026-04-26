@@ -234,6 +234,11 @@ export default function Home() {
   const [btDebugInfo, setBtDebugInfo] = useState<{ hex: string; parsed: number | null; unit: "F" | "C"; bytes: number; at: number } | null>(null);
   const thermoReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const thermoReconnectCountRef = useRef(0);
+  // Auto-stop timers for the "find my thermometer / heart-rate monitor"
+  // pickers. Tracked so a delayed stopLEScan() can't kill an active stream
+  // started after the user picks a device.
+  const thermoScanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hrScanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [savedDevicesKey, setSavedDevicesKey] = useState(0); // bump to re-render saved device rows
   // HR custom scanner
   const [hrScanActive, setHrScanActive] = useState(false);
@@ -1255,13 +1260,18 @@ export default function Home() {
         btDeviceRef.current = deviceId;
         setBtDeviceName(name);
         // Beacon mode — no GATT connection. Just listen for advertisements.
-        const _det1 = await detectThermoProtocol(deviceId);
+        const _det1 = await detectThermoProtocol(deviceId, name);
         if (cancelled) return;
         if (_det1) {
+          // iOS may issue a fresh deviceId per session — adopt the matched one.
+          if (_det1.matchedDeviceId !== deviceId) {
+            btDeviceRef.current = _det1.matchedDeviceId;
+            localStorage.setItem("coldstreak-bt-thermo", JSON.stringify({ deviceId: _det1.matchedDeviceId, name }));
+          }
           btProtocolRef.current = "beacon";
           setBtProtocol("beacon");
           setTemperature(Math.min(60, Math.max(25, Math.round(_det1.tempF + btTempOffsetRef.current))));
-          startThermoKeepalive(deviceId, "beacon");
+          startThermoKeepalive(_det1.matchedDeviceId, "beacon");
           setBtConnected(true);
           toast({ title: "Thermometer reconnected", description: name });
         } else {
@@ -1333,12 +1343,13 @@ export default function Home() {
 
   // ── Inkbird advertisement parser ─────────────────────────────────────────
   // Returns °F, or null if the bytes don't look like a valid Inkbird payload.
-  function parseInkbirdManufacturerData(dv: DataView): number | null {
-    if (dv.byteLength < 7) return null;
+  // Try to parse a temperature from any DataView using the standard Inkbird
+  // layout: signed int16 little-endian at offset 0, divided by 100 = °C.
+  function parseTempFromBytes(dv: DataView): number | null {
+    if (dv.byteLength < 2) return null;
     try {
-      const tempRaw = dv.getInt16(0, true); // signed int16, little-endian
+      const tempRaw = dv.getInt16(0, true);
       const tempC = tempRaw / 100;
-      // Sanity range: real-world sensor spec is -40°C to 85°C
       if (!isFinite(tempC) || tempC < -40 || tempC > 85) return null;
       return (tempC * 9) / 5 + 32;
     } catch {
@@ -1346,70 +1357,149 @@ export default function Home() {
     }
   }
 
-  // Parse a single BLE scan result. Tries every manufacturer-specific data
-  // entry in case the device uses a non-standard company ID. Also dumps
-  // the raw bytes to btDebugInfo so the user can screenshot if needed.
-  function parseInkbirdScanResult(result: ScanResult): number | null {
-    const mfrData = result.manufacturerData;
-    if (!mfrData) {
-      setBtDebugInfo({ hex: "(no manufacturer data in advertisement)", parsed: null, unit: "F", bytes: 0, at: Date.now() });
-      return null;
-    }
-
-    let validTempF: number | null = null;
-    const debugLines: string[] = [];
+  // Inspect a scan result's manufacturer data AND service data, return the
+  // first valid temperature found and a per-payload hex breakdown for
+  // the diagnostic panel.
+  function inspectScanResultPayloads(result: ScanResult): { tempF: number | null; lines: string[]; totalBytes: number } {
+    const lines: string[] = [];
     let totalBytes = 0;
+    // Only auto-resolve from manufacturer data with a plausible length
+    // (Inkbird IBS-TH2 Plus payload is typically 7–9 bytes). Service-data
+    // matches are still shown in the diagnostic but not used to resolve,
+    // since arbitrary 2-byte service payloads can decode to a fake temp.
+    let mfrTempF: number | null = null;
 
-    for (const [mfrId, dv] of Object.entries(mfrData)) {
-      const bytes: string[] = [];
-      for (let i = 0; i < dv.byteLength; i++) {
-        bytes.push(dv.getUint8(i).toString(16).padStart(2, "0"));
+    if (result.manufacturerData) {
+      for (const [mfrId, dv] of Object.entries(result.manufacturerData)) {
+        const bytes: string[] = [];
+        for (let i = 0; i < dv.byteLength; i++) bytes.push(dv.getUint8(i).toString(16).padStart(2, "0"));
+        totalBytes += dv.byteLength;
+        const parsed = parseTempFromBytes(dv);
+        lines.push(`mfr ${mfrId}: ${bytes.join(" ")}${parsed !== null ? ` → ${parsed.toFixed(1)}°F` : ""}`);
+        if (parsed !== null && mfrTempF === null && dv.byteLength >= 6) mfrTempF = parsed;
       }
-      totalBytes += dv.byteLength;
-      const parsed = parseInkbirdManufacturerData(dv);
-      debugLines.push(`mfr ${mfrId}: ${bytes.join(" ")}${parsed !== null ? ` → ${parsed.toFixed(1)}°F` : ""}`);
-      if (parsed !== null && validTempF === null) validTempF = parsed;
     }
 
+    if (result.serviceData) {
+      for (const [uuid, dv] of Object.entries(result.serviceData)) {
+        const bytes: string[] = [];
+        for (let i = 0; i < dv.byteLength; i++) bytes.push(dv.getUint8(i).toString(16).padStart(2, "0"));
+        totalBytes += dv.byteLength;
+        const parsed = parseTempFromBytes(dv);
+        const shortUuid = uuid.length > 10 ? uuid.slice(0, 8) : uuid;
+        lines.push(`svc ${shortUuid}: ${bytes.join(" ")}${parsed !== null ? ` → ${parsed.toFixed(1)}°F` : ""}`);
+      }
+    }
+
+    return { tempF: mfrTempF, lines, totalBytes };
+  }
+
+  // Backward-compat shim used by startThermoStream. Updates btDebugInfo
+  // for matched broadcasts only (keepalive path).
+  function parseInkbirdScanResult(result: ScanResult): number | null {
+    const { tempF, lines, totalBytes } = inspectScanResultPayloads(result);
     setBtDebugInfo({
-      hex: debugLines.join(" | ") || "(empty)",
-      parsed: validTempF,
+      hex: lines.join(" | ") || "(no payload)",
+      parsed: tempF,
       unit: "F",
       bytes: totalBytes,
       at: Date.now(),
     });
-
-    return validTempF;
+    return tempF;
   }
 
   /**
    * Listen for Inkbird BLE advertisements from a specific device. Resolves
-   * with the first valid temperature reading (in °F) within 12 s, or null
-   * if none arrives. The scan keeps running after resolve — the caller
-   * should subsequently rely on `startThermoKeepalive` to maintain it and
-   * call `disconnectThermometer` (which stops the scan) to tear down.
+   * with the first valid temperature reading (in °F) within 20 s, or null
+   * if none arrives. Tracks ALL devices seen during the scan so the
+   * diagnostic panel can show what's actually being broadcast — even when
+   * nothing matches our expected deviceId. Falls back to matching by name
+   * if the iOS Capacitor BLE plugin returns a different deviceId from
+   * what `requestDevice` originally gave us.
+   *
+   * The scan keeps running after resolve — the caller should subsequently
+   * rely on `startThermoKeepalive` to maintain it and call
+   * `disconnectThermometer` (which stops the scan) to tear down.
    */
-  async function detectThermoProtocol(deviceId: string): Promise<{ protocol: "beacon"; tempF: number } | null> {
+  async function detectThermoProtocol(
+    deviceId: string,
+    expectedName?: string,
+  ): Promise<{ protocol: "beacon"; tempF: number; matchedDeviceId: string } | null> {
     // Stop any prior scan (HR scan, previous thermo scan, etc.)
     await BleClient.stopLEScan().catch(() => {});
 
     return new Promise(async (resolve) => {
       let firstResolved = false;
+      // Map of deviceId → most-recent observation, for the diagnostic panel.
+      const seen = new Map<string, {
+        name: string;
+        rssi: number;
+        lines: string[];
+        totalBytes: number;
+        parsedF: number | null;
+        matchKind: "id" | "name" | "none";
+        lastAt: number;
+      }>();
+      let scanResultsCount = 0;
+
+      const renderDebug = () => {
+        // Show the 5 most recently-seen devices, with match indicator.
+        const entries = Array.from(seen.entries())
+          .sort((a, b) => b[1].lastAt - a[1].lastAt)
+          .slice(0, 5);
+        const sections = entries.map(([id, info]) => {
+          const mark = info.matchKind === "id" ? "✓ID" : info.matchKind === "name" ? "✓NAME" : "✗";
+          const shortId = id.length > 8 ? id.slice(-8) : id;
+          const header = `[${mark}] ${info.name || "(no-name)"} ${shortId} rssi=${info.rssi}`;
+          const payload = info.lines.length ? info.lines.join(" | ") : "(no payload)";
+          return `${header} ${payload}`;
+        });
+        const summary = `scans=${scanResultsCount} unique=${seen.size} expected=${(expectedName || "").slice(0, 14)} ${(deviceId || "").slice(-8)}`;
+        setBtDebugInfo({
+          hex: sections.join("\n") || "(scanning…)",
+          parsed: null,
+          unit: "F",
+          bytes: 0,
+          at: Date.now(),
+          // Stash the summary in the hex string so the existing panel UI
+          // shows it without needing a separate field.
+          ...({ summary } as any),
+        } as any);
+      };
 
       const timer = setTimeout(() => {
         if (!firstResolved) {
           firstResolved = true;
+          renderDebug();
+          // Stop the scan on timeout — caller decides whether to keep
+          // listening (success path calls startThermoKeepalive which restarts).
+          BleClient.stopLEScan().catch(() => {});
           resolve(null);
         }
-      }, 12_000);
+      }, 20_000);
 
       try {
         await BleClient.requestLEScan(
           { allowDuplicates: true },
           (result) => {
-            // Only react to OUR device's broadcasts
-            if (result.device.deviceId !== deviceId) return;
-            const tempF = parseInkbirdScanResult(result);
+            scanResultsCount++;
+            const id = result.device.deviceId;
+            const name = result.device.name ?? "";
+            const rssi = result.rssi ?? -99;
+
+            const { tempF, lines, totalBytes } = inspectScanResultPayloads(result);
+
+            const matchKind: "id" | "name" | "none" =
+              id === deviceId ? "id"
+              : (expectedName && name && name === expectedName) ? "name"
+              : "none";
+
+            seen.set(id, { name, rssi, lines, totalBytes, parsedF: tempF, matchKind, lastAt: Date.now() });
+
+            // Refresh debug panel (throttled to once per ~500ms by React batching)
+            renderDebug();
+
+            if (matchKind === "none") return;
             if (tempF === null) return;
 
             lastThermoNotifRef.current = Date.now();
@@ -1418,7 +1508,7 @@ export default function Home() {
             if (!firstResolved) {
               firstResolved = true;
               clearTimeout(timer);
-              resolve({ protocol: "beacon", tempF });
+              resolve({ protocol: "beacon", tempF, matchedDeviceId: id });
             }
           }
         );
@@ -1426,6 +1516,8 @@ export default function Home() {
         if (!firstResolved) {
           firstResolved = true;
           clearTimeout(timer);
+          renderDebug();
+          BleClient.stopLEScan().catch(() => {});
           resolve(null);
         }
       }
@@ -1509,11 +1601,24 @@ export default function Home() {
     };
 
     try {
-      const result = await detectThermoProtocol(deviceId);
+      // Pull the saved name so we can fall back to name-matching if iOS
+      // hands us a fresh deviceId after the app restarts.
+      let expectedName: string | undefined;
+      try {
+        const saved = localStorage.getItem("coldstreak-bt-thermo");
+        if (saved) expectedName = (JSON.parse(saved) as { name?: string }).name;
+      } catch {}
+      const result = await detectThermoProtocol(deviceId, expectedName);
       if (result) {
+        if (result.matchedDeviceId !== deviceId) {
+          btDeviceRef.current = result.matchedDeviceId;
+          if (expectedName) {
+            localStorage.setItem("coldstreak-bt-thermo", JSON.stringify({ deviceId: result.matchedDeviceId, name: expectedName }));
+          }
+        }
         btProtocolRef.current = "beacon";
         setBtProtocol("beacon");
-        startThermoKeepalive(deviceId, "beacon");
+        startThermoKeepalive(result.matchedDeviceId, "beacon");
         setBtConnected(true);
         thermoReconnectCountRef.current = 0;
       } else {
@@ -1549,8 +1654,11 @@ export default function Home() {
           return [...prev, { deviceId: result.device.deviceId, name, rssi }];
         });
       });
-      // Auto-stop after 15 s
-      setTimeout(() => {
+      // Auto-stop after 15 s — tracked so connectFromHrScan() can cancel
+      // it (otherwise a delayed stop can kill the freshly-connected stream).
+      if (hrScanTimeoutRef.current) clearTimeout(hrScanTimeoutRef.current);
+      hrScanTimeoutRef.current = setTimeout(() => {
+        hrScanTimeoutRef.current = null;
         BleClient.stopLEScan().catch(() => {});
         setHrScanActive(false);
         setHrScanDone(true);
@@ -1574,6 +1682,7 @@ export default function Home() {
   }
 
   async function connectFromHrScan(deviceId: string, name: string) {
+    if (hrScanTimeoutRef.current) { clearTimeout(hrScanTimeoutRef.current); hrScanTimeoutRef.current = null; }
     await BleClient.stopLEScan().catch(() => {});
     setHrScanActive(false);
     setHrScanDevices([]);
@@ -1712,13 +1821,17 @@ export default function Home() {
       localStorage.setItem("coldstreak-bt-thermo", JSON.stringify({ deviceId: device.deviceId, name: device.name ?? "Thermometer" }));
 
       // Beacon mode — listen for advertisements, no GATT connection.
-      const _det2 = await detectThermoProtocol(deviceId);
+      const _det2 = await detectThermoProtocol(deviceId, device.name ?? undefined);
       if (_det2) {
+        if (_det2.matchedDeviceId !== deviceId) {
+          btDeviceRef.current = _det2.matchedDeviceId;
+          localStorage.setItem("coldstreak-bt-thermo", JSON.stringify({ deviceId: _det2.matchedDeviceId, name: device.name ?? "Thermometer" }));
+        }
         btProtocolRef.current = "beacon";
         setBtProtocol("beacon");
         localStorage.setItem("coldstreak-bt-thermo-protocol", "beacon");
         setTemperature(Math.min(60, Math.max(25, Math.round(_det2.tempF + btTempOffsetRef.current))));
-        startThermoKeepalive(deviceId, "beacon");
+        startThermoKeepalive(_det2.matchedDeviceId, "beacon");
         setBtConnected(true);
         toast({ title: "Thermometer connected", description: `${device.name ?? "Device"} — temperature will update automatically.` });
       } else {
@@ -1772,7 +1885,11 @@ export default function Home() {
           return [...prev, { deviceId: result.device.deviceId, name, rssi }];
         });
       });
-      setTimeout(() => {
+      // Auto-stop after 20 s — tracked so connectFromThermoScan() can cancel
+      // it (otherwise a delayed stop can kill the freshly-started beacon stream).
+      if (thermoScanTimeoutRef.current) clearTimeout(thermoScanTimeoutRef.current);
+      thermoScanTimeoutRef.current = setTimeout(() => {
+        thermoScanTimeoutRef.current = null;
         BleClient.stopLEScan().catch(() => {});
         setThermoScanActive(false);
         setThermoScanDone(true);
@@ -1787,12 +1904,14 @@ export default function Home() {
   }
 
   async function stopThermoScan() {
+    if (thermoScanTimeoutRef.current) { clearTimeout(thermoScanTimeoutRef.current); thermoScanTimeoutRef.current = null; }
     await BleClient.stopLEScan().catch(() => {});
     setThermoScanActive(false);
     setThermoScanDone(true);
   }
 
   async function connectFromThermoScan(deviceId: string, name: string) {
+    if (thermoScanTimeoutRef.current) { clearTimeout(thermoScanTimeoutRef.current); thermoScanTimeoutRef.current = null; }
     await BleClient.stopLEScan().catch(() => {});
     setThermoScanActive(false);
     setThermoScanDevices([]);
@@ -1804,19 +1923,23 @@ export default function Home() {
       setBtDeviceName(name);
       localStorage.setItem("coldstreak-bt-thermo", JSON.stringify({ deviceId, name }));
       // Beacon mode — listen for advertisements, no GATT connection.
-      const _det3 = await detectThermoProtocol(deviceId);
+      const _det3 = await detectThermoProtocol(deviceId, name);
       if (_det3) {
+        if (_det3.matchedDeviceId !== deviceId) {
+          btDeviceRef.current = _det3.matchedDeviceId;
+          localStorage.setItem("coldstreak-bt-thermo", JSON.stringify({ deviceId: _det3.matchedDeviceId, name }));
+        }
         btProtocolRef.current = "beacon";
         setBtProtocol("beacon");
         localStorage.setItem("coldstreak-bt-thermo-protocol", "beacon");
         setTemperature(Math.min(60, Math.max(25, Math.round(_det3.tempF + btTempOffsetRef.current))));
-        startThermoKeepalive(deviceId, "beacon");
+        startThermoKeepalive(_det3.matchedDeviceId, "beacon");
         setBtConnected(true);
         toast({ title: "Thermometer connected", description: `${name} — temperature will update automatically.` });
       } else {
         await BleClient.stopLEScan().catch(() => {});
         btDeviceRef.current = null;
-        toast({ title: "No data received", description: "Picked the device but didn't see a temperature broadcast within 12s. Make sure the Inkbird is powered on and within range.", variant: "destructive" });
+        toast({ title: "No data received", description: "Picked the device but didn't see a temperature broadcast within 20s. Check the diagnostic panel below for what was scanned.", variant: "destructive" });
       }
     } catch (err: any) {
       const msg = err?.message ?? "";
@@ -1837,19 +1960,23 @@ export default function Home() {
       btDeviceRef.current = deviceId;
       setBtDeviceName(name);
       // Beacon mode — no cached-protocol shortcut needed; just listen.
-      const _det = await detectThermoProtocol(deviceId);
+      const _det = await detectThermoProtocol(deviceId, name);
       if (_det) {
+        if (_det.matchedDeviceId !== deviceId) {
+          btDeviceRef.current = _det.matchedDeviceId;
+          localStorage.setItem("coldstreak-bt-thermo", JSON.stringify({ deviceId: _det.matchedDeviceId, name }));
+        }
         btProtocolRef.current = "beacon";
         setBtProtocol("beacon");
         localStorage.setItem("coldstreak-bt-thermo-protocol", "beacon");
         setTemperature(Math.min(60, Math.max(25, Math.round(_det.tempF + btTempOffsetRef.current))));
-        startThermoKeepalive(deviceId, "beacon");
+        startThermoKeepalive(_det.matchedDeviceId, "beacon");
         setBtConnected(true);
         toast({ title: "Thermometer reconnected", description: `${name} — temperature will update automatically.` });
       } else {
         await BleClient.stopLEScan().catch(() => {});
         btDeviceRef.current = null;
-        toast({ title: "Could not reconnect", description: "Didn't see a temperature broadcast. Make sure the Inkbird is powered on and within range.", variant: "destructive" });
+        toast({ title: "Could not reconnect", description: "Didn't see a temperature broadcast. Check the diagnostic panel below for what was scanned.", variant: "destructive" });
       }
     } catch (err: any) {
       btDeviceRef.current = null;
@@ -1866,6 +1993,7 @@ export default function Home() {
     // Clear everything FIRST so any in-flight scan callbacks become no-ops
     if (btKeepaliveRef.current) { clearInterval(btKeepaliveRef.current); btKeepaliveRef.current = null; }
     if (thermoReconnectTimerRef.current) { clearTimeout(thermoReconnectTimerRef.current); thermoReconnectTimerRef.current = null; }
+    if (thermoScanTimeoutRef.current) { clearTimeout(thermoScanTimeoutRef.current); thermoScanTimeoutRef.current = null; }
     thermoReconnectCountRef.current = 0;
     btDeviceRef.current = null;
     btProtocolRef.current = null;
@@ -4276,13 +4404,18 @@ export default function Home() {
                   {btDebugInfo && (
                     <div className="mt-1 px-3 py-2 rounded-xl bg-yellow-900/20 border border-yellow-700/40 space-y-1">
                       <div className="text-yellow-300/80 text-[10px] font-semibold uppercase tracking-wide">
-                        Raw BLE payload (debug)
+                        BLE scan diagnostic
                       </div>
-                      <div className="text-yellow-100 text-[11px] font-mono break-all leading-snug" data-testid="text-bt-raw-hex">
-                        {btDebugInfo.hex || "(empty)"}
+                      {(btDebugInfo as any).summary && (
+                        <div className="text-yellow-200/90 text-[10px] font-mono">
+                          {(btDebugInfo as any).summary}
+                        </div>
+                      )}
+                      <div className="text-yellow-100 text-[10px] font-mono whitespace-pre-wrap break-all leading-snug" data-testid="text-bt-raw-hex">
+                        {btDebugInfo.hex || "(scanning…)"}
                       </div>
                       <div className="text-yellow-300/70 text-[10px] font-mono">
-                        {btDebugInfo.bytes} byte{btDebugInfo.bytes === 1 ? "" : "s"} · parsed: {btDebugInfo.parsed === null ? "null" : btDebugInfo.parsed.toFixed(3)}°{btDebugInfo.unit} · {Math.round((Date.now() - btDebugInfo.at) / 1000)}s ago
+                        {Math.round((Date.now() - btDebugInfo.at) / 1000)}s ago
                       </div>
                     </div>
                   )}
