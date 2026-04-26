@@ -4677,13 +4677,39 @@ export default function Home() {
                   {hrScanDevices.length > 0 && (() => {
                     // Filter out devices that are clearly not heart rate monitors
                     const NON_HR_PATTERNS = /\b(TV|Television|YamahaAV|Yamaha|LCI|Remote|MacBook|iMac|MacPro|AirPod|HomePod|iPad|iPhone|Android|Kindle|Echo|Alexa|Chromecast|Roku|Xbox|PlayStation|Nintendo|Printer|Amazon|Ring|Nest|Hue|Sonos|Bose|Harman|JBL|Sony|Samsung|LG|Philips|Panasonic|Denon|Onkyo|Pioneer)\b/i;
+                    // Apple Watch advertises BLE but refuses to expose heart rate
+                    // to third-party apps over Bluetooth — Apple gates that
+                    // through HealthKit. We detect it here and show a dedicated
+                    // helper card instead of letting the user try (and fail) to pair.
+                    const APPLE_WATCH_PATTERN = /apple\s*watch|kevin'?s?\s*watch|.*'?s\s*watch/i;
+                    const appleWatch = hrScanDevices.find(d => APPLE_WATCH_PATTERN.test(d.name));
                     const filtered = [...hrScanDevices]
-                      .filter(d => !NON_HR_PATTERNS.test(d.name))
+                      .filter(d => !NON_HR_PATTERNS.test(d.name) && !APPLE_WATCH_PATTERN.test(d.name))
                       .sort((a, b) => b.rssi - a.rssi);
-                    if (filtered.length === 0) return (
+                    if (filtered.length === 0 && !appleWatch) return (
                       <p className="text-center text-blue-400/50 text-xs py-2">No heart rate monitors detected nearby.<br/>Make sure your device is powered on.</p>
                     );
                     return (
+                    <>
+                    {appleWatch && (
+                      <div className="bg-purple-900/30 border border-purple-700/40 rounded-xl px-3 py-2.5 mb-2">
+                        <div className="flex items-start gap-2">
+                          <Heart className="w-4 h-4 text-purple-300 shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-purple-100 text-sm font-semibold">Apple Watch detected</div>
+                            <div className="text-purple-200/80 text-[11px] leading-snug mt-1">
+                              Apple Watch can't share heart rate over Bluetooth — Apple only allows it through HealthKit.
+                              Use the <span className="font-semibold text-white">ColdStreak Watch app</span> instead: open
+                              it on your watch and tap <span className="font-semibold text-white">Start Plunge</span>, and
+                              live BPM will be sent to your iPhone automatically.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {filtered.length === 0 ? (
+                      <p className="text-center text-blue-400/50 text-xs py-2">No other heart rate monitors detected nearby.</p>
+                    ) : (
                     <div className="max-h-52 overflow-y-auto space-y-1.5 pr-0.5">
                       {filtered.map((d) => {
                         const bars = d.rssi >= -60 ? 3 : d.rssi >= -75 ? 2 : 1;
@@ -4712,6 +4738,8 @@ export default function Home() {
                         );
                       })}
                     </div>
+                    )}
+                    </>
                     );
                   })()}
 
