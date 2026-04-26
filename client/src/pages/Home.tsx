@@ -4265,6 +4265,20 @@ export default function Home() {
                       >reset</button>
                     )}
                   </div>
+                  {/* DIAGNOSTIC — raw BLE payload, used to reverse-engineer Inkbird format */}
+                  {btDebugInfo && (
+                    <div className="mt-1 px-3 py-2 rounded-xl bg-yellow-900/20 border border-yellow-700/40 space-y-1">
+                      <div className="text-yellow-300/80 text-[10px] font-semibold uppercase tracking-wide">
+                        Raw BLE payload (debug)
+                      </div>
+                      <div className="text-yellow-100 text-[11px] font-mono break-all leading-snug" data-testid="text-bt-raw-hex">
+                        {btDebugInfo.hex || "(empty)"}
+                      </div>
+                      <div className="text-yellow-300/70 text-[10px] font-mono">
+                        {btDebugInfo.bytes} byte{btDebugInfo.bytes === 1 ? "" : "s"} · parsed: {btDebugInfo.parsed === null ? "null" : btDebugInfo.parsed.toFixed(3)}°{btDebugInfo.unit} · {Math.round((Date.now() - btDebugInfo.at) / 1000)}s ago
+                      </div>
+                    </div>
+                  )}
                   <button
                     data-testid="button-bt-disconnect-devices"
                     onClick={disconnectThermometer}
