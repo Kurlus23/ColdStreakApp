@@ -36,6 +36,7 @@ public class WatchSyncPlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "getPendingPlunges", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearPendingPlunges", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "openHealthSettings", returnType: CAPPluginReturnPromise),
     ]
 
     private let storeKey = "coldstreak.watch.received_plunges"
@@ -62,6 +63,22 @@ public class WatchSyncPlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate {
         }
         UserDefaults.standard.set(queue, forKey: storeKey)
         call.resolve()
+    }
+
+    /// Opens the iPhone's per-app Settings page so the user can drill into
+    /// Health → Data Access & Devices → ColdStreak to fix permissions.
+    /// (iOS doesn't expose a deeper deep-link than the per-app settings root.)
+    @objc func openHealthSettings(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            guard let url = URL(string: UIApplication.openSettingsURLString),
+                  UIApplication.shared.canOpenURL(url) else {
+                call.reject("Cannot open Settings URL")
+                return
+            }
+            UIApplication.shared.open(url, options: [:]) { ok in
+                call.resolve(["opened": ok])
+            }
+        }
     }
 
     // MARK: - WCSessionDelegate

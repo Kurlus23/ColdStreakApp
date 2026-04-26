@@ -31,6 +31,9 @@ interface WatchPlungePayload {
 interface WatchSyncPlugin {
   getPendingPlunges: () => Promise<{ plunges: WatchPlungePayload[] }>;
   clearPendingPlunges: (opts: { ids: string[] }) => Promise<void>;
+  /** Opens the iPhone's per-app Settings page so the user can fix HealthKit
+   *  permissions. From there: Health → Data Access & Devices → ColdStreak. */
+  openHealthSettings: () => Promise<{ opened: boolean }>;
   addListener: {
     (event: "watchPlungeReceived", cb: (p: WatchPlungePayload) => void): Promise<{ remove: () => Promise<void> }>;
     (event: "watchLiveHR", cb: (p: { bpm: number; ts: number }) => void): Promise<{ remove: () => Promise<void> }>;

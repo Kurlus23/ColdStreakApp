@@ -273,6 +273,10 @@ export default function Home() {
   const [currentHR, setCurrentHR] = useState<number | null>(null);
   const [hrPeak, setHrPeak] = useState<number | null>(null);
   const hrReadingsRef = useRef<number[]>([]);
+  // Watch HR troubleshooting modal — explains the HealthKit permission
+  // requirements (Heart Rate, HRV, Active Energy) when the user reports
+  // their watch HR isn't streaming live.
+  const [showWatchHrHelp, setShowWatchHrHelp] = useState(false);
 
   // Countdown
   const [countdownMode, setCountdownMode] = useState(false);
@@ -4707,6 +4711,17 @@ export default function Home() {
               <p className="text-yellow-400/70 text-[10px] leading-relaxed bg-yellow-900/20 border border-yellow-700/30 rounded-lg px-3 py-2">
                 ⌚ Smartwatch tip: Start a workout on your watch <em>before</em> connecting to activate live HR broadcasting.
               </p>
+              <button
+                data-testid="button-watch-hr-troubleshoot"
+                onClick={() => setShowWatchHrHelp(true)}
+                className="w-full text-left text-orange-300/80 text-[11px] leading-snug bg-orange-900/15 border border-orange-700/30 rounded-lg px-3 py-2 hover:bg-orange-900/25 transition-colors flex items-center gap-2"
+              >
+                <span className="text-orange-400">⚠️</span>
+                <span className="flex-1">
+                  <span className="font-semibold">Apple Watch — Live HR not working?</span>
+                  <span className="text-orange-300/60"> Tap here</span>
+                </span>
+              </button>
               {hrConnected ? (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 bg-green-900/30 border border-green-700/40 rounded-xl px-3 py-2">
@@ -7321,6 +7336,99 @@ export default function Home() {
                 className="w-full py-3 rounded-2xl border border-blue-700/50 text-blue-400 font-semibold text-sm transition-all hover:border-blue-500"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Apple Watch Live HR troubleshooting modal */}
+      {showWatchHrHelp && (
+        <div
+          className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          onClick={() => setShowWatchHrHelp(false)}
+          data-testid="modal-watch-hr-help-backdrop"
+        >
+          <div
+            className="w-full max-w-md bg-blue-950 border border-blue-700/60 rounded-3xl p-6 space-y-4 max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="modal-watch-hr-help"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-2xl">⌚</div>
+              <div>
+                <div className="text-white font-bold text-lg">Live HR not working?</div>
+                <div className="text-blue-300/70 text-xs">Apple Watch troubleshooting</div>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-sm">
+              <p className="text-blue-100/90 leading-relaxed">
+                For live heart rate to stream from your Apple Watch during a plunge, three Health permissions must be enabled. <span className="text-orange-300 font-semibold">All three are required</span> — denying any one of them will block live HR.
+              </p>
+
+              <div className="bg-blue-900/50 border border-blue-700/50 rounded-2xl p-4 space-y-2">
+                <div className="text-white font-semibold text-xs uppercase tracking-wide mb-2">Required permissions</div>
+                <div className="flex items-center gap-2 text-blue-100">
+                  <span className="text-green-400">✓</span>
+                  <span><span className="font-semibold">Heart Rate</span></span>
+                </div>
+                <div className="flex items-center gap-2 text-blue-100">
+                  <span className="text-green-400">✓</span>
+                  <span><span className="font-semibold">Heart Rate Variability</span></span>
+                </div>
+                <div className="flex items-center gap-2 text-blue-100">
+                  <span className="text-green-400">✓</span>
+                  <span><span className="font-semibold">Active Energy</span></span>
+                </div>
+              </div>
+
+              <div className="bg-blue-900/30 border border-blue-700/30 rounded-2xl p-4 space-y-2">
+                <div className="text-white font-semibold text-xs uppercase tracking-wide">How to verify</div>
+                <ol className="text-blue-100/90 text-xs leading-relaxed space-y-1.5 list-decimal list-inside">
+                  <li>Tap the button below to open <span className="font-semibold text-white">Settings</span></li>
+                  <li>Scroll to and tap <span className="font-semibold text-white">Health</span></li>
+                  <li>Tap <span className="font-semibold text-white">Data Access &amp; Devices → ColdStreak</span></li>
+                  <li>Make sure all three switches above are <span className="font-semibold text-green-300">ON</span></li>
+                  <li>Return to ColdStreak and start a plunge from your watch</li>
+                </ol>
+              </div>
+
+              <p className="text-blue-300/60 text-[11px] leading-relaxed">
+                Tip: Apple's HealthKit only shows the permission dialog once per install. If you previously tapped "Don't Allow" on any item, this is the only way to fix it.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                data-testid="button-watch-hr-open-settings"
+                onClick={async () => {
+                  try {
+                    if (Capacitor.isNativePlatform()) {
+                      // Open iOS Settings app via the WatchSync plugin.
+                      // The native side calls UIApplication.openSettingsURLString
+                      // which lands on the per-app settings page; from there the
+                      // user taps Health → Data Access → ColdStreak.
+                      const { WatchSync } = await import("@/lib/watchSync");
+                      await WatchSync.openHealthSettings();
+                    } else {
+                      window.open("https://support.apple.com/guide/iphone/share-health-and-fitness-data-iph27f50fd15/ios", "_blank");
+                    }
+                  } catch (err) {
+                    console.warn("[watch-hr-help] open settings failed:", err);
+                  }
+                  setShowWatchHrHelp(false);
+                }}
+                className="w-full py-3 rounded-2xl bg-orange-500 text-white font-bold hover:bg-orange-400 transition-colors flex items-center justify-center gap-2"
+              >
+                Open iPhone Settings
+              </button>
+              <button
+                data-testid="button-watch-hr-help-close"
+                onClick={() => setShowWatchHrHelp(false)}
+                className="w-full py-2.5 rounded-2xl bg-blue-900/40 border border-blue-700/40 text-blue-200 font-medium hover:bg-blue-900/60 transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>
