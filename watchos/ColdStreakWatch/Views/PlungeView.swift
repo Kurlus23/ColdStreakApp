@@ -6,6 +6,7 @@ struct PlungeView: View {
     @State private var elapsedTick: TimeInterval = 0
     @State private var timer: Timer?
     @State private var isStopping = false
+    private var workoutMgr: PlungeWorkoutManager { .shared }
 
     var body: some View {
         ZStack {
@@ -54,11 +55,20 @@ struct PlungeView: View {
             // Diagnostic line — shows HR sample count + a hint after 20s of no HR
             // so we can tell where the chain is breaking. Remove later once HR is
             // confirmed working in the wild.
-            Text(hrStatusText)
-                .font(.system(size: 10))
-                .foregroundStyle(session.hrSamples.isEmpty && elapsedTick > 20 ? .yellow : .gray)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
+            VStack(spacing: 2) {
+                Text(hrStatusText)
+                    .font(.system(size: 10))
+                    .foregroundStyle(session.hrSamples.isEmpty && elapsedTick > 20 ? .yellow : .gray)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                if session.hrSamples.isEmpty && elapsedTick > 25 {
+                    Text(workoutMgr.diagnosticSummary)
+                        .font(.system(size: 8))
+                        .foregroundStyle(.orange.opacity(0.8))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                }
+            }
 
             Spacer(minLength: 4)
 
