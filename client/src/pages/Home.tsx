@@ -1999,11 +1999,24 @@ export default function Home() {
     }
   };
 
-  // Name patterns that identify likely thermometer devices.
-  // Currently officially supported: Inkbird IBS-TH2 Plus (advertises as "sps" or "IBS-TH2").
-  // We keep a slightly broader pattern so other Inkbird/standard BLE thermometers
-  // still appear in the scan list, but only the IBS-TH2 Plus is officially supported.
-  const THERMO_NAME_PATTERN = /inkbird|ibs-?t|ibs-?th|sps|temp.*sensor|smart.*therm|thermo/i;
+  // Name patterns that identify likely thermometer devices in the scanner.
+  // Officially tested + working:
+  //   • Inkbird IBS-TH2 Plus (advertises as "IBS-TH2" — uses standard
+  //     Inkbird parser via decodeInkbirdPayload)
+  //   • Off-brand "sps" probes (use the decodeMfrIdAsTempF fallback,
+  //     auto-detected via byte 6 of the inner payload)
+  // Likely to work without changes (same Inkbird advertising format):
+  //   • IBS-TH1 / TH1 Mini / TH1 Plus
+  // Surfaced in the scanner so they CAN be paired and tested, but may
+  // need a device-specific decoder if readings look wrong:
+  //   • IBS-P01B / IBS-P02B (pool floaters)
+  //   • IBS-TH3 (newer protocol)
+  //   • IBS-M1 (gateway, not a sensor — included for completeness)
+  // The `ibs[-_ ]?\w+` branch matches every IBS-* model regardless of
+  // suffix, so any future Inkbird release will at least appear in the
+  // scan list. Generic "thermometer" / "temp sensor" names are caught
+  // by the trailing branches.
+  const THERMO_NAME_PATTERN = /inkbird|ibs[-_ ]?\w+|sps|temp.*sensor|smart.*therm|thermo/i;
 
   async function startThermoScan() {
     if (!assertBleAvailable()) return;
