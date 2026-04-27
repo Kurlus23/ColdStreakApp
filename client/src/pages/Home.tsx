@@ -236,18 +236,6 @@ export default function Home() {
   // `clamped` records when the parsed value got squashed to fit the
   // 25–60 °F display window — without this the UI silently lies about
   // what the device actually sent.
-  const [btDebugInfo, setBtDebugInfo] = useState<{
-    hex: string;
-    parsed: number | null;
-    unit: "F" | "C";
-    bytes: number;
-    at: number;
-    candidates?: string[];
-    clamped?: { from: number; to: number } | null;
-    deviceName?: string;
-    deviceId?: string;
-    rssi?: number;
-  } | null>(null);
   const thermoReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const thermoReconnectCountRef = useRef(0);
   // Auto-stop timers for the "find my thermometer / heart-rate monitor"
@@ -256,12 +244,10 @@ export default function Home() {
   const thermoScanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hrScanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Throttle UI updates from BLE — Inkbird broadcasts ~every 1–2 s, which
-  // makes the displayed temperature and the diagnostic panel flicker too
-  // fast to read. We update at most every 3 s for the temperature and
-  // 1.5 s for the diagnostic, while still letting the watchdog know a
-  // sample arrived (via lastThermoNotifRef) on every broadcast.
+  // makes the displayed temperature flicker too fast to read. We update at
+  // most every 3 s for the temperature, while still letting the watchdog
+  // know a sample arrived (via lastThermoNotifRef) on every broadcast.
   const lastTempUiUpdateRef = useRef<number>(0);
-  const lastDebugUiUpdateRef = useRef<number>(0);
   const [savedDevicesKey, setSavedDevicesKey] = useState(0); // bump to re-render saved device rows
   // HR custom scanner
   const [hrScanActive, setHrScanActive] = useState(false);
@@ -1476,36 +1462,12 @@ export default function Home() {
     return (c * 9) / 5 + 32;
   }
 
-  // For a misbehaving / unknown device, list every plausible temperature
-  // interpretation of the bytes — every offset, both endiannesses, °C and
-  // °F. Used in the diagnostic so we (or the user) can spot which
-  // interpretation matches what the thermometer's own screen shows.
-  // Only returns rows in plausible water-temp range (-10 °C to 80 °C).
-  function listTempCandidates(dv: DataView): string[] {
-    const out: string[] = [];
-    const inRange = (c: number) => isFinite(c) && c >= -10 && c <= 80;
-    for (let off = 0; off + 2 <= dv.byteLength; off++) {
-      try {
-        const le = dv.getInt16(off, true);
-        const be = dv.getInt16(off, false);
-        const leC = le / 100;
-        const beC = be / 100;
-        const leF = (leC * 9) / 5 + 32;
-        const beF = (beC * 9) / 5 + 32;
-        if (inRange(leC)) out.push(`@${off}-${off + 1} LE: ${leC.toFixed(1)}°C / ${leF.toFixed(1)}°F`);
-        if (inRange(beC) && be !== le) out.push(`@${off}-${off + 1} BE: ${beC.toFixed(1)}°C / ${beF.toFixed(1)}°F`);
-      } catch { /* skip */ }
-    }
-    return out;
-  }
-
   // Inspect a scan result's manufacturer data AND service data, return the
   // first valid temperature found and a per-payload hex breakdown for
   // the diagnostic panel.
   function inspectScanResultPayloads(result: ScanResult, decodeTemps: boolean = true): {
     tempF: number | null;
     lines: string[];
-    candidates: string[];
     totalBytes: number;
     probeAttached: boolean | null;
     battery: number | null;
@@ -1516,51 +1478,20 @@ export default function Home() {
     let probeAttached: boolean | null = null;
     let battery: number | null = null;
 
-    const candidates: string[] = [];
-
     if (result.manufacturerData) {
       for (const [mfrId, dv] of Object.entries(result.manufacturerData)) {
         totalBytes += dv.byteLength;
         if (!decodeTemps) {
-          // Non-matching devices: track byte count for diagnostic but never
-          // attempt to decode as Inkbird — every random BLE device on the
-          // network has manufacturer data, and parsing it as a temperature
-          // produces meaningless numbers (Govee, MacBooks, AirPods, etc.).
           lines.push(`mfr ${mfrId} (${dv.byteLength}B)`);
           continue;
         }
-        const bytes: string[] = [];
-        for (let i = 0; i < dv.byteLength; i++) bytes.push(dv.getUint8(i).toString(16).padStart(2, "0"));
         const decoded = decodeInkbirdPayload(dv);
         // The "sps"-style decoder treats the manufacturer ID itself as the
         // temperature payload (see decodeMfrIdAsTempF). For any device that
         // *isn't* a real Inkbird (mfrId 2690 / 0x0A82) we'll fall back to
         // this reading when the standard Inkbird offsets give garbage.
         const mfrIdTempF = decodeMfrIdAsTempF(mfrId);
-
-        const flagPart = decoded.probeAttached === null ? "" :
-          decoded.probeAttached ? " [probe]" : " [internal]";
-        const battPart = decoded.battery === null ? "" : ` batt=${decoded.battery}%`;
-        const tempPart = decoded.probeF !== null
-          ? ` t1=${decoded.probeF.toFixed(1)}°F${decoded.sensor2F !== null ? ` t2=${decoded.sensor2F.toFixed(1)}°F` : ""}`
-          : "";
-        const mfrIdTempPart = mfrIdTempF !== null
-          ? ` mfrId→${mfrIdTempF.toFixed(1)}°F`
-          : "";
-        lines.push(`mfr ${mfrId} (${dv.byteLength}B): ${bytes.join(" ")}${tempPart}${mfrIdTempPart}${flagPart}${battPart}`);
-        // Always emit the full candidate list — for stock IBS-TH2 Plus this
-        // is redundant, but for off-brand "sps"-named units broadcasting
-        // a different byte layout, this lets us spot the correct offset by
-        // comparing each candidate to the device screen. The mfrId-as-temp
-        // candidate is added explicitly because it isn't covered by the
-        // byte-offset enumeration (the BLE plugin strips those bytes off
-        // and exposes them as the manufacturer-id key).
-        if (mfrIdTempF !== null) {
-          const c = (mfrIdTempF - 32) * 5 / 9;
-          candidates.push(`mfr ${mfrId} mfrId-as-temp: ${c.toFixed(1)}°C / ${mfrIdTempF.toFixed(1)}°F  ← off-brand "sps" format`);
-        }
-        const cand = listTempCandidates(dv);
-        if (cand.length) candidates.push(...cand.map(c => `mfr ${mfrId} ${c}`));
+        lines.push(`mfr ${mfrId} (${dv.byteLength}B)`);
         // Only auto-resolve from manufacturer payloads ≥ 6 bytes — service-data
         // and short payloads can decode to false-positive temps. Prefer the
         // probe reading when byte 6 explicitly says the probe is attached.
@@ -1599,16 +1530,13 @@ export default function Home() {
 
     if (result.serviceData && decodeTemps) {
       for (const [uuid, dv] of Object.entries(result.serviceData)) {
-        const bytes: string[] = [];
-        for (let i = 0; i < dv.byteLength; i++) bytes.push(dv.getUint8(i).toString(16).padStart(2, "0"));
         totalBytes += dv.byteLength;
-        const parsed = parseTempFromBytes(dv);
         const shortUuid = uuid.length > 10 ? uuid.slice(0, 8) : uuid;
-        lines.push(`svc ${shortUuid} (${dv.byteLength}B): ${bytes.join(" ")}${parsed !== null ? ` → ${parsed.toFixed(1)}°F` : ""}`);
+        lines.push(`svc ${shortUuid} (${dv.byteLength}B)`);
       }
     }
 
-    return { tempF: resolvedTempF, lines, candidates, totalBytes, probeAttached, battery };
+    return { tempF: resolvedTempF, lines, totalBytes, probeAttached, battery };
   }
 
   // Apply the display-range clamp used everywhere we hand a parsed temp to
@@ -1629,31 +1557,9 @@ export default function Home() {
     };
   }
 
-  // Backward-compat shim used by startThermoStream. Updates btDebugInfo
-  // for matched broadcasts only (keepalive path), throttled to ~1.5 s so
-  // the panel doesn't repaint on every advertisement.
+  // Pulls the temperature out of one Inkbird BLE advertisement.
   function parseInkbirdScanResult(result: ScanResult): number | null {
-    const { tempF, lines, candidates, totalBytes, probeAttached, battery } = inspectScanResultPayloads(result);
-    const now = Date.now();
-    if (now - lastDebugUiUpdateRef.current >= 1500) {
-      lastDebugUiUpdateRef.current = now;
-      const flag = probeAttached === true ? " [probe]" : probeAttached === false ? " [internal]" : "";
-      const bat = battery !== null ? ` batt=${battery}%` : "";
-      const clampInfo = tempF !== null ? clampDisplayTempF(tempF + btTempOffsetRef.current).clamped : null;
-      setBtDebugInfo({
-        hex: (lines.join(" | ") || "(no payload)") + flag + bat,
-        parsed: tempF,
-        unit: "F",
-        bytes: totalBytes,
-        at: now,
-        candidates,
-        clamped: clampInfo,
-        deviceName: result.device?.name ?? undefined,
-        deviceId: result.device?.deviceId,
-        rssi: typeof result.rssi === "number" ? result.rssi : undefined,
-      });
-    }
-    return tempF;
+    return inspectScanResultPayloads(result).tempF;
   }
 
   /**
@@ -1688,58 +1594,10 @@ export default function Home() {
         matchKind: "id" | "name" | "none";
         lastAt: number;
       }>();
-      let scanResultsCount = 0;
-
-      const renderDebug = (force: boolean = false) => {
-        // Throttle UI updates so the diagnostic doesn't repaint on every
-        // BLE advertisement (which can fire several times a second).
-        const now = Date.now();
-        if (!force && now - lastDebugUiUpdateRef.current < 2000) return;
-        lastDebugUiUpdateRef.current = now;
-
-        // Find the matched device (if any). We ONLY care about that one —
-        // showing 5 random devices in range turns the panel into noise.
-        const matched = Array.from(seen.entries()).find(([, info]) => info.matchKind !== "none");
-        const otherCount = seen.size - (matched ? 1 : 0);
-
-        let lines: string[];
-        if (matched) {
-          const [id, info] = matched;
-          const mark = info.matchKind === "id" ? "✓ID" : "✓NAME";
-          const shortId = id.length > 8 ? id.slice(-8) : id;
-          const ageSec = Math.round((now - info.lastAt) / 1000);
-          const ageStr = ageSec <= 1 ? "now" : `${ageSec}s ago`;
-          const tempStr = info.parsedF !== null ? `  ⇒ ${info.parsedF.toFixed(1)}°F` : "";
-          lines = [
-            `[${mark}] ${info.name || "(no-name)"} ${shortId} rssi=${info.rssi} (${ageStr})${tempStr}`,
-            ...(info.lines.length ? info.lines.map(l => `  ${l}`) : ["  (no payload yet)"]),
-          ];
-        } else if (seen.size === 0) {
-          lines = ["No BLE devices in range yet — keep the thermometer awake (press its button)."];
-        } else {
-          lines = [
-            `❌ "${expectedName || "thermometer"}" not broadcasting`,
-            `   Looking for: name="${expectedName || "(unknown)"}" id ends in ${(deviceId || "").slice(-8)}`,
-            `   Make sure it's powered on and within ~10 ft.`,
-          ];
-        }
-        const summary = `scans=${scanResultsCount} · ${seen.size} BLE device${seen.size === 1 ? "" : "s"} in range · ${otherCount} ignored`;
-        setBtDebugInfo({
-          hex: lines.join("\n"),
-          parsed: null,
-          unit: "F",
-          bytes: 0,
-          at: now,
-          // Stash the summary in the hex string so the existing panel UI
-          // shows it without needing a separate field.
-          ...({ summary } as any),
-        } as any);
-      };
 
       const timer = setTimeout(() => {
         if (!firstResolved) {
           firstResolved = true;
-          renderDebug();
           // Stop the scan on timeout — caller decides whether to keep
           // listening (success path calls startThermoKeepalive which restarts).
           BleClient.stopLEScan().catch(() => {});
@@ -1751,7 +1609,6 @@ export default function Home() {
         await BleClient.requestLEScan(
           { allowDuplicates: true },
           (result) => {
-            scanResultsCount++;
             const id = result.device.deviceId;
             const name = result.device.name ?? "";
             const rssi = result.rssi ?? -99;
@@ -1768,9 +1625,6 @@ export default function Home() {
             const { tempF, lines, totalBytes } = inspectScanResultPayloads(result, matchKind !== "none");
 
             seen.set(id, { name, rssi, lines, totalBytes, parsedF: tempF, matchKind, lastAt: Date.now() });
-
-            // Refresh debug panel (throttled to once per ~2s by renderDebug)
-            renderDebug();
 
             if (matchKind === "none") return;
             if (tempF === null) return;
@@ -1794,7 +1648,6 @@ export default function Home() {
         if (!firstResolved) {
           firstResolved = true;
           clearTimeout(timer);
-          renderDebug();
           BleClient.stopLEScan().catch(() => {});
           resolve(null);
         }
@@ -2284,7 +2137,6 @@ export default function Home() {
     setBtProtocol(null);
     setBtConnected(false);
     setBtDeviceName("");
-    setBtDebugInfo(null);
     // Stop the beacon advertisement scan
     await BleClient.stopLEScan().catch(() => {});
   };
@@ -4684,68 +4536,6 @@ export default function Home() {
                       >reset</button>
                     )}
                   </div>
-                  {/* DIAGNOSTIC — raw BLE payload, used to reverse-engineer Inkbird format */}
-                  {btDebugInfo && (
-                    <div className="mt-1 px-3 py-2 rounded-xl bg-yellow-900/20 border border-yellow-700/40 space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <div className="text-yellow-300/80 text-[10px] font-semibold uppercase tracking-wide">
-                          BLE scan diagnostic
-                        </div>
-                        <div className="text-yellow-300/60 text-[10px] font-mono">
-                          {Math.round((Date.now() - btDebugInfo.at) / 1000)}s ago
-                        </div>
-                      </div>
-
-                      {/* Device identity row — name, id, signal strength */}
-                      {(btDebugInfo.deviceName || btDebugInfo.deviceId) && (
-                        <div className="text-yellow-200/80 text-[10px] font-mono break-all leading-snug">
-                          {btDebugInfo.deviceName ? <span className="text-yellow-100">"{btDebugInfo.deviceName}"</span> : ""}
-                          {btDebugInfo.deviceId ? <> · {btDebugInfo.deviceId}</> : ""}
-                          {typeof btDebugInfo.rssi === "number" ? <> · {btDebugInfo.rssi} dBm</> : ""}
-                        </div>
-                      )}
-
-                      {(btDebugInfo as any).summary && (
-                        <div className="text-yellow-200/90 text-[10px] font-mono">
-                          {(btDebugInfo as any).summary}
-                        </div>
-                      )}
-
-                      {/* Raw bytes + parsed Inkbird interpretation */}
-                      <div className="text-yellow-100 text-[10px] font-mono whitespace-pre-wrap break-all leading-snug" data-testid="text-bt-raw-hex">
-                        {btDebugInfo.hex || "(scanning…)"}
-                      </div>
-
-                      {/* Clamp warning — shown when the parsed reading
-                          fell outside the 25–90 °F display range and got
-                          squashed (i.e. parser is misreading bytes). */}
-                      {btDebugInfo.clamped && (
-                        <div className="mt-1 px-2 py-1.5 rounded-lg bg-red-900/30 border border-red-700/50 text-red-200 text-[10px] leading-snug" data-testid="text-bt-clamp-warn">
-                          ⚠ Parser read <span className="font-bold">{btDebugInfo.clamped.from}°F</span>, clamped to <span className="font-bold">{btDebugInfo.clamped.to}°F</span> for display. The byte layout below probably needs a different offset.
-                        </div>
-                      )}
-
-                      {/* Candidate temperatures at every byte offset.
-                          For an unknown device, scan this list for the
-                          number matching what your thermometer's screen
-                          shows — that offset is the correct one. */}
-                      {btDebugInfo.candidates && btDebugInfo.candidates.length > 0 && (
-                        <details className="text-yellow-100 text-[10px] font-mono leading-snug">
-                          <summary className="cursor-pointer text-yellow-300/80 text-[10px] font-semibold uppercase tracking-wide hover:text-yellow-200" data-testid="button-bt-candidates-toggle">
-                            All candidate temps ({btDebugInfo.candidates.length})
-                          </summary>
-                          <div className="mt-1 pl-2 space-y-0.5" data-testid="list-bt-candidates">
-                            {btDebugInfo.candidates.map((c, i) => (
-                              <div key={i} className="text-yellow-100/90 break-all">{c}</div>
-                            ))}
-                          </div>
-                          <div className="mt-1 text-yellow-300/60 text-[10px] italic">
-                            Compare these to the number on your thermometer's screen — the matching one is the correct byte offset.
-                          </div>
-                        </details>
-                      )}
-                    </div>
-                  )}
                   <button
                     data-testid="button-bt-disconnect-devices"
                     onClick={disconnectThermometer}
@@ -7568,19 +7358,40 @@ export default function Home() {
               <button
                 data-testid="button-watch-hr-open-settings"
                 onClick={async () => {
-                  try {
-                    if (Capacitor.isNativePlatform()) {
-                      // Open iOS Settings app via the WatchSync plugin.
-                      // The native side calls UIApplication.openSettingsURLString
-                      // which lands on the per-app settings page; from there the
-                      // user taps Health → Data Access → ColdStreak.
+                  // Try a sequence of "open Settings" methods in order of
+                  // most-likely-to-work. On iOS, `app-settings:` is the
+                  // standard URL scheme that lands on this app's per-app
+                  // settings page (from there: Health → Data Access &
+                  // Devices → ColdStreak). Setting `window.location.href`
+                  // to that scheme works in Capacitor's WKWebView without
+                  // any custom native plugin code in the binary — which
+                  // matters because the WatchSync `openHealthSettings`
+                  // native method only exists in build 20+.
+                  let opened = false;
+                  if (Capacitor.isNativePlatform()) {
+                    try {
+                      window.location.href = "app-settings:";
+                      opened = true;
+                    } catch (err) {
+                      console.warn("[watch-hr-help] window.location app-settings: failed:", err);
+                    }
+                    // Belt-and-braces: if the binary does include the
+                    // WatchSync.openHealthSettings native method (build 20+),
+                    // call it too — it does the same thing via Swift
+                    // (UIApplication.openSettingsURLString) and one of them
+                    // will land.
+                    try {
                       const { WatchSync } = await import("@/lib/watchSync");
                       await WatchSync.openHealthSettings();
-                    } else {
-                      window.open("https://support.apple.com/guide/iphone/share-health-and-fitness-data-iph27f50fd15/ios", "_blank");
+                      opened = true;
+                    } catch {
+                      // Older binary — fine, the URL-scheme path above wins.
                     }
-                  } catch (err) {
-                    console.warn("[watch-hr-help] open settings failed:", err);
+                  }
+                  if (!opened) {
+                    // Web (or both native attempts failed): show the manual
+                    // instructions in a new tab.
+                    window.open("https://support.apple.com/guide/iphone/share-health-and-fitness-data-iph27f50fd15/ios", "_blank");
                   }
                   setShowWatchHrHelp(false);
                 }}
