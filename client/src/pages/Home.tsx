@@ -1487,25 +1487,28 @@ export default function Home() {
         }
         const decoded = decodeInkbirdPayload(dv);
         // The "sps"-style decoder treats the manufacturer ID itself as the
-        // temperature payload (see decodeMfrIdAsTempF). For any device that
-        // *isn't* a real Inkbird (mfrId 2690 / 0x0A82) we'll fall back to
-        // this reading when the standard Inkbird offsets give garbage.
+        // temperature payload (see decodeMfrIdAsTempF). Used for any device
+        // that isn't a real Inkbird IBS-TH2 Plus.
         const mfrIdTempF = decodeMfrIdAsTempF(mfrId);
         lines.push(`mfr ${mfrId} (${dv.byteLength}B)`);
         // Only auto-resolve from manufacturer payloads ≥ 6 bytes — service-data
-        // and short payloads can decode to false-positive temps. Prefer the
-        // probe reading when byte 6 explicitly says the probe is attached.
+        // and short payloads can decode to false-positive temps.
         if (resolvedTempF === null && dv.byteLength >= 6) {
-          // Treat the standard Inkbird probe reading as "plausible" only
-          // when it lands in a believable water/room range (-5…45 °C i.e.
-          // 23–113 °F). When a non-Inkbird device gives us a wildly
-          // out-of-range reading via the standard offsets but the mfrId
-          // itself decodes to a sane temperature, prefer the mfrId path.
-          const inkbirdSane = decoded.probeF !== null
-            && decoded.probeF >= 23 && decoded.probeF <= 113;
-          const useMfrIdFallback = !inkbirdSane && mfrIdTempF !== null;
+          // Distinguish a real Inkbird IBS-TH2 Plus from an off-brand
+          // "sps"-style device by inspecting byte 6 of the inner payload:
+          //   • Real Inkbird: byte 6 ∈ {0x00, 0x01}  (probe-attached flag)
+          //   • Off-brand "sps": byte 6 = 0x08       (some other meaning)
+          // This is much more reliable than a temperature-range heuristic
+          // because the byte-6 marker is invariant under water temperature
+          // — whereas the heuristic can misfire when a "sps" probe in
+          // cold water happens to broadcast inner bytes that decode to a
+          // value inside the "sane" 23–113°F window via the standard
+          // Inkbird offset (which would silently use the wrong reading).
+          const byte6 = dv.byteLength >= 7 ? dv.getUint8(6) : null;
+          const looksLikeInkbird = byte6 === 0 || byte6 === 1;
 
-          if (useMfrIdFallback) {
+          if (!looksLikeInkbird && mfrIdTempF !== null) {
+            // Off-brand device — use the mfrId-as-temp interpretation.
             resolvedTempF = mfrIdTempF;
             probeAttached = null;
             battery = decoded.battery;
