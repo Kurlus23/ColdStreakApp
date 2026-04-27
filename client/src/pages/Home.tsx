@@ -1455,6 +1455,27 @@ export default function Home() {
     return { probeF, sensor2F, probeAttached, battery };
   }
 
+  // Off-brand "sps"-style probes pack the temperature into the FIRST TWO
+  // BYTES of the raw BLE manufacturer-data block. The BLE spec interprets
+  // those two bytes as the company identifier (uint16 LE), so the Capacitor
+  // BLE plugin reports them via `result.manufacturerData[mfrId]` — the
+  // *key*, not the value. To recover the temperature we treat that key as
+  // an int16 LE and divide by 100 (°C). Returns °F or null.
+  //
+  // Two real captures from a "sps" probe used to validate this:
+  //   thermometer screen 80.4°F → mfrId 2690 → 26.90°C → 80.42°F ✓
+  //   thermometer screen 93°F   → mfrId 3380 → 33.80°C → 92.84°F ✓
+  function decodeMfrIdAsTempF(mfrIdStr: string): number | null {
+    const id = parseInt(mfrIdStr, 10);
+    if (!isFinite(id)) return null;
+    // Treat the unsigned uint16 as a signed int16 (so sub-zero readings
+    // 0xFFxx wrap correctly).
+    const signed = id > 0x7FFF ? id - 0x10000 : id;
+    const c = signed / 100;
+    if (!isFinite(c) || c < -10 || c > 80) return null;
+    return (c * 9) / 5 + 32;
+  }
+
   // For a misbehaving / unknown device, list every plausible temperature
   // interpretation of the bytes — every offset, both endiannesses, °C and
   // °F. Used in the diagnostic so we (or the user) can spot which
@@ -1511,24 +1532,53 @@ export default function Home() {
         const bytes: string[] = [];
         for (let i = 0; i < dv.byteLength; i++) bytes.push(dv.getUint8(i).toString(16).padStart(2, "0"));
         const decoded = decodeInkbirdPayload(dv);
+        // The "sps"-style decoder treats the manufacturer ID itself as the
+        // temperature payload (see decodeMfrIdAsTempF). For any device that
+        // *isn't* a real Inkbird (mfrId 2690 / 0x0A82) we'll fall back to
+        // this reading when the standard Inkbird offsets give garbage.
+        const mfrIdTempF = decodeMfrIdAsTempF(mfrId);
+
         const flagPart = decoded.probeAttached === null ? "" :
           decoded.probeAttached ? " [probe]" : " [internal]";
         const battPart = decoded.battery === null ? "" : ` batt=${decoded.battery}%`;
         const tempPart = decoded.probeF !== null
           ? ` t1=${decoded.probeF.toFixed(1)}°F${decoded.sensor2F !== null ? ` t2=${decoded.sensor2F.toFixed(1)}°F` : ""}`
           : "";
-        lines.push(`mfr ${mfrId} (${dv.byteLength}B): ${bytes.join(" ")}${tempPart}${flagPart}${battPart}`);
+        const mfrIdTempPart = mfrIdTempF !== null
+          ? ` mfrId→${mfrIdTempF.toFixed(1)}°F`
+          : "";
+        lines.push(`mfr ${mfrId} (${dv.byteLength}B): ${bytes.join(" ")}${tempPart}${mfrIdTempPart}${flagPart}${battPart}`);
         // Always emit the full candidate list — for stock IBS-TH2 Plus this
         // is redundant, but for off-brand "sps"-named units broadcasting
-        // mfrId 2690 with a different byte layout, this lets us spot the
-        // correct offset by comparing each candidate to the device screen.
+        // a different byte layout, this lets us spot the correct offset by
+        // comparing each candidate to the device screen. The mfrId-as-temp
+        // candidate is added explicitly because it isn't covered by the
+        // byte-offset enumeration (the BLE plugin strips those bytes off
+        // and exposes them as the manufacturer-id key).
+        if (mfrIdTempF !== null) {
+          const c = (mfrIdTempF - 32) * 5 / 9;
+          candidates.push(`mfr ${mfrId} mfrId-as-temp: ${c.toFixed(1)}°C / ${mfrIdTempF.toFixed(1)}°F  ← off-brand "sps" format`);
+        }
         const cand = listTempCandidates(dv);
         if (cand.length) candidates.push(...cand.map(c => `mfr ${mfrId} ${c}`));
         // Only auto-resolve from manufacturer payloads ≥ 6 bytes — service-data
         // and short payloads can decode to false-positive temps. Prefer the
         // probe reading when byte 6 explicitly says the probe is attached.
         if (resolvedTempF === null && dv.byteLength >= 6) {
-          if (decoded.probeAttached === true && decoded.probeF !== null) {
+          // Treat the standard Inkbird probe reading as "plausible" only
+          // when it lands in a believable water/room range (-5…45 °C i.e.
+          // 23–113 °F). When a non-Inkbird device gives us a wildly
+          // out-of-range reading via the standard offsets but the mfrId
+          // itself decodes to a sane temperature, prefer the mfrId path.
+          const inkbirdSane = decoded.probeF !== null
+            && decoded.probeF >= 23 && decoded.probeF <= 113;
+          const useMfrIdFallback = !inkbirdSane && mfrIdTempF !== null;
+
+          if (useMfrIdFallback) {
+            resolvedTempF = mfrIdTempF;
+            probeAttached = null;
+            battery = decoded.battery;
+          } else if (decoded.probeAttached === true && decoded.probeF !== null) {
             resolvedTempF = decoded.probeF;
             probeAttached = true;
             battery = decoded.battery;
