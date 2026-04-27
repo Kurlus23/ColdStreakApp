@@ -51,6 +51,15 @@ export default function Privacy() {
                 <span className="font-semibold text-slate-800">Device location (GPS)</span> — only requested with your explicit permission. When granted, your device coordinates are used locally to suggest nearby community locations, to auto-detect your city and state for session logging, and to pin GPS coordinates when creating an event or community location. Precise coordinates are not stored on our servers beyond what you explicitly choose to attach to a submitted location or event. Location data is never used for advertising or shared with third parties.
               </li>
               <li>
+                <span className="font-semibold text-slate-800">Apple Health data (iOS only)</span> — only requested with your explicit permission. When granted, ColdStreak reads your heart rate and heart-rate variability from Apple Health for the duration of an active plunge to compute summary metrics (such as average heart rate over the session). The aggregated metrics are stored as part of the plunge record on your device and, if you have an account, on our servers. Raw individual heart-rate samples from Apple Health are never transmitted off your device. ColdStreak does not write data back to Apple Health and does not read any other health data type.
+              </li>
+              <li>
+                <span className="font-semibold text-slate-800">Bluetooth (BLE)</span> — only requested with your explicit permission. Used to discover and connect to a paired water-temperature thermometer (e.g. Inkbird IBS-TH2 Plus) and a paired heart-rate monitor. All Bluetooth scan results, advertisement payloads, and live readings are processed entirely on your device. The decoded current temperature and heart rate may be saved as part of a plunge record you choose to log; the underlying raw Bluetooth data is never transmitted to our servers.
+              </li>
+              <li>
+                <span className="font-semibold text-slate-800">Apple Watch (iOS only)</span> — when you install the optional ColdStreak Watch companion app, your active plunge timer, average heart rate, and any HRV reading are sent from the Watch to the iPhone over Apple's secure Watch Connectivity channel. This data is not transmitted off your device except as part of a plunge record you choose to log.
+              </li>
+              <li>
                 <span className="font-semibold text-slate-800">Device settings and preferences</span> — stored locally on your device only (body weight, home location label, alarm preferences, private spots). Not transmitted to our servers.
               </li>
             </ul>
@@ -60,8 +69,8 @@ export default function Privacy() {
             <h2 className="text-base font-bold text-slate-900 mb-2">Information We Do Not Collect</h2>
             <ul className="list-disc pl-5 space-y-2 text-slate-600">
               <li>We do not collect your precise GPS location without your explicit permission, and we do not store raw GPS coordinates on our servers beyond what you explicitly choose to attach to a submitted location or event.</li>
-              <li>We do not collect health data beyond what you manually enter.</li>
-              <li>We do not use advertising tracking identifiers or third-party ad tracking SDKs.</li>
+              <li>We do not read any health data from Apple Health beyond heart rate and heart-rate variability, and we never write data back to Apple Health.</li>
+              <li>We do not use advertising tracking identifiers (such as the iOS IDFA) or third-party ad tracking SDKs.</li>
               <li>We do not sell, rent, or share your personal data with third parties for their marketing purposes.</li>
             </ul>
           </section>
