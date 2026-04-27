@@ -231,7 +231,23 @@ export default function Home() {
   const lastThermoNotifRef = useRef<number>(0); // epoch ms of last received BLE notification
   // DIAGNOSTIC: most-recent raw BLE payload, parsed value, and unit flag.
   // Surfaced in the BT settings area so we can debug Inkbird parsing.
-  const [btDebugInfo, setBtDebugInfo] = useState<{ hex: string; parsed: number | null; unit: "F" | "C"; bytes: number; at: number } | null>(null);
+  // `candidates` lists every byte-offset interpretation so we can identify
+  // which one (if any) matches the real reading on a misbehaving device.
+  // `clamped` records when the parsed value got squashed to fit the
+  // 25–60 °F display window — without this the UI silently lies about
+  // what the device actually sent.
+  const [btDebugInfo, setBtDebugInfo] = useState<{
+    hex: string;
+    parsed: number | null;
+    unit: "F" | "C";
+    bytes: number;
+    at: number;
+    candidates?: string[];
+    clamped?: { from: number; to: number } | null;
+    deviceName?: string;
+    deviceId?: string;
+    rssi?: number;
+  } | null>(null);
   const thermoReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const thermoReconnectCountRef = useRef(0);
   // Auto-stop timers for the "find my thermometer / heart-rate monitor"
@@ -1331,7 +1347,7 @@ export default function Home() {
           }
           btProtocolRef.current = "beacon";
           setBtProtocol("beacon");
-          setTemperature(Math.min(60, Math.max(25, Math.round(_det1.tempF + btTempOffsetRef.current))));
+          setTemperature(clampDisplayTempF(_det1.tempF + btTempOffsetRef.current).value);
           startThermoKeepalive(_det1.matchedDeviceId, "beacon");
           setBtConnected(true);
           toast({ title: "Thermometer reconnected", description: name });
@@ -1439,12 +1455,36 @@ export default function Home() {
     return { probeF, sensor2F, probeAttached, battery };
   }
 
+  // For a misbehaving / unknown device, list every plausible temperature
+  // interpretation of the bytes — every offset, both endiannesses, °C and
+  // °F. Used in the diagnostic so we (or the user) can spot which
+  // interpretation matches what the thermometer's own screen shows.
+  // Only returns rows in plausible water-temp range (-10 °C to 80 °C).
+  function listTempCandidates(dv: DataView): string[] {
+    const out: string[] = [];
+    const inRange = (c: number) => isFinite(c) && c >= -10 && c <= 80;
+    for (let off = 0; off + 2 <= dv.byteLength; off++) {
+      try {
+        const le = dv.getInt16(off, true);
+        const be = dv.getInt16(off, false);
+        const leC = le / 100;
+        const beC = be / 100;
+        const leF = (leC * 9) / 5 + 32;
+        const beF = (beC * 9) / 5 + 32;
+        if (inRange(leC)) out.push(`@${off}-${off + 1} LE: ${leC.toFixed(1)}°C / ${leF.toFixed(1)}°F`);
+        if (inRange(beC) && be !== le) out.push(`@${off}-${off + 1} BE: ${beC.toFixed(1)}°C / ${beF.toFixed(1)}°F`);
+      } catch { /* skip */ }
+    }
+    return out;
+  }
+
   // Inspect a scan result's manufacturer data AND service data, return the
   // first valid temperature found and a per-payload hex breakdown for
   // the diagnostic panel.
   function inspectScanResultPayloads(result: ScanResult, decodeTemps: boolean = true): {
     tempF: number | null;
     lines: string[];
+    candidates: string[];
     totalBytes: number;
     probeAttached: boolean | null;
     battery: number | null;
@@ -1454,6 +1494,8 @@ export default function Home() {
     let resolvedTempF: number | null = null;
     let probeAttached: boolean | null = null;
     let battery: number | null = null;
+
+    const candidates: string[] = [];
 
     if (result.manufacturerData) {
       for (const [mfrId, dv] of Object.entries(result.manufacturerData)) {
@@ -1476,6 +1518,12 @@ export default function Home() {
           ? ` t1=${decoded.probeF.toFixed(1)}°F${decoded.sensor2F !== null ? ` t2=${decoded.sensor2F.toFixed(1)}°F` : ""}`
           : "";
         lines.push(`mfr ${mfrId} (${dv.byteLength}B): ${bytes.join(" ")}${tempPart}${flagPart}${battPart}`);
+        // Always emit the full candidate list — for stock IBS-TH2 Plus this
+        // is redundant, but for off-brand "sps"-named units broadcasting
+        // mfrId 2690 with a different byte layout, this lets us spot the
+        // correct offset by comparing each candidate to the device screen.
+        const cand = listTempCandidates(dv);
+        if (cand.length) candidates.push(...cand.map(c => `mfr ${mfrId} ${c}`));
         // Only auto-resolve from manufacturer payloads ≥ 6 bytes — service-data
         // and short payloads can decode to false-positive temps. Prefer the
         // probe reading when byte 6 explicitly says the probe is attached.
@@ -1510,25 +1558,49 @@ export default function Home() {
       }
     }
 
-    return { tempF: resolvedTempF, lines, totalBytes, probeAttached, battery };
+    return { tempF: resolvedTempF, lines, candidates, totalBytes, probeAttached, battery };
+  }
+
+  // Apply the display-range clamp used everywhere we hand a parsed temp to
+  // setTemperature. Returns the clamped value AND a record of any clamp
+  // that happened so the diagnostic panel can warn (e.g. "parsed 121°F →
+  // clamped to 60°F"). Without this surfacing, a misread sensor silently
+  // shows 60°F and looks like everything is fine.
+  // Range is widened to 25–90°F so a thermometer sitting on the counter
+  // (room temp ~70°F) shows its real reading instead of being squashed.
+  function clampDisplayTempF(rawF: number): { value: number; clamped: { from: number; to: number } | null } {
+    const MIN_F = 25;
+    const MAX_F = 90;
+    const rounded = Math.round(rawF);
+    const clamped = Math.min(MAX_F, Math.max(MIN_F, rounded));
+    return {
+      value: clamped,
+      clamped: clamped === rounded ? null : { from: rounded, to: clamped },
+    };
   }
 
   // Backward-compat shim used by startThermoStream. Updates btDebugInfo
   // for matched broadcasts only (keepalive path), throttled to ~1.5 s so
   // the panel doesn't repaint on every advertisement.
   function parseInkbirdScanResult(result: ScanResult): number | null {
-    const { tempF, lines, totalBytes, probeAttached, battery } = inspectScanResultPayloads(result);
+    const { tempF, lines, candidates, totalBytes, probeAttached, battery } = inspectScanResultPayloads(result);
     const now = Date.now();
     if (now - lastDebugUiUpdateRef.current >= 1500) {
       lastDebugUiUpdateRef.current = now;
       const flag = probeAttached === true ? " [probe]" : probeAttached === false ? " [internal]" : "";
       const bat = battery !== null ? ` batt=${battery}%` : "";
+      const clampInfo = tempF !== null ? clampDisplayTempF(tempF + btTempOffsetRef.current).clamped : null;
       setBtDebugInfo({
         hex: (lines.join(" | ") || "(no payload)") + flag + bat,
         parsed: tempF,
         unit: "F",
         bytes: totalBytes,
         at: now,
+        candidates,
+        clamped: clampInfo,
+        deviceName: result.device?.name ?? undefined,
+        deviceId: result.device?.deviceId,
+        rssi: typeof result.rssi === "number" ? result.rssi : undefined,
       });
     }
     return tempF;
@@ -1658,7 +1730,7 @@ export default function Home() {
             // First reading should display immediately; subsequent ones throttle.
             if (!firstResolved || nowMs - lastTempUiUpdateRef.current >= 3000) {
               lastTempUiUpdateRef.current = nowMs;
-              setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+              setTemperature(clampDisplayTempF(tempF + btTempOffsetRef.current).value);
             }
 
             if (!firstResolved) {
@@ -1698,7 +1770,7 @@ export default function Home() {
           lastThermoNotifRef.current = nowMs;
           if (nowMs - lastTempUiUpdateRef.current >= 3000) {
             lastTempUiUpdateRef.current = nowMs;
-            setTemperature(Math.min(60, Math.max(25, Math.round(tempF + btTempOffsetRef.current))));
+            setTemperature(clampDisplayTempF(tempF + btTempOffsetRef.current).value);
           }
         }
       );
@@ -1992,7 +2064,7 @@ export default function Home() {
         btProtocolRef.current = "beacon";
         setBtProtocol("beacon");
         localStorage.setItem("coldstreak-bt-thermo-protocol", "beacon");
-        setTemperature(Math.min(60, Math.max(25, Math.round(_det2.tempF + btTempOffsetRef.current))));
+        setTemperature(clampDisplayTempF(_det2.tempF + btTempOffsetRef.current).value);
         startThermoKeepalive(_det2.matchedDeviceId, "beacon");
         setBtConnected(true);
         toast({ title: "Thermometer connected", description: `${device.name ?? "Device"} — temperature will update automatically.` });
@@ -2094,7 +2166,7 @@ export default function Home() {
         btProtocolRef.current = "beacon";
         setBtProtocol("beacon");
         localStorage.setItem("coldstreak-bt-thermo-protocol", "beacon");
-        setTemperature(Math.min(60, Math.max(25, Math.round(_det3.tempF + btTempOffsetRef.current))));
+        setTemperature(clampDisplayTempF(_det3.tempF + btTempOffsetRef.current).value);
         startThermoKeepalive(_det3.matchedDeviceId, "beacon");
         setBtConnected(true);
         toast({ title: "Thermometer connected", description: `${name} — temperature will update automatically.` });
@@ -2131,7 +2203,7 @@ export default function Home() {
         btProtocolRef.current = "beacon";
         setBtProtocol("beacon");
         localStorage.setItem("coldstreak-bt-thermo-protocol", "beacon");
-        setTemperature(Math.min(60, Math.max(25, Math.round(_det.tempF + btTempOffsetRef.current))));
+        setTemperature(clampDisplayTempF(_det.tempF + btTempOffsetRef.current).value);
         startThermoKeepalive(_det.matchedDeviceId, "beacon");
         setBtConnected(true);
         toast({ title: "Thermometer reconnected", description: `${name} — temperature will update automatically.` });
@@ -4564,21 +4636,64 @@ export default function Home() {
                   </div>
                   {/* DIAGNOSTIC — raw BLE payload, used to reverse-engineer Inkbird format */}
                   {btDebugInfo && (
-                    <div className="mt-1 px-3 py-2 rounded-xl bg-yellow-900/20 border border-yellow-700/40 space-y-1">
-                      <div className="text-yellow-300/80 text-[10px] font-semibold uppercase tracking-wide">
-                        BLE scan diagnostic
+                    <div className="mt-1 px-3 py-2 rounded-xl bg-yellow-900/20 border border-yellow-700/40 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="text-yellow-300/80 text-[10px] font-semibold uppercase tracking-wide">
+                          BLE scan diagnostic
+                        </div>
+                        <div className="text-yellow-300/60 text-[10px] font-mono">
+                          {Math.round((Date.now() - btDebugInfo.at) / 1000)}s ago
+                        </div>
                       </div>
+
+                      {/* Device identity row — name, id, signal strength */}
+                      {(btDebugInfo.deviceName || btDebugInfo.deviceId) && (
+                        <div className="text-yellow-200/80 text-[10px] font-mono break-all leading-snug">
+                          {btDebugInfo.deviceName ? <span className="text-yellow-100">"{btDebugInfo.deviceName}"</span> : ""}
+                          {btDebugInfo.deviceId ? <> · {btDebugInfo.deviceId}</> : ""}
+                          {typeof btDebugInfo.rssi === "number" ? <> · {btDebugInfo.rssi} dBm</> : ""}
+                        </div>
+                      )}
+
                       {(btDebugInfo as any).summary && (
                         <div className="text-yellow-200/90 text-[10px] font-mono">
                           {(btDebugInfo as any).summary}
                         </div>
                       )}
+
+                      {/* Raw bytes + parsed Inkbird interpretation */}
                       <div className="text-yellow-100 text-[10px] font-mono whitespace-pre-wrap break-all leading-snug" data-testid="text-bt-raw-hex">
                         {btDebugInfo.hex || "(scanning…)"}
                       </div>
-                      <div className="text-yellow-300/70 text-[10px] font-mono">
-                        {Math.round((Date.now() - btDebugInfo.at) / 1000)}s ago
-                      </div>
+
+                      {/* Clamp warning — shown when the parsed reading
+                          fell outside the 25–90 °F display range and got
+                          squashed (i.e. parser is misreading bytes). */}
+                      {btDebugInfo.clamped && (
+                        <div className="mt-1 px-2 py-1.5 rounded-lg bg-red-900/30 border border-red-700/50 text-red-200 text-[10px] leading-snug" data-testid="text-bt-clamp-warn">
+                          ⚠ Parser read <span className="font-bold">{btDebugInfo.clamped.from}°F</span>, clamped to <span className="font-bold">{btDebugInfo.clamped.to}°F</span> for display. The byte layout below probably needs a different offset.
+                        </div>
+                      )}
+
+                      {/* Candidate temperatures at every byte offset.
+                          For an unknown device, scan this list for the
+                          number matching what your thermometer's screen
+                          shows — that offset is the correct one. */}
+                      {btDebugInfo.candidates && btDebugInfo.candidates.length > 0 && (
+                        <details className="text-yellow-100 text-[10px] font-mono leading-snug">
+                          <summary className="cursor-pointer text-yellow-300/80 text-[10px] font-semibold uppercase tracking-wide hover:text-yellow-200" data-testid="button-bt-candidates-toggle">
+                            All candidate temps ({btDebugInfo.candidates.length})
+                          </summary>
+                          <div className="mt-1 pl-2 space-y-0.5" data-testid="list-bt-candidates">
+                            {btDebugInfo.candidates.map((c, i) => (
+                              <div key={i} className="text-yellow-100/90 break-all">{c}</div>
+                            ))}
+                          </div>
+                          <div className="mt-1 text-yellow-300/60 text-[10px] italic">
+                            Compare these to the number on your thermometer's screen — the matching one is the correct byte offset.
+                          </div>
+                        </details>
+                      )}
                     </div>
                   )}
                   <button
