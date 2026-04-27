@@ -2703,22 +2703,16 @@ export default function Home() {
               className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col"
               data-testid="card-water-temp"
             >
-              <div className="flex items-start justify-between mb-1">
+              <div className="mb-1">
                 <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest">Water Temp</div>
                 {/* Always rendered to keep header height stable; invisible when not live */}
                 <button
                   onClick={() => navTo("devices")}
-                  className={`flex flex-col items-end gap-[2px] ${btConnected ? "" : "invisible"}`}
+                  className={`flex items-center justify-end gap-1 w-full mt-0.5 ${btConnected ? "" : "invisible"}`}
                   data-testid="button-bt-status-header"
                 >
-                  <div className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                    <span className="text-green-400 text-[9px] font-semibold">Live</span>
-                  </div>
-                  <span className="text-green-400/60 text-[8px] leading-none truncate max-w-[56px]">{btDeviceName || "Thermometer"}</span>
-                  {btProtocol && (
-                    <span className="text-blue-400/50 text-[7px] leading-none uppercase tracking-wide">{btProtocol}</span>
-                  )}
+                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                  <span className="text-green-400 text-[9px] font-semibold">Live</span>
                 </button>
               </div>
 
