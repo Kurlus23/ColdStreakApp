@@ -1539,16 +1539,18 @@ export default function Home() {
     return { tempF: resolvedTempF, lines, totalBytes, probeAttached, battery };
   }
 
-  // Apply the display-range clamp used everywhere we hand a parsed temp to
-  // setTemperature. Returns the clamped value AND a record of any clamp
-  // that happened so the diagnostic panel can warn (e.g. "parsed 121°F →
-  // clamped to 60°F"). Without this surfacing, a misread sensor silently
-  // shows 60°F and looks like everything is fine.
-  // Range is widened to 25–90°F so a thermometer sitting on the counter
-  // (room temp ~70°F) shows its real reading instead of being squashed.
+  // Sanity-clamp on the displayed temperature. The original purpose was to
+  // catch the old broken-Inkbird parser path that returned 120°F for any
+  // off-brand probe (now handled by the mfrId-as-temp auto-fallback in
+  // inspectScanResultPayloads — see decodeMfrIdAsTempF). The clamp is
+  // kept as a safety net for any future sensor that returns garbage.
+  // Range: 25–113°F covers everything from arctic plunge water (32-40°F)
+  // through ambient room temp through a hot tub (~104°F) up to the
+  // IBS-TH2's spec ceiling (45°C / 113°F). Anything outside this window
+  // is by definition not a real water-probe reading.
   function clampDisplayTempF(rawF: number): { value: number; clamped: { from: number; to: number } | null } {
     const MIN_F = 25;
-    const MAX_F = 90;
+    const MAX_F = 113;
     const rounded = Math.round(rawF);
     const clamped = Math.min(MAX_F, Math.max(MIN_F, rounded));
     return {
