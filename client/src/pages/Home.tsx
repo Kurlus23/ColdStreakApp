@@ -14,7 +14,7 @@ import {
   Settings, Bell, Upload, Volume2, VolumeX, FileText,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
   Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff, Heart, X,
-  Image as ImageIcon, MessageCircle, Send
+  Image as ImageIcon, MessageCircle, Send, Eye, EyeOff
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -190,6 +190,7 @@ export default function Home() {
   const [rememberEmail, setRememberEmail] = useState<boolean>(() => localStorage.getItem("coldstreak-remember-email") === "true");
   const [authEmail, setAuthEmail] = useState(() => localStorage.getItem("coldstreak-remember-email") === "true" ? (localStorage.getItem("coldstreak-saved-email") ?? "") : "");
   const [authPassword, setAuthPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [syncDone, setSyncDone] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
@@ -4077,15 +4078,26 @@ export default function Home() {
                           <span className="text-blue-400 text-xs">Remember me</span>
                         </label>
                         <div className="space-y-1">
-                          <input
-                            data-testid="input-auth-password"
-                            type="password"
-                            placeholder={authMode === "register" ? "Password (min 6 chars)" : "Password"}
-                            value={authPassword}
-                            onChange={(e) => setAuthPassword(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
-                            className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-                          />
+                          <div className="relative">
+                            <input
+                              data-testid="input-auth-password"
+                              type={showPassword ? "text" : "password"}
+                              placeholder={authMode === "register" ? "Password (min 6 chars)" : "Password"}
+                              value={authPassword}
+                              onChange={(e) => setAuthPassword(e.target.value)}
+                              onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
+                              className="w-full bg-blue-800/80 border border-blue-600 rounded-xl pl-3 pr-11 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                            />
+                            <button
+                              type="button"
+                              data-testid="button-toggle-password"
+                              onClick={() => setShowPassword((v) => !v)}
+                              aria-label={showPassword ? "Hide password" : "Show password"}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg text-blue-300 hover:text-white hover:bg-blue-700/50 transition-colors"
+                            >
+                              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
                           {authMode === "login" && (
                             <button
                               data-testid="button-forgot-password"
@@ -7007,16 +7019,27 @@ export default function Home() {
                   className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
                 />
                 <div className="space-y-1">
-                  <input
-                    id="modal-password-input"
-                    data-testid="input-modal-password"
-                    type="password"
-                    placeholder={authMode === "register" ? "Password (min 6 chars)" : "Password"}
-                    value={authPassword}
-                    onChange={(e) => setAuthPassword(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleAuthSubmit(); }}
-                    className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-                  />
+                  <div className="relative">
+                    <input
+                      id="modal-password-input"
+                      data-testid="input-modal-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder={authMode === "register" ? "Password (min 6 chars)" : "Password"}
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleAuthSubmit(); }}
+                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl pl-3 pr-11 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                    />
+                    <button
+                      type="button"
+                      data-testid="button-toggle-modal-password"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg text-blue-300 hover:text-white hover:bg-blue-700/50 transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                   {authMode === "login" && (
                     <button
                       data-testid="button-modal-forgot"
