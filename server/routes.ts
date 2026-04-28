@@ -985,7 +985,13 @@ export async function registerRoutes(
         email: z.string().email(),
         planType: z.enum(["monthly", "annual", "lifetime", "promo"]).default("monthly"),
       }).parse(req.body);
-      const expiresAt = planType === "lifetime" ? undefined : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+      // Match expiry to the plan: monthly = 30d, annual = 1y, promo = 30d, lifetime = none
+      const DAY_MS = 24 * 60 * 60 * 1000;
+      const expiryDays = planType === "monthly" ? 30
+        : planType === "annual" ? 365
+        : planType === "promo" ? 30
+        : 0;
+      const expiresAt = planType === "lifetime" ? undefined : new Date(Date.now() + expiryDays * DAY_MS);
       const proUser = await storage.createProUser(email.toLowerCase(), `admin-grant-${Date.now()}`, { planType, expiresAt });
       clearProStatusCache(email.toLowerCase());
       console.log(`[admin] Manually granted ${planType} pro to ${email} by ${caller?.email}`);
