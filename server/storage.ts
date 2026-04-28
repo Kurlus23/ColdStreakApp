@@ -438,13 +438,17 @@ export class DatabaseStorage implements IStorage {
       });
       console.log(`[seed] Admin account created: ${e}${opts?.username ? ` (username: ${opts.username})` : ""}`);
     } else {
+      // IMPORTANT: do NOT overwrite passwordHash on existing accounts.
+      // The seed runs on every server startup; resetting the password each time
+      // would silently undo any password change made via /api/admin/force-password-reset
+      // or any future password-reset flow. To rotate an admin password use that
+      // endpoint instead.
       await db.update(users).set({
         isAdmin: true,
         isDisabled: false,
-        passwordHash,
         ...(opts?.username ? { username: opts.username } : {}),
       }).where(eq(users.email, e));
-      console.log(`[seed] Admin account confirmed: ${e}`);
+      console.log(`[seed] Admin account confirmed (password preserved): ${e}`);
     }
   }
 
