@@ -132,7 +132,7 @@ export default function Privacy() {
                 <span className="font-semibold text-slate-800">Google Maps</span> — when you tap a "Get Directions" button on a community location or event, your device opens Google Maps with the destination coordinates. ColdStreak does not transmit your location to Google; Google's own privacy policy applies to any navigation session you initiate. Subject to <a href="https://policies.google.com/privacy" className="text-cyan-600 hover:underline" target="_blank" rel="noopener noreferrer">Google's Privacy Policy</a>.
               </li>
               <li>
-                <span className="font-semibold text-slate-800">Advertising</span> — free users may see advertisements served by third-party networks. These networks may use cookies or device identifiers in accordance with their own privacy policies. ColdStreak Pro users do not see ads.
+                <span className="font-semibold text-slate-800">Sponsored product links (Amazon Associates)</span> — free users see hand-curated banner and interstitial cards promoting cold-plunge-related products. These cards are first-party content rendered entirely by ColdStreak — no third-party ad network, no remote ad SDK, no advertising tracking identifier (such as the iOS IDFA), and no third-party JavaScript is loaded into the App. When you tap one, you are sent to Amazon via an affiliate link; if you make a purchase there, ColdStreak may earn a small commission at no extra cost to you. As an Amazon Associate, ColdStreak earns from qualifying purchases. ColdStreak Pro users do not see these sponsored cards.
               </li>
             </ul>
           </section>
