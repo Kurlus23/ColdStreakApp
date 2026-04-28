@@ -1400,6 +1400,17 @@ export async function registerRoutes(
       return res.json(result);
     }
 
+    // Admin-granted or promo Pro: no Stripe subscription to verify against, so trust
+    // the DB record. These rows are created by /api/admin/pro-users (session prefix
+    // "admin-grant-") or by promo redemption and never have a stripeSubscriptionId.
+    // Without this branch they would fall through to the Stripe-subscription check,
+    // find nothing, and be silently deactivated below.
+    if (user && user.active && !isExpired && !user.stripeSubscriptionId) {
+      const result = { email: user.email, isPro: true, foundingPlunger: user.foundingPlunger, planType: user.planType };
+      setProStatusCache(email, result);
+      return res.json(result);
+    }
+
     // Resolve Stripe customer IDs — cached to avoid the slow customers.list() on every call
     let customerIds = getCachedCustomerIds(email);
     if (!customerIds) {
@@ -1495,8 +1506,11 @@ export async function registerRoutes(
       }
     }
 
-    // No active subscription found in Stripe — if DB still shows active, deactivate it
-    if (!foundActiveSub && isActiveNonLifetime) {
+    // No active subscription found in Stripe — if DB still shows active, deactivate it.
+    // Restrict to rows that actually have a Stripe subscription ID so we never tear
+    // down admin-granted or promo-redeemed Pro accounts (which have no stripeSubscriptionId
+    // and are handled above).
+    if (!foundActiveSub && isActiveNonLifetime && user?.stripeSubscriptionId) {
       await storage.setProUserActive(email, false);
     }
 
