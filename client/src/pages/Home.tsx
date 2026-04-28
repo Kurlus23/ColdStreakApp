@@ -7083,9 +7083,16 @@ export default function Home() {
 
       {/* ─── UPGRADE MODAL ─── */}
       {showUpgradeModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-gradient-to-b from-blue-950 to-slate-950 rounded-t-3xl border border-blue-700/50 shadow-2xl p-6 pb-10 space-y-5 animate-in slide-in-from-bottom duration-300">
-            <div className="flex items-center justify-between">
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setShowUpgradeModal(false)}
+        >
+          <div
+            className="w-full max-w-md max-h-[90vh] overflow-y-auto overscroll-contain bg-gradient-to-b from-blue-950 to-slate-950 rounded-t-3xl border border-blue-700/50 shadow-2xl animate-in slide-in-from-bottom duration-300"
+            onClick={(e) => e.stopPropagation()}
+            style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between bg-gradient-to-b from-blue-950 to-blue-950/95 backdrop-blur-sm px-6 pt-6 pb-3 border-b border-blue-800/40">
               <div className="flex items-center gap-2">
                 <Crown className="w-6 h-6 text-yellow-400" />
                 <span className="text-white font-bold text-xl">ColdStreak Pro</span>
@@ -7093,9 +7100,11 @@ export default function Home() {
               <button
                 data-testid="button-close-upgrade"
                 onClick={() => setShowUpgradeModal(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white transition-all text-lg font-bold"
+                aria-label="Close"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-200 hover:text-white transition-all text-lg font-bold active:scale-95"
               >✕</button>
             </div>
+            <div className="px-6 pt-4 space-y-5">
 
             {fpCountData && fpCountData.remaining > 0 && (
               <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-400/30">
@@ -7253,6 +7262,7 @@ export default function Home() {
                   {restoreLoading ? "…" : "Restore"}
                 </button>
               </div>
+            </div>
             </div>
           </div>
         </div>
