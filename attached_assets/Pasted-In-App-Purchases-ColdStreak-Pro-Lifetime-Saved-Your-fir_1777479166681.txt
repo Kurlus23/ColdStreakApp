@@ -1,0 +1,70 @@
+In-App Purchases
+ColdStreak Pro Lifetime
+
+Saved
+Your first in-app purchase must be submitted with a new app version. Create your in-app purchase, then select it from the app’s In-App Purchases and Subscriptions section on the version page before submitting the version to App Review.
+
+Once your binary has been uploaded and your first-in app purchase has been submitted for review, additional in-app purchases can be submitted from the In-App Purchases section. Learn More
+Status
+Missing Metadata
+Product ID?
+com.coldstreak.app.pro.lifetime
+Reference Name?
+
+41
+Apple ID?
+6764623169
+Family Sharing?
+Allow family members to share this in-app purchase without having to use each other's accounts.
+
+Turn On
+
+Availability
+
+All countries or regions selectedEdit
+
+Remove from Sale
+Price Schedule
+All Prices and Currencies
+Below is a summary of your current pricing and any upcoming changes.
+
+
+In-App Purchase Pricing
+Base Country or Region
+
+Apple may automatically adjust prices from time to time in every country or region except your base to account for changes in tax or foreign exchange rates.
+
+United States (USD)Edit
+Prices
+Download
+DATES
+COUNTRIES OR REGIONS
+PRICE ADJUSTMENT
+Current Price
+175 Countries or Regions
+May Adjust Automatically
+Offer Codes
+You can create offer codes to distribute free or discounted offers for your in-app purchases in your iOS, macOS, and visionOS apps. You can generate and download one-time use codes in App Store Connect, or define your own memorable custom codes that can be redeemed by multiple customers. One-time use sandbox codes are also available for testing. Customers can redeem codes through a link, on the App Store, or within your app if you’ve implemented the necessary StoreKit API. You can create offer codes for up to 10 active offers at a time. Learn More
+
+Create Offer
+App Store Localization
+Provide a display name and description for your in-app purchase, and we'll show this on the App Store.
+Add Localization
+Image (Optional)
+Add a 1024 x 1024 pixel image that best represents this in-app purchase. It will appear in offer code redemptions or on your app's product page if you enable App Store Promotion for this in-app purchase. Learn More
+
+
+Choose File
+Tax Category?Edit
+You’re responsible for selecting and maintaining accurate tax categories and all applicable attributes. This in-app purchase will use the app’s tax category unless you choose a different one. Changing the tax category for this in-app purchase won’t affect the tax category for your app or any other in-app purchase or subscription. Any changes will only affect future sales. Learn More
+
+Category
+Match to parent app
+Review Information
+Screenshot?
+
+Choose File
+Review Notes (Optional)?
+
+4000
+Delete This In-App Purchase
