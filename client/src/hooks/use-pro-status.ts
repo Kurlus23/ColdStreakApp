@@ -1,4 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
+import {
+  initIAP,
+  logoutIAP,
+  purchasePlan,
+  restorePurchasesIAP,
+  syncIAPToServer,
+  isNativePlatform,
+  isIOSNative,
+  type IAPPlan,
+} from "@/lib/iap";
 
 const PRO_EMAIL_KEY = "coldstreak-pro-email";
 const PRO_STATUS_KEY = "coldstreak-is-pro";
@@ -78,6 +88,11 @@ export function useProStatus() {
     setProEmail(null);
     setIsFoundingPlunger(false);
     setProPlan(null);
+    // On native, also disconnect from RevenueCat so the next login binds a fresh
+    // appUserId. On web this is a no-op.
+    if (isNativePlatform()) {
+      logoutIAP().catch(() => { /* swallow — user is logging out anyway */ });
+    }
     // Promo expiry + owner are intentionally kept so the same user recovers
     // their promo after logging back in. verifyProForEmail() will clear them
     // if the logged-in email doesn't match the promo owner.
@@ -86,6 +101,23 @@ export function useProStatus() {
   // Called right after login to restore Pro from the server or local promo.
   const verifyProForEmail = useCallback(async (email: string) => {
     const norm = email.toLowerCase();
+
+    // On native, bind the RevenueCat customer to this email and pull the
+    // latest entitlement state. If the user already has Pro via IAP, this
+    // syncs it to our DB so the rest of the app sees them as Pro immediately.
+    if (isNativePlatform()) {
+      try {
+        await initIAP(norm);
+        const sync = await syncIAPToServer(norm);
+        if (sync.ok && sync.isPro) {
+          markPro(norm, false, sync.planType ?? "monthly");
+          return;
+        }
+      } catch (err) {
+        console.error("[iap] verify-on-login failed", err);
+      }
+    }
+
     try {
       const res = await fetch(`/api/pro-status/${encodeURIComponent(norm)}`);
       const data = await res.json();
@@ -162,8 +194,31 @@ export function useProStatus() {
   const startCheckout = useCallback(async (plan: "lifetime" | "annual" | "monthly" = "lifetime"): Promise<{ success: boolean; activated?: boolean; error?: string }> => {
     setLoading(true);
     try {
-      const origin = window.location.origin;
       const emailForRestore = getLoggedInEmail() ?? localStorage.getItem(PRO_EMAIL_KEY);
+
+      // iOS native: route through StoreKit/RevenueCat (App Review Guideline 3.1.1).
+      // The web Stripe flow is disallowed for unlocking digital content on iOS.
+      if (isIOSNative()) {
+        if (!emailForRestore) {
+          return { success: false, error: "Please sign in before purchasing." };
+        }
+        await initIAP(emailForRestore);
+        const outcome = await purchasePlan(plan as IAPPlan);
+        if (outcome.cancelled) return { success: false, error: "Purchase cancelled." };
+        if (!outcome.success) return { success: false, error: outcome.error ?? "Purchase failed." };
+
+        // Tell the server about the new entitlement so the rest of the app (and
+        // the web account, if the user signs in there too) sees them as Pro.
+        const sync = await syncIAPToServer(emailForRestore);
+        const planType = sync.planType ?? plan;
+        if (outcome.isPro || sync.isPro) {
+          markPro(emailForRestore, false, planType);
+          return { success: true, activated: true };
+        }
+        return { success: false, error: "Purchase completed but Pro is not active yet. Try Restore Purchases." };
+      }
+
+      const origin = window.location.origin;
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -217,6 +272,24 @@ export function useProStatus() {
   const restorePurchase = useCallback(async (email: string): Promise<{ success: boolean; planType?: string }> => {
     setLoading(true);
     try {
+      // On iOS native, ask RevenueCat / StoreKit first — this restores any
+      // App Store purchase made on this Apple ID even if our server doesn't
+      // know about it yet. Then sync the result back to our DB.
+      if (isIOSNative()) {
+        try {
+          await initIAP(email);
+          const restored = await restorePurchasesIAP();
+          if (restored.success && restored.isPro) {
+            const sync = await syncIAPToServer(email);
+            const planType = sync.planType ?? "monthly";
+            markPro(email, false, planType);
+            return { success: true, planType };
+          }
+        } catch (err) {
+          console.error("[iap] restore failed", err);
+        }
+      }
+
       const res = await fetch(`/api/pro-status/${encodeURIComponent(email)}?noCache=1`, { cache: "no-store" });
       const data = await res.json();
       if (data.isPro) {

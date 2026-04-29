@@ -1523,6 +1523,204 @@ export async function registerRoutes(
     res.json({ email, isPro: false, foundingPlunger: false });
   });
 
+  // ───────────────────────────────────────────────────────────────────────
+  // RevenueCat (iOS in-app purchases)
+  // ───────────────────────────────────────────────────────────────────────
+  // Must match the entitlement identifier configured in the RevenueCat dashboard.
+  const PRO_ENTITLEMENT = "pro";
+
+  // Map an Apple/RevenueCat product identifier (or RC entitlement period) to
+  // our internal planType so the rest of the app can stay agnostic.
+  function planFromProductId(productId: string | null | undefined, periodType?: string | null): "monthly" | "annual" | "lifetime" {
+    const pid = (productId ?? "").toLowerCase();
+    if (pid.includes("lifetime") || periodType === "LIFETIME") return "lifetime";
+    if (pid.includes("annual") || pid.includes("yearly")) return "annual";
+    return "monthly";
+  }
+
+  // Client-initiated sync. Authenticated. Client tells us "I just bought
+  // something on iOS" but we DO NOT trust the client's claim of which plan
+  // or whether the entitlement is active — we ask RevenueCat directly via
+  // their REST API. This makes the endpoint safe even though the webhook
+  // is the long-term source of truth.
+  async function fetchRCSubscriberEntitlement(appUserId: string): Promise<
+    | { isPro: false }
+    | { isPro: true; productIdentifier: string | null; expiresAt: Date | null; periodType: string | null }
+  > {
+    const apiKey = process.env.REVENUECAT_REST_API_KEY;
+    if (!apiKey) {
+      throw new Error("REVENUECAT_REST_API_KEY not configured on server");
+    }
+    const url = `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`;
+    const r = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/json",
+        "X-Platform": "ios",
+      },
+    });
+    if (!r.ok) {
+      const text = await r.text().catch(() => "");
+      throw new Error(`RevenueCat ${r.status}: ${text.slice(0, 200)}`);
+    }
+    const data: any = await r.json();
+    const ent = data?.subscriber?.entitlements?.[PRO_ENTITLEMENT] ?? null;
+    if (!ent) return { isPro: false };
+    const expiresAt = ent.expires_date ? new Date(ent.expires_date) : null;
+    if (expiresAt && expiresAt.getTime() <= Date.now()) return { isPro: false };
+    return {
+      isPro: true,
+      productIdentifier: ent.product_identifier ?? null,
+      expiresAt,
+      periodType: ent.period_type ?? null,
+    };
+  }
+
+  app.post("/api/revenuecat/sync", async (req, res) => {
+    try {
+      const caller = extractUser(req);
+      if (!caller?.email) return res.status(401).json({ ok: false, error: "Sign in required" });
+
+      const body = z.object({
+        email: z.string().email(),
+        appUserId: z.string().optional().nullable(),
+      }).parse(req.body);
+
+      const email = body.email.toLowerCase();
+      if (email !== caller.email.toLowerCase()) {
+        return res.status(403).json({ ok: false, error: "Email mismatch" });
+      }
+
+      // The RC appUserId IS our email (set by the client at initIAP), but
+      // accept the client's value if it differs (e.g. anonymous → identified
+      // alias migration) and verify against the email anyway.
+      const appUserId = (body.appUserId && body.appUserId.includes("@")) ? body.appUserId.toLowerCase() : email;
+
+      const verified = await fetchRCSubscriberEntitlement(appUserId);
+
+      if (!verified.isPro) {
+        const existing = await storage.getProUser(email);
+        if (existing && existing.active && existing.stripeSessionId.startsWith("iap-")) {
+          await storage.setProUserActive(email, false);
+        }
+        clearProStatusCache(email);
+        return res.json({ ok: true, isPro: false });
+      }
+
+      const planType = planFromProductId(verified.productIdentifier, verified.periodType);
+      const sessionId = `iap-${verified.productIdentifier ?? "unknown"}-${appUserId}`;
+      const proUser = await storage.createProUser(email, sessionId, {
+        planType,
+        expiresAt: planType === "lifetime" ? undefined : (verified.expiresAt ?? undefined),
+      });
+      clearProStatusCache(email);
+      console.log(`[revenuecat] Verified+synced ${planType} for ${email} (product=${verified.productIdentifier})`);
+      res.json({
+        ok: true,
+        isPro: true,
+        email: proUser.email,
+        planType: proUser.planType,
+        foundingPlunger: proUser.foundingPlunger,
+      });
+    } catch (err: any) {
+      console.error("[revenuecat] sync failed:", err);
+      res.status(500).json({ ok: false, error: err?.message ?? "Sync failed" });
+    }
+  });
+
+  // Server-of-record: RevenueCat sends events here for INITIAL_PURCHASE,
+  // RENEWAL, CANCELLATION, EXPIRATION, BILLING_ISSUE, etc. Configure the
+  // webhook URL in the RevenueCat dashboard and set REVENUECAT_WEBHOOK_AUTH
+  // to the bearer token RC sends in the Authorization header.
+  app.post("/api/revenuecat/webhook", async (req, res) => {
+    try {
+      const expectedAuth = process.env.REVENUECAT_WEBHOOK_AUTH;
+      if (!expectedAuth) {
+        // Fail closed — without a configured shared secret this endpoint
+        // could be used to flip arbitrary accounts to Pro.
+        console.error("[revenuecat] webhook rejected — REVENUECAT_WEBHOOK_AUTH not set");
+        return res.status(503).json({ ok: false, error: "webhook not configured" });
+      }
+      const provided = (req.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
+      const a = Buffer.from(provided);
+      const b = Buffer.from(expectedAuth);
+      const ok = a.length === b.length && crypto.timingSafeEqual(a, b);
+      if (!ok) {
+        console.warn("[revenuecat] webhook rejected — bad auth header");
+        return res.status(401).json({ ok: false, error: "unauthorized" });
+      }
+
+      const event = req.body?.event ?? req.body;
+      if (!event || typeof event !== "object") {
+        return res.status(400).json({ ok: false, error: "missing event" });
+      }
+
+      const type: string = event.type ?? "UNKNOWN";
+      const productId: string | null = event.product_id ?? null;
+      const periodType: string | null = event.period_type ?? null;
+      const expirationMs: number | null = event.expiration_at_ms ?? null;
+      // RC sends user identifiers in `app_user_id` / `original_app_user_id` /
+      // `aliases`. Our appUserId IS the email, so prefer that.
+      const aliases: string[] = Array.isArray(event.aliases) ? event.aliases : [];
+      const candidates = [event.app_user_id, event.original_app_user_id, ...aliases]
+        .filter((s): s is string => typeof s === "string");
+      const email = candidates
+        .map((s) => s.toLowerCase().trim())
+        .find((s) => s.includes("@"));
+
+      if (!email) {
+        console.warn(`[revenuecat] webhook ${type} ignored — no email-shaped app_user_id (got ${JSON.stringify(candidates)})`);
+        // Return 200 so RC doesn't retry forever for a non-email user identifier.
+        return res.json({ ok: true, ignored: true });
+      }
+
+      const planType = planFromProductId(productId, periodType);
+      const expiresAt = expirationMs ? new Date(expirationMs) : undefined;
+      const sessionId = `iap-${productId ?? "unknown"}-${event.app_user_id ?? email}`;
+
+      switch (type) {
+        case "INITIAL_PURCHASE":
+        case "RENEWAL":
+        case "PRODUCT_CHANGE":
+        case "UNCANCELLATION":
+        case "TRANSFER":
+        case "NON_RENEWING_PURCHASE":
+        case "TEMPORARY_ENTITLEMENT_GRANT": {
+          await storage.createProUser(email, sessionId, {
+            planType,
+            expiresAt: planType === "lifetime" ? undefined : expiresAt,
+          });
+          clearProStatusCache(email);
+          console.log(`[revenuecat] ${type} → activated ${planType} for ${email}`);
+          break;
+        }
+        case "CANCELLATION":
+        case "EXPIRATION":
+        case "SUBSCRIPTION_PAUSED":
+        case "REFUND": {
+          const existing = await storage.getProUser(email);
+          if (existing && existing.active && existing.stripeSessionId.startsWith("iap-")) {
+            await storage.setProUserActive(email, false);
+            console.log(`[revenuecat] ${type} → deactivated ${email}`);
+          }
+          clearProStatusCache(email);
+          break;
+        }
+        case "BILLING_ISSUE":
+        case "TEST":
+        default: {
+          console.log(`[revenuecat] event ${type} for ${email} — no DB change`);
+          break;
+        }
+      }
+
+      res.json({ ok: true });
+    } catch (err: any) {
+      console.error("[revenuecat] webhook handler failed:", err);
+      res.status(500).json({ ok: false, error: err?.message ?? "webhook failed" });
+    }
+  });
+
   app.post("/api/promo/redeem", async (req, res) => {
     const { code, email } = req.body;
     if (!code || typeof code !== "string") {

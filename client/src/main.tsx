@@ -4,8 +4,20 @@ import { PostHogProvider } from "posthog-js/react";
 import App from "./App";
 import "./index.css";
 import { initMonitoring } from "./lib/monitoring";
+import { initIAP, isNativePlatform } from "./lib/iap";
 
 initMonitoring();
+
+// Configure RevenueCat as early as possible on native (iOS/Android).
+// Pass the cached email if available so the IAP customer is tied to our user.
+if (isNativePlatform()) {
+  let cachedEmail: string | null = null;
+  try {
+    const raw = localStorage.getItem("coldstreak-auth-user");
+    if (raw) cachedEmail = JSON.parse(raw)?.email ?? null;
+  } catch { /* ignore */ }
+  initIAP(cachedEmail).catch((err) => console.error("[iap] boot init failed", err));
+}
 
 if ((window as any).Capacitor?.isNativePlatform?.()) {
   const _fetch = window.fetch.bind(window);
