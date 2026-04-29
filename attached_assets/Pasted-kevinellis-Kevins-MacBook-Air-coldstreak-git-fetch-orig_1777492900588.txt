@@ -1,0 +1,85 @@
+kevinellis@Kevins-MacBook-Air coldstreak % git fetch origin         
+git status
+git pull origin main   # or whatever your default branch is
+npm install
+sed -i '' 's/objectVersion = 70;/objectVersion = 56;/' ios/App/App.xcodeproj/project.pbxproj
+npx cap sync ios
+fatal: 'origin' does not appear to be a git repository
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+On branch main
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	new file:   ios/App/ColdStreakWatch Watch App/Assets.xcassets/AccentColor.colorset/Contents.json
+	new file:   ios/App/ColdStreakWatch Watch App/Assets.xcassets/AppIcon.appiconset/ColdStreakIcon.png
+	new file:   ios/App/ColdStreakWatch Watch App/Assets.xcassets/AppIcon.appiconset/Contents.json
+	new file:   ios/App/ColdStreakWatch Watch App/Assets.xcassets/ColdStreakIcon.imageset/ColdStreakIcon.png
+	new file:   ios/App/ColdStreakWatch Watch App/Assets.xcassets/ColdStreakIcon.imageset/Contents.json
+	new file:   ios/App/ColdStreakWatch Watch App/Assets.xcassets/Contents.json
+	new file:   ios/App/ColdStreakWatch Watch App/ColdStreakWatch Watch AppRelease.entitlements
+	new file:   ios/App/ColdStreakWatch Watch App/Services/HRVService.swift
+	new file:   ios/App/ColdStreakWatch Watch App/Services/HapticService.swift
+	new file:   ios/App/ColdStreakWatch Watch App/Services/PhoneSyncService.swift
+	new file:   ios/App/ColdStreakWatch Watch App/Services/PlungeSession.swift
+	new file:   ios/App/ColdStreakWatch Watch App/Services/PlungeWorkoutManager.swift
+	new file:   ios/App/ColdStreakWatch Watch App/Views/PlungeView.swift
+	new file:   ios/App/ColdStreakWatch Watch App/Views/ReadyView.swift
+	new file:   ios/App/WatchSyncPlugin.swift
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   client/src/pages/Home.tsx
+	modified:   ios/App/App.xcodeproj/project.pbxproj
+	modified:   ios/App/App/Info.plist
+	modified:   ios/App/ColdStreakWatch Watch App/ColdStreakWatch Watch AppRelease.entitlements
+	modified:   ios/App/ColdStreakWatch Watch App/Views/ReadyView.swift
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	ios/App/ColdStreakWatch Watch App/ColdStreakWatchApp.swift
+	ios/App/ColdStreakWatch Watch App/Views/RecoveryView.swift
+	ios/App/ColdStreakWatch Watch App/Views/SummaryView.swift
+	ios/App/ColdStreakWatch-Watch-App-Info.plist
+	ios/App/HealthKitPlugin.swift
+	watchos/
+
+fatal: 'origin' does not appear to be a git repository
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+
+up to date, audited 637 packages in 1s
+
+90 packages are looking for funding
+  run `npm fund` for details
+
+11 vulnerabilities (4 moderate, 6 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+✔ Copying web assets from public to ios/App/App/public in 230.08ms
+✔ Creating capacitor.config.json in ios/App/App in 1.49ms
+✔ copy ios in 312.54ms
+✔ Updating iOS plugins in 9.25ms
+✔ Updating iOS native dependencies with pod install in 3.97s
+[info] Found 9 Capacitor plugins for ios:
+       @capacitor-community/bluetooth-le@8.1.3
+       @capacitor-community/in-app-review@8.0.0
+       @capacitor-community/media@9.0.2
+       @capacitor/app@8.0.1
+       @capacitor/camera@8.0.2
+       @capacitor/clipboard@8.0.1
+       @capacitor/filesystem@8.1.2
+       @capacitor/geolocation@8.1.0
+       @capacitor/share@8.0.1
+✔ update ios in 4.05s
+[info] Sync finished in 4.468s
