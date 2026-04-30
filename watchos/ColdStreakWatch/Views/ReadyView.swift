@@ -11,15 +11,8 @@ struct ReadyView: View {
     @FocusState private var tempFocused: Bool
 
     var body: some View {
-        ZStack {
-            Image("ColdStreakIcon")
-                .resizable()
-                .scaledToFit()
-                .opacity(0.08)
-                .allowsHitTesting(false)
-            content
-        }
-        .containerBackground(.black.gradient, for: .tabView)
+        content
+            .containerBackground(.black.gradient, for: .tabView)
     }
 
     private var content: some View {
