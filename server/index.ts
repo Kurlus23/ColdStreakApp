@@ -68,6 +68,13 @@ async function startChurnSurveyScheduler() {
 }
 
 const app = express();
+// Trust EXACTLY ONE upstream hop (Replit's deployment edge) so `req.ip`
+// resolves to the real client IP for rate-limiting. We deliberately do NOT
+// use `true` here — that would trust every entry in `X-Forwarded-For` and
+// let an attacker bypass per-IP throttling by prepending forged IPs to the
+// header. With `1`, Express picks the IP appended by the single trusted
+// proxy (the real client IP) and ignores anything to its left.
+app.set("trust proxy", 1);
 const httpServer = createServer(app);
 
 declare module "http" {
@@ -241,6 +248,21 @@ app.use((req, res, next) => {
 
   // Clear display_name from admin accounts so they never collide with real user profiles
   await storage.clearAdminDisplayNames();
+
+  // Backfill slugs for any verified business listings missing one (idempotent).
+  try {
+    const verified = await storage.getAllVerifiedListings();
+    let backfilled = 0;
+    for (const loc of verified) {
+      if (!loc.slug) {
+        await storage.ensureLocationSlug(loc.id);
+        backfilled++;
+      }
+    }
+    if (backfilled > 0) console.log(`[boot] backfilled ${backfilled} listing slug(s)`);
+  } catch (err) {
+    console.error("[boot] slug backfill failed:", err);
+  }
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

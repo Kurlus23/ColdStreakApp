@@ -135,6 +135,9 @@ export const userLocations = pgTable("user_locations", {
   // — typing this with $type<BusinessHours | null> conflicts with drizzle-zod's
   // wider InsertUserLocation type at insert/update sites).
   hours: jsonb("hours"),
+  // IANA timezone string (e.g. "America/New_York"). Used to compute the
+  // "open now" badge in the listing's local time. Null = use viewer's local TZ.
+  timezone: text("timezone"),
   // Email allowlist for co-managers who can also see this listing's dashboard.
   coManagerEmails: text("co_manager_emails").array().default([]).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

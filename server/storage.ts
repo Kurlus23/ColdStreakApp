@@ -197,6 +197,7 @@ export interface IStorage {
   getLocationBySlug(slug: string): Promise<UserLocation | null>;
   ensureLocationSlug(id: number): Promise<string>;
   updateLocationHours(id: number, hours: BusinessHours | null): Promise<void>;
+  updateLocationTimezone(id: number, timezone: string | null): Promise<void>;
   addCoManager(id: number, email: string): Promise<string[]>;
   removeCoManager(id: number, email: string): Promise<string[]>;
   exportLocationPlungersCSV(locationId: number, opts: { sortBy: "bestScore" | "plungeCount" | "periodPlunges" | "lastPlungeAt"; days: number }): Promise<string>;
@@ -1327,6 +1328,10 @@ export class DatabaseStorage implements IStorage {
 
   async updateLocationHours(id: number, hours: BusinessHours | null): Promise<void> {
     await db.update(userLocations).set({ hours: hours as any }).where(eq(userLocations.id, id));
+  }
+
+  async updateLocationTimezone(id: number, timezone: string | null): Promise<void> {
+    await db.update(userLocations).set({ timezone }).where(eq(userLocations.id, id));
   }
 
   async addCoManager(id: number, email: string): Promise<string[]> {

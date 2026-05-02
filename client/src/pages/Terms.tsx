@@ -11,7 +11,7 @@ export default function Terms() {
             <a className="text-cyan-600 text-sm font-semibold hover:underline">← Back to ColdStreak</a>
           </Link>
           <h1 className="text-3xl font-bold text-slate-900 mt-4 mb-1">Terms of Service</h1>
-          <p className="text-slate-500 text-sm">Last updated: March 2026</p>
+          <p className="text-slate-500 text-sm">Last updated: May 2026</p>
         </div>
 
         <div className="space-y-8 text-sm leading-relaxed">
@@ -81,6 +81,28 @@ export default function Terms() {
             </p>
             <p className="text-slate-600">
               ColdStreak is not liable for any injury, loss, damages, claims, or legal consequences arising from your creation of, coordination of, attendance at, or inability to attend any community event.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">Verified Business Listings — Owner Responsibilities</h2>
+            <p className="text-slate-600 mb-2">
+              <strong className="text-slate-800">Accuracy of business information:</strong> If you submit or manage a Verified Business Listing, you represent that all information you provide — including business name, address, hours of operation, contact details, website and booking URLs, modalities offered, and any descriptive content — is accurate and that you are authorized to publish it on behalf of the business. Hours and "open now" status displayed on your public profile (<code>/biz/[your-slug]</code>) are calculated from the hours and timezone you set; ColdStreak is not responsible for visitor reliance on outdated hours that you have not updated.
+            </p>
+            <p className="text-slate-600 mb-2">
+              <strong className="text-slate-800">Co-manager authorization:</strong> When you add a co-manager email address to your listing, you represent that the person at that address is authorized by the business to access the business dashboard, view analytics, edit hours, and download anonymized plunger statistics. You remain responsible for the actions of any co-manager you add. The primary contact-email owner is the only account that may add or remove co-managers; co-managers themselves cannot modify the allowlist.
+            </p>
+            <p className="text-slate-600 mb-2">
+              <strong className="text-slate-800">Plunger data export — privacy obligations:</strong> The CSV export available in the business dashboard contains only display names and stable anonymous identifiers chosen by ColdStreak — it does not contain email addresses, account IDs, or device identifiers. By downloading this data you agree to use it only for your own internal analytics and customer-experience purposes, to keep it confidential, to not attempt to re-identify anonymous plungers, to not combine it with other data sources for the purpose of identification, and to comply with all applicable privacy laws (including GDPR, CCPA, and any state biometric or wellness-data laws that apply to your business).
+            </p>
+            <p className="text-slate-600 mb-2">
+              <strong className="text-slate-800">Public profile claims:</strong> Your public profile may include claims about water temperature, modalities, certifications, or affiliations. You are solely responsible for the accuracy of these claims and for compliance with applicable advertising, consumer-protection, and health-and-wellness regulations in your jurisdiction. ColdStreak does not independently verify any owner-supplied content beyond the initial listing approval.
+            </p>
+            <p className="text-slate-600 mb-2">
+              <strong className="text-slate-800">Admin support visibility:</strong> ColdStreak administrative staff may view your listing's dashboard, analytics, and co-manager list for the purpose of providing customer support, investigating reported abuse, or maintaining platform integrity. We do not access this data for any other purpose.
+            </p>
+            <p className="text-slate-600">
+              <strong className="text-slate-800">Indemnity:</strong> You agree to indemnify and hold harmless ColdStreak, its developers, and its affiliates from any claim, loss, or damages (including reasonable attorneys' fees) arising from your submission of false, misleading, or unauthorized listing information; from your misuse of co-manager access or downloaded plunger data; or from any claim by a third party that your listing violates their rights.
             </p>
           </section>
 

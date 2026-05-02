@@ -8,7 +8,7 @@ import Stripe from "stripe";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail, sendAdminSecurityAlert, sendSupportEmail, sendAdminReplyEmail } from "./email";
+import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail, sendAdminSecurityAlert, sendSupportEmail, sendAdminReplyEmail, sendCoManagerInviteEmail } from "./email";
 import webpush from "web-push";
 
 webpush.setVapidDetails(
@@ -62,6 +62,14 @@ function getSiteOrigin(req: Request): string {
   const origin = req.headers.origin || "";
   if (origin && origin.startsWith("http") && !origin.includes("localhost")) return origin;
   return process.env.SITE_URL || "https://coldstreakapp.com";
+}
+
+// Trusted, request-independent canonical origin. Use this (NOT req.headers.host
+// or req.get("host")) for any URL that will be embedded in outbound emails,
+// open-graph tags, or other content where Host-header poisoning would let an
+// attacker swap in a malicious domain.
+function getCanonicalOrigin(): string {
+  return (process.env.SITE_URL || "https://coldstreakapp.com").replace(/\/$/, "");
 }
 const ANNUAL_PRICE_ID = TEST_MODE
   ? process.env.STRIPE_TEST_ANNUAL_PRICE_ID!
@@ -640,6 +648,29 @@ export async function registerRoutes(
     }
   });
 
+  // ── Click endpoint rate limit ──────────────────────────────────────────────
+  // Simple in-memory token bucket: max 30 clicks per IP per listing per minute.
+  // Protects analytics from bot inflation. Map sweep on access keeps memory bounded.
+  const CLICK_LIMIT = 30;
+  const CLICK_WINDOW_MS = 60_000;
+  const clickHits = new Map<string, { count: number; resetAt: number }>();
+  function clickRateLimitOk(ip: string, listingId: number): boolean {
+    const key = `${ip}:${listingId}`;
+    const now = Date.now();
+    const cur = clickHits.get(key);
+    if (!cur || cur.resetAt < now) {
+      clickHits.set(key, { count: 1, resetAt: now + CLICK_WINDOW_MS });
+      // Opportunistic sweep — 1% of requests scrub expired entries.
+      if (Math.random() < 0.01) {
+        for (const [k, v] of clickHits) if (v.resetAt < now) clickHits.delete(k);
+      }
+      return true;
+    }
+    if (cur.count >= CLICK_LIMIT) return false;
+    cur.count++;
+    return true;
+  }
+
   app.post("/api/community-locations/:id/click", async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
@@ -647,6 +678,13 @@ export async function registerRoutes(
       kind: z.enum(["website", "booking", "directions", "phone", "yelp", "facebook", "share"]),
     }).safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Invalid kind" });
+    // Use `req.ip` (resolved by Express via the trusted proxy chain configured
+    // in server/index.ts) instead of raw `X-Forwarded-For` so attackers can't
+    // bypass the limit by rotating spoofed header values.
+    const ip = req.ip || req.socket.remoteAddress || "unknown";
+    if (!clickRateLimitOk(ip, id)) {
+      return res.status(429).json({ message: "Too many clicks. Try again in a moment." });
+    }
     const caller = extractUser(req);
     const clientId = (req.headers["x-client-id"] as string | undefined) ?? null;
     try {
@@ -758,9 +796,13 @@ export async function registerRoutes(
         z.null(),
         z.object({ mon: dayShape, tue: dayShape, wed: dayShape, thu: dayShape, fri: dayShape, sat: dayShape, sun: dayShape }),
       ]),
+      timezone: z.union([z.string().min(1).max(64), z.null()]).optional(),
     }).safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Invalid hours" });
     await storage.updateLocationHours(id, parsed.data.hours);
+    if (parsed.data.timezone !== undefined) {
+      await storage.updateLocationTimezone(id, parsed.data.timezone);
+    }
     res.json({ ok: true });
   });
 
@@ -772,7 +814,20 @@ export async function registerRoutes(
     if (!ctx) return;
     const parsed = z.object({ email: z.string().email() }).safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Valid email required" });
+    const before = ctx.loc.coManagerEmails ?? [];
     const next = await storage.addCoManager(id, parsed.data.email);
+    // Send invite email only when the address was newly added (best-effort).
+    const wasAdded = next.length > before.length;
+    if (wasAdded) {
+      // Trusted origin only — never derive email links from req.host (poisoning).
+      const origin = getCanonicalOrigin();
+      sendCoManagerInviteEmail({
+        to: parsed.data.email,
+        businessName: ctx.loc.name,
+        inviterEmail: ctx.email,
+        dashboardUrl: `${origin}/business`,
+      }).catch((err) => console.error("[co-manager invite email]", err));
+    }
     res.json({ coManagerEmails: next });
   });
 
@@ -840,9 +895,106 @@ export async function registerRoutes(
       latitude: loc.latitude,
       longitude: loc.longitude,
       hours: loc.hours ?? null,
+      timezone: loc.timezone ?? null,
       viewCount: loc.viewCount,
       leaderboard,
     });
+  });
+
+  // ── OG image for /biz/:slug — dynamic SVG, cached ──────────────────────────
+  // Keep it pure SVG so we don't pull in sharp/satori. Modern social platforms
+  // (Twitter/X, LinkedIn, Discord, Slack, Telegram) accept image/svg+xml. For
+  // platforms that don't, the og:title and og:description still drive a usable
+  // link preview.
+  app.get("/api/og/biz/:slug.svg", async (req, res) => {
+    const slug = String(req.params.slug ?? "").toLowerCase().trim();
+    if (!slug) return res.status(400).send("Invalid slug");
+    const loc = await storage.getLocationBySlug(slug);
+    if (!loc || !loc.isBusiness || !loc.businessVerified) {
+      return res.status(404).send("Not found");
+    }
+    const escape = (s: string) => s.replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[c] as string));
+    const name = escape(loc.name).slice(0, 60);
+    const cityState = escape([loc.city, loc.state].filter(Boolean).join(", ")).slice(0, 60);
+    const desc = escape((loc.description ?? "Cold plunge studio on ColdStreak").slice(0, 90));
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1430"/>
+      <stop offset="1" stop-color="#0f3a5f"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.85" cy="0.15" r="0.6">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#g)"/>
+  <rect width="1200" height="630" fill="url(#halo)"/>
+  <g transform="translate(80,90)">
+    <text x="0" y="0" fill="#22d3ee" font-family="DM Sans, Helvetica, Arial, sans-serif" font-size="28" font-weight="700">🧊 COLDSTREAK</text>
+    <text x="0" y="120" fill="#ffffff" font-family="DM Sans, Helvetica, Arial, sans-serif" font-size="76" font-weight="800">${name}</text>
+    ${cityState ? `<text x="0" y="180" fill="#94a3b8" font-family="DM Sans, Helvetica, Arial, sans-serif" font-size="32" font-weight="500">${cityState}</text>` : ""}
+    <text x="0" y="280" fill="#cbd5e1" font-family="DM Sans, Helvetica, Arial, sans-serif" font-size="28" font-weight="400">${desc}</text>
+  </g>
+  <g transform="translate(80,500)">
+    <rect x="0" y="0" rx="14" ry="14" width="260" height="56" fill="#22d3ee"/>
+    <text x="130" y="37" text-anchor="middle" fill="#0b1430" font-family="DM Sans, Helvetica, Arial, sans-serif" font-size="22" font-weight="800">VERIFIED ON COLDSTREAK</text>
+  </g>
+</svg>`;
+    res.set({
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Cache-Control": "public, max-age=600, s-maxage=3600",
+    });
+    res.send(svg);
+  });
+
+  // ── OG meta-tag injection for /biz/:slug (crawler-only) ────────────────────
+  // For social-media crawlers we serve a minimal HTML shell with og: tags so
+  // shared links produce rich previews. Real browsers fall through to the SPA.
+  const CRAWLER_RE = /(facebookexternalhit|twitterbot|linkedinbot|slackbot|whatsapp|telegrambot|discordbot|skypeuripreview|googlebot|bingbot|duckduckbot|applebot|pinterestbot|redditbot|embedly)/i;
+  app.get("/biz/:slug", async (req, res, next) => {
+    const ua = (req.headers["user-agent"] ?? "").toString();
+    if (!CRAWLER_RE.test(ua)) return next(); // browsers → SPA via vite/serveStatic
+    const slug = String(req.params.slug ?? "").toLowerCase().trim();
+    const loc = slug ? await storage.getLocationBySlug(slug) : null;
+    if (!loc || !loc.isBusiness || !loc.businessVerified) return next();
+    const escape = (s: string) => s.replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[c] as string));
+    // Trusted origin only — never derive OG/canonical URLs from req.host.
+    const origin = getCanonicalOrigin();
+    const url = `${origin}/biz/${slug}`;
+    const title = escape(`${loc.name} on ColdStreak`);
+    const cityState = [loc.city, loc.state].filter(Boolean).join(", ");
+    const desc = escape(loc.description ?? `${cityState ? cityState + " — " : ""}Verified cold-plunge studio on ColdStreak.`);
+    const img = `${origin}/api/og/biz/${slug}.svg`;
+    // Vary: User-Agent — this route serves *different* HTML based on UA (crawler
+    // vs browser fall-through). Without Vary, a shared cache could pin one
+    // variant and serve it to the wrong audience (broken SPA for browsers, or
+    // the SPA shell for crawlers). Keep the cache short for the same reason.
+    res.set({
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "public, max-age=300",
+      "Vary": "User-Agent",
+    });
+    res.send(`<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"/>
+<title>${title}</title>
+<meta name="description" content="${desc}"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="${title}"/>
+<meta property="og:description" content="${desc}"/>
+<meta property="og:url" content="${url}"/>
+<meta property="og:image" content="${img}"/>
+<meta property="og:image:type" content="image/svg+xml"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="${title}"/>
+<meta name="twitter:description" content="${desc}"/>
+<meta name="twitter:image" content="${img}"/>
+</head><body><h1>${title}</h1><p>${desc}</p><p><a href="${url}">Open on ColdStreak</a></p></body></html>`);
   });
 
   app.delete("/api/community-locations/:id", async (req, res) => {

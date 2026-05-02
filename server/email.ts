@@ -191,6 +191,36 @@ export async function sendChurnSurveyEmail(opts: {
   `);
 }
 
+export async function sendCoManagerInviteEmail(opts: {
+  to: string;
+  businessName: string;
+  inviterEmail: string;
+  dashboardUrl: string;
+}): Promise<void> {
+  await sendEmail(opts.to, `You've been added as a co-manager on ColdStreak`, `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">
+      <h1 style="color:#22d3ee;margin:0 0 8px">🧊 ColdStreak</h1>
+      <h2 style="color:#fff;margin:0 0 16px;font-size:20px">You're now a co-manager for ${opts.businessName}</h2>
+      <p style="color:#94a3b8;margin:0 0 16px;line-height:1.6">
+        <strong style="color:#e2e8f0">${opts.inviterEmail}</strong> added you as a co-manager for
+        <strong style="color:#e2e8f0">${opts.businessName}</strong> on ColdStreak.
+      </p>
+      <p style="color:#94a3b8;margin:0 0 24px;line-height:1.6">
+        Sign in with this email address (<strong style="color:#e2e8f0">${opts.to}</strong>) and you'll see the listing in your business dashboard. You can view analytics, edit hours, and export plunger data — but only the primary owner can add or remove co-managers.
+      </p>
+      <a href="${opts.dashboardUrl}"
+         style="display:inline-block;background:#22d3ee;color:#0f172a;font-weight:700;
+                text-decoration:none;padding:14px 28px;border-radius:12px;font-size:15px;">
+        Open business dashboard
+      </a>
+      <p style="color:#64748b;margin:24px 0 0;font-size:13px;line-height:1.6">
+        Don't have a ColdStreak account yet? Create one with this email address to gain access.<br><br>
+        — The ColdStreak Team 🥶
+      </p>
+    </div>
+  `);
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   await sendEmail(to, "Reset your ColdStreak password", `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">

@@ -11,7 +11,7 @@ export default function Privacy() {
             <a className="text-cyan-600 text-sm font-semibold hover:underline">← Back to ColdStreak</a>
           </Link>
           <h1 className="text-3xl font-bold text-slate-900 mt-4 mb-1">Privacy Policy</h1>
-          <p className="text-slate-500 text-sm">Last updated: March 2026</p>
+          <p className="text-slate-500 text-sm">Last updated: May 2026</p>
         </div>
 
         <div className="space-y-8 text-sm leading-relaxed">
@@ -103,6 +103,25 @@ export default function Privacy() {
             </ul>
             <p className="text-slate-600 mt-2">
               By creating an event or signing up for one, you consent to this information being publicly visible. If you wish to remove your event, you may do so through the App; events also expire automatically after their scheduled end window.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-base font-bold text-slate-900 mb-2">Verified Business Listings — Public Profile and Owner Data Access</h2>
+            <p className="text-slate-600 mb-2">
+              When a Verified Business Listing is approved, the business name, city, state, country, address, description, modalities, public website / phone / booking / Yelp / Facebook URLs, hours of operation, configured timezone, and a top-10 leaderboard of users who have logged the most plunges at that location are displayed publicly at a shareable URL (<code>/biz/[slug]</code>). The contact email used for ownership and the list of co-manager email addresses are <strong className="text-slate-800">never displayed publicly</strong>. View counts, click counts on outbound links, and aggregated plunge statistics are recorded for the business owner's analytics dashboard.
+            </p>
+            <p className="text-slate-600 mb-2">
+              <strong className="text-slate-800">Data shared with business owners:</strong> Verified business owners and any co-managers they add can see the following information in their dashboard for their own listing(s) only: total view counts, click counts broken down by destination (website, booking, directions, phone, Yelp, Facebook, share), trend charts over a selected time window, a leaderboard of plungers at that location showing display name and Cold Score, and a CSV export of plunger statistics. The CSV export contains only the plunger's chosen display name and a stable anonymous identifier — it does <strong className="text-slate-800">not</strong> contain email addresses, account IDs, device identifiers, or any other personally identifying information. The anonymous identifier lets owners recognize repeat customers across visits without being able to contact or re-identify them.
+            </p>
+            <p className="text-slate-600 mb-2">
+              <strong className="text-slate-800">Co-manager email storage:</strong> When a business owner adds a co-manager email address, that address is stored in our database as an access allowlist. ColdStreak sends a one-time notification email to that address informing the recipient that they have been granted access. The address is used only to grant dashboard access when the recipient signs in with a matching ColdStreak account; it is not used for marketing.
+            </p>
+            <p className="text-slate-600 mb-2">
+              <strong className="text-slate-800">Open Graph link previews:</strong> When a public business profile URL (<code>/biz/[slug]</code>) is shared on a social platform or messaging app, that platform's link-preview crawler may fetch the page and an automatically generated preview image (containing the business name, city, and a ColdStreak verification badge) from our servers. No information about the user sharing the link is sent by ColdStreak to those platforms.
+            </p>
+            <p className="text-slate-600">
+              <strong className="text-slate-800">Administrative visibility:</strong> ColdStreak administrative staff can view all verified business listings, their dashboards, and their co-manager allowlists for the purpose of providing customer support, investigating reported abuse, processing deletion requests, and maintaining platform integrity.
             </p>
           </section>
 

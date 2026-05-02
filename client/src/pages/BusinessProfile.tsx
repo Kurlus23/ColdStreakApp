@@ -27,6 +27,7 @@ interface PublicBiz {
   latitude: string | null;
   longitude: string | null;
   hours: BusinessHours | null;
+  timezone: string | null;
   viewCount: number;
   leaderboard: Array<{ username: string; bestScore: number; plungeCount: number; lastPlungeAt: string }>;
 }
@@ -41,16 +42,37 @@ function todayKey(): DayKey {
   return (["sun","mon","tue","wed","thu","fri","sat"] as DayKey[])[d];
 }
 
+// Compute hour/minute/weekday in a target IANA timezone (or viewer's local TZ
+// when timezone is null). Uses Intl.DateTimeFormat — supported in all modern
+// browsers and on iOS WebKit / Capacitor.
+function nowInTimezone(timezone: string | null): { minutesOfDay: number; weekdayIdx: number } {
+  const opts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit", weekday: "short", hour12: false };
+  if (timezone) opts.timeZone = timezone;
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat("en-US", opts).formatToParts(new Date());
+  } catch {
+    // Invalid timezone string → fall back to viewer's local time.
+    parts = new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", weekday: "short", hour12: false }).formatToParts(new Date());
+  }
+  let h = 0, m = 0, weekday = "Sun";
+  for (const p of parts) {
+    if (p.type === "hour") h = parseInt(p.value, 10) % 24;
+    else if (p.type === "minute") m = parseInt(p.value, 10);
+    else if (p.type === "weekday") weekday = p.value;
+  }
+  const map: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return { minutesOfDay: h * 60 + m, weekdayIdx: map[weekday] ?? 0 };
+}
+
 // Today + previous-day overnight check: if a business closes after midnight
 // (e.g. open 22:00–02:00), we also consider whether yesterday's window is
-// still active right now. Times are interpreted in the viewer's local TZ —
-// good enough for v1; per-listing timezone is a future enhancement.
-function isOpenNow(hours: BusinessHours | null): { open: boolean; label: string } {
+// still active right now. Times are interpreted in the listing's configured
+// timezone when set, otherwise the viewer's local TZ.
+function isOpenNow(hours: BusinessHours | null, timezone: string | null): { open: boolean; label: string } {
   if (!hours) return { open: false, label: "Hours not set" };
   const order: DayKey[] = ["sun","mon","tue","wed","thu","fri","sat"];
-  const now = new Date();
-  const cur = now.getHours() * 60 + now.getMinutes();
-  const todayIdx = now.getDay();
+  const { minutesOfDay: cur, weekdayIdx: todayIdx } = nowInTimezone(timezone);
   const yesterdayIdx = (todayIdx + 6) % 7;
   const today = hours[order[todayIdx]];
   const yesterday = hours[order[yesterdayIdx]];
@@ -60,6 +82,7 @@ function isOpenNow(hours: BusinessHours | null): { open: boolean; label: string 
     return h * 60 + m;
   };
 
+  void cur; // (kept above for clarity)
   // 1. Yesterday's window if it crossed midnight and we're still inside it.
   if (yesterday && !yesterday.closed) {
     const yOpen = toMinutes(yesterday.open);
@@ -116,28 +139,56 @@ export default function BusinessProfile() {
     fetch(`/api/community-locations/${biz.id}/view`, { method: "POST", keepalive: true }).catch(() => {});
   }, [biz?.id]);
 
-  // SEO: set page title + meta description
+  // SEO: set page title, meta description, and open-graph tags. Most social
+  // crawlers (Facebook, Slack, Discord, etc.) get server-rendered tags via the
+  // /biz/:slug Express handler — these client-side tags are a fallback for any
+  // crawler that does execute JS.
   useEffect(() => {
     if (!biz) return;
     const prevTitle = document.title;
-    document.title = `${biz.name} · Cold Plunge Spot · ColdStreak`;
+    const title = `${biz.name} · Cold Plunge Spot · ColdStreak`;
+    document.title = title;
     const desc = biz.description?.slice(0, 155)
       ?? `Cold plunge spot in ${[biz.city, biz.state].filter(Boolean).join(", ") || biz.country}. Track your plunges with ColdStreak.`;
-    let meta = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.name = "description";
-      document.head.appendChild(meta);
-    }
-    const prevDesc = meta.content;
-    meta.content = desc;
+
+    const upsertMeta = (selector: string, attrName: string, attrValue: string, content: string) => {
+      let m = document.head.querySelector(selector) as HTMLMetaElement | null;
+      const created = !m;
+      if (!m) {
+        m = document.createElement("meta");
+        m.setAttribute(attrName, attrValue);
+        document.head.appendChild(m);
+      }
+      const prev = m.content;
+      m.content = content;
+      return { el: m, prev, created };
+    };
+
+    const ogImage = `${window.location.origin}/api/og/biz/${biz.slug}.svg`;
+    const ogUrl = window.location.href;
+    const tags = [
+      upsertMeta('meta[name="description"]', "name", "description", desc),
+      upsertMeta('meta[property="og:type"]', "property", "og:type", "website"),
+      upsertMeta('meta[property="og:title"]', "property", "og:title", title),
+      upsertMeta('meta[property="og:description"]', "property", "og:description", desc),
+      upsertMeta('meta[property="og:url"]', "property", "og:url", ogUrl),
+      upsertMeta('meta[property="og:image"]', "property", "og:image", ogImage),
+      upsertMeta('meta[name="twitter:card"]', "name", "twitter:card", "summary_large_image"),
+      upsertMeta('meta[name="twitter:title"]', "name", "twitter:title", title),
+      upsertMeta('meta[name="twitter:description"]', "name", "twitter:description", desc),
+      upsertMeta('meta[name="twitter:image"]', "name", "twitter:image", ogImage),
+    ];
+
     return () => {
       document.title = prevTitle;
-      if (meta) meta.content = prevDesc;
+      for (const t of tags) {
+        if (t.created) t.el.remove();
+        else t.el.content = t.prev;
+      }
     };
   }, [biz]);
 
-  const openNow = useMemo(() => isOpenNow(biz?.hours ?? null), [biz?.hours]);
+  const openNow = useMemo(() => isOpenNow(biz?.hours ?? null, biz?.timezone ?? null), [biz?.hours, biz?.timezone]);
 
   if (isLoading) {
     return (

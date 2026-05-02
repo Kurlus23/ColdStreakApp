@@ -679,24 +679,46 @@ function ShareAndQrPanel({ listing, userId }: { listing: UserLocation; userId: n
 }
 
 // ── Hours editor ────────────────────────────────────────────────────────────
+// Curated list of common US/Canada/EU timezones plus a few global majors.
+// Browsers (Chrome 99+, Safari 17+, FF 100+) support `Intl.supportedValuesOf("timeZone")`
+// for a complete list, but a curated set keeps the dropdown short and predictable.
+const COMMON_TIMEZONES: Array<{ value: string; label: string }> = [
+  { value: "America/New_York", label: "Eastern (New York)" },
+  { value: "America/Chicago", label: "Central (Chicago)" },
+  { value: "America/Denver", label: "Mountain (Denver)" },
+  { value: "America/Phoenix", label: "Arizona (Phoenix)" },
+  { value: "America/Los_Angeles", label: "Pacific (Los Angeles)" },
+  { value: "America/Anchorage", label: "Alaska (Anchorage)" },
+  { value: "Pacific/Honolulu", label: "Hawaii (Honolulu)" },
+  { value: "America/Toronto", label: "Eastern Canada (Toronto)" },
+  { value: "America/Vancouver", label: "Pacific Canada (Vancouver)" },
+  { value: "Europe/London", label: "UK (London)" },
+  { value: "Europe/Berlin", label: "Central Europe (Berlin)" },
+  { value: "Europe/Helsinki", label: "Eastern Europe (Helsinki)" },
+  { value: "Australia/Sydney", label: "Australia (Sydney)" },
+  { value: "Asia/Tokyo", label: "Japan (Tokyo)" },
+];
+
 function HoursEditor({ listing, userId }: { listing: UserLocation; userId: number | null }) {
   const { toast } = useToast();
   // listing.hours is jsonb (typed `unknown` at the column level) — cast on read.
   const persisted = (listing.hours as BusinessHours | null) ?? null;
   const [draft, setDraft] = useState<BusinessHours>(() => persisted ?? DEFAULT_HOURS());
+  const [tz, setTz] = useState<string>(() => listing.timezone ?? "");
 
   // Reset draft when active listing changes
   useEffect(() => {
     setDraft(persisted ?? DEFAULT_HOURS());
+    setTz(listing.timezone ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listing.id, listing.hours]);
+  }, [listing.id, listing.hours, listing.timezone]);
 
   const save = useMutation({
-    mutationFn: async (hours: BusinessHours | null) => {
+    mutationFn: async (payload: { hours: BusinessHours | null; timezone: string | null }) => {
       const r = await fetch(`/api/business/${listing.id}/hours`, {
         method: "PUT",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ hours }),
+        body: JSON.stringify(payload),
       });
       if (!r.ok) throw new Error(`save failed (${r.status})`);
       return r.json();
@@ -757,10 +779,27 @@ function HoursEditor({ listing, userId }: { listing: UserLocation; userId: numbe
           );
         })}
       </div>
+      <div className="mt-3 bg-blue-950/40 border border-blue-900/40 rounded-lg px-2 py-2 flex items-center gap-2">
+        <span className="text-blue-300 text-xs font-semibold whitespace-nowrap">Timezone</span>
+        <select
+          data-testid="select-timezone"
+          value={tz}
+          onChange={(e) => setTz(e.target.value)}
+          className="flex-1 bg-blue-950/80 border border-blue-800/50 rounded px-1.5 py-1 text-blue-100 text-xs"
+        >
+          <option value="">Use viewer's local time</option>
+          {COMMON_TIMEZONES.map((t) => (
+            <option key={t.value} value={t.value}>{t.label}</option>
+          ))}
+        </select>
+      </div>
+      <p className="text-blue-500 text-[11px] mt-1.5">
+        Pick the timezone your business is in so the "open now" badge stays accurate for visitors in other regions.
+      </p>
       <div className="flex gap-2 mt-3">
         <button
           data-testid="button-save-hours"
-          onClick={() => save.mutate(draft)}
+          onClick={() => save.mutate({ hours: draft, timezone: tz || null })}
           disabled={save.isPending}
           className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-blue-950 font-bold py-2 rounded-lg text-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
         >
@@ -770,7 +809,7 @@ function HoursEditor({ listing, userId }: { listing: UserLocation; userId: numbe
         {persisted ? (
           <button
             data-testid="button-clear-hours"
-            onClick={() => save.mutate(null)}
+            onClick={() => save.mutate({ hours: null, timezone: null })}
             disabled={save.isPending}
             className="bg-blue-900/50 border border-blue-700/40 text-blue-200 font-semibold px-3 py-2 rounded-lg text-xs"
           >
