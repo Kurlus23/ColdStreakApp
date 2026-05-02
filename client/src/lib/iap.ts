@@ -26,8 +26,8 @@ export type IAPPlan = keyof typeof RC_PACKAGE_IDS;
 // "verified_business" offering.
 export const VERIFIED_BUSINESS_TIERS = [
   { tier: 1,  packageId: "verified_business_1",  productId: "coldstreak_verified_business_1",  priceLabel: "$29.99/mo",   description: "1 location" },
-  { tier: 5,  packageId: "verified_business_5",  productId: "coldstreak_verified_business_5",  priceLabel: "$99.99/mo",   description: "Up to 5 locations" },
-  { tier: 25, packageId: "verified_business_25", productId: "coldstreak_verified_business_25", priceLabel: "$399.99/mo",  description: "Up to 25 locations" },
+  { tier: 3,  packageId: "verified_business_3",  productId: "coldstreak_verified_business_3",  priceLabel: "$79.99/mo",   description: "Up to 3 locations" },
+  { tier: 10, packageId: "verified_business_10", productId: "coldstreak_verified_business_10", priceLabel: "$129.99/mo",  description: "Up to 10 locations" },
 ] as const;
 
 export type VerifiedBusinessTier = typeof VERIFIED_BUSINESS_TIERS[number]["tier"];

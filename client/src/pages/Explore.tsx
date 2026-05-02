@@ -1392,10 +1392,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   };
 
   const businessCheckoutMutation = useMutation({
-    mutationFn: ({ locationId, email }: { locationId: number; email: string }) =>
+    mutationFn: ({ locationId, email, tier }: { locationId: number; email: string; tier: VerifiedBusinessTier }) =>
       apiRequest("POST", "/api/stripe/business-checkout", {
         locationId,
         email,
+        tier,
         successUrl: window.location.origin + "/",
         cancelUrl: window.location.origin + "/",
       }).then((r) => r.json()),
@@ -1421,7 +1422,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     setVerifyBusinessIapPending(true);
     try {
       // Try the purchase. If the user already owns the tier (e.g. adding a
-      // 2nd or 3rd location to a 5-pack), Apple returns PRODUCT_ALREADY_PURCHASED
+      // 2nd or 3rd location to a 3-pack), Apple returns PRODUCT_ALREADY_PURCHASED
       // and our wrapper restores instead — we can proceed straight to bind.
       const purchase = await purchaseVerifiedBusinessTier(tier);
       if (purchase.cancelled) {
@@ -1485,17 +1486,13 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     onSuccess: (loc) => {
       queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
       if (bizTier === "verified") {
-        if (isIOSNative()) {
-          // Apple Guideline 3.1.1 — use IAP on iOS, never Stripe.
-          // Open the verify dialog so the user can pick a tier, then run
-          // the RevenueCat purchase flow.
-          setShowBusinessForm(false);
-          setVerifyEmail(bizForm.contactEmail);
-          setVerifyTier(1);
-          setVerifyDialogLocId(loc.id);
-        } else {
-          businessCheckoutMutation.mutate({ locationId: loc.id, email: bizForm.contactEmail });
-        }
+        // Always open the verify dialog so the user can pick a tier (iOS uses
+        // RevenueCat IAP; web uses Stripe). Apple Guideline 3.1.1 — IAP only
+        // on iOS, never Stripe.
+        setShowBusinessForm(false);
+        setVerifyEmail(bizForm.contactEmail);
+        setVerifyTier(1);
+        setVerifyDialogLocId(loc.id);
       } else {
         setShowBusinessForm(false);
         resetBizForm();
@@ -3959,14 +3956,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 <div className="flex items-center gap-1 font-bold text-sm">
                   <BadgeCheck className="w-3.5 h-3.5 text-yellow-400" /> Verified
                 </div>
-                <div className="text-[10px] opacity-70 mt-0.5">From $29.99/mo · 1st month free</div>
+                <div className="text-[10px] opacity-70 mt-0.5">$29.99/$79.99/$129.99 per mo (1/3/10 locations) · 1st month free</div>
               </button>
             </div>
 
             {bizTier === "verified" && (
               <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-xl p-3 space-y-1.5">
                 <p className="text-yellow-300 text-xs font-semibold">Verified includes:</p>
-                {["Gold badge + top placement in directory", "Full public profile with links & contact info", "Google Maps directions button", "Website, Yelp, Facebook & booking links", "1st month free — then from $29.99/mo (1, 5, or 25 locations), cancel anytime"].map((b) => (
+                {["Gold badge + top placement in directory", "Full public profile with links & contact info", "Google Maps directions button", "Website, Yelp, Facebook & booking links", "1st month free — then $29.99 (1 location), $79.99 (up to 3), or $129.99/mo (up to 10), cancel anytime"].map((b) => (
                   <div key={b} className="flex items-start gap-1.5 text-[11px] text-yellow-200/80">
                     <CheckCircle2 className="w-3 h-3 text-yellow-400 shrink-0 mt-0.5" /> {b}
                   </div>
@@ -4263,9 +4260,10 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     {verifyDialogLocId !== null && (() => {
       const ios = isIOSNative();
       const selectedTier = VERIFIED_BUSINESS_TIERS.find((t) => t.tier === verifyTier) ?? VERIFIED_BUSINESS_TIERS[0];
-      const ctaLabel = ios
-        ? (verifyBusinessIapPending ? "Processing…" : `Subscribe — ${selectedTier.priceLabel}`)
-        : (businessCheckoutMutation.isPending ? "Verifying…" : "Subscribe — From $29.99/mo →");
+      const pending = ios ? verifyBusinessIapPending : businessCheckoutMutation.isPending;
+      const ctaLabel = pending
+        ? (ios ? "Processing…" : "Verifying…")
+        : `Subscribe — ${selectedTier.priceLabel}`;
       return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
         <div className="w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-yellow-600/40 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
@@ -4276,7 +4274,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             <div>
               <p className="text-white font-bold text-sm">Verified Business Listing</p>
               <p className="text-green-400 text-[11px] font-semibold">
-                {ios ? "First month free · pick a tier · cancel anytime" : "First month free · then from $29.99/mo · cancel anytime"}
+                First month free · pick a tier · cancel anytime
               </p>
             </div>
             <button
@@ -4305,38 +4303,44 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               ))}
             </ul>
 
-            {ios && (
-              <div className="space-y-2">
-                <label className="text-slate-400 text-[11px] block">Choose your tier</label>
-                <div className="space-y-1.5">
-                  {VERIFIED_BUSINESS_TIERS.map((t) => {
-                    const selected = verifyTier === t.tier;
-                    return (
-                      <button
-                        key={t.tier}
-                        type="button"
-                        data-testid={`button-verify-tier-${t.tier}`}
-                        onClick={() => setVerifyTier(t.tier)}
-                        className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left text-xs transition-all ${
-                          selected
-                            ? "bg-yellow-500/15 border-yellow-500/60 text-yellow-100"
-                            : "bg-slate-800/60 border-slate-700/60 text-slate-300 hover:border-slate-500"
-                        }`}
-                      >
-                        <div>
-                          <div className="font-bold">{t.description}</div>
-                          <div className="text-[10px] opacity-70">First month free, cancel anytime</div>
-                        </div>
-                        <div className="font-bold whitespace-nowrap">{t.priceLabel}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-slate-500 text-[10px] leading-relaxed">
-                  Each tier is a single Apple subscription that covers up to that many verified locations. Add more locations later from the same subscription.
-                </p>
+            <div className="space-y-2">
+              <label className="text-slate-400 text-[11px] block">Choose your tier</label>
+              <div className="space-y-1.5">
+                {VERIFIED_BUSINESS_TIERS.map((t) => {
+                  const selected = verifyTier === t.tier;
+                  return (
+                    <button
+                      key={t.tier}
+                      type="button"
+                      data-testid={`button-verify-tier-${t.tier}`}
+                      onClick={() => setVerifyTier(t.tier)}
+                      className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left text-xs transition-all ${
+                        selected
+                          ? "bg-yellow-500/15 border-yellow-500/60 text-yellow-100"
+                          : "bg-slate-800/60 border-slate-700/60 text-slate-300 hover:border-slate-500"
+                      }`}
+                    >
+                      <div>
+                        <div className="font-bold">{t.description}</div>
+                        <div className="text-[10px] opacity-70">First month free, cancel anytime</div>
+                      </div>
+                      <div className="font-bold whitespace-nowrap">{t.priceLabel}</div>
+                    </button>
+                  );
+                })}
               </div>
-            )}
+              <p className="text-slate-500 text-[10px] leading-relaxed">
+                Each tier is a single subscription that covers up to that many verified locations. Add more locations later from the same subscription.{" "}
+                <a
+                  href="mailto:ColdStreakApp17@gmail.com?subject=ColdStreak%20Enterprise%20Verified%20Business%20Pricing"
+                  data-testid="link-enterprise-contact"
+                  className="text-yellow-400 underline hover:text-yellow-300"
+                  onClick={(e) => { e.stopPropagation(); }}
+                >
+                  Need 10+ locations? Contact us for enterprise pricing.
+                </a>
+              </p>
+            </div>
 
             <div>
               <label className="text-slate-400 text-[11px] block mb-1">
@@ -4364,7 +4368,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 if (ios) {
                   verifyBusinessIap(id, verifyEmail.trim(), verifyTier);
                 } else {
-                  businessCheckoutMutation.mutate({ locationId: id, email: verifyEmail.trim() });
+                  businessCheckoutMutation.mutate({ locationId: id, email: verifyEmail.trim(), tier: verifyTier });
                 }
               }}
               disabled={
@@ -4384,7 +4388,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               className="text-slate-400/90 text-[10px] leading-relaxed space-y-1.5 pt-3 border-t border-slate-800"
             >
               <p>
-                <strong className="text-slate-200">ColdStreak Verified Business Listing — {ios ? selectedTier.description : "Monthly"}</strong>: {ios ? selectedTier.priceLabel : "from $29.99"} USD/month, auto-renewing subscription with a 30-day free trial. {ios ? (
+                <strong className="text-slate-200">ColdStreak Verified Business Listing — {selectedTier.description}</strong>: {selectedTier.priceLabel} USD, auto-renewing monthly subscription with a 30-day free trial. {ios ? (
                   <>Payment is charged to your Apple ID at the end of the free trial. The subscription renews each month unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in <strong>iPhone Settings → [your name] → Subscriptions</strong>.</>
                 ) : (
                   <>Payment is charged at the end of the free trial. The subscription renews each month unless cancelled before the end of the current period. Manage or cancel anytime from your business listing's <strong>Manage Subscription</strong> link.</>

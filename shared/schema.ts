@@ -147,7 +147,7 @@ export type BusinessListing = typeof businessListings.$inferSelect;
 
 // Apple/Google IAP-purchased Verified Business subscription. One row per email
 // (the RevenueCat appUserId). tierCapacity is the max number of locations this
-// subscription can keep verified at once (1, 5, or 25). When the user verifies
+// subscription can keep verified at once (1, 3, or 10). When the user verifies
 // a location on iOS we add a businessListings row with source="iap" and
 // stripeSubscriptionId set to a synthetic identifier — the count of those rows
 // vs. tierCapacity is the gating check.

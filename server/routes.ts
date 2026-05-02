@@ -1262,14 +1262,27 @@ export async function registerRoutes(
   });
 
   // Business listing checkout
+  // Web-side Stripe tier table — must mirror VERIFIED_BUSINESS_TIERS in
+  // client/src/lib/iap.ts so prices stay in sync between iOS IAP and web Stripe.
+  // 10+ locations is enterprise / Contact Sales only — not sold via self-serve.
+  const STRIPE_BUSINESS_TIERS: Record<number, { unitAmount: number; capacity: number; description: string }> = {
+    1:  { unitAmount: 2999,  capacity: 1,  description: "1 location" },
+    3:  { unitAmount: 7999,  capacity: 3,  description: "Up to 3 locations" },
+    10: { unitAmount: 12999, capacity: 10, description: "Up to 10 locations" },
+  };
+
   app.post("/api/stripe/business-checkout", async (req, res) => {
     try {
-      const { successUrl, cancelUrl, locationId, email } = z.object({
+      const { successUrl, cancelUrl, locationId, email, tier } = z.object({
         successUrl: z.string().url(),
         cancelUrl: z.string().url(),
         locationId: z.number().int().positive(),
         email: z.string().email(),
+        tier: z.union([z.literal(1), z.literal(3), z.literal(10)]).default(1),
       }).parse(req.body);
+
+      const tierConfig = STRIPE_BUSINESS_TIERS[tier];
+      if (!tierConfig) return res.status(400).json({ message: "Invalid tier" });
 
       // Verify the requester owns this listing by matching their contact email
       const loc = await storage.getUserLocationById(locationId);
@@ -1284,17 +1297,17 @@ export async function registerRoutes(
           price_data: {
             currency: "usd",
             product_data: {
-              name: "ColdStreak Verified Business Listing",
-              description: "✓ Verified badge on ColdStreak community boards — from $29.99/month (first month free)",
+              name: `ColdStreak Verified Business Listing — ${tierConfig.description}`,
+              description: `✓ Verified badge on ColdStreak community boards — covers ${tierConfig.description.toLowerCase()} (first month free)`,
             },
-            unit_amount: 2999,
+            unit_amount: tierConfig.unitAmount,
             recurring: { interval: "month" },
           },
           quantity: 1,
         }],
         mode: "subscription",
         subscription_data: { trial_period_days: 30 },
-        metadata: { type: "business_listing", locationId: locationId.toString() },
+        metadata: { type: "business_listing", locationId: locationId.toString(), tier: String(tier), tierCapacity: String(tierConfig.capacity) },
         success_url: `${successUrl}?business_session_id={CHECKOUT_SESSION_ID}&business_location_id=${locationId}`,
         cancel_url: cancelUrl,
       });
@@ -1594,8 +1607,8 @@ export async function registerRoutes(
   // does not support quantity on subscriptions.
   const VERIFIED_BUSINESS_TIER_BY_PRODUCT: Record<string, number> = {
     "coldstreak_verified_business_1": 1,
-    "coldstreak_verified_business_5": 5,
-    "coldstreak_verified_business_25": 25,
+    "coldstreak_verified_business_3": 3,
+    "coldstreak_verified_business_10": 10,
   };
   function tierCapacityFromProductId(productId: string | null | undefined): number | null {
     if (!productId) return null;
@@ -1604,7 +1617,7 @@ export async function registerRoutes(
     const m = productId.toLowerCase().match(/business[_-](\d+)/);
     if (m) {
       const n = parseInt(m[1], 10);
-      if (n === 1 || n === 5 || n === 25) return n;
+      if (n === 1 || n === 3 || n === 10) return n;
     }
     return null;
   }
