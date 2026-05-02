@@ -42,7 +42,7 @@ export default function Privacy() {
                 <span className="font-semibold text-slate-800">Community location submissions</span> — if you submit a community spot, the location name, coordinates, and any details you provide are stored on our servers and visible to all users of the App. Your contact email is recorded for ownership purposes only and is never displayed publicly.
               </li>
               <li>
-                <span className="font-semibold text-slate-800">Business listing submissions</span> — if you submit a business listing, we collect the information you provide: business name, city, state, full address, phone number, website and social media URLs, and a contact email address. Your contact email is used solely for administrative purposes and is never displayed publicly. The business name, city, state, description, and any links you provide may be displayed publicly within the App. Verified business listings require a paid monthly subscription processed through Stripe; Stripe handles all payment data and ColdStreak does not store your credit card information.
+                <span className="font-semibold text-slate-800">Business listing submissions</span> — if you submit a business listing, we collect the information you provide: business name, city, state, full address, phone number, website and social media URLs, and a contact email address. Your contact email is used solely for administrative purposes and is never displayed publicly. The business name, city, state, description, and any links you provide may be displayed publicly within the App. Verified business listings require a paid monthly subscription. On iOS, the subscription is processed by Apple In-App Purchase and your payment information is handled entirely by Apple. On the web and other platforms, the subscription is processed by Stripe; Stripe handles all payment data and ColdStreak does not store your credit card information.
               </li>
               <li>
                 <span className="font-semibold text-slate-800">Community event data</span> — if you create an event, we store the event name, description, date(s), location name, and any GPS coordinates you pin (plunge spot and parking/access point). This information is visible to all users of the App. Your display name is shown as the event organizer. We also store the list of users who sign up for an event (display names and account IDs) and any co-coordinator relationships you establish. Events are automatically deleted after their end window (up to seven days from the start date).
@@ -109,7 +109,7 @@ export default function Privacy() {
           <section>
             <h2 className="text-base font-bold text-slate-900 mb-2">Data Storage and Security</h2>
             <p className="text-slate-600">
-              Your plunge history is stored locally on your device and, where applicable, on secured servers. We use industry-standard encryption for data in transit (HTTPS). Payment processing is handled entirely by Stripe — we never store your payment card details.
+              Your plunge history is stored locally on your device and, where applicable, on secured servers. We use industry-standard encryption for data in transit (HTTPS). Payment processing for purchases made on iOS is handled entirely by Apple In-App Purchase; payment processing for purchases made on the web and other platforms is handled entirely by Stripe. ColdStreak never stores your payment card details.
             </p>
           </section>
 
@@ -117,7 +117,10 @@ export default function Privacy() {
             <h2 className="text-base font-bold text-slate-900 mb-2">Third-Party Services</h2>
             <ul className="list-disc pl-5 space-y-2 text-slate-600">
               <li>
-                <span className="font-semibold text-slate-800">Stripe</span> — payment processing for ColdStreak Pro and Verified Business Listings. ColdStreak does not store payment card data. Subject to <a href="https://stripe.com/privacy" className="text-cyan-600 hover:underline" target="_blank" rel="noopener noreferrer">Stripe's Privacy Policy</a>.
+                <span className="font-semibold text-slate-800">Apple In-App Purchase (iOS only)</span> — handles all payment processing for ColdStreak Pro and Verified Business Listing subscriptions purchased on iOS. ColdStreak does not receive or store your payment card data. Subject to <a href="https://www.apple.com/legal/privacy/" className="text-cyan-600 hover:underline" target="_blank" rel="noopener noreferrer">Apple's Privacy Policy</a>.
+              </li>
+              <li>
+                <span className="font-semibold text-slate-800">Stripe (web and non-iOS platforms)</span> — payment processing for ColdStreak Pro and Verified Business Listings purchased on the web. ColdStreak does not store payment card data. Subject to <a href="https://stripe.com/privacy" className="text-cyan-600 hover:underline" target="_blank" rel="noopener noreferrer">Stripe's Privacy Policy</a>.
               </li>
               <li>
                 <span className="font-semibold text-slate-800">PostHog</span> — anonymous product analytics (e.g. feature usage events such as timer started, plunge logged). No personally identifiable information is sent. Subject to <a href="https://posthog.com/privacy" className="text-cyan-600 hover:underline" target="_blank" rel="noopener noreferrer">PostHog's Privacy Policy</a>.

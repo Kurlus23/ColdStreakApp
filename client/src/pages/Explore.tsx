@@ -4375,6 +4375,44 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             >
               {ctaLabel}
             </button>
+
+            {/* Apple Guideline 3.1.2(c) — auto-renewing subscription disclosure.
+                Title, length, price, and functional Privacy/Terms links must be
+                shown at the point of purchase for any auto-renewing IAP. */}
+            <div
+              data-testid="iap-disclosure-verified-business"
+              className="text-slate-400/90 text-[10px] leading-relaxed space-y-1.5 pt-3 border-t border-slate-800"
+            >
+              <p>
+                <strong className="text-slate-200">ColdStreak Verified Business Listing — {ios ? selectedTier.description : "Monthly"}</strong>: {ios ? selectedTier.priceLabel : "from $29.99"} USD/month, auto-renewing subscription with a 30-day free trial. {ios ? (
+                  <>Payment is charged to your Apple ID at the end of the free trial. The subscription renews each month unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in <strong>iPhone Settings → [your name] → Subscriptions</strong>.</>
+                ) : (
+                  <>Payment is charged at the end of the free trial. The subscription renews each month unless cancelled before the end of the current period. Manage or cancel anytime from your business listing's <strong>Manage Subscription</strong> link.</>
+                )}
+              </p>
+              <p>
+                By continuing you agree to our{" "}
+                <a
+                  href="/terms"
+                  data-testid="link-terms-iap-business"
+                  className="text-yellow-400 underline hover:text-yellow-300"
+                  onClick={(e) => { e.stopPropagation(); }}
+                >
+                  Terms of Use (EULA)
+                </a>{" "}
+                and{" "}
+                <a
+                  href="/privacy"
+                  data-testid="link-privacy-iap-business"
+                  className="text-yellow-400 underline hover:text-yellow-300"
+                  onClick={(e) => { e.stopPropagation(); }}
+                >
+                  Privacy Policy
+                </a>
+                .
+              </p>
+            </div>
+
             <button
               onClick={() => { setVerifyDialogLocId(null); setVerifyEmail(""); }}
               className="w-full py-2 text-slate-500 text-xs hover:text-slate-400 transition-colors"

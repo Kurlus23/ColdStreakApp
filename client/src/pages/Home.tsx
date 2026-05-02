@@ -6883,7 +6883,7 @@ export default function Home() {
               type="email"
               value={pendingRestoreEmail}
               onChange={e => setPendingRestoreEmail(e.target.value)}
-              placeholder="Email used at Stripe checkout"
+              placeholder="Email used at purchase"
               className="w-full rounded-xl bg-blue-900/50 border border-blue-700/50 text-white placeholder-blue-500 px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500"
             />
             <button
@@ -7252,6 +7252,48 @@ export default function Home() {
               >
                 {proLoading ? "…" : `Get Lifetime — $${lifetimePrice.toFixed(2)}`}
               </button>
+            </div>
+
+            {/* Apple Guideline 3.1.2(c) — auto-renewing subscription disclosure.
+                Title, length, price, and functional Privacy/Terms links must be
+                shown at the point of purchase for any auto-renewing IAP. */}
+            <div
+              data-testid="iap-disclosure-pro"
+              className="text-blue-400/90 text-[10px] leading-relaxed space-y-1.5 pt-3 border-t border-blue-800/40"
+            >
+              {!(proPlan === "monthly" || proPlan === "annual") && (
+                <p>
+                  <strong className="text-blue-200">ColdStreak Pro — Monthly</strong>: $3.99 USD/month, auto-renewing subscription. {Capacitor.getPlatform() === "ios" ? (
+                    <>Payment is charged to your Apple ID at purchase confirmation. The subscription renews each month unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in <strong>iPhone Settings → [your name] → Subscriptions</strong>.</>
+                  ) : (
+                    <>Payment is charged at purchase confirmation. The subscription renews each month unless cancelled before the end of the current period. Manage or cancel anytime from <strong>Settings → ColdStreak Pro → Manage Subscription</strong>.</>
+                  )}
+                </p>
+              )}
+              <p>
+                <strong className="text-blue-200">Lifetime</strong>: one-time non-subscription purchase of ${lifetimePrice.toFixed(2)} USD — no auto-renewal.
+              </p>
+              <p>
+                By continuing you agree to our{" "}
+                <a
+                  href="/terms"
+                  data-testid="link-terms-iap"
+                  className="text-cyan-400 underline hover:text-cyan-300"
+                  onClick={(e) => { e.stopPropagation(); }}
+                >
+                  Terms of Use (EULA)
+                </a>{" "}
+                and{" "}
+                <a
+                  href="/privacy"
+                  data-testid="link-privacy-iap"
+                  className="text-cyan-400 underline hover:text-cyan-300"
+                  onClick={(e) => { e.stopPropagation(); }}
+                >
+                  Privacy Policy
+                </a>
+                .
+              </p>
             </div>
 
             <div className="space-y-2">
