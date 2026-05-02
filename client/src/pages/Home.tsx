@@ -7198,21 +7198,9 @@ export default function Home() {
               </div>
             )}
 
-            {Capacitor.getPlatform() === 'ios' ? (
-              <div className="space-y-3">
-                <p className="text-blue-300 text-xs text-center">Purchase ColdStreak Pro on our website and restore access here.</p>
-                <button
-                  data-testid="button-checkout-ios"
-                  onClick={() => {
-                    Analytics.proUpgradeStarted();
-                    window.open("https://coldstreakapp.com", "_system");
-                  }}
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white font-bold text-sm shadow-lg shadow-cyan-500/20 transition-all active:scale-[0.98]"
-                >
-                  Visit ColdStreakApp.com
-                </button>
-              </div>
-            ) : (
+            {/* Same checkout buttons for web and iOS — startCheckout() in
+                use-pro-status routes iOS through RevenueCat IAP automatically
+                (App Review Guideline 3.1.1) and uses Stripe everywhere else. */}
             <div className={(proPlan === "monthly" || proPlan === "annual") ? "" : "grid grid-cols-2 gap-3"}>
               {!(proPlan === "monthly" || proPlan === "annual") && (
               <button
@@ -7221,7 +7209,9 @@ export default function Home() {
                   Analytics.proUpgradeStarted();
                   setShowUpgradeModal(false);
                   const result = await startCheckout("monthly");
-                  if (!result.success) {
+                  if (result.activated) {
+                    toast({ title: "🎉 Welcome to ColdStreak Pro!", description: "Monthly subscription active." });
+                  } else if (!result.success) {
                     toast({ title: "Checkout unavailable", description: result.error ?? "Please try again.", variant: "destructive" });
                   }
                 }}
@@ -7249,7 +7239,6 @@ export default function Home() {
                 {proLoading ? "…" : `Get Lifetime — $${lifetimePrice.toFixed(2)}`}
               </button>
             </div>
-            )}
 
             <div className="space-y-2">
               <div className="relative flex items-center">

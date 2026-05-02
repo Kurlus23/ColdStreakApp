@@ -2,11 +2,13 @@ import { db } from "./db";
 import {
   plunges, leaderboardEntries, proUsers, promoCodes, userLocations, businessListings, users, badgeProfiles, pushSubscriptions,
   events, eventParticipants, eventCoordinators, eventBans, supportMessages, clientVisits, shareEvents,
+  verifiedBusinessSubs,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
   type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile, type PushSubscription,
   type BusinessListing, type Event, type EventParticipant, type EventCoordinator, type EventBan,
   type SupportMessage, type InsertSupportMessage, type ClientVisit,
+  type VerifiedBusinessSub,
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and, not, lt, gte, inArray, sum } from "drizzle-orm";
 
@@ -103,11 +105,37 @@ export interface IStorage {
   getFoundingPlungerBatch(displayNames: string[]): Promise<Record<string, boolean>>;
 
   // Business listings
-  createBusinessListing(data: { locationId: number; email: string; stripeSessionId?: string; stripeSubscriptionId?: string; expiresAt?: Date }): Promise<BusinessListing>;
+  createBusinessListing(data: { locationId: number; email: string; stripeSessionId?: string; stripeSubscriptionId?: string; expiresAt?: Date; source?: "stripe" | "iap" }): Promise<BusinessListing>;
   getBusinessListingBySubscriptionId(subscriptionId: string): Promise<BusinessListing | null>;
   markLocationBusinessVerified(locationId: number, verified: boolean): Promise<void>;
   updateBusinessListingSubscription(subscriptionId: string, expiresAt: Date): Promise<void>;
   deactivateBusinessListingBySubscriptionId(subscriptionId: string): Promise<void>;
+  // Verified Business Listing IAP subs
+  countActiveBusinessListingsForEmail(email: string, source?: "stripe" | "iap"): Promise<number>;
+  deactivateAllIapBusinessListingsForEmail(email: string): Promise<void>;
+  upsertVerifiedBusinessSub(data: { email: string; appUserId: string; productId: string; tierCapacity: number; expiresAt: Date | null; active: boolean }): Promise<VerifiedBusinessSub>;
+  getVerifiedBusinessSubByEmail(email: string): Promise<VerifiedBusinessSub | null>;
+  setVerifiedBusinessSubActive(email: string, active: boolean): Promise<void>;
+  bindIapBusinessListing(args: {
+    email: string;
+    locationId: number;
+    appUserId: string;
+    productId: string;
+    tierCapacity: number;
+    expiresAt: Date | null;
+  }): Promise<{ ok: true; used: number; capacity: number } | { ok: false; reason: "capacity"; used: number; capacity: number }>;
+  // Reconcile local iap-business state with RevenueCat ground truth.
+  // Used by /api/iap/verified-business-status on every read so that
+  // missed/delayed webhooks, expired entitlements, and tier downgrades
+  // are corrected immediately. Runs atomically in a single transaction.
+  reconcileVerifiedBusinessFromRC(args: {
+    email: string;
+    rcActive: boolean;
+    productId: string | null;
+    tierCapacity: number | null;
+    expiresAt: Date | null;
+    appUserId: string;
+  }): Promise<{ active: boolean; tierCapacity: number; used: number }>;
   // Push notifications
   upsertPushSubscription(data: { userId?: number; clientId?: string; endpoint: string; p256dh: string; auth: string }): Promise<PushSubscription>;
   getPushSubscription(endpoint: string): Promise<PushSubscription | null>;
@@ -585,7 +613,7 @@ export class DatabaseStorage implements IStorage {
     return map;
   }
 
-  async createBusinessListing(data: { locationId: number; email: string; stripeSessionId?: string; stripeSubscriptionId?: string; expiresAt?: Date }): Promise<BusinessListing> {
+  async createBusinessListing(data: { locationId: number; email: string; stripeSessionId?: string; stripeSubscriptionId?: string; expiresAt?: Date; source?: "stripe" | "iap" }): Promise<BusinessListing> {
     const [listing] = await db.insert(businessListings).values({
       locationId: data.locationId,
       email: data.email,
@@ -593,6 +621,7 @@ export class DatabaseStorage implements IStorage {
       stripeSubscriptionId: data.stripeSubscriptionId ?? null,
       expiresAt: data.expiresAt ?? null,
       active: true,
+      source: data.source ?? "stripe",
     }).returning();
     return listing;
   }
@@ -618,6 +647,288 @@ export class DatabaseStorage implements IStorage {
     if (listing) {
       await db.update(userLocations).set({ businessVerified: false }).where(eq(userLocations.id, listing.locationId));
     }
+  }
+
+  async countActiveBusinessListingsForEmail(email: string, source?: "stripe" | "iap"): Promise<number> {
+    const lowered = email.toLowerCase().trim();
+    const where = source
+      ? and(eq(sql`lower(${businessListings.email})`, lowered), eq(businessListings.active, true), eq(businessListings.source, source))
+      : and(eq(sql`lower(${businessListings.email})`, lowered), eq(businessListings.active, true));
+    const rows = await db.select({ id: businessListings.id }).from(businessListings).where(where);
+    return rows.length;
+  }
+
+  async deactivateAllIapBusinessListingsForEmail(email: string): Promise<void> {
+    const lowered = email.toLowerCase().trim();
+    const rows = await db.update(businessListings)
+      .set({ active: false })
+      .where(and(eq(sql`lower(${businessListings.email})`, lowered), eq(businessListings.source, "iap"), eq(businessListings.active, true)))
+      .returning();
+    for (const row of rows) {
+      await db.update(userLocations).set({ businessVerified: false }).where(eq(userLocations.id, row.locationId));
+    }
+  }
+
+  async upsertVerifiedBusinessSub(data: { email: string; appUserId: string; productId: string; tierCapacity: number; expiresAt: Date | null; active: boolean }): Promise<VerifiedBusinessSub> {
+    const lowered = data.email.toLowerCase().trim();
+    const [sub] = await db.insert(verifiedBusinessSubs)
+      .values({
+        email: lowered,
+        appUserId: data.appUserId,
+        productId: data.productId,
+        tierCapacity: data.tierCapacity,
+        expiresAt: data.expiresAt,
+        active: data.active,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: verifiedBusinessSubs.email,
+        set: {
+          appUserId: data.appUserId,
+          productId: data.productId,
+          tierCapacity: data.tierCapacity,
+          expiresAt: data.expiresAt,
+          active: data.active,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return sub;
+  }
+
+  async getVerifiedBusinessSubByEmail(email: string): Promise<VerifiedBusinessSub | null> {
+    const lowered = email.toLowerCase().trim();
+    const [sub] = await db.select().from(verifiedBusinessSubs).where(eq(verifiedBusinessSubs.email, lowered));
+    return sub ?? null;
+  }
+
+  async setVerifiedBusinessSubActive(email: string, active: boolean): Promise<void> {
+    const lowered = email.toLowerCase().trim();
+    await db.update(verifiedBusinessSubs)
+      .set({ active, updatedAt: new Date() })
+      .where(eq(verifiedBusinessSubs.email, lowered));
+  }
+
+  // Atomic capacity-checked bind. Wraps upsert of the sub row, capacity
+  // count, and listing insert in a single transaction with a row-level
+  // lock on the per-email sub row, so concurrent /api/iap/verify-business
+  // calls cannot exceed the tier's location cap.
+  async bindIapBusinessListing(args: {
+    email: string;
+    locationId: number;
+    appUserId: string;
+    productId: string;
+    tierCapacity: number;
+    expiresAt: Date | null;
+  }): Promise<{ ok: true; used: number; capacity: number } | { ok: false; reason: "capacity"; used: number; capacity: number }> {
+    const lowered = args.email.toLowerCase().trim();
+    return await db.transaction(async (tx) => {
+      // 1) Upsert the sub row (and lock it) — serializes concurrent binds
+      //    for the same email.
+      await tx.insert(verifiedBusinessSubs)
+        .values({
+          email: lowered,
+          appUserId: args.appUserId,
+          productId: args.productId,
+          tierCapacity: args.tierCapacity,
+          expiresAt: args.expiresAt,
+          active: true,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: verifiedBusinessSubs.email,
+          set: {
+            appUserId: args.appUserId,
+            productId: args.productId,
+            tierCapacity: args.tierCapacity,
+            expiresAt: args.expiresAt,
+            active: true,
+            updatedAt: new Date(),
+          },
+        });
+      // SELECT FOR UPDATE the sub row — guarantees other concurrent
+      // transactions for this email queue behind us before counting.
+      await tx.execute(sql`SELECT id FROM verified_business_subs WHERE email = ${lowered} FOR UPDATE`);
+
+      // 2) Idempotency — does this location already have an active iap binding?
+      const existing = await tx.select({ id: businessListings.id })
+        .from(businessListings)
+        .where(and(
+          eq(businessListings.locationId, args.locationId),
+          eq(sql`lower(${businessListings.email})`, lowered),
+          eq(businessListings.source, "iap"),
+          eq(businessListings.active, true),
+        ));
+      if (existing.length > 0) {
+        const usedRows = await tx.select({ id: businessListings.id })
+          .from(businessListings)
+          .where(and(
+            eq(sql`lower(${businessListings.email})`, lowered),
+            eq(businessListings.source, "iap"),
+            eq(businessListings.active, true),
+          ));
+        await tx.update(userLocations).set({ businessVerified: true }).where(eq(userLocations.id, args.locationId));
+        return { ok: true as const, used: usedRows.length, capacity: args.tierCapacity };
+      }
+
+      // 3) Capacity check (now safe under the row lock)
+      const usedRows = await tx.select({ id: businessListings.id })
+        .from(businessListings)
+        .where(and(
+          eq(sql`lower(${businessListings.email})`, lowered),
+          eq(businessListings.source, "iap"),
+          eq(businessListings.active, true),
+        ));
+      if (usedRows.length >= args.tierCapacity) {
+        return { ok: false as const, reason: "capacity", used: usedRows.length, capacity: args.tierCapacity };
+      }
+
+      // 4) Insert the listing + flip the verified bit
+      await tx.insert(businessListings).values({
+        locationId: args.locationId,
+        email: lowered,
+        stripeSessionId: `iap-${args.productId || "verified_business"}-${args.appUserId}`,
+        stripeSubscriptionId: `iap-vb-${args.appUserId}-${args.locationId}`,
+        expiresAt: args.expiresAt ?? null,
+        active: true,
+        source: "iap",
+      });
+      await tx.update(userLocations).set({ businessVerified: true }).where(eq(userLocations.id, args.locationId));
+
+      return { ok: true as const, used: usedRows.length + 1, capacity: args.tierCapacity };
+    });
+  }
+
+  async reconcileVerifiedBusinessFromRC(args: {
+    email: string;
+    rcActive: boolean;
+    productId: string | null;
+    tierCapacity: number | null;
+    expiresAt: Date | null;
+    appUserId: string;
+  }): Promise<{ active: boolean; tierCapacity: number; used: number }> {
+    const lowered = args.email.toLowerCase().trim();
+    return await db.transaction(async (tx) => {
+      // Inactive at RC → deactivate everything for this email regardless
+      // of whether a local sub row exists. Earlier versions gated this
+      // on localSub?.active and could leave orphaned active iap listings
+      // when a webhook was missed.
+      if (!args.rcActive) {
+        await tx.update(verifiedBusinessSubs)
+          .set({ active: false, updatedAt: new Date() })
+          .where(eq(verifiedBusinessSubs.email, lowered));
+        const rows = await tx.update(businessListings)
+          .set({ active: false })
+          .where(and(
+            eq(sql`lower(${businessListings.email})`, lowered),
+            eq(businessListings.source, "iap"),
+            eq(businessListings.active, true),
+          ))
+          .returning();
+        for (const row of rows) {
+          await tx.update(userLocations).set({ businessVerified: false }).where(eq(userLocations.id, row.locationId));
+        }
+        return { active: false, tierCapacity: 0, used: 0 };
+      }
+
+      // Active at RC but unrecognized product / no tier mapping → fail
+      // closed: deactivate all iap listings (treat capacity as 0) so an
+      // unmapped product can never grant verified status. We still
+      // upsert the sub row so support can see the unmapped product id.
+      if (!args.tierCapacity) {
+        await tx.insert(verifiedBusinessSubs)
+          .values({
+            email: lowered,
+            appUserId: args.appUserId,
+            productId: args.productId ?? "",
+            tierCapacity: 0,
+            expiresAt: args.expiresAt,
+            active: true,
+            updatedAt: new Date(),
+          })
+          .onConflictDoUpdate({
+            target: verifiedBusinessSubs.email,
+            set: {
+              appUserId: args.appUserId,
+              productId: args.productId ?? "",
+              tierCapacity: 0,
+              expiresAt: args.expiresAt,
+              active: true,
+              updatedAt: new Date(),
+            },
+          });
+        await tx.execute(sql`SELECT id FROM verified_business_subs WHERE email = ${lowered} FOR UPDATE`);
+        const orphans = await tx.update(businessListings)
+          .set({ active: false })
+          .where(and(
+            eq(sql`lower(${businessListings.email})`, lowered),
+            eq(businessListings.source, "iap"),
+            eq(businessListings.active, true),
+          ))
+          .returning();
+        for (const row of orphans) {
+          await tx.update(userLocations).set({ businessVerified: false }).where(eq(userLocations.id, row.locationId));
+        }
+        return { active: true, tierCapacity: 0, used: 0 };
+      }
+
+      // Active + recognized tier → refresh local cache to match RC
+      await tx.insert(verifiedBusinessSubs)
+        .values({
+          email: lowered,
+          appUserId: args.appUserId,
+          productId: args.productId ?? "",
+          tierCapacity: args.tierCapacity,
+          expiresAt: args.expiresAt,
+          active: true,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: verifiedBusinessSubs.email,
+          set: {
+            appUserId: args.appUserId,
+            productId: args.productId ?? "",
+            tierCapacity: args.tierCapacity,
+            expiresAt: args.expiresAt,
+            active: true,
+            updatedAt: new Date(),
+          },
+        });
+      // Lock the sub row before touching listings so concurrent binds
+      // for this email cannot insert a new listing between our count
+      // and our trim.
+      await tx.execute(sql`SELECT id FROM verified_business_subs WHERE email = ${lowered} FOR UPDATE`);
+
+      // Tier-downgrade enforcement: if local active iap listings exceed
+      // the new tier cap, deactivate the oldest excess listings until
+      // we're back under the limit. Oldest-first preserves the user's
+      // most recently chosen verified locations.
+      const activeListings = await tx.select({
+          id: businessListings.id,
+          locationId: businessListings.locationId,
+          createdAt: businessListings.createdAt,
+        })
+        .from(businessListings)
+        .where(and(
+          eq(sql`lower(${businessListings.email})`, lowered),
+          eq(businessListings.source, "iap"),
+          eq(businessListings.active, true),
+        ))
+        .orderBy(businessListings.createdAt);
+
+      let used = activeListings.length;
+      if (used > args.tierCapacity) {
+        const excessCount = used - args.tierCapacity;
+        const toDeactivate = activeListings.slice(0, excessCount);
+        for (const row of toDeactivate) {
+          await tx.update(businessListings).set({ active: false }).where(eq(businessListings.id, row.id));
+          await tx.update(userLocations).set({ businessVerified: false }).where(eq(userLocations.id, row.locationId));
+        }
+        used = args.tierCapacity;
+      }
+
+      return { active: true, tierCapacity: args.tierCapacity, used };
+    });
   }
 
   async upsertPushSubscription(data: { userId?: number; clientId?: string; endpoint: string; p256dh: string; auth: string }): Promise<PushSubscription> {

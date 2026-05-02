@@ -8,6 +8,7 @@ import {
 } from "@revenuecat/purchases-capacitor";
 
 export const PRO_ENTITLEMENT_ID = "pro";
+export const VERIFIED_BUSINESS_ENTITLEMENT_ID = "verified_business";
 
 export const RC_PACKAGE_IDS = {
   monthly: "$rc_monthly",
@@ -16,6 +17,20 @@ export const RC_PACKAGE_IDS = {
 } as const;
 
 export type IAPPlan = keyof typeof RC_PACKAGE_IDS;
+
+// Verified Business Listing tiers (Apple-compliant alternative to the Stripe
+// flow used on web). Each tier is its own subscription product because Apple
+// IAP doesn't support per-quantity recurring purchases.
+//
+// Package identifiers must match the packages configured in the RevenueCat
+// "verified_business" offering.
+export const VERIFIED_BUSINESS_TIERS = [
+  { tier: 1,  packageId: "verified_business_1",  productId: "coldstreak_verified_business_1",  priceLabel: "$29.99/mo",   description: "1 location" },
+  { tier: 5,  packageId: "verified_business_5",  productId: "coldstreak_verified_business_5",  priceLabel: "$99.99/mo",   description: "Up to 5 locations" },
+  { tier: 25, packageId: "verified_business_25", productId: "coldstreak_verified_business_25", priceLabel: "$399.99/mo",  description: "Up to 25 locations" },
+] as const;
+
+export type VerifiedBusinessTier = typeof VERIFIED_BUSINESS_TIERS[number]["tier"];
 
 export function isIOSNative(): boolean {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios";
@@ -98,6 +113,30 @@ export async function getPackagesByPlan(): Promise<Partial<Record<IAPPlan, Purch
   return out;
 }
 
+// The Verified Business Listing tiers live in their own RevenueCat offering
+// (not the default `current` one which serves Pro). We pull it by name.
+export async function getVerifiedBusinessOffering(): Promise<PurchasesOffering | null> {
+  if (!isNativePlatform()) return null;
+  try {
+    const result = await Purchases.getOfferings();
+    return result.all?.["verified_business"] ?? null;
+  } catch (err) {
+    console.error("[iap] getVerifiedBusinessOffering failed", err);
+    return null;
+  }
+}
+
+export async function getVerifiedBusinessPackages(): Promise<Partial<Record<VerifiedBusinessTier, PurchasesPackage>>> {
+  const offering = await getVerifiedBusinessOffering();
+  if (!offering) return {};
+  const out: Partial<Record<VerifiedBusinessTier, PurchasesPackage>> = {};
+  for (const pkg of offering.availablePackages) {
+    const match = VERIFIED_BUSINESS_TIERS.find((t) => t.packageId === pkg.identifier);
+    if (match) out[match.tier] = pkg;
+  }
+  return out;
+}
+
 export interface PurchaseOutcome {
   success: boolean;
   cancelled?: boolean;
@@ -152,6 +191,66 @@ export async function restorePurchasesIAP(): Promise<PurchaseOutcome> {
     console.error("[iap] restore failed", err);
     return { success: false, error: err?.message ?? "Restore failed." };
   }
+}
+
+export interface VerifiedBusinessPurchaseOutcome {
+  success: boolean;
+  cancelled?: boolean;
+  alreadyPurchased?: boolean;
+  hasEntitlement?: boolean;
+  tier?: VerifiedBusinessTier;
+  productIdentifier?: string;
+  customerInfo?: CustomerInfo;
+  error?: string;
+}
+
+export async function purchaseVerifiedBusinessTier(tier: VerifiedBusinessTier): Promise<VerifiedBusinessPurchaseOutcome> {
+  if (!isNativePlatform()) {
+    return { success: false, error: "In-app purchases are only available in the iOS app." };
+  }
+  try {
+    const packages = await getVerifiedBusinessPackages();
+    const target = packages[tier];
+    if (!target) {
+      return { success: false, error: `The ${tier === 1 ? "single-location" : `${tier}-location`} tier isn't available right now.` };
+    }
+    const result = await Purchases.purchasePackage({ aPackage: target });
+    const ent = result.customerInfo?.entitlements?.active?.[VERIFIED_BUSINESS_ENTITLEMENT_ID];
+    return {
+      success: true,
+      hasEntitlement: !!ent,
+      tier,
+      productIdentifier: ent?.productIdentifier,
+      customerInfo: result.customerInfo,
+    };
+  } catch (err: any) {
+    if (err?.userCancelled || err?.code === "PURCHASE_CANCELLED") {
+      return { success: false, cancelled: true };
+    }
+    if (err?.code === "PRODUCT_ALREADY_PURCHASED") {
+      try {
+        const restored = await Purchases.restorePurchases();
+        const ent = restored.customerInfo?.entitlements?.active?.[VERIFIED_BUSINESS_ENTITLEMENT_ID];
+        return { success: true, alreadyPurchased: true, hasEntitlement: !!ent, tier, productIdentifier: ent?.productIdentifier, customerInfo: restored.customerInfo };
+      } catch (restoreErr: any) {
+        return { success: false, error: restoreErr?.message ?? "Already purchased — please use Restore Purchases." };
+      }
+    }
+    console.error("[iap] purchaseVerifiedBusinessTier failed", err);
+    return { success: false, error: err?.message ?? "Purchase failed. Please try again." };
+  }
+}
+
+export function tierFromVerifiedBusinessProductId(productId: string | null | undefined): VerifiedBusinessTier | null {
+  const pid = (productId ?? "").toLowerCase();
+  for (const t of VERIFIED_BUSINESS_TIERS) {
+    if (pid === t.productId.toLowerCase()) return t.tier;
+  }
+  // Fallback for products that include the tier number anywhere in the id
+  for (const t of VERIFIED_BUSINESS_TIERS) {
+    if (pid.endsWith(`_${t.tier}`) || pid.includes(`business_${t.tier}`)) return t.tier;
+  }
+  return null;
 }
 
 export async function getCustomerInfoIAP(): Promise<CustomerInfo | null> {

@@ -1526,8 +1526,9 @@ export async function registerRoutes(
   // ───────────────────────────────────────────────────────────────────────
   // RevenueCat (iOS in-app purchases)
   // ───────────────────────────────────────────────────────────────────────
-  // Must match the entitlement identifier configured in the RevenueCat dashboard.
+  // Must match the entitlement identifiers configured in the RevenueCat dashboard.
   const PRO_ENTITLEMENT = "pro";
+  const VERIFIED_BUSINESS_ENTITLEMENT = "verified_business";
 
   // Map an Apple/RevenueCat product identifier (or RC entitlement period) to
   // our internal planType so the rest of the app can stay agnostic.
@@ -1536,6 +1537,26 @@ export async function registerRoutes(
     if (pid.includes("lifetime") || periodType === "LIFETIME") return "lifetime";
     if (pid.includes("annual") || pid.includes("yearly")) return "annual";
     return "monthly";
+  }
+
+  // Verified Business Listing tiers — must match client/src/lib/iap.ts.
+  // Each productId is its own auto-renewing subscription on Apple because IAP
+  // does not support quantity on subscriptions.
+  const VERIFIED_BUSINESS_TIER_BY_PRODUCT: Record<string, number> = {
+    "coldstreak_verified_business_1": 1,
+    "coldstreak_verified_business_5": 5,
+    "coldstreak_verified_business_25": 25,
+  };
+  function tierCapacityFromProductId(productId: string | null | undefined): number | null {
+    if (!productId) return null;
+    const direct = VERIFIED_BUSINESS_TIER_BY_PRODUCT[productId.toLowerCase()];
+    if (direct) return direct;
+    const m = productId.toLowerCase().match(/business[_-](\d+)/);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (n === 1 || n === 5 || n === 25) return n;
+    }
+    return null;
   }
 
   // Client-initiated sync. Authenticated. Client tells us "I just bought
@@ -1576,6 +1597,37 @@ export async function registerRoutes(
     };
   }
 
+  // Verify a Verified Business Listing IAP purchase by asking RevenueCat
+  // directly. Mirrors fetchRCSubscriberEntitlement but for the verified
+  // business entitlement.
+  async function fetchRCVerifiedBusinessEntitlement(appUserId: string): Promise<
+    | { active: false }
+    | { active: true; productIdentifier: string | null; expiresAt: Date | null; periodType: string | null; tierCapacity: number | null }
+  > {
+    const apiKey = process.env.REVENUECAT_REST_API_KEY;
+    if (!apiKey) throw new Error("REVENUECAT_REST_API_KEY not configured on server");
+    const url = `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`;
+    const r = await fetch(url, {
+      headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json", "X-Platform": "ios" },
+    });
+    if (!r.ok) {
+      const text = await r.text().catch(() => "");
+      throw new Error(`RevenueCat ${r.status}: ${text.slice(0, 200)}`);
+    }
+    const data: any = await r.json();
+    const ent = data?.subscriber?.entitlements?.[VERIFIED_BUSINESS_ENTITLEMENT] ?? null;
+    if (!ent) return { active: false };
+    const expiresAt = ent.expires_date ? new Date(ent.expires_date) : null;
+    if (expiresAt && expiresAt.getTime() <= Date.now()) return { active: false };
+    return {
+      active: true,
+      productIdentifier: ent.product_identifier ?? null,
+      expiresAt,
+      periodType: ent.period_type ?? null,
+      tierCapacity: tierCapacityFromProductId(ent.product_identifier ?? null),
+    };
+  }
+
   app.post("/api/revenuecat/sync", async (req, res) => {
     try {
       const caller = extractUser(req);
@@ -1583,6 +1635,10 @@ export async function registerRoutes(
 
       const body = z.object({
         email: z.string().email(),
+        // Client may send appUserId for logging/debugging only — server
+        // ALWAYS uses the authenticated caller's email as the RC subscriber
+        // id, otherwise an attacker could pass another user's app_user_id
+        // and inherit their entitlement.
         appUserId: z.string().optional().nullable(),
       }).parse(req.body);
 
@@ -1591,10 +1647,10 @@ export async function registerRoutes(
         return res.status(403).json({ ok: false, error: "Email mismatch" });
       }
 
-      // The RC appUserId IS our email (set by the client at initIAP), but
-      // accept the client's value if it differs (e.g. anonymous → identified
-      // alias migration) and verify against the email anyway.
-      const appUserId = (body.appUserId && body.appUserId.includes("@")) ? body.appUserId.toLowerCase() : email;
+      // Trust ONLY the verified caller email — never the client-supplied
+      // appUserId. Our IAP wrapper always logs in to RC with the caller's
+      // email, so this is the only safe identifier.
+      const appUserId = email;
 
       const verified = await fetchRCSubscriberEntitlement(appUserId);
 
@@ -1625,6 +1681,123 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("[revenuecat] sync failed:", err);
       res.status(500).json({ ok: false, error: err?.message ?? "Sync failed" });
+    }
+  });
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Verified Business Listing — iOS IAP path
+  // ───────────────────────────────────────────────────────────────────────
+  // Bind a community location to the caller's verified_business IAP sub.
+  // Server verifies the IAP entitlement against RevenueCat, enforces the
+  // tier capacity, then writes a businessListings row with source="iap".
+  app.post("/api/iap/verify-business", async (req, res) => {
+    try {
+      const caller = extractUser(req);
+      if (!caller?.email) return res.status(401).json({ ok: false, error: "Sign in required" });
+
+      const body = z.object({
+        locationId: z.number().int().positive(),
+        email: z.string().email(),
+        // Accepted for logging only — server always derives appUserId from
+        // the authenticated caller. See note on /api/revenuecat/sync.
+        appUserId: z.string().optional().nullable(),
+      }).parse(req.body);
+
+      const email = body.email.toLowerCase().trim();
+      if (email !== caller.email.toLowerCase()) {
+        return res.status(403).json({ ok: false, error: "Email mismatch" });
+      }
+
+      // Caller must own the listing's contact email
+      const loc = await storage.getUserLocationById(body.locationId);
+      if (!loc) return res.status(404).json({ ok: false, error: "Listing not found" });
+      if (!loc.contactEmail || loc.contactEmail.toLowerCase().trim() !== email) {
+        return res.status(403).json({ ok: false, error: "Email does not match the contact email on this listing." });
+      }
+
+      // Verify the IAP entitlement against RevenueCat using ONLY the
+      // authenticated caller's email as the subscriber id — ignore any
+      // client-supplied appUserId to prevent entitlement spoofing.
+      const appUserId = email;
+      const ent = await fetchRCVerifiedBusinessEntitlement(appUserId);
+      if (!ent.active) {
+        return res.status(402).json({ ok: false, error: "No active Verified Business subscription found." });
+      }
+      if (!ent.tierCapacity) {
+        return res.status(400).json({ ok: false, error: "Unrecognized verified-business product. Contact support." });
+      }
+
+      // Atomic capacity-checked bind — upserts the sub row, takes a row
+      // lock on it, counts active iap listings, then inserts. Concurrent
+      // requests for the same email cannot exceed the tier cap.
+      const result = await storage.bindIapBusinessListing({
+        email,
+        locationId: body.locationId,
+        appUserId,
+        productId: ent.productIdentifier ?? "",
+        tierCapacity: ent.tierCapacity,
+        expiresAt: ent.expiresAt,
+      });
+
+      if (!result.ok) {
+        return res.status(409).json({
+          ok: false,
+          error: `Your tier covers ${result.capacity} location${result.capacity === 1 ? "" : "s"}. Upgrade your subscription or remove an existing verified listing first.`,
+          used: result.used,
+          capacity: result.capacity,
+        });
+      }
+
+      res.json({
+        ok: true,
+        verified: true,
+        locationId: body.locationId,
+        tierCapacity: result.capacity,
+        used: result.used,
+      });
+    } catch (err: any) {
+      console.error("[iap] verify-business failed:", err);
+      res.status(500).json({ ok: false, error: err?.message ?? "Verification failed" });
+    }
+  });
+
+  // Read-only — returns the caller's current Verified Business sub state
+  // and how many of their tier slots are in use. Used by the iOS UI to
+  // decide whether to show "Subscribe" vs "Add another location".
+  app.get("/api/iap/verified-business-status", async (req, res) => {
+    try {
+      const caller = extractUser(req);
+      if (!caller?.email) return res.status(401).json({ ok: false, error: "Sign in required" });
+      const email = caller.email.toLowerCase();
+
+      // Source of truth = RevenueCat. Re-verify on every status read so
+      // delayed/missed webhooks, expirations, and tier downgrades cannot
+      // leave a cancelled or over-provisioned subscription in a state
+      // that grants more capacity than the user is paying for.
+      const ent = await fetchRCVerifiedBusinessEntitlement(email);
+
+      // Reconcile atomically — handles missing-local-row, expired ent,
+      // and tier-downgrade trim in a single transaction with row lock.
+      const reconciled = await storage.reconcileVerifiedBusinessFromRC({
+        email,
+        rcActive: ent.active,
+        productId: ent.active ? (ent.productIdentifier ?? null) : null,
+        tierCapacity: ent.active ? (ent.tierCapacity ?? null) : null,
+        expiresAt: ent.active ? (ent.expiresAt ?? null) : null,
+        appUserId: email,
+      });
+
+      res.json({
+        ok: true,
+        active: reconciled.active,
+        productId: ent.active ? (ent.productIdentifier ?? null) : null,
+        tierCapacity: reconciled.tierCapacity,
+        used: reconciled.used,
+        expiresAt: ent.active ? (ent.expiresAt ?? null) : null,
+      });
+    } catch (err: any) {
+      console.error("[iap] verified-business-status failed:", err);
+      res.status(500).json({ ok: false, error: err?.message ?? "Status check failed" });
     }
   });
 
@@ -1678,40 +1851,82 @@ export async function registerRoutes(
       const expiresAt = expirationMs ? new Date(expirationMs) : undefined;
       const sessionId = `iap-${productId ?? "unknown"}-${event.app_user_id ?? email}`;
 
-      switch (type) {
-        case "INITIAL_PURCHASE":
-        case "RENEWAL":
-        case "PRODUCT_CHANGE":
-        case "UNCANCELLATION":
-        case "TRANSFER":
-        case "NON_RENEWING_PURCHASE":
-        case "TEMPORARY_ENTITLEMENT_GRANT": {
-          await storage.createProUser(email, sessionId, {
-            planType,
-            expiresAt: planType === "lifetime" ? undefined : expiresAt,
-          });
-          clearProStatusCache(email);
-          console.log(`[revenuecat] ${type} → activated ${planType} for ${email}`);
-          break;
+      // Dispatch by entitlement_ids — same event type can affect either
+      // the "pro" entitlement (Pro upgrade) or the "verified_business"
+      // entitlement (Verified Business Listing). RC always includes the
+      // affected entitlements in `entitlement_ids` (and legacy single
+      // `entitlement_id`).
+      const entitlementIds: string[] = Array.isArray(event.entitlement_ids)
+        ? event.entitlement_ids
+        : (typeof event.entitlement_id === "string" ? [event.entitlement_id] : []);
+      // If RC didn't send entitlement_ids (older payloads), fall back to
+      // inferring from the product id so we never silently miss an event.
+      const inferredVerifiedBusiness = tierCapacityFromProductId(productId) !== null;
+      const affectsPro = entitlementIds.includes(PRO_ENTITLEMENT) || (entitlementIds.length === 0 && !inferredVerifiedBusiness);
+      const affectsVerifiedBusiness = entitlementIds.includes(VERIFIED_BUSINESS_ENTITLEMENT) || (entitlementIds.length === 0 && inferredVerifiedBusiness);
+
+      const isActivation =
+        type === "INITIAL_PURCHASE" ||
+        type === "RENEWAL" ||
+        type === "PRODUCT_CHANGE" ||
+        type === "UNCANCELLATION" ||
+        type === "TRANSFER" ||
+        type === "NON_RENEWING_PURCHASE" ||
+        type === "TEMPORARY_ENTITLEMENT_GRANT";
+      const isDeactivation =
+        type === "CANCELLATION" ||
+        type === "EXPIRATION" ||
+        type === "SUBSCRIPTION_PAUSED" ||
+        type === "REFUND";
+
+      if (affectsPro && isActivation) {
+        await storage.createProUser(email, sessionId, {
+          planType,
+          expiresAt: planType === "lifetime" ? undefined : expiresAt,
+        });
+        clearProStatusCache(email);
+        console.log(`[revenuecat] ${type} → activated Pro (${planType}) for ${email}`);
+      }
+      if (affectsPro && isDeactivation) {
+        const existing = await storage.getProUser(email);
+        if (existing && existing.active && existing.stripeSessionId.startsWith("iap-")) {
+          await storage.setProUserActive(email, false);
+          console.log(`[revenuecat] ${type} → deactivated Pro for ${email}`);
         }
-        case "CANCELLATION":
-        case "EXPIRATION":
-        case "SUBSCRIPTION_PAUSED":
-        case "REFUND": {
-          const existing = await storage.getProUser(email);
-          if (existing && existing.active && existing.stripeSessionId.startsWith("iap-")) {
-            await storage.setProUserActive(email, false);
-            console.log(`[revenuecat] ${type} → deactivated ${email}`);
-          }
-          clearProStatusCache(email);
-          break;
-        }
-        case "BILLING_ISSUE":
-        case "TEST":
-        default: {
-          console.log(`[revenuecat] event ${type} for ${email} — no DB change`);
-          break;
-        }
+        clearProStatusCache(email);
+      }
+
+      if (affectsVerifiedBusiness && isActivation) {
+        // Use the same atomic reconcile path as the status endpoint so
+        // tier changes (e.g. PRODUCT_CHANGE downgrading 25→1) trim
+        // excess listings immediately even if the user never opens
+        // the status screen, and so an unrecognized product fails
+        // closed (deactivates listings) instead of granting access.
+        const tierCapacity = tierCapacityFromProductId(productId);
+        const reconciled = await storage.reconcileVerifiedBusinessFromRC({
+          email,
+          rcActive: true,
+          productId: productId ?? null,
+          tierCapacity,
+          expiresAt: expiresAt ?? null,
+          appUserId: event.app_user_id ?? email,
+        });
+        console.log(`[revenuecat] ${type} → verified_business reconciled tier=${reconciled.tierCapacity} used=${reconciled.used} for ${email}`);
+      }
+      if (affectsVerifiedBusiness && isDeactivation) {
+        await storage.reconcileVerifiedBusinessFromRC({
+          email,
+          rcActive: false,
+          productId: productId ?? null,
+          tierCapacity: null,
+          expiresAt: null,
+          appUserId: event.app_user_id ?? email,
+        });
+        console.log(`[revenuecat] ${type} → deactivated verified_business for ${email}`);
+      }
+
+      if (!affectsPro && !affectsVerifiedBusiness) {
+        console.log(`[revenuecat] event ${type} for ${email} — entitlements ${JSON.stringify(entitlementIds)}, no DB change`);
       }
 
       res.json({ ok: true });

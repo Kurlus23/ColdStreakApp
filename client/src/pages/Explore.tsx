@@ -15,6 +15,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { PASSPORT_LOCATIONS, usePassportBadges, distanceMiles, DIFFICULTY_META, type Difficulty, TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { shareContent } from "@/lib/share";
+import {
+  isIOSNative,
+  VERIFIED_BUSINESS_TIERS,
+  purchaseVerifiedBusinessTier,
+  type VerifiedBusinessTier,
+} from "@/lib/iap";
 import type { UserLocation, Event, EventParticipant } from "@shared/schema";
 
 type EventCoordinator = { id: number; eventId: number; userId: number; username: string; addedAt: string };
@@ -1242,6 +1248,10 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
 
   const [verifyDialogLocId, setVerifyDialogLocId] = useState<number | null>(null);
   const [verifyEmail, setVerifyEmail] = useState("");
+  // iOS-only — Apple-compliant Verified Business Listing flow lets the user
+  // pick one of three IAP subscription tiers (1 / 5 / 25 locations).
+  const [verifyTier, setVerifyTier] = useState<VerifiedBusinessTier>(1);
+  const [verifyBusinessIapPending, setVerifyBusinessIapPending] = useState(false);
   const [deleteDialogLocId, setDeleteDialogLocId] = useState<number | null>(null);
   const [deleteEmail, setDeleteEmail] = useState("");
   const [ownerDeleteConfirmId, setOwnerDeleteConfirmId] = useState<number | null>(null);
@@ -1367,6 +1377,47 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     },
   });
 
+  // iOS-only: Apple-compliant Verified Business Listing flow.
+  // 1) Run the IAP purchase via RevenueCat (or skip if user already has the
+  //    entitlement and is just adding another location to an existing tier).
+  // 2) Bind the location server-side via /api/iap/verify-business which
+  //    re-verifies the entitlement against RevenueCat and enforces tier capacity.
+  const verifyBusinessIap = async (locationId: number, email: string, tier: VerifiedBusinessTier) => {
+    setVerifyBusinessIapPending(true);
+    try {
+      // Try the purchase. If the user already owns the tier (e.g. adding a
+      // 2nd or 3rd location to a 5-pack), Apple returns PRODUCT_ALREADY_PURCHASED
+      // and our wrapper restores instead — we can proceed straight to bind.
+      const purchase = await purchaseVerifiedBusinessTier(tier);
+      if (purchase.cancelled) {
+        return; // user backed out, no toast needed
+      }
+      if (!purchase.success && !purchase.alreadyPurchased) {
+        toast({ title: "Purchase failed", description: purchase.error ?? "Please try again.", variant: "destructive" });
+        return;
+      }
+      // Bind on the server (this is the source of truth for capacity)
+      const res = await apiRequest("POST", "/api/iap/verify-business", {
+        locationId,
+        email,
+        appUserId: purchase.customerInfo?.originalAppUserId ?? email,
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        toast({ title: "Verification failed", description: data?.error ?? "Please try again.", variant: "destructive" });
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
+      setVerifyDialogLocId(null);
+      setVerifyEmail("");
+      toast({ title: "Verified ✓", description: `${data.used}/${data.tierCapacity} verified locations on this subscription.` });
+    } catch (err: any) {
+      toast({ title: "Something went wrong", description: err?.message ?? "Please try again.", variant: "destructive" });
+    } finally {
+      setVerifyBusinessIapPending(false);
+    }
+  };
+
   const deleteListingMutation = useMutation({
     mutationFn: ({ locationId, email }: { locationId: number; email: string }) =>
       apiRequest("DELETE", `/api/community-locations/${locationId}`, { email }).then((r) => r.json()),
@@ -1399,7 +1450,17 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     onSuccess: (loc) => {
       queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
       if (bizTier === "verified") {
-        businessCheckoutMutation.mutate({ locationId: loc.id, email: bizForm.contactEmail });
+        if (isIOSNative()) {
+          // Apple Guideline 3.1.1 — use IAP on iOS, never Stripe.
+          // Open the verify dialog so the user can pick a tier, then run
+          // the RevenueCat purchase flow.
+          setShowBusinessForm(false);
+          setVerifyEmail(bizForm.contactEmail);
+          setVerifyTier(1);
+          setVerifyDialogLocId(loc.id);
+        } else {
+          businessCheckoutMutation.mutate({ locationId: loc.id, email: bizForm.contactEmail });
+        }
       } else {
         setShowBusinessForm(false);
         resetBizForm();
@@ -1913,7 +1974,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   <p className="text-white font-bold text-xs leading-tight">Discover community cold spots</p>
                   <p className="text-blue-400 text-[11px]">User-submitted locations near you</p>
                 </div>
-                <span className="ml-auto text-yellow-400 font-bold text-xs shrink-0">from $9.99</span>
+                <span className="ml-auto text-yellow-400 font-bold text-xs shrink-0">from $3.99/mo</span>
               </div>
               <div className="grid grid-cols-2 gap-1">
                 {[
@@ -2329,7 +2390,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   <p className="text-white font-bold text-xs leading-tight">50+ curated cold plunge destinations</p>
                   <p className="text-blue-400 text-[11px]">Bucket-list spots around the world</p>
                 </div>
-                <span className="ml-auto text-yellow-400 font-bold text-xs shrink-0">from $9.99</span>
+                <span className="ml-auto text-yellow-400 font-bold text-xs shrink-0">from $3.99/mo</span>
               </div>
               <div className="grid grid-cols-2 gap-1">
                 {[
@@ -4128,16 +4189,24 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       );
     })()}
 
-    {verifyDialogLocId !== null && (
+    {verifyDialogLocId !== null && (() => {
+      const ios = isIOSNative();
+      const selectedTier = VERIFIED_BUSINESS_TIERS.find((t) => t.tier === verifyTier) ?? VERIFIED_BUSINESS_TIERS[0];
+      const ctaLabel = ios
+        ? (verifyBusinessIapPending ? "Processing…" : `Subscribe — ${selectedTier.priceLabel}`)
+        : (businessCheckoutMutation.isPending ? "Verifying…" : "Subscribe for $29.99/mo →");
+      return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
-        <div className="w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-yellow-600/40 rounded-2xl shadow-2xl overflow-hidden">
+        <div className="w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-yellow-600/40 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
           <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-slate-800">
             <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-yellow-500/15 border border-yellow-500/40 shrink-0">
               <BadgeCheck className="w-5 h-5 text-yellow-400" />
             </div>
             <div>
               <p className="text-white font-bold text-sm">Verified Business Listing</p>
-              <p className="text-green-400 text-[11px] font-semibold">First month free · then $29.99/mo · cancel anytime</p>
+              <p className="text-green-400 text-[11px] font-semibold">
+                {ios ? "First month free · pick a tier · cancel anytime" : "First month free · then $29.99/mo · cancel anytime"}
+              </p>
             </div>
             <button
               onClick={() => { setVerifyDialogLocId(null); setVerifyEmail(""); }}
@@ -4164,6 +4233,40 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 </li>
               ))}
             </ul>
+
+            {ios && (
+              <div className="space-y-2">
+                <label className="text-slate-400 text-[11px] block">Choose your tier</label>
+                <div className="space-y-1.5">
+                  {VERIFIED_BUSINESS_TIERS.map((t) => {
+                    const selected = verifyTier === t.tier;
+                    return (
+                      <button
+                        key={t.tier}
+                        type="button"
+                        data-testid={`button-verify-tier-${t.tier}`}
+                        onClick={() => setVerifyTier(t.tier)}
+                        className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left text-xs transition-all ${
+                          selected
+                            ? "bg-yellow-500/15 border-yellow-500/60 text-yellow-100"
+                            : "bg-slate-800/60 border-slate-700/60 text-slate-300 hover:border-slate-500"
+                        }`}
+                      >
+                        <div>
+                          <div className="font-bold">{t.description}</div>
+                          <div className="text-[10px] opacity-70">First month free, cancel anytime</div>
+                        </div>
+                        <div className="font-bold whitespace-nowrap">{t.priceLabel}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-slate-500 text-[10px] leading-relaxed">
+                  Each tier is a single Apple subscription that covers up to that many verified locations. Add more locations later from the same subscription.
+                </p>
+              </div>
+            )}
+
             <div>
               <label className="text-slate-400 text-[11px] block mb-1">
                 Confirm ownership — enter the contact email used when you submitted this listing
@@ -4187,12 +4290,19 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   return;
                 }
                 const id = verifyDialogLocId!;
-                businessCheckoutMutation.mutate({ locationId: id, email: verifyEmail.trim() });
+                if (ios) {
+                  verifyBusinessIap(id, verifyEmail.trim(), verifyTier);
+                } else {
+                  businessCheckoutMutation.mutate({ locationId: id, email: verifyEmail.trim() });
+                }
               }}
-              disabled={businessCheckoutMutation.isPending || !verifyEmail.trim()}
+              disabled={
+                !verifyEmail.trim() ||
+                (ios ? verifyBusinessIapPending : businessCheckoutMutation.isPending)
+              }
               className="w-full py-3 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold text-sm transition-all active:scale-95 disabled:opacity-60"
             >
-              {businessCheckoutMutation.isPending ? "Verifying…" : "Subscribe for $29.99/mo →"}
+              {ctaLabel}
             </button>
             <button
               onClick={() => { setVerifyDialogLocId(null); setVerifyEmail(""); }}
@@ -4203,7 +4313,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
           </div>
         </div>
       </div>
-    )}
+      );
+    })()}
 
   {/* ── RSVP Confirmation Popup ── */}
   {showRsvpPopup && rsvpTargetEvtId !== null && (() => {

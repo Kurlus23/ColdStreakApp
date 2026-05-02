@@ -139,10 +139,31 @@ export const businessListings = pgTable("business_listings", {
   stripeSubscriptionId: text("stripe_subscription_id"),
   active: boolean("active").default(true).notNull(),
   expiresAt: timestamp("expires_at"),
+  source: text("source").default("stripe").notNull(), // "stripe" | "iap"
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export type BusinessListing = typeof businessListings.$inferSelect;
+
+// Apple/Google IAP-purchased Verified Business subscription. One row per email
+// (the RevenueCat appUserId). tierCapacity is the max number of locations this
+// subscription can keep verified at once (1, 5, or 25). When the user verifies
+// a location on iOS we add a businessListings row with source="iap" and
+// stripeSubscriptionId set to a synthetic identifier — the count of those rows
+// vs. tierCapacity is the gating check.
+export const verifiedBusinessSubs = pgTable("verified_business_subs", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  appUserId: text("app_user_id").notNull(),
+  productId: text("product_id").notNull(),
+  tierCapacity: integer("tier_capacity").notNull(),
+  expiresAt: timestamp("expires_at"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type VerifiedBusinessSub = typeof verifiedBusinessSubs.$inferSelect;
 
 export const insertUserLocationSchema = createInsertSchema(userLocations).omit({
   id: true,
