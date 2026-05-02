@@ -1291,6 +1291,9 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Email does not match the contact email on this listing. Only the business owner can verify." });
       }
 
+      // 30-day free trial is offered ONLY on the entry tier (1 location).
+      // Multi-location tiers (3 / 10) bill immediately — no trial.
+      const hasTrial = tier === 1;
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         line_items: [{
@@ -1298,7 +1301,7 @@ export async function registerRoutes(
             currency: "usd",
             product_data: {
               name: `ColdStreak Verified Business Listing — ${tierConfig.description}`,
-              description: `✓ Verified badge on ColdStreak community boards — covers ${tierConfig.description.toLowerCase()} (first month free)`,
+              description: `✓ Verified badge on ColdStreak community boards — covers ${tierConfig.description.toLowerCase()}${hasTrial ? " (first month free)" : ""}`,
             },
             unit_amount: tierConfig.unitAmount,
             recurring: { interval: "month" },
@@ -1306,7 +1309,7 @@ export async function registerRoutes(
           quantity: 1,
         }],
         mode: "subscription",
-        subscription_data: { trial_period_days: 30 },
+        ...(hasTrial ? { subscription_data: { trial_period_days: 30 } } : {}),
         metadata: { type: "business_listing", locationId: locationId.toString(), tier: String(tier), tierCapacity: String(tierConfig.capacity) },
         success_url: `${successUrl}?business_session_id={CHECKOUT_SESSION_ID}&business_location_id=${locationId}`,
         cancel_url: cancelUrl,

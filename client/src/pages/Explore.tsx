@@ -3884,7 +3884,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                       <BadgeCheck className="w-4 h-4 text-yellow-400" />
                     </div>
                     <div className="flex-1 text-left">
-                      <p className="text-white font-bold text-xs">Get Verified — 1st month free</p>
+                      <p className="text-white font-bold text-xs">Get Verified — 1st month free on $29.99 tier</p>
                       <p className="text-blue-400 text-[11px]">Show your full profile, links & booking</p>
                     </div>
                     <span className="text-yellow-400 text-xs font-bold shrink-0">Verify →</span>
@@ -3956,14 +3956,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 <div className="flex items-center gap-1 font-bold text-sm">
                   <BadgeCheck className="w-3.5 h-3.5 text-yellow-400" /> Verified
                 </div>
-                <div className="text-[10px] opacity-70 mt-0.5">$29.99/$79.99/$129.99 per mo (1/3/10 locations) · 1st month free</div>
+                <div className="text-[10px] opacity-70 mt-0.5">$29.99/$79.99/$129.99 per mo (1/3/10 locations) · 1st month free on $29.99 tier only</div>
               </button>
             </div>
 
             {bizTier === "verified" && (
               <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-xl p-3 space-y-1.5">
                 <p className="text-yellow-300 text-xs font-semibold">Verified includes:</p>
-                {["Gold badge + top placement in directory", "Full public profile with links & contact info", "Google Maps directions button", "Website, Yelp, Facebook & booking links", "1st month free — then $29.99 (1 location), $79.99 (up to 3), or $129.99/mo (up to 10), cancel anytime"].map((b) => (
+                {["Gold badge + top placement in directory", "Full public profile with links & contact info", "Google Maps directions button", "Website, Yelp, Facebook & booking links", "$29.99/mo (1 location, 1st month free), $79.99/mo (up to 3), or $129.99/mo (up to 10) — cancel anytime"].map((b) => (
                   <div key={b} className="flex items-start gap-1.5 text-[11px] text-yellow-200/80">
                     <CheckCircle2 className="w-3 h-3 text-yellow-400 shrink-0 mt-0.5" /> {b}
                   </div>
@@ -4274,7 +4274,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             <div>
               <p className="text-white font-bold text-sm">Verified Business Listing</p>
               <p className="text-green-400 text-[11px] font-semibold">
-                First month free · pick a tier · cancel anytime
+                {selectedTier.tier === 1 ? "First month free · cancel anytime" : "Billed monthly · cancel anytime"}
               </p>
             </div>
             <button
@@ -4294,7 +4294,9 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 "Public profile: description, phone, website & social links",
                 "Google Maps directions button on your listing",
                 "Booking / appointment link shown to every viewer",
-                "First month free — no charge for 30 days",
+                ...(selectedTier.tier === 1
+                  ? ["First month free — no charge for 30 days"]
+                  : ["Billed immediately — first month free is $29.99 / 1-location tier only"]),
               ].map((benefit) => (
                 <li key={benefit} className="flex items-start gap-2 text-[11px] text-slate-300">
                   <CheckCircle2 className="w-3.5 h-3.5 text-yellow-400 shrink-0 mt-0.5" />
@@ -4322,7 +4324,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                     >
                       <div>
                         <div className="font-bold">{t.description}</div>
-                        <div className="text-[10px] opacity-70">First month free, cancel anytime</div>
+                        <div className="text-[10px] opacity-70">{t.tier === 1 ? "First month free, cancel anytime" : "Billed monthly, cancel anytime"}</div>
                       </div>
                       <div className="font-bold whitespace-nowrap">{t.priceLabel}</div>
                     </button>
@@ -4388,10 +4390,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               className="text-slate-400/90 text-[10px] leading-relaxed space-y-1.5 pt-3 border-t border-slate-800"
             >
               <p>
-                <strong className="text-slate-200">ColdStreak Verified Business Listing — {selectedTier.description}</strong>: {selectedTier.priceLabel} USD, auto-renewing monthly subscription with a 30-day free trial. {ios ? (
-                  <>Payment is charged to your Apple ID at the end of the free trial. The subscription renews each month unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in <strong>iPhone Settings → [your name] → Subscriptions</strong>.</>
+                <strong className="text-slate-200">ColdStreak Verified Business Listing — {selectedTier.description}</strong>: {selectedTier.priceLabel} USD, auto-renewing monthly subscription{selectedTier.tier === 1 ? " with a 30-day free trial" : ""}. {ios ? (
+                  selectedTier.tier === 1
+                    ? <>Payment is charged to your Apple ID at the end of the free trial. The subscription renews each month unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in <strong>iPhone Settings → [your name] → Subscriptions</strong>.</>
+                    : <>Payment is charged to your Apple ID immediately upon purchase and renews each month unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in <strong>iPhone Settings → [your name] → Subscriptions</strong>.</>
                 ) : (
-                  <>Payment is charged at the end of the free trial. The subscription renews each month unless cancelled before the end of the current period. Manage or cancel anytime from your business listing's <strong>Manage Subscription</strong> link.</>
+                  selectedTier.tier === 1
+                    ? <>Payment is charged at the end of the free trial. The subscription renews each month unless cancelled before the end of the current period. Manage or cancel anytime from your business listing's <strong>Manage Subscription</strong> link.</>
+                    : <>Payment is charged immediately upon purchase. The subscription renews each month unless cancelled before the end of the current period. Manage or cancel anytime from your business listing's <strong>Manage Subscription</strong> link.</>
                 )}
               </p>
               <p>
