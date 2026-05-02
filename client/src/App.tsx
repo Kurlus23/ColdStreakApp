@@ -14,6 +14,7 @@ import DeleteAccount from "@/pages/DeleteAccount";
 import EventPage from "@/pages/EventPage";
 import Admin from "@/pages/Admin";
 import ChurnSurvey from "@/pages/ChurnSurvey";
+import BusinessDashboard from "@/pages/BusinessDashboard";
 import { Sentry } from "@/lib/monitoring";
 import { useState, useEffect } from "react";
 
@@ -69,6 +70,7 @@ function Router() {
       <Route path="/event/:code" component={EventPage} />
       <Route path="/feedback/:token" component={ChurnSurvey} />
       <Route path="/admin" component={Admin} />
+      <Route path="/business" component={BusinessDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 const TOKEN_KEY = "coldstreak-auth-token";
 const USER_KEY = "coldstreak-auth-user";
@@ -29,7 +29,10 @@ export function useAuth() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handler = () => setUser(null);
+    const handler = () => {
+      setUser(null);
+      queryClient.clear();
+    };
     window.addEventListener("coldstreak:force-logout", handler);
     return () => window.removeEventListener("coldstreak:force-logout", handler);
   }, []);
@@ -46,6 +49,7 @@ export function useAuth() {
           localStorage.removeItem(TOKEN_KEY);
           localStorage.removeItem(USER_KEY);
           setUser(null);
+          queryClient.clear();
         } else if (res.ok) {
           res.json().then((fresh: AuthUser) => {
             localStorage.setItem(USER_KEY, JSON.stringify(fresh));
@@ -112,6 +116,9 @@ export function useAuth() {
     localStorage.removeItem("coldstreak-pro-email");
     setUser(null);
     setError(null);
+    // Drop all cached server data so the next account on this device cannot
+    // see the previous user's listings, dashboards, badges, etc.
+    queryClient.clear();
   }, []);
 
   const syncLocalData = useCallback(async (clientId: string): Promise<boolean> => {

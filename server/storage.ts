@@ -1239,11 +1239,17 @@ export class DatabaseStorage implements IStorage {
     lastPlungeAt: Date;
   }>> {
     const locKey = `community-${locationId}`;
+    // Group by a single identity key per plunger:
+    //   - signed-in users → group by userId (so multiple devices collapse to one row)
+    //   - guest plunges → group by clientId (one row per device)
+    // Rows missing both userId and clientId fall into a single "anon" bucket.
+    const identityKey = sql<string>`coalesce('u-' || ${plunges.userId}::text, 'c-' || ${plunges.clientId}, 'anon')`;
     const rows = await db.select({
-      userId: plunges.userId,
-      clientId: plunges.clientId,
-      displayName: users.displayName,
-      email: users.email,
+      identity: identityKey,
+      userId: sql<number | null>`max(${plunges.userId})`,
+      clientId: sql<string | null>`max(${plunges.clientId})`,
+      displayName: sql<string | null>`max(${users.displayName})`,
+      email: sql<string | null>`max(${users.email})`,
       bestScore: sql<number>`max(${plunges.score})`,
       plungeCount: sql<number>`count(*)`,
       lastAt: sql<Date>`max(${plunges.createdAt})`,
@@ -1251,7 +1257,7 @@ export class DatabaseStorage implements IStorage {
       .from(plunges)
       .leftJoin(users, eq(plunges.userId, users.id))
       .where(eq(plunges.locationId, locKey))
-      .groupBy(plunges.userId, plunges.clientId, users.displayName, users.email)
+      .groupBy(identityKey)
       .orderBy(desc(sql`max(${plunges.score})`))
       .limit(limit);
 

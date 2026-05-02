@@ -630,20 +630,34 @@ export async function registerRoutes(
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
     const caller = extractUser(req);
     const clientId = (req.headers["x-client-id"] as string | undefined) ?? null;
-    await storage.recordLocationView({ locationId: id, userId: caller?.userId ?? null, clientId });
-    res.json({ ok: true });
+    try {
+      await storage.recordLocationView({ locationId: id, userId: caller?.userId ?? null, clientId });
+      res.json({ ok: true });
+    } catch (err: any) {
+      if (err?.code === "23503") return res.status(404).json({ message: "Listing not found" });
+      console.error("[view tracking]", err);
+      res.status(500).json({ message: "Tracking failed" });
+    }
   });
 
   app.post("/api/community-locations/:id/click", async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
-    const { kind } = z.object({
+    const parsed = z.object({
       kind: z.enum(["website", "booking", "directions", "phone", "yelp", "facebook"]),
-    }).parse(req.body);
+    }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid kind" });
     const caller = extractUser(req);
     const clientId = (req.headers["x-client-id"] as string | undefined) ?? null;
-    await storage.recordLocationClick({ locationId: id, kind, userId: caller?.userId ?? null, clientId });
-    res.json({ ok: true });
+    try {
+      await storage.recordLocationClick({ locationId: id, kind: parsed.data.kind, userId: caller?.userId ?? null, clientId });
+      res.json({ ok: true });
+    } catch (err: any) {
+      // FK violation (unknown location) → 404; other errors → 500
+      if (err?.code === "23503") return res.status(404).json({ message: "Listing not found" });
+      console.error("[click tracking]", err);
+      res.status(500).json({ message: "Tracking failed" });
+    }
   });
 
   // ── Business owner dashboard ────────────────────────────────────────────────

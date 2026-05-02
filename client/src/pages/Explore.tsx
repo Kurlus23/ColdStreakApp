@@ -32,6 +32,19 @@ type BizLocation = Omit<UserLocation, "contactEmail"> & { isOwner: boolean; isAd
 
 const NOMINATIONS_KEY = "coldstreak-nominations";
 
+// Fire-and-forget click tracking for verified business outbound links.
+// Powers the business owner dashboard's click breakdown.
+function trackBizClick(locationId: number, kind: "website" | "booking" | "directions" | "phone" | "yelp" | "facebook") {
+  try {
+    fetch(`/api/community-locations/${locationId}/click`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch { /* never block navigation */ }
+}
+
 function openDirections(lat: number | string, lng: number | string) {
   const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
   if (Capacitor.isNativePlatform()) {
@@ -3792,7 +3805,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   {lat !== null && lng !== null && (
                     <button
                       data-testid="button-biz-directions"
-                      onClick={() => openDirections(lat, lng)}
+                      onClick={() => { trackBizClick(biz.id, "directions"); openDirections(lat, lng); }}
                       className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-sm font-semibold hover:bg-cyan-500/20 transition-all active:scale-[0.98]"
                     >
                       <Navigation className="w-4 h-4 shrink-0" /> Get Directions
@@ -3800,30 +3813,35 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   )}
                   {biz.phone && (
                     <a href={`tel:${biz.phone}`} data-testid="link-biz-phone"
+                      onClick={() => trackBizClick(biz.id, "phone")}
                       className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-blue-800/40 border border-blue-700/40 text-blue-200 text-sm hover:border-blue-500/60 transition-all">
                       <Phone className="w-4 h-4 text-blue-400 shrink-0" />{biz.phone}
                     </a>
                   )}
                   {biz.websiteUrl && (
                     <a href={biz.websiteUrl} target="_blank" rel="noopener noreferrer" data-testid="link-biz-website"
+                      onClick={() => trackBizClick(biz.id, "website")}
                       className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-blue-800/40 border border-blue-700/40 text-blue-200 text-sm hover:border-blue-500/60 transition-all">
                       <ExternalLink className="w-4 h-4 text-blue-400 shrink-0" /> Website
                     </a>
                   )}
                   {biz.yelpUrl && (
                     <a href={biz.yelpUrl} target="_blank" rel="noopener noreferrer" data-testid="link-biz-yelp"
+                      onClick={() => trackBizClick(biz.id, "yelp")}
                       className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-red-900/20 border border-red-700/30 text-red-200 text-sm hover:border-red-500/40 transition-all">
                       <ExternalLink className="w-4 h-4 text-red-400 shrink-0" /> Yelp Reviews
                     </a>
                   )}
                   {biz.facebookUrl && (
                     <a href={biz.facebookUrl} target="_blank" rel="noopener noreferrer" data-testid="link-biz-facebook"
+                      onClick={() => trackBizClick(biz.id, "facebook")}
                       className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-blue-900/30 border border-blue-600/30 text-blue-200 text-sm hover:border-blue-500/40 transition-all">
                       <ExternalLink className="w-4 h-4 text-blue-400 shrink-0" /> Facebook
                     </a>
                   )}
                   {biz.bookingUrl && (
                     <a href={biz.bookingUrl} target="_blank" rel="noopener noreferrer" data-testid="link-biz-booking"
+                      onClick={() => trackBizClick(biz.id, "booking")}
                       className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-green-900/20 border border-green-700/30 text-green-200 text-sm font-semibold hover:border-green-500/40 transition-all">
                       <ExternalLink className="w-4 h-4 text-green-400 shrink-0" /> Book Appointment
                     </a>

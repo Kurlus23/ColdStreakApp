@@ -969,6 +969,13 @@ export default function Home() {
   const [leaderboardLocName, setLeaderboardLocName] = useState<string>("");
   const [legendTip, setLegendTip] = useState<string | null>(null);
   const { data: communityLocs = [] } = useQuery<UserLocation[]>({ queryKey: ["/api/community-locations"] });
+  // Owner check for the Business Dashboard nav button — only fetched when signed in.
+  // Cache key is scoped to the authenticated user id so a prior account's listings
+  // never leak into a new sign-in on the same device.
+  const { data: myBizListings = [] } = useQuery<UserLocation[]>({
+    queryKey: ["/api/business/my-listings", auth.user?.id],
+    enabled: !!auth.user,
+  });
   const [username, setUsername] = useState<string>(() => {
     return localStorage.getItem("coldstreak-username") ?? "";
   });
@@ -3994,6 +4001,15 @@ export default function Home() {
                           <p className="text-green-400 text-xs flex items-center gap-1.5 px-1">
                             <CheckCircle2 className="w-3.5 h-3.5" /> Local data synced to your account
                           </p>
+                        )}
+                        {myBizListings.length > 0 && (
+                          <a
+                            href="/business"
+                            data-testid="link-business-dashboard"
+                            className="w-full py-2 rounded-xl bg-yellow-500/10 border border-yellow-600/40 text-yellow-300 text-xs font-bold text-center hover:bg-yellow-500/20 transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            🏢 Business Dashboard ({myBizListings.length})
+                          </a>
                         )}
                         <button
                           data-testid="button-account-signout"
