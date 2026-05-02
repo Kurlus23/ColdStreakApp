@@ -10,6 +10,7 @@ import {
   type SupportMessage, type InsertSupportMessage, type ClientVisit,
   type VerifiedBusinessSub,
   type Report, type InsertReport,
+  type BusinessHours,
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and, not, lt, gte, inArray, sum } from "drizzle-orm";
 
@@ -191,6 +192,14 @@ export interface IStorage {
     plungeCount: number;
     lastPlungeAt: Date;
   }>>;
+  getAllVerifiedListings(): Promise<UserLocation[]>;
+  // Public profile / share / hours / co-managers / CSV export
+  getLocationBySlug(slug: string): Promise<UserLocation | null>;
+  ensureLocationSlug(id: number): Promise<string>;
+  updateLocationHours(id: number, hours: BusinessHours | null): Promise<void>;
+  addCoManager(id: number, email: string): Promise<string[]>;
+  removeCoManager(id: number, email: string): Promise<string[]>;
+  exportLocationPlungersCSV(locationId: number, opts: { sortBy: "bestScore" | "plungeCount" | "periodPlunges" | "lastPlungeAt"; days: number }): Promise<string>;
   // User lookup for coordinator assignment
   getUserByDisplayName(displayName: string): Promise<User | null>;
   getUserByEmailPrefix(prefix: string): Promise<User | null>;
@@ -1120,8 +1129,12 @@ export class DatabaseStorage implements IStorage {
       .where(and(
         eq(userLocations.isBusiness, true),
         eq(userLocations.businessVerified, true),
-        sql`lower(${userLocations.contactEmail}) = ${e}`,
         eq(userLocations.isHidden, false),
+        // Owner OR co-manager (case-insensitive on both sides)
+        or(
+          sql`lower(${userLocations.contactEmail}) = ${e}`,
+          sql`exists (select 1 from unnest(${userLocations.coManagerEmails}) as cm(em) where lower(cm.em) = ${e})`,
+        ),
       ))
       .orderBy(desc(userLocations.createdAt));
   }
@@ -1268,6 +1281,158 @@ export class DatabaseStorage implements IStorage {
       plungeCount: Number(r.plungeCount),
       lastPlungeAt: r.lastAt as Date,
     }));
+  }
+
+  // ── Public profile / sharing / hours / co-managers / CSV export ──────────
+  async getAllVerifiedListings(): Promise<UserLocation[]> {
+    return await db.select().from(userLocations)
+      .where(and(
+        eq(userLocations.isBusiness, true),
+        eq(userLocations.businessVerified, true),
+        eq(userLocations.isHidden, false),
+      ))
+      .orderBy(desc(userLocations.createdAt));
+  }
+
+  async getLocationBySlug(slug: string): Promise<UserLocation | null> {
+    const [row] = await db.select().from(userLocations)
+      .where(and(eq(userLocations.slug, slug), eq(userLocations.isHidden, false)));
+    return row ?? null;
+  }
+
+  async ensureLocationSlug(id: number): Promise<string> {
+    const [loc] = await db.select().from(userLocations).where(eq(userLocations.id, id));
+    if (!loc) throw new Error("Location not found");
+    if (loc.slug) return loc.slug;
+    const base = (loc.name ?? "biz")
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[^\w\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-")
+      .slice(0, 48) || "biz";
+    // Try base, then append short random suffixes until unique.
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const candidate = attempt === 0 ? base : `${base}-${Math.random().toString(36).slice(2, 6)}`;
+      try {
+        await db.update(userLocations).set({ slug: candidate }).where(eq(userLocations.id, id));
+        return candidate;
+      } catch (err: any) {
+        if (err?.code !== "23505") throw err; // not a unique-violation → bubble up
+        // collision: try again
+      }
+    }
+    throw new Error("Could not generate unique slug");
+  }
+
+  async updateLocationHours(id: number, hours: BusinessHours | null): Promise<void> {
+    await db.update(userLocations).set({ hours: hours as any }).where(eq(userLocations.id, id));
+  }
+
+  async addCoManager(id: number, email: string): Promise<string[]> {
+    const e = email.toLowerCase().trim();
+    const [loc] = await db.select({ co: userLocations.coManagerEmails }).from(userLocations).where(eq(userLocations.id, id));
+    const current = (loc?.co ?? []).map((s) => s.toLowerCase());
+    if (current.includes(e)) return loc!.co;
+    const next = [...(loc?.co ?? []), e];
+    await db.update(userLocations).set({ coManagerEmails: next }).where(eq(userLocations.id, id));
+    return next;
+  }
+
+  async removeCoManager(id: number, email: string): Promise<string[]> {
+    const e = email.toLowerCase().trim();
+    const [loc] = await db.select({ co: userLocations.coManagerEmails }).from(userLocations).where(eq(userLocations.id, id));
+    const next = (loc?.co ?? []).filter((s) => s.toLowerCase() !== e);
+    await db.update(userLocations).set({ coManagerEmails: next }).where(eq(userLocations.id, id));
+    return next;
+  }
+
+  async exportLocationPlungersCSV(
+    locationId: number,
+    opts: { sortBy: "bestScore" | "plungeCount" | "periodPlunges" | "lastPlungeAt"; days: number },
+  ): Promise<string> {
+    const locKey = `community-${locationId}`;
+    const sinceDate = new Date(Date.now() - opts.days * 86400 * 1000);
+    // Privacy policy for v1:
+    //   • anonymous_id is the first 8 chars of md5(userId|clientId).
+    //   • The hash is unsalted on purpose so a business owner sees the SAME
+    //     anonymous_id for the same plunger across repeat exports of THEIR
+    //     OWN listing — that repeat-visit signal is the whole point of the
+    //     leaderboard CSV.
+    //   • A side-effect of using a global (unsalted) hash is that an admin
+    //     who exports multiple listings can correlate plungers across them.
+    //     This is acceptable for v1 because admins are trusted support staff
+    //     and business owners only ever see their own listing's CSV.
+    //   • Future enhancement: per-listing salted HMAC if we add multi-owner
+    //     analytics that mix listings.
+    const identityKey = sql<string>`coalesce('u-' || ${plunges.userId}::text, 'c-' || ${plunges.clientId}, 'anon')`;
+    const rows = await db.select({
+      identityHash: sql<string>`md5(coalesce('u-' || ${plunges.userId}::text, 'c-' || ${plunges.clientId}, 'anon'))`,
+      isAccount: sql<boolean>`bool_or(${plunges.userId} is not null)`,
+      displayName: sql<string | null>`max(${users.displayName})`,
+      bestScore: sql<number>`max(${plunges.score})`,
+      lifetimePlunges: sql<number>`count(*)`,
+      periodPlunges: sql<number>`sum(case when ${plunges.createdAt} >= ${sinceDate} then 1 else 0 end)`,
+      avgDuration: sql<number>`coalesce(avg(${plunges.duration}), 0)`,
+      coldestTemp: sql<number | null>`min(${plunges.temperature})`,
+      firstPlungeAt: sql<Date>`min(${plunges.createdAt})`,
+      lastPlungeAt: sql<Date>`max(${plunges.createdAt})`,
+    })
+      .from(plunges)
+      .leftJoin(users, eq(plunges.userId, users.id))
+      .where(eq(plunges.locationId, locKey))
+      .groupBy(identityKey);
+
+    // Sort in JS so we can support all four options without SQL gymnastics.
+    const sortField = opts.sortBy;
+    const sorted = [...rows].sort((a, b) => {
+      const va = sortField === "lastPlungeAt"
+        ? new Date(a.lastPlungeAt as Date).getTime()
+        : Number((a as any)[sortField] ?? 0);
+      const vb = sortField === "lastPlungeAt"
+        ? new Date(b.lastPlungeAt as Date).getTime()
+        : Number((b as any)[sortField] ?? 0);
+      return vb - va;
+    });
+
+    const header = [
+      "plunger_display_name",
+      "account_type",
+      "anonymous_id",
+      "lifetime_plunges",
+      `plunges_last_${opts.days}d`,
+      "best_cold_score",
+      "avg_duration_seconds",
+      "coldest_temp_c",
+      "first_plunge_at",
+      "last_plunge_at",
+    ];
+    const escape = (v: unknown): string => {
+      if (v === null || v === undefined) return "";
+      const s = String(v);
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [header.join(",")];
+    for (const r of sorted) {
+      // Privacy: never include raw email, userId, or clientId. Display name is
+      // the user's chosen public handle (already shown on leaderboards).
+      // Anonymous plungers without a display name show as "Anon" + short hash.
+      const shortId = r.identityHash.slice(0, 8);
+      const display = r.displayName ?? (r.isAccount ? `Anon (#${shortId})` : `Anon device (#${shortId})`);
+      lines.push([
+        escape(display),
+        escape(r.isAccount ? "account" : "anonymous_device"),
+        escape(shortId),
+        escape(r.lifetimePlunges),
+        escape(r.periodPlunges),
+        escape(Number(r.bestScore).toFixed(2)),
+        escape(Number(r.avgDuration).toFixed(0)),
+        escape(r.coldestTemp == null ? "" : Number(r.coldestTemp).toFixed(1)),
+        escape((r.firstPlungeAt as Date).toISOString()),
+        escape((r.lastPlungeAt as Date).toISOString()),
+      ].join(","));
+    }
+    return lines.join("\n") + "\n";
   }
 
   async getEventParticipants(eventId: number): Promise<EventParticipant[]> {

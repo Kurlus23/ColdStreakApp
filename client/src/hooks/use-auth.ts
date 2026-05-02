@@ -8,6 +8,7 @@ export interface AuthUser {
   id: number;
   email: string;
   emailVerified: boolean;
+  isAdmin?: boolean;
 }
 
 function loadUser(): AuthUser | null {

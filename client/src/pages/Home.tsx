@@ -974,6 +974,15 @@ export default function Home() {
   // never leak into a new sign-in on the same device.
   const { data: myBizListings = [] } = useQuery<UserLocation[]>({
     queryKey: ["/api/business/my-listings", auth.user?.id],
+    // Explicit queryFn — the default joins queryKey segments with "/", which
+    // would produce a wrong URL "/api/business/my-listings/<userId>".
+    queryFn: async () => {
+      const r = await fetch("/api/business/my-listings", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}` },
+      });
+      if (!r.ok) throw new Error(`my-listings ${r.status}`);
+      return r.json();
+    },
     enabled: !!auth.user,
   });
   const [username, setUsername] = useState<string>(() => {

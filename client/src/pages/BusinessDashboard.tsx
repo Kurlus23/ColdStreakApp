@@ -4,10 +4,13 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { UserLocation } from "@shared/schema";
+import type { UserLocation, BusinessHours, BusinessHoursDay, DayKey } from "@shared/schema";
+import { DAY_KEYS } from "@shared/schema";
+import { generateQrDataUrl, downloadDataUrl } from "@/lib/qr";
 import {
   ArrowLeft, Eye, Snowflake, MousePointerClick, Users, Trash2, ExternalLink,
   AlertTriangle, BadgeCheck, ChevronDown, Calendar, Loader2, LogOut,
+  Share2, QrCode, Copy, Clock, UserPlus, X, Download, FileSpreadsheet, Check,
 } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
@@ -36,7 +39,25 @@ const CLICK_LABELS: Record<string, string> = {
   phone: "Phone",
   yelp: "Yelp Reviews",
   facebook: "Facebook",
+  share: "Profile Share",
 };
+
+const DAY_LABELS: Record<DayKey, string> = {
+  mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday",
+  fri: "Friday", sat: "Saturday", sun: "Sunday",
+};
+
+const DEFAULT_DAY: BusinessHoursDay = { open: "06:00", close: "20:00", closed: false };
+const DEFAULT_HOURS = (): BusinessHours => ({
+  mon: { ...DEFAULT_DAY }, tue: { ...DEFAULT_DAY }, wed: { ...DEFAULT_DAY },
+  thu: { ...DEFAULT_DAY }, fri: { ...DEFAULT_DAY },
+  sat: { ...DEFAULT_DAY, open: "07:00", close: "18:00" },
+  sun: { ...DEFAULT_DAY, open: "07:00", close: "18:00" },
+});
+
+function authHeaders(): HeadersInit {
+  return { Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}` };
+}
 
 export default function BusinessDashboard() {
   const auth = useAuth();
@@ -51,8 +72,17 @@ export default function BusinessDashboard() {
     if (!auth.user) navigate("/");
   }, [auth.user, navigate]);
 
+  // Custom queryFn because the default joins queryKey segments with "/" — we
+  // append auth.user?.id for cache scoping, NOT as a URL path segment.
   const { data: listings, isLoading: listingsLoading, error: listingsError } = useQuery<UserLocation[]>({
     queryKey: ["/api/business/my-listings", auth.user?.id],
+    queryFn: async () => {
+      const r = await fetch("/api/business/my-listings", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}` },
+      });
+      if (!r.ok) throw new Error(`my-listings ${r.status}`);
+      return r.json();
+    },
     enabled: !!auth.user,
   });
 
@@ -384,6 +414,31 @@ export default function BusinessDashboard() {
           </div>
         )}
 
+        {/* Share & QR */}
+        {activeListing && (
+          <ShareAndQrPanel listing={activeListing} userId={auth.user?.id ?? null} />
+        )}
+
+        {/* Business hours editor */}
+        {activeListing && (
+          <HoursEditor listing={activeListing} userId={auth.user?.id ?? null} />
+        )}
+
+        {/* Co-managers — owner or admin */}
+        {activeListing && (
+          <CoManagerPanel
+            listing={activeListing}
+            callerEmail={auth.user?.email ?? ""}
+            userId={auth.user?.id ?? null}
+            isAdmin={!!auth.user?.isAdmin}
+          />
+        )}
+
+        {/* CSV export */}
+        {activeListing && (
+          <CsvExportPanel listing={activeListing} days={days} />
+        )}
+
         {/* Subscription management — Apple compliance */}
         {activeListing && (
           <div className="bg-slate-900/60 border border-blue-800/40 rounded-2xl p-4">
@@ -468,6 +523,438 @@ export default function BusinessDashboard() {
             </Link>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── Share & QR ──────────────────────────────────────────────────────────────
+function ShareAndQrPanel({ listing, userId }: { listing: UserLocation; userId: number | null }) {
+  const { toast } = useToast();
+  const [qr, setQr] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const ensureSlug = useMutation({
+    mutationFn: async () => {
+      const r = await fetch(`/api/business/${listing.id}/slug`, {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+      });
+      if (!r.ok) throw new Error("slug failed");
+      return r.json() as Promise<{ slug: string }>;
+    },
+    onSuccess: (data) => {
+      // Refresh my-listings so the new slug appears in the cached object.
+      queryClient.invalidateQueries({ queryKey: ["/api/business/my-listings", userId] });
+      // Lazily render QR for the new URL.
+      const url = `${window.location.origin}/biz/${data.slug}`;
+      generateQrDataUrl(url).then(setQr).catch(() => {});
+    },
+    onError: () => toast({ title: "Couldn't create share link", variant: "destructive" }),
+  });
+
+  const slug = listing.slug;
+  const publicUrl = slug ? `${window.location.origin}/biz/${slug}` : null;
+
+  // Render QR whenever we have a slug
+  useEffect(() => {
+    if (!publicUrl) { setQr(null); return; }
+    let cancelled = false;
+    generateQrDataUrl(publicUrl).then((d) => { if (!cancelled) setQr(d); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [publicUrl]);
+
+  const trackShare = () => {
+    fetch(`/api/community-locations/${listing.id}/click`, {
+      method: "POST",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "share" }),
+      keepalive: true,
+    }).catch(() => {});
+  };
+
+  const onCopy = async () => {
+    if (!publicUrl) return;
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      setCopied(true);
+      trackShare();
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast({ title: "Copy failed", variant: "destructive" });
+    }
+  };
+
+  const onShare = async () => {
+    if (!publicUrl) return;
+    trackShare();
+    if (navigator.share) {
+      try { await navigator.share({ title: listing.name, text: `Check out ${listing.name}`, url: publicUrl }); return; } catch { /* cancel */ }
+    }
+    onCopy();
+  };
+
+  const onDownloadQr = () => {
+    if (!qr) return;
+    const safeName = (listing.name ?? "qr").replace(/[^a-z0-9-]+/gi, "-").toLowerCase();
+    downloadDataUrl(qr, `${safeName}-coldstreak-qr.png`);
+  };
+
+  return (
+    <div className="bg-slate-900/60 border border-blue-800/40 rounded-2xl p-4">
+      <h3 className="text-sm font-bold text-blue-300 mb-3 flex items-center gap-2">
+        <Share2 className="w-4 h-4" /> Share &amp; QR
+      </h3>
+      {!slug ? (
+        <div className="text-center py-6">
+          <p className="text-blue-400 text-xs mb-3">
+            Generate a public profile link customers can scan or share.
+          </p>
+          <button
+            data-testid="button-create-slug"
+            onClick={() => ensureSlug.mutate()}
+            disabled={ensureSlug.isPending}
+            className="bg-cyan-500 hover:bg-cyan-400 text-blue-950 font-bold px-5 py-2.5 rounded-xl text-sm disabled:opacity-50 inline-flex items-center gap-1.5"
+          >
+            {ensureSlug.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+            Create share link
+          </button>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-[160px_1fr] gap-4 items-start">
+          <div className="bg-white rounded-xl p-2 mx-auto">
+            {qr ? (
+              <img data-testid="img-qr" src={qr} alt={`${listing.name} QR`} className="w-36 h-36 block" />
+            ) : (
+              <div className="w-36 h-36 flex items-center justify-center text-slate-400">
+                <Loader2 className="w-5 h-5 animate-spin" />
+              </div>
+            )}
+          </div>
+          <div className="space-y-2 min-w-0">
+            <div className="flex items-center gap-2">
+              <input
+                data-testid="input-public-url"
+                readOnly
+                value={publicUrl ?? ""}
+                onFocus={(e) => e.currentTarget.select()}
+                className="flex-1 bg-blue-950/60 border border-blue-800/40 rounded-lg px-2.5 py-1.5 text-blue-100 text-xs font-mono truncate"
+              />
+              <button
+                data-testid="button-copy-url"
+                onClick={onCopy}
+                className="bg-blue-900/50 hover:bg-blue-900/80 border border-blue-700/50 text-blue-200 px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                data-testid="button-share"
+                onClick={onShare}
+                className="bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/60 text-cyan-200 font-bold px-3 py-2 rounded-lg text-xs flex items-center justify-center gap-1.5"
+              >
+                <Share2 className="w-3.5 h-3.5" /> Share
+              </button>
+              <button
+                data-testid="button-download-qr"
+                disabled={!qr}
+                onClick={onDownloadQr}
+                className="bg-blue-900/50 hover:bg-blue-900/80 border border-blue-700/50 text-blue-200 font-bold px-3 py-2 rounded-lg text-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                <Download className="w-3.5 h-3.5" /> Download QR
+              </button>
+            </div>
+            <Link href={`/biz/${slug}`} data-testid="link-preview-public">
+              <button className="w-full text-xs text-cyan-400 hover:text-cyan-300 underline mt-1 flex items-center justify-center gap-1">
+                <QrCode className="w-3 h-3" /> Preview public profile
+              </button>
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Hours editor ────────────────────────────────────────────────────────────
+function HoursEditor({ listing, userId }: { listing: UserLocation; userId: number | null }) {
+  const { toast } = useToast();
+  // listing.hours is jsonb (typed `unknown` at the column level) — cast on read.
+  const persisted = (listing.hours as BusinessHours | null) ?? null;
+  const [draft, setDraft] = useState<BusinessHours>(() => persisted ?? DEFAULT_HOURS());
+
+  // Reset draft when active listing changes
+  useEffect(() => {
+    setDraft(persisted ?? DEFAULT_HOURS());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listing.id, listing.hours]);
+
+  const save = useMutation({
+    mutationFn: async (hours: BusinessHours | null) => {
+      const r = await fetch(`/api/business/${listing.id}/hours`, {
+        method: "PUT",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ hours }),
+      });
+      if (!r.ok) throw new Error(`save failed (${r.status})`);
+      return r.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Hours saved" });
+      queryClient.invalidateQueries({ queryKey: ["/api/business/my-listings", userId] });
+    },
+    onError: (err: any) => toast({ title: "Couldn't save", description: err?.message, variant: "destructive" }),
+  });
+
+  const updateDay = (key: DayKey, patch: Partial<BusinessHoursDay>) => {
+    setDraft((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
+  };
+
+  return (
+    <div className="bg-slate-900/60 border border-blue-800/40 rounded-2xl p-4">
+      <h3 className="text-sm font-bold text-blue-300 mb-3 flex items-center gap-2">
+        <Clock className="w-4 h-4" /> Business hours
+      </h3>
+      <p className="text-blue-500 text-xs mb-3">Shown on your public profile, with an "open now" badge calculated from these times.</p>
+      <div className="space-y-1.5">
+        {DAY_KEYS.map((d) => {
+          const v = draft[d];
+          return (
+            <div key={d} data-testid={`hours-row-${d}`} className="flex items-center gap-2 bg-blue-950/40 border border-blue-900/40 rounded-lg px-2 py-1.5">
+              <span className="text-blue-200 text-xs font-semibold w-20">{DAY_LABELS[d]}</span>
+              <label className="flex items-center gap-1 text-[11px] text-blue-400 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  data-testid={`checkbox-closed-${d}`}
+                  checked={v.closed}
+                  onChange={(e) => updateDay(d, { closed: e.target.checked })}
+                  className="accent-cyan-500"
+                />
+                Closed
+              </label>
+              <div className="flex-1 flex items-center gap-1.5 justify-end">
+                <input
+                  type="time"
+                  data-testid={`input-open-${d}`}
+                  disabled={v.closed}
+                  value={v.open}
+                  onChange={(e) => updateDay(d, { open: e.target.value })}
+                  className="bg-blue-950/80 border border-blue-800/50 rounded px-1.5 py-1 text-blue-100 text-xs disabled:opacity-30"
+                />
+                <span className="text-blue-500 text-xs">–</span>
+                <input
+                  type="time"
+                  data-testid={`input-close-${d}`}
+                  disabled={v.closed}
+                  value={v.close}
+                  onChange={(e) => updateDay(d, { close: e.target.value })}
+                  className="bg-blue-950/80 border border-blue-800/50 rounded px-1.5 py-1 text-blue-100 text-xs disabled:opacity-30"
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex gap-2 mt-3">
+        <button
+          data-testid="button-save-hours"
+          onClick={() => save.mutate(draft)}
+          disabled={save.isPending}
+          className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-blue-950 font-bold py-2 rounded-lg text-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
+        >
+          {save.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+          Save hours
+        </button>
+        {persisted ? (
+          <button
+            data-testid="button-clear-hours"
+            onClick={() => save.mutate(null)}
+            disabled={save.isPending}
+            className="bg-blue-900/50 border border-blue-700/40 text-blue-200 font-semibold px-3 py-2 rounded-lg text-xs"
+          >
+            Clear
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+// ── Co-managers (owner-only UI) ─────────────────────────────────────────────
+function CoManagerPanel({
+  listing, callerEmail, userId, isAdmin,
+}: { listing: UserLocation; callerEmail: string; userId: number | null; isAdmin: boolean }) {
+  const { toast } = useToast();
+  const [emailInput, setEmailInput] = useState("");
+  // Admins can manage co-managers on any listing for support; otherwise only
+  // the listing's contact email may add/remove. Co-managers themselves cannot
+  // edit the allowlist (mirrors server requireBusinessOwner({ownerOnly}) gate).
+  const isOwner = (listing.contactEmail ?? "").toLowerCase().trim() === callerEmail.toLowerCase().trim();
+  const canEdit = isOwner || isAdmin;
+  const co = listing.coManagerEmails ?? [];
+
+  const add = useMutation({
+    mutationFn: async (email: string) => {
+      const r = await fetch(`/api/business/${listing.id}/co-managers`, {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        throw new Error(j.message ?? `add failed (${r.status})`);
+      }
+      return r.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Co-manager added", description: "They'll see this listing's dashboard once signed in." });
+      setEmailInput("");
+      queryClient.invalidateQueries({ queryKey: ["/api/business/my-listings", userId] });
+    },
+    onError: (err: any) => toast({ title: "Couldn't add", description: err?.message, variant: "destructive" }),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (email: string) => {
+      const r = await fetch(`/api/business/${listing.id}/co-managers`, {
+        method: "DELETE",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!r.ok) throw new Error(`remove failed (${r.status})`);
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/business/my-listings", userId] });
+    },
+  });
+
+  return (
+    <div className="bg-slate-900/60 border border-blue-800/40 rounded-2xl p-4">
+      <h3 className="text-sm font-bold text-blue-300 mb-2 flex items-center gap-2">
+        <Users className="w-4 h-4" /> Co-managers
+      </h3>
+      <p className="text-blue-500 text-xs mb-3">
+        Add teammates by email. Anyone with a ColdStreak account at one of these addresses will see this listing's dashboard.
+      </p>
+      {canEdit && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const v = emailInput.trim();
+            if (!v) return;
+            add.mutate(v);
+          }}
+          className="flex gap-2 mb-3"
+        >
+          <input
+            type="email"
+            data-testid="input-comanager-email"
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
+            placeholder="teammate@example.com"
+            className="flex-1 bg-blue-950/60 border border-blue-800/40 rounded-lg px-3 py-2 text-blue-100 text-sm placeholder:text-blue-700"
+          />
+          <button
+            type="submit"
+            data-testid="button-add-comanager"
+            disabled={add.isPending || !emailInput.trim()}
+            className="bg-cyan-500 hover:bg-cyan-400 text-blue-950 font-bold px-3 rounded-lg text-xs disabled:opacity-50 flex items-center gap-1.5"
+          >
+            {add.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
+            Add
+          </button>
+        </form>
+      )}
+      {!canEdit && (
+        <p className="text-blue-400 text-xs italic mb-2">Only the listing owner can add or remove co-managers.</p>
+      )}
+      {co.length === 0 ? (
+        <p className="text-blue-600 text-xs text-center py-2">No co-managers yet.</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {co.map((email) => (
+            <li
+              key={email}
+              data-testid={`row-comanager-${email}`}
+              className="flex items-center justify-between bg-blue-950/40 border border-blue-900/40 rounded-lg px-3 py-1.5"
+            >
+              <span className="text-blue-100 text-xs truncate">{email}</span>
+              {canEdit && (
+                <button
+                  data-testid={`button-remove-comanager-${email}`}
+                  onClick={() => remove.mutate(email)}
+                  disabled={remove.isPending}
+                  className="text-red-400 hover:text-red-300 p-1"
+                  title="Remove co-manager"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ── CSV export ──────────────────────────────────────────────────────────────
+function CsvExportPanel({ listing, days }: { listing: UserLocation; days: number }) {
+  const { toast } = useToast();
+  const [sortBy, setSortBy] = useState<"bestScore" | "plungeCount" | "periodPlunges" | "lastPlungeAt">("bestScore");
+  const [pending, setPending] = useState(false);
+
+  const onDownload = async () => {
+    setPending(true);
+    try {
+      const r = await fetch(`/api/business/${listing.id}/export.csv?sort=${sortBy}&days=${days}`, {
+        headers: authHeaders(),
+      });
+      if (!r.ok) throw new Error(`export failed (${r.status})`);
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const safeName = (listing.name ?? "listing").replace(/[^a-z0-9-]+/gi, "-").toLowerCase();
+      downloadDataUrl(url, `${safeName}-plungers-${days}d.csv`);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err: any) {
+      toast({ title: "Export failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <div className="bg-slate-900/60 border border-blue-800/40 rounded-2xl p-4">
+      <h3 className="text-sm font-bold text-blue-300 mb-2 flex items-center gap-2">
+        <FileSpreadsheet className="w-4 h-4" /> Export plungers (CSV)
+      </h3>
+      <p className="text-blue-500 text-xs mb-3">
+        Download every plunger at this location with lifetime + period stats. Use the sort to lead with whatever metric matters most.
+      </p>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <select
+          data-testid="select-csv-sort"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as any)}
+          className="flex-1 bg-blue-950/60 border border-blue-800/40 rounded-lg px-3 py-2 text-blue-100 text-sm"
+        >
+          <option value="bestScore">Sort by best cold score</option>
+          <option value="periodPlunges">Sort by plunges in last {days}d</option>
+          <option value="plungeCount">Sort by lifetime plunges</option>
+          <option value="lastPlungeAt">Sort by most recent plunge</option>
+        </select>
+        <button
+          data-testid="button-export-csv"
+          onClick={onDownload}
+          disabled={pending}
+          className="bg-cyan-500 hover:bg-cyan-400 text-blue-950 font-bold px-4 py-2 rounded-lg text-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
+        >
+          {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+          Download CSV
+        </button>
       </div>
     </div>
   );

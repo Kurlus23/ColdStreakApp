@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, numeric, boolean, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, numeric, boolean, uniqueIndex, index, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -128,8 +128,26 @@ export const userLocations = pgTable("user_locations", {
   nominationCount: integer("nomination_count").default(0).notNull(),
   viewCount: integer("view_count").default(0).notNull(),
   isHidden: boolean("is_hidden").default(false).notNull(),
+  // Public profile slug (unique). Auto-derived from name on first share.
+  slug: text("slug").unique(),
+  // Business hours stored as { mon: {open: "06:00", close: "20:00", closed: false}, ... }.
+  // Null until the owner sets them. Stored as untyped jsonb (cast at read sites
+  // — typing this with $type<BusinessHours | null> conflicts with drizzle-zod's
+  // wider InsertUserLocation type at insert/update sites).
+  hours: jsonb("hours"),
+  // Email allowlist for co-managers who can also see this listing's dashboard.
+  coManagerEmails: text("co_manager_emails").array().default([]).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Business hours type — 7 day-of-week keys, each open/close in HH:MM 24h.
+export type BusinessHoursDay = { open: string; close: string; closed: boolean };
+export type BusinessHours = {
+  mon: BusinessHoursDay; tue: BusinessHoursDay; wed: BusinessHoursDay;
+  thu: BusinessHoursDay; fri: BusinessHoursDay; sat: BusinessHoursDay; sun: BusinessHoursDay;
+};
+export const DAY_KEYS = ["mon","tue","wed","thu","fri","sat","sun"] as const;
+export type DayKey = typeof DAY_KEYS[number];
 
 export const businessListings = pgTable("business_listings", {
   id: serial("id").primaryKey(),

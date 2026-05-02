@@ -308,7 +308,7 @@ export async function registerRoutes(
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUserById(payload.userId);
     if (!user) return res.status(401).json({ message: "User not found" });
-    res.json({ id: user.id, email: user.email, emailVerified: user.emailVerified });
+    res.json({ id: user.id, email: user.email, emailVerified: user.emailVerified, isAdmin: !!user.isAdmin });
   });
 
   app.get("/api/auth/profile", async (req, res) => {
@@ -644,7 +644,7 @@ export async function registerRoutes(
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
     const parsed = z.object({
-      kind: z.enum(["website", "booking", "directions", "phone", "yelp", "facebook"]),
+      kind: z.enum(["website", "booking", "directions", "phone", "yelp", "facebook", "share"]),
     }).safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Invalid kind" });
     const caller = extractUser(req);
@@ -663,7 +663,7 @@ export async function registerRoutes(
   // ── Business owner dashboard ────────────────────────────────────────────────
   // Auth: caller must be signed in AND own the listing (caller.email matches
   // userLocations.contactEmail). All endpoints enforce this.
-  async function requireBusinessOwner(req: any, res: any, locationId: number): Promise<{ email: string; loc: UserLocation } | null> {
+  async function requireBusinessOwner(req: any, res: any, locationId: number, opts?: { ownerOnly?: boolean }): Promise<{ email: string; loc: UserLocation; isOwner: boolean } | null> {
     const caller = extractUser(req);
     if (!caller?.email) {
       res.status(401).json({ message: "Sign in required" });
@@ -676,20 +676,24 @@ export async function registerRoutes(
     }
     const callerEmail = caller.email.toLowerCase().trim();
     const locEmail = loc.contactEmail?.toLowerCase().trim();
-    if (!locEmail || callerEmail !== locEmail) {
-      // Allow admins to view any dashboard for support purposes
-      if (!isCallerAdmin(caller)) {
-        res.status(403).json({ message: "You don't own this listing." });
-        return null;
-      }
+    const coManagers = (loc.coManagerEmails ?? []).map((e) => e.toLowerCase().trim());
+    const isOwner = !!locEmail && callerEmail === locEmail;
+    const isCoManager = coManagers.includes(callerEmail);
+    const allowed = isOwner || (!opts?.ownerOnly && isCoManager) || isCallerAdmin(caller);
+    if (!allowed) {
+      res.status(403).json({ message: opts?.ownerOnly ? "Owner only." : "You don't own this listing." });
+      return null;
     }
-    return { email: caller.email, loc };
+    return { email: caller.email, loc, isOwner: isOwner || isCallerAdmin(caller) };
   }
 
   app.get("/api/business/my-listings", async (req, res) => {
     const caller = extractUser(req);
     if (!caller?.email) return res.status(401).json({ message: "Sign in required" });
-    const listings = await storage.getMyVerifiedListings(caller.email);
+    // Admins (support staff) see every verified listing for support visibility.
+    const listings = isCallerAdmin(caller)
+      ? await storage.getAllVerifiedListings()
+      : await storage.getMyVerifiedListings(caller.email);
     res.json(listings);
   });
 
@@ -721,6 +725,124 @@ export async function registerRoutes(
     if (!ctx) return;
     const leaderboard = await storage.getLocationLeaderboard(id, limit);
     res.json(leaderboard);
+  });
+
+  // Returns (and lazily creates) the public-profile slug for an owned listing.
+  app.post("/api/business/:id/slug", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const ctx = await requireBusinessOwner(req, res, id);
+    if (!ctx) return;
+    try {
+      const slug = await storage.ensureLocationSlug(id);
+      res.json({ slug });
+    } catch (err: any) {
+      console.error("[slug]", err);
+      res.status(500).json({ message: "Could not generate slug" });
+    }
+  });
+
+  // Update business hours. Pass null to clear.
+  app.put("/api/business/:id/hours", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const ctx = await requireBusinessOwner(req, res, id);
+    if (!ctx) return;
+    const dayShape = z.object({
+      open: z.string().regex(/^\d{2}:\d{2}$/),
+      close: z.string().regex(/^\d{2}:\d{2}$/),
+      closed: z.boolean(),
+    });
+    const parsed = z.object({
+      hours: z.union([
+        z.null(),
+        z.object({ mon: dayShape, tue: dayShape, wed: dayShape, thu: dayShape, fri: dayShape, sat: dayShape, sun: dayShape }),
+      ]),
+    }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid hours" });
+    await storage.updateLocationHours(id, parsed.data.hours);
+    res.json({ ok: true });
+  });
+
+  // Co-manager management — owner-only (co-managers can't add other co-managers).
+  app.post("/api/business/:id/co-managers", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const ctx = await requireBusinessOwner(req, res, id, { ownerOnly: true });
+    if (!ctx) return;
+    const parsed = z.object({ email: z.string().email() }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Valid email required" });
+    const next = await storage.addCoManager(id, parsed.data.email);
+    res.json({ coManagerEmails: next });
+  });
+
+  app.delete("/api/business/:id/co-managers", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const ctx = await requireBusinessOwner(req, res, id, { ownerOnly: true });
+    if (!ctx) return;
+    const parsed = z.object({ email: z.string().email() }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Valid email required" });
+    const next = await storage.removeCoManager(id, parsed.data.email);
+    res.json({ coManagerEmails: next });
+  });
+
+  // CSV export for plungers at this location, with sortable column.
+  app.get("/api/business/:id/export.csv", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const ctx = await requireBusinessOwner(req, res, id);
+    if (!ctx) return;
+    const sortBy = (String(req.query.sort ?? "bestScore")) as any;
+    const allowed = ["bestScore", "plungeCount", "periodPlunges", "lastPlungeAt"];
+    const safeSort = allowed.includes(sortBy) ? sortBy : "bestScore";
+    const days = Math.min(Math.max(parseInt(String(req.query.days ?? "30"), 10) || 30, 1), 365);
+    try {
+      const csv = await storage.exportLocationPlungersCSV(id, { sortBy: safeSort, days });
+      const safeName = (ctx.loc.name ?? "listing").replace(/[^a-z0-9-]+/gi, "-").toLowerCase();
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${safeName}-plungers-${days}d.csv"`);
+      res.send(csv);
+    } catch (err: any) {
+      console.error("[csv export]", err);
+      res.status(500).json({ message: "Export failed" });
+    }
+  });
+
+  // ── Public business profile (no auth) ──────────────────────────────────────
+  // Sanitized view for shareable /biz/:slug pages. Never exposes contact email
+  // or co-managers. Increments view count via existing tracking endpoint.
+  app.get("/api/biz/:slug", async (req, res) => {
+    const slug = String(req.params.slug ?? "").toLowerCase().trim();
+    if (!slug) return res.status(400).json({ message: "Invalid slug" });
+    const loc = await storage.getLocationBySlug(slug);
+    if (!loc || !loc.isBusiness || !loc.businessVerified) {
+      return res.status(404).json({ message: "Not found" });
+    }
+    const [leaderboard] = await Promise.all([
+      storage.getLocationLeaderboard(loc.id, 10),
+    ]);
+    res.json({
+      id: loc.id,
+      slug: loc.slug,
+      name: loc.name,
+      city: loc.city,
+      state: loc.state,
+      country: loc.country,
+      fullAddress: loc.fullAddress,
+      description: loc.description,
+      modalities: loc.modalities,
+      websiteUrl: loc.websiteUrl,
+      phone: loc.phone,
+      yelpUrl: loc.yelpUrl,
+      facebookUrl: loc.facebookUrl,
+      bookingUrl: loc.bookingUrl,
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+      hours: loc.hours ?? null,
+      viewCount: loc.viewCount,
+      leaderboard,
+    });
   });
 
   app.delete("/api/community-locations/:id", async (req, res) => {
