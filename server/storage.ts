@@ -2,7 +2,7 @@ import { db } from "./db";
 import {
   plunges, leaderboardEntries, proUsers, promoCodes, userLocations, businessListings, users, badgeProfiles, pushSubscriptions,
   events, eventParticipants, eventCoordinators, eventBans, supportMessages, clientVisits, shareEvents,
-  verifiedBusinessSubs, reports,
+  verifiedBusinessSubs, reports, locationViews, locationClicks,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
   type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile, type PushSubscription,
@@ -174,6 +174,23 @@ export interface IStorage {
   getEventLeaderboard(eventId: number): Promise<Array<{ username: string; userId: number; totalScore: number; plungeCount: number }>>;
   // Location view tracking
   incrementLocationView(id: number): Promise<void>;
+  // Business analytics
+  getMyVerifiedListings(email: string): Promise<UserLocation[]>;
+  recordLocationView(data: { locationId: number; userId?: number | null; clientId?: string | null }): Promise<void>;
+  recordLocationClick(data: { locationId: number; kind: string; userId?: number | null; clientId?: string | null }): Promise<void>;
+  getLocationStats(locationId: number, days: number): Promise<{
+    views: { allTime: number; window: number };
+    plunges: { allTime: number; window: number; uniquePlungers: number };
+    clicks: Record<string, number>;
+  }>;
+  getLocationTrend(locationId: number, days: number): Promise<Array<{ date: string; views: number; plunges: number; clicks: number }>>;
+  getLocationLeaderboard(locationId: number, limit: number): Promise<Array<{
+    username: string;
+    userId: number | null;
+    bestScore: number;
+    plungeCount: number;
+    lastPlungeAt: Date;
+  }>>;
   // User lookup for coordinator assignment
   getUserByDisplayName(displayName: string): Promise<User | null>;
   getUserByEmailPrefix(prefix: string): Promise<User | null>;
@@ -1095,6 +1112,156 @@ export class DatabaseStorage implements IStorage {
 
   async incrementLocationView(id: number): Promise<void> {
     await db.update(userLocations).set({ viewCount: sql`${userLocations.viewCount} + 1` }).where(eq(userLocations.id, id));
+  }
+
+  async getMyVerifiedListings(email: string): Promise<UserLocation[]> {
+    const e = email.toLowerCase().trim();
+    return await db.select().from(userLocations)
+      .where(and(
+        eq(userLocations.isBusiness, true),
+        eq(userLocations.businessVerified, true),
+        sql`lower(${userLocations.contactEmail}) = ${e}`,
+        eq(userLocations.isHidden, false),
+      ))
+      .orderBy(desc(userLocations.createdAt));
+  }
+
+  async recordLocationView(data: { locationId: number; userId?: number | null; clientId?: string | null }): Promise<void> {
+    await db.insert(locationViews).values({
+      locationId: data.locationId,
+      userId: data.userId ?? null,
+      clientId: data.clientId ?? null,
+    });
+    await db.update(userLocations)
+      .set({ viewCount: sql`${userLocations.viewCount} + 1` })
+      .where(eq(userLocations.id, data.locationId));
+  }
+
+  async recordLocationClick(data: { locationId: number; kind: string; userId?: number | null; clientId?: string | null }): Promise<void> {
+    await db.insert(locationClicks).values({
+      locationId: data.locationId,
+      kind: data.kind,
+      userId: data.userId ?? null,
+      clientId: data.clientId ?? null,
+    });
+  }
+
+  async getLocationStats(locationId: number, days: number): Promise<{
+    views: { allTime: number; window: number };
+    plunges: { allTime: number; window: number; uniquePlungers: number };
+    clicks: Record<string, number>;
+  }> {
+    const sinceDate = new Date(Date.now() - days * 86400 * 1000);
+    const locKey = `community-${locationId}`;
+
+    // viewCount on userLocations is the canonical all-time counter (existed before
+    // the locationViews event log, so the log alone would undercount historical data).
+    const [locRow] = await db.select({ viewCount: userLocations.viewCount }).from(userLocations).where(eq(userLocations.id, locationId));
+    const viewsAllTime = Number(locRow?.viewCount ?? 0);
+
+    const [viewWindow] = await db.select({ count: sql<number>`count(*)` }).from(locationViews)
+      .where(and(eq(locationViews.locationId, locationId), gte(locationViews.createdAt, sinceDate)));
+
+    const [plungeAllTime] = await db.select({ count: sql<number>`count(*)` }).from(plunges)
+      .where(eq(plunges.locationId, locKey));
+    const [plungeWindow] = await db.select({ count: sql<number>`count(*)` }).from(plunges)
+      .where(and(eq(plunges.locationId, locKey), gte(plunges.createdAt, sinceDate)));
+
+    // Unique plungers = distinct identity (userId if signed in, else clientId).
+    const idRows = await db.select({ uid: plunges.userId, cid: plunges.clientId })
+      .from(plunges).where(eq(plunges.locationId, locKey));
+    const uniqueSet = new Set<string>();
+    idRows.forEach((r) => {
+      if (r.uid) uniqueSet.add(`u:${r.uid}`);
+      else if (r.cid) uniqueSet.add(`c:${r.cid}`);
+    });
+
+    const clickRows = await db.select({ kind: locationClicks.kind, c: sql<number>`count(*)` })
+      .from(locationClicks)
+      .where(and(eq(locationClicks.locationId, locationId), gte(locationClicks.createdAt, sinceDate)))
+      .groupBy(locationClicks.kind);
+    const clicks: Record<string, number> = {};
+    clickRows.forEach((r) => { clicks[r.kind] = Number(r.c); });
+
+    return {
+      views: { allTime: viewsAllTime, window: Number(viewWindow?.count ?? 0) },
+      plunges: { allTime: Number(plungeAllTime?.count ?? 0), window: Number(plungeWindow?.count ?? 0), uniquePlungers: uniqueSet.size },
+      clicks,
+    };
+  }
+
+  async getLocationTrend(locationId: number, days: number): Promise<Array<{ date: string; views: number; plunges: number; clicks: number }>> {
+    const sinceDate = new Date(Date.now() - days * 86400 * 1000);
+    const locKey = `community-${locationId}`;
+
+    const viewRows = await db.select({
+      day: sql<string>`to_char(date_trunc('day', ${locationViews.createdAt}), 'YYYY-MM-DD')`,
+      count: sql<number>`count(*)`,
+    }).from(locationViews)
+      .where(and(eq(locationViews.locationId, locationId), gte(locationViews.createdAt, sinceDate)))
+      .groupBy(sql`date_trunc('day', ${locationViews.createdAt})`);
+
+    const plungeRows = await db.select({
+      day: sql<string>`to_char(date_trunc('day', ${plunges.createdAt}), 'YYYY-MM-DD')`,
+      count: sql<number>`count(*)`,
+    }).from(plunges)
+      .where(and(eq(plunges.locationId, locKey), gte(plunges.createdAt, sinceDate)))
+      .groupBy(sql`date_trunc('day', ${plunges.createdAt})`);
+
+    const clickRows = await db.select({
+      day: sql<string>`to_char(date_trunc('day', ${locationClicks.createdAt}), 'YYYY-MM-DD')`,
+      count: sql<number>`count(*)`,
+    }).from(locationClicks)
+      .where(and(eq(locationClicks.locationId, locationId), gte(locationClicks.createdAt, sinceDate)))
+      .groupBy(sql`date_trunc('day', ${locationClicks.createdAt})`);
+
+    // Build a continuous window with zero-fill for empty days
+    const map = new Map<string, { views: number; plunges: number; clicks: number }>();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400 * 1000);
+      const key = d.toISOString().slice(0, 10);
+      map.set(key, { views: 0, plunges: 0, clicks: 0 });
+    }
+    viewRows.forEach((r) => { const e = map.get(r.day); if (e) e.views = Number(r.count); });
+    plungeRows.forEach((r) => { const e = map.get(r.day); if (e) e.plunges = Number(r.count); });
+    clickRows.forEach((r) => { const e = map.get(r.day); if (e) e.clicks = Number(r.count); });
+
+    return Array.from(map.entries())
+      .map(([date, v]) => ({ date, ...v }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  async getLocationLeaderboard(locationId: number, limit: number): Promise<Array<{
+    username: string;
+    userId: number | null;
+    bestScore: number;
+    plungeCount: number;
+    lastPlungeAt: Date;
+  }>> {
+    const locKey = `community-${locationId}`;
+    const rows = await db.select({
+      userId: plunges.userId,
+      clientId: plunges.clientId,
+      displayName: users.displayName,
+      email: users.email,
+      bestScore: sql<number>`max(${plunges.score})`,
+      plungeCount: sql<number>`count(*)`,
+      lastAt: sql<Date>`max(${plunges.createdAt})`,
+    })
+      .from(plunges)
+      .leftJoin(users, eq(plunges.userId, users.id))
+      .where(eq(plunges.locationId, locKey))
+      .groupBy(plunges.userId, plunges.clientId, users.displayName, users.email)
+      .orderBy(desc(sql`max(${plunges.score})`))
+      .limit(limit);
+
+    return rows.map((r) => ({
+      username: r.displayName ?? r.email?.split("@")[0] ?? (r.clientId ? "Anon (device)" : "Anon"),
+      userId: r.userId ?? null,
+      bestScore: Number(r.bestScore),
+      plungeCount: Number(r.plungeCount),
+      lastPlungeAt: r.lastAt as Date,
+    }));
   }
 
   async getEventParticipants(eventId: number): Promise<EventParticipant[]> {

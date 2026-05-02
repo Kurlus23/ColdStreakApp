@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, numeric, boolean, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, numeric, boolean, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -164,6 +164,30 @@ export const verifiedBusinessSubs = pgTable("verified_business_subs", {
 });
 
 export type VerifiedBusinessSub = typeof verifiedBusinessSubs.$inferSelect;
+
+// ── Business analytics event logs ─────────────────────────────────────────────
+// Per-event tables so we can power the business owner dashboard with totals,
+// daily trends, and click breakdowns. Cascade delete with the parent listing.
+export const locationViews = pgTable("location_views", {
+  id: serial("id").primaryKey(),
+  locationId: integer("location_id").notNull().references(() => userLocations.id, { onDelete: "cascade" }),
+  userId: integer("user_id"),
+  clientId: text("client_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("location_views_loc_created_idx").on(t.locationId, t.createdAt)]);
+
+export type LocationView = typeof locationViews.$inferSelect;
+
+export const locationClicks = pgTable("location_clicks", {
+  id: serial("id").primaryKey(),
+  locationId: integer("location_id").notNull().references(() => userLocations.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(), // "website" | "booking" | "directions" | "phone" | "yelp" | "facebook"
+  userId: integer("user_id"),
+  clientId: text("client_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("location_clicks_loc_created_idx").on(t.locationId, t.createdAt)]);
+
+export type LocationClick = typeof locationClicks.$inferSelect;
 
 export const insertUserLocationSchema = createInsertSchema(userLocations).omit({
   id: true,

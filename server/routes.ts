@@ -2,6 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
+import type { UserLocation } from "@shared/schema";
 import { z } from "zod";
 import Stripe from "stripe";
 import bcrypt from "bcryptjs";
@@ -624,11 +625,88 @@ export async function registerRoutes(
     res.json(updated);
   });
 
-  app.post("/api/community-locations/:id/view", async (_req, res) => {
-    const id = Number(_req.params.id);
+  app.post("/api/community-locations/:id/view", async (req, res) => {
+    const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
-    await storage.incrementLocationView(id);
+    const caller = extractUser(req);
+    const clientId = (req.headers["x-client-id"] as string | undefined) ?? null;
+    await storage.recordLocationView({ locationId: id, userId: caller?.userId ?? null, clientId });
     res.json({ ok: true });
+  });
+
+  app.post("/api/community-locations/:id/click", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const { kind } = z.object({
+      kind: z.enum(["website", "booking", "directions", "phone", "yelp", "facebook"]),
+    }).parse(req.body);
+    const caller = extractUser(req);
+    const clientId = (req.headers["x-client-id"] as string | undefined) ?? null;
+    await storage.recordLocationClick({ locationId: id, kind, userId: caller?.userId ?? null, clientId });
+    res.json({ ok: true });
+  });
+
+  // ── Business owner dashboard ────────────────────────────────────────────────
+  // Auth: caller must be signed in AND own the listing (caller.email matches
+  // userLocations.contactEmail). All endpoints enforce this.
+  async function requireBusinessOwner(req: any, res: any, locationId: number): Promise<{ email: string; loc: UserLocation } | null> {
+    const caller = extractUser(req);
+    if (!caller?.email) {
+      res.status(401).json({ message: "Sign in required" });
+      return null;
+    }
+    const loc = await storage.getUserLocationById(locationId);
+    if (!loc) {
+      res.status(404).json({ message: "Listing not found" });
+      return null;
+    }
+    const callerEmail = caller.email.toLowerCase().trim();
+    const locEmail = loc.contactEmail?.toLowerCase().trim();
+    if (!locEmail || callerEmail !== locEmail) {
+      // Allow admins to view any dashboard for support purposes
+      if (!isCallerAdmin(caller)) {
+        res.status(403).json({ message: "You don't own this listing." });
+        return null;
+      }
+    }
+    return { email: caller.email, loc };
+  }
+
+  app.get("/api/business/my-listings", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller?.email) return res.status(401).json({ message: "Sign in required" });
+    const listings = await storage.getMyVerifiedListings(caller.email);
+    res.json(listings);
+  });
+
+  app.get("/api/business/:id/stats", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const days = Math.min(Math.max(parseInt(String(req.query.days ?? "30"), 10) || 30, 1), 365);
+    const ctx = await requireBusinessOwner(req, res, id);
+    if (!ctx) return;
+    const stats = await storage.getLocationStats(id, days);
+    res.json(stats);
+  });
+
+  app.get("/api/business/:id/trend", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const days = Math.min(Math.max(parseInt(String(req.query.days ?? "30"), 10) || 30, 1), 90);
+    const ctx = await requireBusinessOwner(req, res, id);
+    if (!ctx) return;
+    const trend = await storage.getLocationTrend(id, days);
+    res.json(trend);
+  });
+
+  app.get("/api/business/:id/leaderboard", async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? "50"), 10) || 50, 1), 200);
+    const ctx = await requireBusinessOwner(req, res, id);
+    if (!ctx) return;
+    const leaderboard = await storage.getLocationLeaderboard(id, limit);
+    res.json(leaderboard);
   });
 
   app.delete("/api/community-locations/:id", async (req, res) => {
