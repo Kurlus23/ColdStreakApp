@@ -71,8 +71,9 @@ export default function DeleteAccount() {
 
         <div className="bg-amber-900/40 border border-amber-700/50 rounded-xl p-4 mb-6 text-xs text-amber-200">
           <p className="font-semibold text-amber-100 mb-1">Cancel any active subscription separately</p>
-          <p>Deleting your account does <strong>not</strong> automatically cancel an active App Store or Stripe subscription. To stop future billing, also cancel in:</p>
+          <p>Deleting your account does <strong>not</strong> automatically cancel an active App Store, Google Play, or Stripe subscription. To stop future billing, also cancel in:</p>
           <p className="mt-1">• <strong>iPhone:</strong> Settings → [your name] → Subscriptions</p>
+          <p>• <strong>Android:</strong> Google Play Store → Profile → Payments &amp; subscriptions → Subscriptions</p>
           <p>• <strong>Web:</strong> Manage Subscription in your account screen</p>
         </div>
 

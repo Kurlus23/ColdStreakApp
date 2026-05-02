@@ -3614,6 +3614,21 @@ export default function Home() {
                       >
                         Manage Subscription in App Store
                       </button>
+                    ) : Capacitor.getPlatform() === "android" ? (
+                      <button
+                        data-testid="button-manage-subscription-android"
+                        onClick={() => {
+                          // Google Play policy mirrors Apple's: Pro subs purchased
+                          // through Play Billing must be managed via the Play Store
+                          // subscription center, not a web billing portal. Deep-link
+                          // straight there. (https://play.google.com/store/account/subscriptions
+                          // also resolves inside the Play Store app on Android.)
+                          window.location.href = "https://play.google.com/store/account/subscriptions";
+                        }}
+                        className="w-full py-2 rounded-xl border border-blue-600/50 text-blue-400 text-xs font-semibold transition-all active:scale-[0.98] hover:border-blue-400 flex items-center justify-center gap-1.5"
+                      >
+                        Manage Subscription in Play Store
+                      </button>
                     ) : (
                       <button
                         data-testid="button-manage-subscription"
@@ -7290,8 +7305,10 @@ export default function Home() {
                 <p>
                   <strong className="text-blue-200">ColdStreak Pro — Monthly</strong>: $3.99 USD/month, auto-renewing subscription. {Capacitor.getPlatform() === "ios" ? (
                     <>Payment is charged to your Apple ID at purchase confirmation. The subscription renews each month unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in <strong>iPhone Settings → [your name] → Subscriptions</strong>.</>
+                  ) : Capacitor.getPlatform() === "android" ? (
+                    <>Payment is charged to your Google Play account at purchase confirmation. The subscription renews each month unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in the <strong>Google Play Store → Profile → Payments &amp; subscriptions → Subscriptions</strong>.</>
                   ) : (
-                    <>Payment is charged at purchase confirmation. The subscription renews each month unless cancelled before the end of the current period. Manage or cancel anytime from <strong>Settings → ColdStreak Pro → Manage Subscription</strong>.</>
+                    <>Payment is charged at purchase confirmation through Stripe. The subscription renews each month unless cancelled before the end of the current period. Manage or cancel anytime from <strong>Settings → ColdStreak Pro → Manage / Cancel Subscription</strong>.</>
                   )}
                 </p>
               )}
@@ -7372,7 +7389,10 @@ export default function Home() {
             </div>
             <div className="bg-amber-900/40 border border-amber-700/50 rounded-xl p-3 text-[11px] text-amber-200 leading-relaxed">
               <p className="font-semibold text-amber-100 mb-1">Cancel any active subscription separately</p>
-              <p>Deleting your account does <strong>not</strong> cancel an active App Store or Stripe subscription. To stop future billing, also cancel in <strong>iPhone Settings → [your name] → Subscriptions</strong> (iOS) or via Manage Subscription on the web.</p>
+              <p>Deleting your account does <strong>not</strong> cancel an active App Store, Google Play, or Stripe subscription. To stop future billing, also cancel in:</p>
+              <p className="mt-1">• <strong>iPhone:</strong> Settings → [your name] → Subscriptions</p>
+              <p>• <strong>Android:</strong> Google Play Store → Profile → Payments &amp; subscriptions → Subscriptions</p>
+              <p>• <strong>Web:</strong> Settings → Manage / Cancel Subscription</p>
             </div>
             <div className="space-y-2">
               <button
