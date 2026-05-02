@@ -6,7 +6,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   MapPin, Compass, Search, X, ChevronDown, ChevronRight, Lock, Globe,
   Trophy, Flame, Navigation, Star, Plus, Send, Info, ShieldAlert, Building2, CheckCircle2, BadgeCheck, Phone, ExternalLink, Pencil, LocateFixed, Trash2, Eye, EyeOff,
-  CalendarDays, Users, Copy, Check, Snowflake, Calendar, Car
+  CalendarDays, Users, Copy, Check, Snowflake, Calendar, Car, Flag
 } from "lucide-react";
 import { useLeaderboard } from "@/hooks/use-leaderboard";
 import { useToast } from "@/hooks/use-toast";
@@ -531,9 +531,11 @@ interface GeoPos { lat: number; lng: number; }
 function CommunityDetail({
   loc,
   onClose,
+  onReport,
 }: {
   loc: BizLocation;
   onClose: () => void;
+  onReport: () => void;
 }) {
   const locationId = `community-${loc.id}`;
   const { data: leaderboard, isLoading: lbLoading } = useLeaderboard(locationId);
@@ -696,6 +698,15 @@ function CommunityDetail({
               />
             </div>
           </div>
+
+          {/* Report (Apple App Review Guideline 1.2 — UGC) */}
+          <button
+            data-testid={`button-report-community-${loc.id}`}
+            onClick={onReport}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-900/40 border border-slate-700/40 text-slate-400 text-xs hover:text-red-300 hover:border-red-700/40 hover:bg-red-900/10 transition-all"
+          >
+            <Flag className="w-3 h-3" /> Report this listing
+          </button>
 
         </div>
       </div>
@@ -1342,12 +1353,36 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     description: "", phone: "", websiteUrl: "", yelpUrl: "", facebookUrl: "", bookingUrl: "", contactEmail: "",
   });
   const [bizModalities, setBizModalities] = useState<string[]>([]);
+  const [bizDupConfirm, setBizDupConfirm] = useState(false);
+
+  // ── UGC Report (Apple App Review Guideline 1.2) ──────────────────────────
+  const [reportTarget, setReportTarget] = useState<{ kind: "location" | "event"; id: number; name: string } | null>(null);
+  const [reportReason, setReportReason] = useState("");
+  const reportMutation = useMutation({
+    mutationFn: async (body: { kind: "location" | "event"; targetId: number; targetName: string; reason: string }) => {
+      const token = localStorage.getItem("coldstreak-auth-token");
+      const res = await fetch("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error("Could not submit report");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Report submitted", description: "Thanks — we review reports within 24 hours and remove anything that violates our guidelines." });
+      setReportTarget(null);
+      setReportReason("");
+    },
+    onError: () => toast({ title: "Could not submit report", description: "Please check your connection and try again.", variant: "destructive" }),
+  });
 
   const resetBizForm = () => {
     setBizForm({ name: "", fullAddress: "", city: "", state: "", country: "USA", description: "", phone: "", websiteUrl: "", yelpUrl: "", facebookUrl: "", bookingUrl: "", contactEmail: "" });
     setBizModalities([]);
     setBizTier("free");
     setBizGeoPos(null);
+    setBizDupConfirm(false);
   };
 
   const toggleModality = (label: string) => {
@@ -1482,6 +1517,29 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
     if (!bizForm.city.trim()) { toast({ title: "City required", variant: "destructive" }); return; }
     if (!bizForm.state.trim()) { toast({ title: "State required", variant: "destructive" }); return; }
     if (!bizForm.contactEmail.trim()) { toast({ title: "Contact email required", variant: "destructive" }); return; }
+
+    // Soft duplicate check: warn once if a business with the same name+city+state
+    // already exists, then let the user resubmit to add anyway.
+    if (!bizDupConfirm) {
+      const nameNorm = bizForm.name.trim().toLowerCase();
+      const cityNorm = bizForm.city.trim().toLowerCase();
+      const stateNorm = bizForm.state.trim().toLowerCase();
+      const dup = communityLocs.find((l) =>
+        l.isBusiness === true &&
+        (l.name ?? "").toLowerCase().trim() === nameNorm &&
+        (l.city ?? "").toLowerCase().trim() === cityNorm &&
+        (l.state ?? "").toLowerCase().trim() === stateNorm
+      );
+      if (dup) {
+        setBizDupConfirm(true);
+        toast({
+          title: "Possible duplicate",
+          description: `"${bizForm.name}" already exists in ${bizForm.city}, ${bizForm.state}. Add a neighborhood suffix (e.g. "${bizForm.name} – Downtown") so customers can tell locations apart, then tap Submit again. Tap Submit again now to add it as-is.`,
+        });
+        return;
+      }
+    }
+
     submitBusinessMutation.mutate({
       name: bizForm.name.trim(),
       country: bizForm.country,
@@ -1630,6 +1688,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       <CommunityDetail
         loc={communityDetailLoc}
         onClose={() => setCommunityDetailLoc(null)}
+        onReport={() => setReportTarget({ kind: "location", id: communityDetailLoc.id, name: communityDetailLoc.name })}
       />
     )}
     <div className="px-4 pb-28 pt-4 space-y-4">
@@ -3105,6 +3164,15 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 {copiedCode === evt.shareCode ? <Check className="w-3.5 h-3.5 text-cyan-400" /> : <Send className="w-3.5 h-3.5" />}
                 {copiedCode === evt.shareCode ? "Link copied!" : "Invite Friends"}
               </button>
+              {!isManager && (
+                <button
+                  data-testid={`button-report-event-${evt.id}`}
+                  onClick={() => setReportTarget({ kind: "event", id: evt.id, name: evt.name })}
+                  className="w-full py-2 rounded-xl border border-slate-700/40 text-slate-500 text-[11px] font-semibold flex items-center justify-center gap-1.5 hover:text-red-300 hover:border-red-700/40 hover:bg-red-900/10 transition-all"
+                >
+                  <Flag className="w-3 h-3" /> Report this event
+                </button>
+              )}
               {isManager && (
                 <div className="flex gap-2">
                   <button
@@ -3891,14 +3959,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 <div className="flex items-center gap-1 font-bold text-sm">
                   <BadgeCheck className="w-3.5 h-3.5 text-yellow-400" /> Verified
                 </div>
-                <div className="text-[10px] opacity-70 mt-0.5">$29.99/mo · 1st month free</div>
+                <div className="text-[10px] opacity-70 mt-0.5">From $29.99/mo · 1st month free</div>
               </button>
             </div>
 
             {bizTier === "verified" && (
               <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-xl p-3 space-y-1.5">
                 <p className="text-yellow-300 text-xs font-semibold">Verified includes:</p>
-                {["Gold badge + top placement in directory", "Full public profile with links & contact info", "Google Maps directions button", "Website, Yelp, Facebook & booking links", "1st month free — then $29.99/mo, cancel anytime"].map((b) => (
+                {["Gold badge + top placement in directory", "Full public profile with links & contact info", "Google Maps directions button", "Website, Yelp, Facebook & booking links", "1st month free — then from $29.99/mo (1, 5, or 25 locations), cancel anytime"].map((b) => (
                   <div key={b} className="flex items-start gap-1.5 text-[11px] text-yellow-200/80">
                     <CheckCircle2 className="w-3 h-3 text-yellow-400 shrink-0 mt-0.5" /> {b}
                   </div>
@@ -3911,10 +3979,13 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
               <input
                 data-testid="input-biz-name"
                 value={bizForm.name}
-                onChange={(e) => setBizForm((f) => ({ ...f, name: e.target.value }))}
+                onChange={(e) => { setBizForm((f) => ({ ...f, name: e.target.value })); setBizDupConfirm(false); }}
                 placeholder="Cold Plunge Studio"
                 className="w-full bg-blue-900/60 border border-blue-700/40 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 placeholder-blue-500"
               />
+              <p className="text-blue-500 text-[10px] mt-1 leading-snug">
+                Use the brand name only (e.g. <span className="text-blue-300">Planet Fitness</span>). Put the street in <span className="text-blue-300">Address</span>. For multi-location chains in the same city, add a neighborhood suffix (e.g. <span className="text-blue-300">Planet Fitness – Downtown</span>).
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -4194,7 +4265,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       const selectedTier = VERIFIED_BUSINESS_TIERS.find((t) => t.tier === verifyTier) ?? VERIFIED_BUSINESS_TIERS[0];
       const ctaLabel = ios
         ? (verifyBusinessIapPending ? "Processing…" : `Subscribe — ${selectedTier.priceLabel}`)
-        : (businessCheckoutMutation.isPending ? "Verifying…" : "Subscribe for $29.99/mo →");
+        : (businessCheckoutMutation.isPending ? "Verifying…" : "Subscribe — From $29.99/mo →");
       return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
         <div className="w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-yellow-600/40 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
@@ -4205,7 +4276,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             <div>
               <p className="text-white font-bold text-sm">Verified Business Listing</p>
               <p className="text-green-400 text-[11px] font-semibold">
-                {ios ? "First month free · pick a tier · cancel anytime" : "First month free · then $29.99/mo · cancel anytime"}
+                {ios ? "First month free · pick a tier · cancel anytime" : "First month free · then from $29.99/mo · cancel anytime"}
               </p>
             </div>
             <button
@@ -4795,6 +4866,76 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ── Report Dialog (Apple App Review Guideline 1.2 — UGC moderation) ── */}
+    {reportTarget && (
+      <div
+        className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+        onClick={() => { if (!reportMutation.isPending) { setReportTarget(null); setReportReason(""); } }}
+      >
+        <div
+          className="w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-red-800/40 rounded-3xl shadow-2xl p-5 space-y-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-red-900/40 border border-red-700/40 flex items-center justify-center shrink-0">
+              <Flag className="w-4 h-4 text-red-300" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-white font-bold text-base">Report this {reportTarget.kind}</h2>
+              <p className="text-slate-400 text-xs mt-0.5 truncate">{reportTarget.name}</p>
+            </div>
+            <button
+              data-testid="button-close-report"
+              onClick={() => { setReportTarget(null); setReportReason(""); }}
+              disabled={reportMutation.isPending}
+              className="text-slate-500 hover:text-white transition-colors shrink-0 disabled:opacity-50"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <p className="text-slate-300 text-xs leading-relaxed">
+            Tell us what's wrong with this {reportTarget.kind} (spam, fake business, offensive content, safety concern, etc.). We review reports within 24 hours and remove anything that violates our community guidelines.
+          </p>
+
+          <textarea
+            data-testid="textarea-report-reason"
+            value={reportReason}
+            onChange={(e) => setReportReason(e.target.value)}
+            placeholder="What's the issue?"
+            rows={4}
+            maxLength={2000}
+            disabled={reportMutation.isPending}
+            className="w-full bg-slate-900/60 border border-slate-700/50 rounded-xl px-3 py-2 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-red-500/60 resize-none disabled:opacity-50"
+          />
+
+          <div className="flex gap-2">
+            <button
+              data-testid="button-submit-report"
+              disabled={reportMutation.isPending || reportReason.trim().length < 3}
+              onClick={() => reportMutation.mutate({
+                kind: reportTarget.kind,
+                targetId: reportTarget.id,
+                targetName: reportTarget.name,
+                reason: reportReason.trim(),
+              })}
+              className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition-all active:scale-95 disabled:opacity-40"
+            >
+              {reportMutation.isPending ? "Submitting…" : "Submit report"}
+            </button>
+            <button
+              data-testid="button-cancel-report"
+              disabled={reportMutation.isPending}
+              onClick={() => { setReportTarget(null); setReportReason(""); }}
+              className="px-4 py-2.5 rounded-xl border border-slate-700/50 text-slate-400 text-sm hover:text-white transition-all disabled:opacity-50"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       </div>

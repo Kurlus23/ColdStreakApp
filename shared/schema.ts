@@ -337,3 +337,22 @@ export const churnSurveys = pgTable("churn_surveys", {
 });
 
 export type ChurnSurvey = typeof churnSurveys.$inferSelect;
+
+// ── Reports (Apple App Review Guideline 1.2 — UGC moderation) ─────────────────
+// Users can report community-submitted locations or events as inappropriate.
+// Admin reviews via /api/admin/reports and either resolves or removes content.
+export const reports = pgTable("reports", {
+  id: serial("id").primaryKey(),
+  kind: text("kind").notNull(), // "location" | "event"
+  targetId: integer("target_id").notNull(),
+  targetName: text("target_name"), // snapshot of name at report time
+  reporterEmail: text("reporter_email"),
+  reporterUsername: text("reporter_username"),
+  reason: text("reason").notNull(),
+  status: text("status").default("open").notNull(), // open | resolved | removed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertReportSchema = createInsertSchema(reports).omit({ id: true, createdAt: true, status: true });
+export type Report = typeof reports.$inferSelect;
+export type InsertReport = z.infer<typeof insertReportSchema>;

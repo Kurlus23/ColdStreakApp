@@ -695,6 +695,56 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  // ── UGC Reports (Apple App Review Guideline 1.2) ────────────────────────
+  app.post("/api/reports", async (req, res) => {
+    try {
+      const body = z.object({
+        kind: z.enum(["location", "event"]),
+        targetId: z.number().int().positive(),
+        targetName: z.string().max(200).optional(),
+        reason: z.string().min(3).max(2000),
+      }).parse(req.body);
+      const caller = extractUser(req);
+      const row = await storage.createReport({
+        kind: body.kind,
+        targetId: body.targetId,
+        targetName: body.targetName ?? null,
+        reporterEmail: caller?.email ?? null,
+        reporterUsername: caller?.username ?? null,
+        reason: body.reason.trim(),
+      });
+      res.json({ success: true, id: row.id });
+    } catch (err: any) {
+      if (err?.name === "ZodError") return res.status(400).json({ message: "Invalid request" });
+      console.error("[reports] create failed:", err);
+      res.status(500).json({ message: "Could not submit report" });
+    }
+  });
+
+  app.get("/api/admin/reports", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const status = (req.query.status as string | undefined);
+    const valid = status === "open" || status === "resolved" || status === "removed";
+    const rows = await storage.getReports(valid ? (status as "open" | "resolved" | "removed") : undefined);
+    res.json(rows);
+  });
+
+  app.patch("/api/admin/reports/:id", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      const { status } = z.object({ status: z.enum(["open", "resolved", "removed"]) }).parse(req.body);
+      await storage.setReportStatus(id, status);
+      res.json({ success: true });
+    } catch (err: any) {
+      if (err?.name === "ZodError") return res.status(400).json({ message: "Invalid status" });
+      res.status(500).json({ message: "Could not update report" });
+    }
+  });
+
   app.post("/api/admin/support-messages/:id/reply", async (req, res) => {
     const caller = extractUser(req);
     if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
@@ -1235,7 +1285,7 @@ export async function registerRoutes(
             currency: "usd",
             product_data: {
               name: "ColdStreak Verified Business Listing",
-              description: "✓ Verified badge on ColdStreak community boards — $29.99/month (first month free)",
+              description: "✓ Verified badge on ColdStreak community boards — from $29.99/month (first month free)",
             },
             unit_amount: 2999,
             recurring: { interval: "month" },

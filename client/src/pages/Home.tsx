@@ -3584,29 +3584,43 @@ export default function Home() {
                       onClick={() => setShowUpgradeModal(true)}
                       className="w-full py-2 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
                     >
-                      <Crown className="w-3.5 h-3.5" /> Upgrade to Lifetime — $19.99
+                      <Crown className="w-3.5 h-3.5" /> Upgrade to Lifetime — ${lifetimePrice.toFixed(2)}
                     </button>
-                    <button
-                      data-testid="button-manage-subscription"
-                      onClick={async () => {
-                        try {
-                          const token = localStorage.getItem("coldstreak-auth-token");
-                          const res = await fetch("/api/stripe/portal", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                            body: JSON.stringify({ returnUrl: window.location.origin + "/" }),
-                          });
-                          const data = await res.json();
-                          if (data.url) window.open(data.url, "_blank");
-                          else toast({ title: "Unable to open portal", description: data.message ?? "Please try again.", variant: "destructive" });
-                        } catch {
-                          toast({ title: "Network error", description: "Please check your connection.", variant: "destructive" });
-                        }
-                      }}
-                      className="w-full py-2 rounded-xl border border-blue-600/50 text-blue-400 text-xs font-semibold transition-all active:scale-[0.98] hover:border-blue-400 flex items-center justify-center gap-1.5"
-                    >
-                      Manage / Cancel Subscription
-                    </button>
+                    {Capacitor.getPlatform() === "ios" ? (
+                      <button
+                        data-testid="button-manage-subscription-ios"
+                        onClick={() => {
+                          // Apple Guideline 3.1.3(b): subscription management on iOS
+                          // must go through the App Store, not a web billing portal.
+                          window.location.href = "itms-apps://apps.apple.com/account/subscriptions";
+                        }}
+                        className="w-full py-2 rounded-xl border border-blue-600/50 text-blue-400 text-xs font-semibold transition-all active:scale-[0.98] hover:border-blue-400 flex items-center justify-center gap-1.5"
+                      >
+                        Manage Subscription in App Store
+                      </button>
+                    ) : (
+                      <button
+                        data-testid="button-manage-subscription"
+                        onClick={async () => {
+                          try {
+                            const token = localStorage.getItem("coldstreak-auth-token");
+                            const res = await fetch("/api/stripe/portal", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                              body: JSON.stringify({ returnUrl: window.location.origin + "/" }),
+                            });
+                            const data = await res.json();
+                            if (data.url) window.open(data.url, "_blank");
+                            else toast({ title: "Unable to open portal", description: data.message ?? "Please try again.", variant: "destructive" });
+                          } catch {
+                            toast({ title: "Network error", description: "Please check your connection.", variant: "destructive" });
+                          }
+                        }}
+                        className="w-full py-2 rounded-xl border border-blue-600/50 text-blue-400 text-xs font-semibold transition-all active:scale-[0.98] hover:border-blue-400 flex items-center justify-center gap-1.5"
+                      >
+                        Manage / Cancel Subscription
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -7288,6 +7302,10 @@ export default function Home() {
               <div className="text-3xl">⚠️</div>
               <h2 className="text-white font-bold text-lg">Delete Account?</h2>
               <p className="text-blue-300 text-sm leading-relaxed">This permanently deletes your account and all plunge data. This cannot be undone.</p>
+            </div>
+            <div className="bg-amber-900/40 border border-amber-700/50 rounded-xl p-3 text-[11px] text-amber-200 leading-relaxed">
+              <p className="font-semibold text-amber-100 mb-1">Cancel any active subscription separately</p>
+              <p>Deleting your account does <strong>not</strong> cancel an active App Store or Stripe subscription. To stop future billing, also cancel in <strong>iPhone Settings → [your name] → Subscriptions</strong> (iOS) or via Manage Subscription on the web.</p>
             </div>
             <div className="space-y-2">
               <button

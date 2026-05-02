@@ -2,13 +2,14 @@ import { db } from "./db";
 import {
   plunges, leaderboardEntries, proUsers, promoCodes, userLocations, businessListings, users, badgeProfiles, pushSubscriptions,
   events, eventParticipants, eventCoordinators, eventBans, supportMessages, clientVisits, shareEvents,
-  verifiedBusinessSubs,
+  verifiedBusinessSubs, reports,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
   type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile, type PushSubscription,
   type BusinessListing, type Event, type EventParticipant, type EventCoordinator, type EventBan,
   type SupportMessage, type InsertSupportMessage, type ClientVisit,
   type VerifiedBusinessSub,
+  type Report, type InsertReport,
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and, not, lt, gte, inArray, sum } from "drizzle-orm";
 
@@ -182,6 +183,10 @@ export interface IStorage {
   getSupportMessages(): Promise<SupportMessage[]>;
   getSupportMessageById(id: number): Promise<SupportMessage | null>;
   resolveSupportMessage(id: number): Promise<void>;
+  // UGC reports (Apple App Review Guideline 1.2)
+  createReport(report: InsertReport): Promise<Report>;
+  getReports(status?: "open" | "resolved" | "removed"): Promise<Report[]>;
+  setReportStatus(id: number, status: "open" | "resolved" | "removed"): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1218,6 +1223,23 @@ export class DatabaseStorage implements IStorage {
 
   async resolveSupportMessage(id: number): Promise<void> {
     await db.update(supportMessages).set({ status: "resolved" }).where(eq(supportMessages.id, id));
+  }
+
+  // ── UGC Reports (Apple App Review Guideline 1.2) ───────────────────────────
+  async createReport(report: InsertReport): Promise<Report> {
+    const [row] = await db.insert(reports).values(report).returning();
+    return row;
+  }
+
+  async getReports(status?: "open" | "resolved" | "removed"): Promise<Report[]> {
+    if (status) {
+      return db.select().from(reports).where(eq(reports.status, status)).orderBy(desc(reports.createdAt));
+    }
+    return db.select().from(reports).orderBy(desc(reports.createdAt));
+  }
+
+  async setReportStatus(id: number, status: "open" | "resolved" | "removed"): Promise<void> {
+    await db.update(reports).set({ status }).where(eq(reports.id, id));
   }
 
   // ── Client visits ──────────────────────────────────────────────────────────
