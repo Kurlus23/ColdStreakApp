@@ -1,0 +1,91 @@
+Owner avatar
+ColdStreak
+Private
+Kurlus23/ColdStreak
+Go to file
+t
+T
+Name		
+Kurlus23Kurlus23
+Kurlus23
+and
+Kurlus23
+Add an image asset to the project
+f2b8571
+ · 
+1 minute ago
+.agents
+Resize watch screenshots to specified dimensions for app store submis…
+4 days ago
+.canvas/assets
+Add background images for visual comparison
+last month
+appstore_screenshots
+Add resized screenshots for the 6.5-inch iPhone display
+3 weeks ago
+artifacts/mockup-sandbox
+Add business profile verification component for display
+5 days ago
+attached_assets
+Add an image asset to the project
+1 minute ago
+client
+Update subscription and account management for all platforms
+18 hours ago
+resources
+Add app icon to the project
+3 weeks ago
+screenshots
+Add iPad screenshots for app store listing
+3 weeks ago
+script
+Extracted stack files
+2 months ago
+server
+Add timezone support and security hardening to business listings
+18 hours ago
+shared
+Add timezone support and security hardening to business listings
+18 hours ago
+watchos
+Remove faint logo watermark from key application screens
+4 days ago
+.gitignore
+Extracted stack files
+2 months ago
+.replit
+Add user reporting for inappropriate content and improve subscription…
+20 hours ago
+ANDROID_BUILD.md
+Update website links to use the correct custom domain
+2 months ago
+capacitor.config.ts
+Update minimum iOS version to support plugins
+3 weeks ago
+components.json
+Extracted stack files
+2 months ago
+drizzle.config.ts
+Extracted stack files
+2 months ago
+package-lock.json
+Add public profiles and business owner dashboard features
+18 hours ago
+package.json
+Add public profiles and business owner dashboard features
+18 hours ago
+postcss.config.js
+Extracted stack files
+2 months ago
+replit.md
+Update subscription and account management for all platforms
+18 hours ago
+tailwind.config.ts
+Extracted stack files
+2 months ago
+tsconfig.json
+Extracted stack files
+2 months ago
+vite.config.ts
+Extracted stack files
+2 months ago
