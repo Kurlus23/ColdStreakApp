@@ -69,6 +69,25 @@ Once deployed:
 - `androidScheme: "https"` ensures secure context for all browser APIs
 - SplashScreen background matches the app's dark blue theme (`#0f1f3d`)
 
+## Required AndroidManifest.xml permissions
+
+The `android/` folder is gitignored and regenerated locally each release.
+After running `npx cap add android` (first time) or any time you regenerate
+the Android project, verify these `<uses-permission>` entries exist in
+`android/app/src/main/AndroidManifest.xml` inside the `<manifest>` block:
+
+```xml
+<!-- Required by RevenueCat / Google Play Services on Android 13+ (API 33+).
+     Without this, Play Console rejects releases with:
+     "Your advertising ID declaration says your app uses advertising ID
+      but the manifest doesn't include com.google.android.gms.permission.AD_ID" -->
+<uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+```
+
+Capacitor's default manifest does NOT include AD_ID — you must add it manually
+each time the manifest is freshly generated. `cap sync` preserves it on subsequent
+runs.
+
 ---
 
 ## ⏳ TODO — Health Tracker Integration (Android)
