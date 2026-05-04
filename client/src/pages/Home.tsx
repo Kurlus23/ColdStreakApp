@@ -75,6 +75,7 @@ const ALARM_PRESETS = [
   { id: "bell",          label: "Bell",           url: "https://actions.google.com/sounds/v1/alarms/medium_bell_ringing_near.ogg", gain: 1.0 },
 ];
 const CUSTOM_ALARM_DURATION_MS = 5000;
+const ACTIVE_SESSION_KEY = "coldstreak-active-session";
 
 interface AlarmHandle { stop: () => void }
 
@@ -210,6 +211,8 @@ export default function Home() {
   // Stopwatch
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const isRunningRef = useRef(false);
+  const countdownRunningRef = useRef(false);
   const [temperature, setTemperature] = useState<number>(
     () => Math.min(60, Math.max(25, Number(localStorage.getItem("coldstreak-temperature") ?? 50)))
   );
@@ -2376,29 +2379,92 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [temperature, createPlunge, toast, backgroundSync]);
 
-  // Stopwatch
+  // Keep running-state refs in sync for stale-closure-safe restore
+  useEffect(() => { isRunningRef.current = isRunning; }, [isRunning]);
+  useEffect(() => { countdownRunningRef.current = countdownRunning; }, [countdownRunning]);
+
+  // Stopwatch — wall-clock based so it survives iOS background throttling
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isRunning) interval = setInterval(() => setSeconds((s) => s + 1), 1000);
+    if (isRunning && startTimeRef.current) {
+      interval = setInterval(() => {
+        setSeconds(Math.floor((Date.now() - startTimeRef.current!) / 1000));
+      }, 1000);
+    }
     return () => clearInterval(interval);
   }, [isRunning]);
 
-  // Countdown
+  // Countdown — wall-clock based so it survives iOS background throttling
+  const countdownStartRef = useRef<number | null>(null);
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (countdownRunning && countdown > 0) interval = setInterval(() => {
-      setCountdown((c) => c - 1);
-      setCountdownElapsed((e) => e + 1);
-    }, 1000);
+    if (countdownRunning && countdown > 0 && countdownStartRef.current) {
+      interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - countdownStartRef.current!) / 1000);
+        const remaining = Math.max(0, countdownTotalRef.current - elapsed);
+        setCountdown(remaining);
+        setCountdownElapsed(Math.min(elapsed, countdownTotalRef.current));
+      }, 1000);
+    }
     if (countdownRunning && countdown === 0) {
       setCountdownRunning(false);
       const targetDuration = minutesInput * 60 + secondsInput;
       doLogPlunge(targetDuration);
       alarmRef.current = playAlarm(alarmUrl, alarmLabel, alarmIsCustom, alarmIsCustom ? CUSTOM_ALARM_DURATION_MS : undefined);
+      localStorage.removeItem(ACTIVE_SESSION_KEY);
     }
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdownRunning, countdown]);
+
+  // Restore active plunge session from localStorage (survives iOS WebView kill)
+  useEffect(() => {
+    const restore = () => {
+      const saved = localStorage.getItem(ACTIVE_SESSION_KEY);
+      if (!saved) return;
+      try {
+        const s = JSON.parse(saved);
+        if (typeof s.startTime !== "number" || typeof s.mode !== "string") {
+          localStorage.removeItem(ACTIVE_SESSION_KEY);
+          return;
+        }
+        const elapsed = Math.max(0, Math.floor((Date.now() - s.startTime) / 1000));
+        if (s.mode === "stopwatch") {
+          if (!isRunningRef.current) {
+            startTimeRef.current = s.startTime;
+            setSeconds(elapsed);
+            setIsRunning(true);
+          }
+        } else if (s.mode === "countdown") {
+          if (!countdownRunningRef.current && typeof s.countdownTotal === "number" && s.countdownTotal > 0) {
+            const remaining = Math.max(0, s.countdownTotal - elapsed);
+            setCountdownMode(true);
+            if (typeof s.minutesInput === "number") setMinutesInput(s.minutesInput);
+            if (typeof s.secondsInput === "number") setSecondsInput(s.secondsInput);
+            countdownTotalRef.current = s.countdownTotal;
+            countdownStartRef.current = s.startTime;
+            if (remaining > 0) {
+              setCountdown(remaining);
+              setCountdownElapsed(Math.min(elapsed, s.countdownTotal));
+              setCountdownRunning(true);
+            } else {
+              setCountdown(0);
+              setCountdownElapsed(s.countdownTotal);
+              setCountdownRunning(true);
+            }
+          }
+        }
+      } catch { localStorage.removeItem(ACTIVE_SESSION_KEY); }
+    };
+
+    restore();
+
+    const sub = CapApp.addListener("appStateChange", ({ isActive }) => {
+      if (isActive) restore();
+    });
+    return () => { sub.then(h => h.remove()).catch(() => {}); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Screen Wake Lock — keep display on while timer is running
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
@@ -2442,13 +2508,18 @@ export default function Home() {
     if (countdownMode) {
       const total = minutesInput * 60 + secondsInput;
       if (total <= 0) { toast({ title: "Set a duration first", variant: "destructive" }); return; }
+      const now = Date.now();
       countdownTotalRef.current = total;
+      countdownStartRef.current = now;
       setCountdownElapsed(0);
       setCountdown(total);
       setCountdownRunning(true);
+      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "countdown", startTime: now, countdownTotal: total, minutesInput, secondsInput }));
     } else {
-      startTimeRef.current = Date.now();
+      const now = Date.now();
+      startTimeRef.current = now;
       setIsRunning(true);
+      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "stopwatch", startTime: now }));
     }
   };
 
@@ -2459,12 +2530,14 @@ export default function Home() {
         const totalDuration = minutesInput * 60 + secondsInput;
         const elapsed = totalDuration - countdown;
         if (elapsed > 0) {
-          const startedAt = new Date(Date.now() - elapsed * 1000);
+          const startedAt = countdownStartRef.current ? new Date(countdownStartRef.current) : new Date(Date.now() - elapsed * 1000);
           doLogPlunge(elapsed, startedAt);
           setCountdown(0);
         } else {
           resetCountdown();
         }
+        countdownStartRef.current = null;
+        localStorage.removeItem(ACTIVE_SESSION_KEY);
         return;
       }
       if (countdown > 0) { resetCountdown(); return; }
@@ -2483,22 +2556,25 @@ export default function Home() {
         setIsRunning(false);
         startTimeRef.current = null;
       }
+      localStorage.removeItem(ACTIVE_SESSION_KEY);
     }
   };
 
   const handleReset = () => {
     if (countdownMode) { resetCountdown(); }
     else { setSeconds(0); setIsRunning(false); startTimeRef.current = null; }
-    // Clear HR session readings so avg is fresh for next plunge
     hrReadingsRef.current = [];
     setHrPeak(null);
+    localStorage.removeItem(ACTIVE_SESSION_KEY);
   };
 
   const resetCountdown = () => {
     setCountdownRunning(false);
     setCountdown(0);
     setCountdownElapsed(0);
+    countdownStartRef.current = null;
     if (alarmRef.current) { alarmRef.current.stop(); alarmRef.current = null; }
+    localStorage.removeItem(ACTIVE_SESSION_KEY);
   };
 
   const enableNotifications = async () => {
@@ -2817,6 +2893,8 @@ export default function Home() {
                   setCountdown(0);
                   setCountdownRunning(false);
                   startTimeRef.current = null;
+                  countdownStartRef.current = null;
+                  localStorage.removeItem(ACTIVE_SESSION_KEY);
                 }}
                 className="flex items-center justify-center gap-1 text-blue-300 hover:text-cyan-300 transition-colors text-[9px] uppercase tracking-widest focus:outline-none group w-full min-h-[2.5em] leading-tight"
                 title="Tap to switch mode"
