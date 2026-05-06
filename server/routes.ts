@@ -540,6 +540,77 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
+  // ── Streak freezes (Pro feature) ───────────────────────────────────────
+  // Pro users get up to MAX_FREEZES_PER_MONTH (2) calendar-month freezes that retroactively
+  // protect a missed day so the streak doesn't break. Date is YYYY-MM-DD in user local tz.
+  const MAX_FREEZES_PER_MONTH = 2;
+
+  app.get("/api/streak-freezes", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller?.userId) return res.status(401).json({ error: "Auth required" });
+    const { getStreakFreezes } = await import("./storage");
+    const freezes = await getStreakFreezes(caller.userId);
+    const yearMonth = new Date().toISOString().slice(0, 7);
+    const usedThisMonth = freezes.filter(f => (f.freezeDate ?? "").startsWith(yearMonth)).length;
+    res.json({
+      freezes: freezes.map(f => f.freezeDate),
+      usedThisMonth,
+      remainingThisMonth: Math.max(0, MAX_FREEZES_PER_MONTH - usedThisMonth),
+      monthlyLimit: MAX_FREEZES_PER_MONTH,
+    });
+  });
+
+  app.post("/api/streak-freezes", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller?.userId) return res.status(401).json({ error: "Auth required" });
+    const proUser = await storage.getProUser(caller.email);
+    if (!proUser?.active) return res.status(403).json({ error: "Pro subscription required" });
+    const { freezeDate } = req.body ?? {};
+    if (typeof freezeDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(freezeDate)) {
+      return res.status(400).json({ error: "freezeDate must be YYYY-MM-DD" });
+    }
+    // Strict calendar-date validation — regex alone allows e.g. 2026-99-99 → Invalid Date
+    const [yy, mm, dd] = freezeDate.split("-").map(Number);
+    const target = new Date(yy, mm - 1, dd);
+    if (target.getFullYear() !== yy || target.getMonth() !== mm - 1 || target.getDate() !== dd) {
+      return res.status(400).json({ error: "freezeDate is not a valid calendar date" });
+    }
+    target.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((today.getTime() - target.getTime()) / 86400000);
+    if (diffDays < 1 || diffDays > 6) {
+      return res.status(400).json({ error: "Can only freeze a missed day from the past 6 days" });
+    }
+    // Enforce "missed day" rule — reject if user actually plunged on that local date
+    const userPlunges = await storage.getPlunges(undefined, caller.userId);
+    const plungedOnDay = userPlunges.some((p) => {
+      const pd = new Date(p.createdAt);
+      return pd.getFullYear() === yy && pd.getMonth() === mm - 1 && pd.getDate() === dd;
+    });
+    if (plungedOnDay) {
+      return res.status(400).json({ error: "You already plunged on that day — no freeze needed" });
+    }
+    // Check monthly limit + duplicate (race-tolerant: rely on DB unique index for final guard)
+    const { getStreakFreezes, createStreakFreeze } = await import("./storage");
+    const existing = await getStreakFreezes(caller.userId);
+    if (existing.some(f => f.freezeDate === freezeDate)) {
+      return res.status(409).json({ error: "Day already frozen" });
+    }
+    const yearMonth = freezeDate.slice(0, 7);
+    const usedInMonth = existing.filter(f => (f.freezeDate ?? "").startsWith(yearMonth)).length;
+    if (usedInMonth >= MAX_FREEZES_PER_MONTH) {
+      return res.status(429).json({ error: `Monthly limit reached (${MAX_FREEZES_PER_MONTH} freezes per calendar month)` });
+    }
+    try {
+      const created = await createStreakFreeze(caller.userId, freezeDate);
+      res.json({ freeze: created });
+    } catch (err: any) {
+      // Unique index violation (concurrent duplicate) — convert to 409
+      if (err?.code === "23505") return res.status(409).json({ error: "Day already frozen" });
+      throw err;
+    }
+  });
+
   // ── Community locations ────────────────────────────────────────────────
 
   app.get("/api/community-locations", async (req, res) => {

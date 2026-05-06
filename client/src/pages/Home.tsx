@@ -26,6 +26,7 @@ import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry, type L
 import { useProStatus, PENDING_CHECKOUT_KEY, PENDING_SESSION_KEY } from "@/hooks/use-pro-status";
 import { PlungeCard, buildShareText } from "@/components/PlungeCard";
 import { BannerAd, FeedAd, InterstitialAd } from "@/components/AdUnit";
+import { MusicWidget, openMusic, shouldAutoPlay } from "@/components/MusicWidget";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
 import { Analytics } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
@@ -151,18 +152,35 @@ function formatTime(totalSeconds: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function getStreak(plunges: Plunge[]): number {
-  if (!plunges.length) return 0;
-  const dates = [...new Set(plunges.map((p) => new Date(p.createdAt).toLocaleDateString()))];
-  const sorted = dates.map((d) => new Date(d)).sort((a, b) => b.getTime() - a.getTime());
+// Local-tz YYYY-MM-DD — never use toISOString() for streak/freeze dates because
+// UTC conversion can shift the credited day by 1 in non-UTC timezones.
+function localDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function getStreak(plunges: Plunge[], freezeDates: string[] = []): number {
+  if (!plunges.length && !freezeDates.length) return 0;
+  // Combine plunge days + freeze days, treating both as "credited" days for streak counting
+  const dayMap: Record<string, true> = {};
+  for (const p of plunges) {
+    dayMap[localDateKey(new Date(p.createdAt))] = true;
+  }
+  for (const f of freezeDates) { if (f) dayMap[f] = true; }
+  const allDays = Object.keys(dayMap);
+  if (allDays.length === 0) return 0;
+  const sorted = allDays.sort((a, b) => b.localeCompare(a));
   let streak = 0;
   let current = new Date();
   current.setHours(0, 0, 0, 0);
-  for (const d of sorted) {
-    const dCopy = new Date(d);
-    dCopy.setHours(0, 0, 0, 0);
-    const diff = Math.round((current.getTime() - dCopy.getTime()) / (1000 * 60 * 60 * 24));
-    if (diff <= 1) { streak++; current = dCopy; } else break;
+  for (const dStr of sorted) {
+    const [yy, mm, dd] = dStr.split("-").map(Number);
+    const d = new Date(yy, (mm ?? 1) - 1, dd ?? 1);
+    d.setHours(0, 0, 0, 0);
+    const diff = Math.round((current.getTime() - d.getTime()) / 86400000);
+    if (diff <= 1) { streak++; current = d; } else break;
   }
   return streak;
 }
@@ -988,6 +1006,20 @@ export default function Home() {
     },
     enabled: !!auth.user,
   });
+
+  // Streak freezes (Pro feature) — fetch list of frozen days and remaining quota
+  const { data: freezeData, refetch: refetchFreezes } = useQuery<{ freezes: string[]; usedThisMonth: number; remainingThisMonth: number; monthlyLimit: number }>({
+    queryKey: ["/api/streak-freezes", auth.user?.id],
+    queryFn: async () => {
+      const r = await fetch("/api/streak-freezes", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}` },
+      });
+      if (!r.ok) throw new Error(`streak-freezes ${r.status}`);
+      return r.json();
+    },
+    enabled: !!auth.user,
+  });
+  const [showFreezeModal, setShowFreezeModal] = useState(false);
   const [username, setUsername] = useState<string>(() => {
     return localStorage.getItem("coldstreak-username") ?? "";
   });
@@ -2521,6 +2553,8 @@ export default function Home() {
       setIsRunning(true);
       localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "stopwatch", startTime: now }));
     }
+    // Auto-play music only after we've confirmed the timer actually starts (not bailed out)
+    if (shouldAutoPlay()) { try { openMusic(); } catch {} }
   };
 
   const handleStop = () => {
@@ -2620,7 +2654,7 @@ export default function Home() {
   const weeklyCalories = thisWeek.reduce((sum, p) => sum + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs))), 0);
   const allTimeCalories = plunges.reduce((sum, p) => sum + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs))), 0);
   const weeklyPct = Math.min(100, (weeklyMinutes / weeklyGoalMinutes) * 100);
-  const streak = getStreak(plunges);
+  const streak = getStreak(plunges, freezeData?.freezes ?? []);
 
   // Total unique days plunged in the current calendar year
   const thisYear = new Date().getFullYear();
@@ -3022,6 +3056,11 @@ export default function Home() {
           </div>
 
 
+          {/* Music widget — auto-plays your playlist when timer starts (or use Play for free listen) */}
+          <div className="mb-3">
+            <MusicWidget />
+          </div>
+
           {/* Affiliate banner ad — in-content so it never overlaps readouts */}
           {!isPro && !showPostSessionAd && <BannerAd />}
 
@@ -3036,7 +3075,20 @@ export default function Home() {
               <span className="text-cyan-300">Best: {personalBest > 0 ? personalBest.toFixed(1) : "—"}</span>
             ) : (
               <>
-                Streak: {streak} days
+                <button
+                  type="button"
+                  data-testid="button-streak-freeze-open"
+                  onClick={() => {
+                    if (!auth.user) { setShowLoginModal(true); return; }
+                    if (!isPro) { setShowUpgradeModal(true); return; }
+                    setShowFreezeModal(true);
+                  }}
+                  className="inline-flex items-center gap-1 hover:text-cyan-300 transition-colors"
+                  title={isPro ? "Streak Freeze — protect a missed day" : "Pro feature: protect your streak when you miss a day"}
+                >
+                  Streak: {streak} days
+                  <Snowflake className="w-3 h-3 text-cyan-400" />
+                </button>
                 {personalBest > 0 && (
                   <>
                     &nbsp;&nbsp;·&nbsp;&nbsp;
@@ -3047,6 +3099,92 @@ export default function Home() {
                 )}
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── STREAK FREEZE MODAL ─── */}
+      {showFreezeModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setShowFreezeModal(false)}
+          data-testid="modal-streak-freeze"
+        >
+          <div
+            className="w-full max-w-md bg-slate-900 border border-cyan-700/40 rounded-2xl p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Snowflake className="w-4 h-4 text-cyan-400" />
+                Streak Freeze
+              </h3>
+              <button
+                onClick={() => setShowFreezeModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-sm text-blue-200 mb-3 leading-relaxed">
+              Missed a day? Apply a freeze to keep your streak alive. Pro members get{" "}
+              <span className="text-cyan-300 font-bold">{freezeData?.monthlyLimit ?? 2}</span> freezes per calendar month.
+            </p>
+            <div className="bg-slate-800/60 rounded-xl p-3 mb-4 flex items-center justify-between">
+              <span className="text-xs text-blue-300">Remaining this month</span>
+              <span className="text-cyan-300 font-bold tabular-nums" data-testid="text-freeze-remaining">
+                {freezeData?.remainingThisMonth ?? "—"} / {freezeData?.monthlyLimit ?? 2}
+              </span>
+            </div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-blue-300 mb-2">
+              Pick a missed day to freeze
+            </div>
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              {Array.from({ length: 6 }, (_, i) => i + 1).map((daysAgo) => {
+                const d = new Date(); d.setDate(d.getDate() - daysAgo); d.setHours(0, 0, 0, 0);
+                const iso = localDateKey(d);
+                const plungeOnDay = plunges.some(p => localDateKey(new Date(p.createdAt)) === iso);
+                const alreadyFrozen = (freezeData?.freezes ?? []).includes(iso);
+                const noQuota = (freezeData?.remainingThisMonth ?? 0) <= 0 && !alreadyFrozen;
+                const disabled = plungeOnDay || alreadyFrozen || noQuota;
+                const label = d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+                return (
+                  <button
+                    key={iso}
+                    data-testid={`button-freeze-day-${iso}`}
+                    disabled={disabled}
+                    onClick={async () => {
+                      try {
+                        await apiRequest("POST", "/api/streak-freezes", { freezeDate: iso });
+                        await refetchFreezes();
+                        toast({ title: "Streak protected", description: `Freeze applied to ${label}` });
+                        setShowFreezeModal(false);
+                      } catch (err: any) {
+                        toast({ title: "Couldn't apply freeze", description: err?.message ?? "Try again", variant: "destructive" });
+                      }
+                    }}
+                    className={`p-2 rounded-xl border text-left transition-all active:scale-95 ${
+                      alreadyFrozen
+                        ? "bg-cyan-950/60 border-cyan-500/60 text-cyan-200 cursor-default"
+                        : plungeOnDay
+                          ? "bg-emerald-950/40 border-emerald-700/40 text-emerald-300 cursor-default"
+                          : disabled
+                            ? "bg-slate-800/40 border-slate-700/40 text-slate-500 cursor-not-allowed"
+                            : "bg-slate-800/80 border-slate-600 text-white hover:border-cyan-500/60"
+                    }`}
+                  >
+                    <div className="text-[10px] uppercase tracking-wider opacity-70">{daysAgo === 1 ? "Yesterday" : `${daysAgo}d ago`}</div>
+                    <div className="text-xs font-semibold mt-0.5">{label}</div>
+                    {alreadyFrozen && <div className="text-[10px] mt-1 flex items-center gap-1"><Snowflake className="w-2.5 h-2.5" /> Frozen</div>}
+                    {!alreadyFrozen && plungeOnDay && <div className="text-[10px] mt-1">Plunged ✓</div>}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-slate-500 leading-relaxed">
+              Freezes can be applied to any of the past 6 days. Days you already plunged don't need protection.
+            </p>
           </div>
         </div>
       )}

@@ -11,6 +11,7 @@ import {
   type VerifiedBusinessSub,
   type Report, type InsertReport,
   type BusinessHours,
+  streakFreezes, type StreakFreeze,
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and, not, lt, gte, inArray, sum } from "drizzle-orm";
 
@@ -1834,3 +1835,13 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
+
+// Streak freezes (Pro feature) — standalone helpers (not part of IStorage to keep
+// the interface lean; called directly from routes.ts).
+export async function getStreakFreezes(userId: number): Promise<StreakFreeze[]> {
+  return await db.select().from(streakFreezes).where(eq(streakFreezes.userId, userId)).orderBy(desc(streakFreezes.freezeDate));
+}
+export async function createStreakFreeze(userId: number, freezeDate: string): Promise<StreakFreeze> {
+  const [row] = await db.insert(streakFreezes).values({ userId, freezeDate }).returning();
+  return row;
+}

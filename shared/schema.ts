@@ -82,6 +82,19 @@ export const proUsers = pgTable("pro_users", {
 
 export type ProUser = typeof proUsers.$inferSelect;
 
+export const streakFreezes = pgTable("streak_freezes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  freezeDate: text("freeze_date").notNull(), // YYYY-MM-DD in user local tz
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  userDateUnique: uniqueIndex("streak_freezes_user_date_unique").on(t.userId, t.freezeDate),
+}));
+
+export type StreakFreeze = typeof streakFreezes.$inferSelect;
+export const insertStreakFreezeSchema = createInsertSchema(streakFreezes).omit({ id: true, createdAt: true });
+export type InsertStreakFreeze = z.infer<typeof insertStreakFreezeSchema>;
+
 export const insertPlungeSchema = createInsertSchema(plunges).omit({
   id: true,
   createdAt: true,
