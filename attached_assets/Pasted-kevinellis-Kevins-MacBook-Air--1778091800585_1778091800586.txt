@@ -1,0 +1,94 @@
+kevinellis@Kevins-MacBook-Air ~ % >....                                                                                 
+cat > capacitor-plugins/coldstreak-musickit/src/index.ts <<'EOF'
+import { registerPlugin } from "@capacitor/core";
+import type { ColdstreakMusickitPlugin } from "./definitions";
+
+const ColdstreakMusickit = registerPlugin<ColdstreakMusickitPlugin>(
+  "ColdstreakMusickit",
+  {
+    web: () => ({
+      requestAuthorization: async () => { throw new Error("ColdstreakMusickit is iOS-only"); },
+      getUserToken: async () => { throw new Error("ColdstreakMusickit is iOS-only"); },
+      playPlaylist: async () => { throw new Error("ColdstreakMusickit is iOS-only"); },
+    }),
+  },
+);
+
+export * from "./definitions";
+export { ColdstreakMusickit };
+EOF
+
+echo "✓ Files created:"
+ls capacitor-plugins/coldstreak-musickit
+ls capacitor-plugins/coldstreak-musickit/ios/Plugin
+
+# Now install and regenerate iOS:
+rm -rf ios
+npm install ./capacitor-plugins/coldstreak-musickit
+npx cap add ios
+npx cap sync ios
+npx cap open ios
+✓ Files created:
+ColdstreakMusickit.podspec	package.json
+ios				src
+ColdstreakMusickitPlugin.m	ColdstreakMusickitPlugin.swift
+zsh: command not found: #
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: coldstreak-musickit@0.1.0
+npm warn Found: @capacitor/core@8.3.0
+npm warn node_modules/@capacitor/core
+npm warn   peer @capacitor/core@">=8.0.0" from @capacitor-community/bluetooth-le@8.1.3
+npm warn   node_modules/@capacitor-community/bluetooth-le
+npm warn     @capacitor-community/bluetooth-le@"^8.1.3" from the root project
+npm warn   11 more (@capacitor-community/in-app-review, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer @capacitor/core@"^6.0.0 || ^7.0.0" from coldstreak-musickit@0.1.0
+npm warn capacitor-plugins/coldstreak-musickit
+npm warn   coldstreak-musickit@0.1.0
+npm warn   node_modules/coldstreak-musickit
+npm warn
+npm warn Conflicting peer dependency: @capacitor/core@7.6.2
+npm warn node_modules/@capacitor/core
+npm warn   peer @capacitor/core@"^6.0.0 || ^7.0.0" from coldstreak-musickit@0.1.0
+npm warn   capacitor-plugins/coldstreak-musickit
+npm warn     coldstreak-musickit@0.1.0
+npm warn     node_modules/coldstreak-musickit
+
+up to date, audited 639 packages in 2s
+
+90 packages are looking for funding
+  run `npm fund` for details
+
+11 vulnerabilities (4 moderate, 6 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+✔ Adding native Xcode project in ios in 9.48ms
+✔ add in 9.73ms
+[warn] sync could not run--missing dist/public directory.
+[success] ios platform added!
+Follow the Developer Workflow guide to get building:
+https://capacitorjs.com/docs/basics/workflow
+[warn] Cannot copy web assets from public to ios/App/App/public
+       Web asset directory specified by webDir does not exist. This is not an error because server.url is set in config.
+✔ Creating capacitor.config.json in ios/App/App in 2.92ms
+✔ copy ios in 61.36ms
+✔ Updating iOS plugins in 8.24ms
+✖ Updating iOS native dependencies with pod install - failed!
+✖ update ios - failed!
+[error] Analyzing dependencies
+        [!] CocoaPods could not find compatible versions for pod "ColdstreakMusickit":
+        In Podfile:
+        ColdstreakMusickit (from `../../capacitor-plugins/coldstreak-musickit`)
+        
+        Specs satisfying the `ColdstreakMusickit (from `../../capacitor-plugins/coldstreak-musickit`)` dependency were
+        found, but they required a higher minimum deployment target.
+        
+✔ Opening the Xcode workspace... in 3.02s
+kevinellis@Kevins-MacBook-Air ColdStreak % 
