@@ -1,0 +1,75 @@
+kevinellis@Kevins-MacBook-Air ColdStreak % brew install gh          
+gh auth login
+==> Auto-updating Homebrew...
+Adjust how often this is run with `$HOMEBREW_AUTO_UPDATE_SECS` or disable with
+`$HOMEBREW_NO_AUTO_UPDATE=1`. Hide these hints with `$HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).
+==> Auto-updated Homebrew!
+Updated 2 taps (homebrew/core and homebrew/cask).
+==> New Formulae
+cutadapt: Removes adapter sequences from sequencing reads
+echtvar: Rapid variant annotation and filtering
+freesasa: Solvent Accessible Surface Area calculations
+gemmi: Macromolecular crystallography library and utilities
+ginkgo: High-performance numerical linear algebra software package
+hermes-agent: Self-improving AI agent that creates skills from experience
+hyphy: Hypothesis testing using Phylogenies
+iqtree3: Phylogenetics by maximum likelihood
+lavinmq: Message broker implementing the AMQP 0-9-1 and MQTT protocols
+oarfish: Long read RNA-seq quantification
+opendoor: CLI for web reconnaissance, directory discovery, and exposure assessment
+paml: Phylogenetic analyses of DNA or protein sequences using maximum likelihood
+pnpm@10: Fast, disk space efficient package manager
+smlnj: Compiler and programming system for Standard ML
+spoa: SIMD partial order alignment tool/library
+stellar-xdr: Stellar command-line tool for encoding/decoding XDR for the Stellar network
+unordered_dense: Hashmap and hashset based on robin-hood backward shift deletion
+vcflib: C++ library and cmdline tools for parsing and manipulating VCF files
+zapp: Flash ZSA keyboards from your terminal
+
+You have 8 outdated formulae installed.
+
+==> Fetching downloads for: gh
+✔︎ Bottle Manifest gh (2.92.0)                                                                Downloaded    7.3KB/  7.3KB
+✔︎ Bottle gh (2.92.0)                                                                         Downloaded   13.1MB/ 13.1MB
+==> Pouring gh--2.92.0.arm64_tahoe.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/gh/2.92.0: 229 files, 37.8MB
+==> Running `brew cleanup gh`...
+Disable this behaviour by setting `HOMEBREW_NO_INSTALL_CLEANUP=1`.
+Hide these hints with `HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).
+==> `brew cleanup` has not been run in the last 30 days, running now...
+Disable this behaviour by setting `HOMEBREW_NO_INSTALL_CLEANUP=1`.
+Hide these hints with `HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).
+Removing: /Users/kevinellis/Library/Caches/Homebrew/portable-ruby-4.0.2_1.arm64_big_sur.bottle.tar.gz... (12.7MB)
+Removing: /Users/kevinellis/Library/Caches/Homebrew/bootsnap/486642c4537c43cd53394cb601f180d78bab6134addf25b56521e9246c561720... (643 files, 6MB)
+Removing: /Users/kevinellis/Library/Caches/Homebrew/bootsnap/7254371b3691b3bba70a998c45db1705be75b465b1315e4e92c9a3b34027c3ef... (640 files, 5.7MB)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/llhttp... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/simdjson... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/libuv... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/hdrhistogram_c... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/fmt... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/libyaml... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/brotli... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/readline... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/lz4... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/libnghttp3... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/sqlite... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/c-ares... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/xz... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/libnghttp2... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/uvwasi... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/openssl@3... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/ca-certificates... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/zstd... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/ada-url... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/node... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/libngtcp2... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/icu4c@78... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/cocoapods... (64B)
+Removing: /Users/kevinellis/Library/Logs/Homebrew/ruby... (64B)
+Pruned 0 symbolic links and 3 directories from /opt/homebrew
+==> Caveats
+zsh completions have been installed to:
+  /opt/homebrew/share/zsh/site-functions
+? Where do you use GitHub?  [Use arrows to move, type to filter]
+> GitHub.com
+  Other
