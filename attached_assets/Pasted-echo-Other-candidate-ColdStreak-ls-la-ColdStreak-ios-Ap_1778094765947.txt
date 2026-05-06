@@ -1,0 +1,40 @@
+echo "=== Other candidate: ~/ColdStreak ==="
+ls -la ~/ColdStreak/ios/App/ 2>/dev/null | head -10
+stat -f "%Sm  %N" ~/ColdStreak 2>/dev/null
+=== ~/coldstreak-backup/ios/App/ ===
+total 80
+drwxr-xr-x  13 kevinellis  staff    416 May  6 08:46 .
+drwxr-xr-x   6 kevinellis  staff    192 May  6 08:46 ..
+-rw-r--r--@  1 kevinellis  staff  10244 May  6 08:46 .DS_Store
+drwxr-xr-x  10 kevinellis  staff    320 May  6 08:46 App
+drwxr-xr-x@  4 kevinellis  staff    128 May  6 08:46 App.xcodeproj
+drwxr-xr-x@  5 kevinellis  staff    160 May  6 08:46 App.xcworkspace
+drwxr-xr-x   7 kevinellis  staff    224 May  6 08:46 ColdStreakWatch Watch App
+-rw-r--r--   1 kevinellis  staff    249 May  6 08:46 ColdStreakWatch-Watch-App-Info.plist
+-rw-r--r--   1 kevinellis  staff   5289 May  6 08:46 HealthKitPlugin.swift
+-rw-r--r--   1 kevinellis  staff   1472 May  6 08:46 Podfile
+-rw-r--r--   1 kevinellis  staff   4143 May  6 08:46 Podfile.lock
+drwxr-xr-x  12 kevinellis  staff    384 May  6 08:46 Pods
+-rw-r--r--   1 kevinellis  staff   3460 May  6 08:46 WatchSyncPlugin.swift
+
+=== Podfile present? ===
+-rw-r--r--  1 kevinellis  staff  1472 May  6 08:46 /Users/kevinellis/coldstreak-backup/ios/App/Podfile
+
+=== Info.plist present? ===
+-rw-r--r--  1 kevinellis  staff  2896 May  6 08:46 /Users/kevinellis/coldstreak-backup/ios/App/App/Info.plist
+
+=== Backup mtime (when made?) ===
+May  6 08:46:36 2026  /Users/kevinellis/coldstreak-backup
+
+=== Other candidate: ~/ColdStreak ===
+total 16
+drwxr-xr-x   8 kevinellis  staff   256 Apr 13 16:04 .
+drwxr-xr-x   5 kevinellis  staff   160 Apr 15 12:35 ..
+drwxr-xr-x   9 kevinellis  staff   288 Apr 15 12:35 App
+drwxr-xr-x@  5 kevinellis  staff   160 Apr 15 08:05 App.xcodeproj
+drwxr-xr-x@  5 kevinellis  staff   160 Apr 13 16:05 App.xcworkspace
+-rw-r--r--   1 kevinellis  staff  1372 Apr 15 12:35 Podfile
+-rw-r--r--   1 kevinellis  staff  3527 Apr 13 16:04 Podfile.lock
+drwxr-xr-x  10 kevinellis  staff   320 Apr 13 16:04 Pods
+Apr 15 08:05:48 2026  /Users/kevinellis/ColdStreak
+kevinellis@Kevins-MacBook-Air ColdStreak % 
