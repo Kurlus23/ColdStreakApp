@@ -61,7 +61,8 @@ Preferred communication style: Simple, everyday language.
 *   Outbound URLs are built from `getCanonicalOrigin()` (env `SITE_URL`) to prevent Host-header poisoning; never use `req.get("host")`.
 *   Spotify callback uses a signed JWT state token for CSRF protection; ensure `SESSION_SECRET` is configured.
 *   Streak freezes are a Pro feature and are limited to 2 per calendar month, with a 1-6 day backward window.
-*   Apple Music linking is **web-only** — disabled inside Capacitor (TestFlight/Play). MusicKit JS uses an iframe + postMessage popup that doesn't propagate auth back through iOS/Android WebViews, hanging the authorize() promise. `client/src/lib/appleMusic.ts#isInNativeApp()` short-circuits `isAvailable()` so the in-app UI shows a "link via coldstreakapp.com in Safari" panel instead. Spotify is unaffected (uses redirect-based OAuth). Long-term fix is a native MusicKit Capacitor plugin.
+*   Apple Music inside Capacitor uses the local **`coldstreak-musickit`** plugin (`/capacitor-plugins/coldstreak-musickit/`) which wraps iOS's `SKCloudServiceController` to return a music-user-token directly. `client/src/lib/appleMusic.ts` auto-routes: web → MusicKit JS, native → plugin + direct `api.music.apple.com` calls. Requires MusicKit capability on the App ID + `NSAppleMusicUsageDescription` in `Info.plist` + `npm install ./capacitor-plugins/coldstreak-musickit` on the Mac before `npx cap sync ios`. Older TestFlight builds without the plugin fall back to a "link via Safari" panel.
+*   Spotify inside Capacitor uses a **full-page redirect** within the WebView (not a popup — popups have null `window.opener` in WKWebView). `/api/spotify/callback` detects the openerless case and bounces to `/?spotify=connected`; `MusicWidget` picks up the query param and refreshes state. Web flow is still popup-based.
 
 ## Pointers
 

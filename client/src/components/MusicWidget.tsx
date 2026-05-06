@@ -152,7 +152,10 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
   });
 
   // ── Apple Music state (browser-side; no server-stored tokens) ──────────
-  const [appleAvailable, setAppleAvailable] = useState(false);
+  // Tri-state: null = probe in progress; true/false = result known. Keeps the
+  // legacy "not supported" panel from flashing in native before the async
+  // plugin-availability check completes.
+  const [appleAvailable, setAppleAvailable] = useState<boolean | null>(null);
   const [appleAuthorized, setAppleAuthorized] = useState(false);
   const [applePlaylists, setApplePlaylists] = useState<AppleMusicPlaylistSummary[]>([]);
   const [appleConnecting, setAppleConnecting] = useState(false);
@@ -453,7 +456,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
               {isLoggedIn && !isSpotifyConnected && (
                 <option value={CONNECT_VALUE}>🔗 Connect Spotify to see your playlists…</option>
               )}
-              {appleAvailable && !appleAuthorized && (
+              {appleAvailable === true && !appleAuthorized && (
                 <option value={CONNECT_APPLE_VALUE}>🍎 Connect Apple Music to see your playlists…</option>
               )}
               <option value={CUSTOM_VALUE}>＋ Paste custom Spotify / Apple Music URL…</option>
@@ -594,28 +597,31 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
               </div>
             )}
 
-            {/* Apple Music: not supported inside the iOS/Android app yet — auth
-                  popup is blocked by the WebView. Surface a clear explanation
-                  with a workaround instead of letting users get stuck. */}
-            {IS_NATIVE_APP && (
+            {/* Apple Music: when running inside Capacitor, the panel is only
+                  shown if the native MusicKit plugin is present in this build
+                  (appleAvailable === true). Older TestFlight builds without
+                  the plugin fall through to the legacy "link via Safari"
+                  fallback below. */}
+            {IS_NATIVE_APP && appleAvailable === false && (
               <div className="mb-4 p-3 rounded-xl bg-pink-950/20 border border-pink-800/40">
                 <div className="flex items-center gap-2 mb-2">
                   <SiApplemusic className="w-4 h-4 text-pink-400" />
                   <div className="text-xs font-semibold text-white">Apple Music</div>
                 </div>
                 <div className="text-[11px] text-blue-200 mb-1">
-                  Apple Music linking isn't supported inside the ColdStreak app yet.
+                  This build doesn't include native Apple Music support yet.
                 </div>
                 <div className="text-[10px] text-slate-400 leading-snug">
-                  To use your own Apple Music playlists, open <span className="font-semibold text-blue-300">coldstreakapp.com</span> in
+                  Update to the latest TestFlight build, or open <span className="font-semibold text-blue-300">coldstreakapp.com</span> in
                   Safari, link your account there, then paste a playlist URL here using the "+ Paste custom Spotify / Apple Music URL…" option.
-                  Spotify works normally inside the app.
                 </div>
               </div>
             )}
 
-            {/* Apple Music connection panel — browser-side, no ColdStreak login needed */}
-            {!IS_NATIVE_APP && appleAvailable && (
+            {/* Apple Music connection panel — works for both web (MusicKit JS)
+                  and native (ColdstreakMusickit Capacitor plugin) since
+                  appleMusic.ts auto-routes between them. */}
+            {appleAvailable === true && (
               <div className="mb-4 p-3 rounded-xl bg-pink-950/20 border border-pink-800/40">
                 <div className="flex items-center gap-2 mb-2">
                   <SiApplemusic className="w-4 h-4 text-pink-400" />

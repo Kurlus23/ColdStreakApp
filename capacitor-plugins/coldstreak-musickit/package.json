@@ -1,0 +1,22 @@
+{
+  "name": "coldstreak-musickit",
+  "version": "0.1.0",
+  "description": "Native iOS MusicKit bridge for ColdStreak (Capacitor plugin)",
+  "main": "src/index.ts",
+  "types": "src/definitions.ts",
+  "files": [
+    "ios/",
+    "src/",
+    "ColdstreakMusickit.podspec",
+    "README.md"
+  ],
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": "^6.0.0 || ^7.0.0"
+  },
+  "license": "MIT"
+}
