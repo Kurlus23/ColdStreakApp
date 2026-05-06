@@ -636,7 +636,8 @@ export async function registerRoutes(
       res.send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${ok ? "Spotify connected" : "Spotify connection failed"}</title>
 <style>body{font-family:-apple-system,system-ui,sans-serif;background:#0b1220;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:1.5rem;text-align:center}.card{max-width:380px;background:#162033;border:1px solid #1e3a5f;border-radius:16px;padding:1.75rem}.ok{color:#34d399}.err{color:#f87171}h1{font-size:1.1rem;margin:.5rem 0}p{font-size:.85rem;color:#94a3b8;margin:.5rem 0 1rem}button{background:#06b6d4;color:white;border:0;padding:.6rem 1.25rem;border-radius:9999px;font-weight:600;font-size:.85rem;cursor:pointer}</style>
 </head><body><div class="card"><div class="${ok ? 'ok' : 'err'}" style="font-size:2rem">${ok ? '✓' : '✕'}</div><h1>${ok ? 'Spotify connected!' : 'Connection failed'}</h1><p>${safe}</p><button onclick="window.close()">Close window</button></div>
-<script>try{if(window.opener){window.opener.postMessage({type:'spotify:${ok ? 'connected' : 'error'}'},'*');}}catch(e){}setTimeout(function(){try{window.close();}catch(e){}},800);</script>
+<script>(function(){var hasOpener=false;try{hasOpener=!!window.opener;}catch(e){}if(hasOpener){try{window.opener.postMessage({type:'spotify:${ok ? 'connected' : 'error'}'},'*');}catch(e){}setTimeout(function(){try{window.close();}catch(e){}},800);}else{// No opener (full-page redirect flow used by native WebView). Bounce back to the app.
+setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'error'}');},${ok ? 600 : 1500});}})();</script>
 </body></html>`);
     };
     if (errParam) return renderClose(false, `Spotify returned: ${errParam}`);

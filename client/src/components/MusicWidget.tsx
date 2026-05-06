@@ -252,11 +252,27 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
 
   const handleConnect = useCallback(async () => {
     if (!isLoggedIn) return;
-    // Mobile Safari (and Capacitor's WebView) only allows window.open during a
-    // synchronous user-gesture handler. If we wait for the /api/spotify/login
-    // network round-trip first, the popup gets blocked or opens a blank Safari
-    // tab. So: open about:blank synchronously NOW, then redirect it once we
-    // have the auth URL.
+    // In Capacitor (TestFlight/Play), popups don't work — `window.open` opens
+    // an isolated WebView with no `window.opener`, so the auth result can't be
+    // postMessaged back. Use a full-page redirect within the same WebView
+    // instead. Spotify will redirect back to /api/spotify/callback (still on
+    // coldstreakapp.com → still inside the WKWebView), which then bounces to
+    // /?spotify=connected. The home page picks that up and refreshes state.
+    if (IS_NATIVE_APP) {
+      try {
+        setConnecting(true);
+        const res = await apiRequest("GET", "/api/spotify/login");
+        const data = await res.json() as { url: string };
+        if (!data?.url) { setConnecting(false); return; }
+        window.location.href = data.url;
+      } catch (err) {
+        console.error("[spotify] connect failed", err);
+        setConnecting(false);
+      }
+      return;
+    }
+    // Web flow: popup-based, so we keep the synchronous about:blank trick to
+    // avoid Safari's popup blocker.
     const popup = window.open("about:blank", "spotify-oauth", "width=520,height=720");
     try {
       setConnecting(true);
@@ -279,6 +295,26 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
       setConnecting(false);
     }
   }, [isLoggedIn]);
+
+  // After a full-page Spotify auth redirect (native flow), the callback bounces
+  // us back to "/?spotify=connected" or "/?spotify=error". Detect that on
+  // mount and refresh the connection status + show a toast-like state.
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const sp = params.get("spotify");
+      if (!sp) return;
+      if (sp === "connected") {
+        queryClient.invalidateQueries({ queryKey: ["/api/spotify/me"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/spotify/playlists"] });
+      }
+      // Clean the query string so refresh doesn't re-trigger.
+      params.delete("spotify");
+      const newSearch = params.toString();
+      const newUrl = window.location.pathname + (newSearch ? `?${newSearch}` : "") + window.location.hash;
+      window.history.replaceState({}, "", newUrl);
+    } catch { /* ignore */ }
+  }, []);
 
   const handlePlay = useCallback(() => {
     if (!config.url) { setShowSettings(true); return; }
