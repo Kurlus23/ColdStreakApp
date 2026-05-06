@@ -1,0 +1,245 @@
+From 1fbbe5df5f24830da9072fbd4988fd1fcbfbd89d Mon Sep 17 00:00:00 2001
+From: Kurlus23 <55880794-Kurlus23@users.noreply.replit.com>
+Date: Mon, 4 May 2026 18:34:05 +0000
+Subject: [PATCH] Make cold plunge timer survive app backgrounding and restarts
+
+Implement localStorage persistence for the active plunge session, wall-clock based timer calculations, and restore logic on app resume to ensure timer continuity across backgrounding and process kills.
+
+Replit-Commit-Author: Agent
+Replit-Commit-Session-Id: 11c16b3a-d784-4ff7-901a-9eb80c03b6f8
+Replit-Commit-Checkpoint-Type: full_checkpoint
+Replit-Commit-Event-Id: 022a2c88-a593-4401-8d4c-506b5663727f
+Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/6999a82a-9043-4c04-9f8b-e10a8f4fc011/11c16b3a-d784-4ff7-901a-9eb80c03b6f8/yOfmGTa
+Replit-Helium-Checkpoint-Created: true
+---
+ .../src/.generated/mockup-components.ts       |  2 +-
+ client/src/pages/Home.tsx                     | 98 +++++++++++++++++--
+ replit.md                                     |  1 +
+ 3 files changed, 90 insertions(+), 11 deletions(-)
+
+diff --git a/artifacts/mockup-sandbox/src/.generated/mockup-components.ts b/artifacts/mockup-sandbox/src/.generated/mockup-components.ts
+index 1b3a86a..58eb9a1 100644
+--- a/artifacts/mockup-sandbox/src/.generated/mockup-components.ts
++++ b/artifacts/mockup-sandbox/src/.generated/mockup-components.ts
+@@ -3,11 +3,11 @@ type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
+ export const modules: ModuleMap = {
+   "./components/mockups/bg-compare/FrostLake.tsx": () => import("../components/mockups/bg-compare/FrostLake.tsx"),
+   "./components/mockups/bg-compare/IceCave.tsx": () => import("../components/mockups/bg-compare/IceCave.tsx"),
+-  "./components/mockups/biz-profile/VerifiedProfile.tsx": () => import("../components/mockups/biz-profile/VerifiedProfile.tsx"),
+   "./components/mockups/founding-badge/AchievementsCard.tsx": () => import("../components/mockups/founding-badge/AchievementsCard.tsx"),
+   "./components/mockups/founding-badge/BadgeProfileHeader.tsx": () => import("../components/mockups/founding-badge/BadgeProfileHeader.tsx"),
+   "./components/mockups/founding-badge/LeaderboardEntry.tsx": () => import("../components/mockups/founding-badge/LeaderboardEntry.tsx"),
+   "./components/mockups/founding-badge/UpgradeBanner.tsx": () => import("../components/mockups/founding-badge/UpgradeBanner.tsx"),
++  "./components/mockups/biz-profile/VerifiedProfile.tsx": () => import("../components/mockups/biz-profile/VerifiedProfile.tsx"),
+   "./components/mockups/nav-preview/DevicesScreen.tsx": () => import("../components/mockups/nav-preview/DevicesScreen.tsx"),
+   "./components/mockups/nav-preview/TimerScreen.tsx": () => import("../components/mockups/nav-preview/TimerScreen.tsx")
+ };
+diff --git a/client/src/pages/Home.tsx b/client/src/pages/Home.tsx
+index c91d9b8..3e841cb 100644
+--- a/client/src/pages/Home.tsx
++++ b/client/src/pages/Home.tsx
+@@ -75,6 +75,7 @@ const ALARM_PRESETS = [
+   { id: "bell",          label: "Bell",           url: "https://actions.google.com/sounds/v1/alarms/medium_bell_ringing_near.ogg", gain: 1.0 },
+ ];
+ const CUSTOM_ALARM_DURATION_MS = 5000;
++const ACTIVE_SESSION_KEY = "coldstreak-active-session";
+ 
+ interface AlarmHandle { stop: () => void }
+ 
+@@ -210,6 +211,8 @@ export default function Home() {
+   // Stopwatch
+   const [seconds, setSeconds] = useState(0);
+   const [isRunning, setIsRunning] = useState(false);
++  const isRunningRef = useRef(false);
++  const countdownRunningRef = useRef(false);
+   const [temperature, setTemperature] = useState<number>(
+     () => Math.min(60, Math.max(25, Number(localStorage.getItem("coldstreak-temperature") ?? 50)))
+   );
+@@ -2376,30 +2379,93 @@ export default function Home() {
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [temperature, createPlunge, toast, backgroundSync]);
+ 
+-  // Stopwatch
++  // Keep running-state refs in sync for stale-closure-safe restore
++  useEffect(() => { isRunningRef.current = isRunning; }, [isRunning]);
++  useEffect(() => { countdownRunningRef.current = countdownRunning; }, [countdownRunning]);
++
++  // Stopwatch — wall-clock based so it survives iOS background throttling
+   useEffect(() => {
+     let interval: NodeJS.Timeout;
+-    if (isRunning) interval = setInterval(() => setSeconds((s) => s + 1), 1000);
++    if (isRunning && startTimeRef.current) {
++      interval = setInterval(() => {
++        setSeconds(Math.floor((Date.now() - startTimeRef.current!) / 1000));
++      }, 1000);
++    }
+     return () => clearInterval(interval);
+   }, [isRunning]);
+ 
+-  // Countdown
++  // Countdown — wall-clock based so it survives iOS background throttling
++  const countdownStartRef = useRef<number | null>(null);
+   useEffect(() => {
+     let interval: NodeJS.Timeout;
+-    if (countdownRunning && countdown > 0) interval = setInterval(() => {
+-      setCountdown((c) => c - 1);
+-      setCountdownElapsed((e) => e + 1);
+-    }, 1000);
++    if (countdownRunning && countdown > 0 && countdownStartRef.current) {
++      interval = setInterval(() => {
++        const elapsed = Math.floor((Date.now() - countdownStartRef.current!) / 1000);
++        const remaining = Math.max(0, countdownTotalRef.current - elapsed);
++        setCountdown(remaining);
++        setCountdownElapsed(Math.min(elapsed, countdownTotalRef.current));
++      }, 1000);
++    }
+     if (countdownRunning && countdown === 0) {
+       setCountdownRunning(false);
+       const targetDuration = minutesInput * 60 + secondsInput;
+       doLogPlunge(targetDuration);
+       alarmRef.current = playAlarm(alarmUrl, alarmLabel, alarmIsCustom, alarmIsCustom ? CUSTOM_ALARM_DURATION_MS : undefined);
++      localStorage.removeItem(ACTIVE_SESSION_KEY);
+     }
+     return () => clearInterval(interval);
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [countdownRunning, countdown]);
+ 
++  // Restore active plunge session from localStorage (survives iOS WebView kill)
++  useEffect(() => {
++    const restore = () => {
++      const saved = localStorage.getItem(ACTIVE_SESSION_KEY);
++      if (!saved) return;
++      try {
++        const s = JSON.parse(saved);
++        if (typeof s.startTime !== "number" || typeof s.mode !== "string") {
++          localStorage.removeItem(ACTIVE_SESSION_KEY);
++          return;
++        }
++        const elapsed = Math.max(0, Math.floor((Date.now() - s.startTime) / 1000));
++        if (s.mode === "stopwatch") {
++          if (!isRunningRef.current) {
++            startTimeRef.current = s.startTime;
++            setSeconds(elapsed);
++            setIsRunning(true);
++          }
++        } else if (s.mode === "countdown") {
++          if (!countdownRunningRef.current && typeof s.countdownTotal === "number" && s.countdownTotal > 0) {
++            const remaining = Math.max(0, s.countdownTotal - elapsed);
++            setCountdownMode(true);
++            if (typeof s.minutesInput === "number") setMinutesInput(s.minutesInput);
++            if (typeof s.secondsInput === "number") setSecondsInput(s.secondsInput);
++            countdownTotalRef.current = s.countdownTotal;
++            countdownStartRef.current = s.startTime;
++            if (remaining > 0) {
++              setCountdown(remaining);
++              setCountdownElapsed(Math.min(elapsed, s.countdownTotal));
++              setCountdownRunning(true);
++            } else {
++              setCountdown(0);
++              setCountdownElapsed(s.countdownTotal);
++              setCountdownRunning(true);
++            }
++          }
++        }
++      } catch { localStorage.removeItem(ACTIVE_SESSION_KEY); }
++    };
++
++    restore();
++
++    const sub = CapApp.addListener("appStateChange", ({ isActive }) => {
++      if (isActive) restore();
++    });
++    return () => { sub.then(h => h.remove()).catch(() => {}); };
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, []);
++
+   // Screen Wake Lock — keep display on while timer is running
+   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+   useEffect(() => {
+@@ -2442,13 +2508,18 @@ export default function Home() {
+     if (countdownMode) {
+       const total = minutesInput * 60 + secondsInput;
+       if (total <= 0) { toast({ title: "Set a duration first", variant: "destructive" }); return; }
++      const now = Date.now();
+       countdownTotalRef.current = total;
++      countdownStartRef.current = now;
+       setCountdownElapsed(0);
+       setCountdown(total);
+       setCountdownRunning(true);
++      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "countdown", startTime: now, countdownTotal: total, minutesInput, secondsInput }));
+     } else {
+-      startTimeRef.current = Date.now();
++      const now = Date.now();
++      startTimeRef.current = now;
+       setIsRunning(true);
++      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "stopwatch", startTime: now }));
+     }
+   };
+ 
+@@ -2459,12 +2530,14 @@ export default function Home() {
+         const totalDuration = minutesInput * 60 + secondsInput;
+         const elapsed = totalDuration - countdown;
+         if (elapsed > 0) {
+-          const startedAt = new Date(Date.now() - elapsed * 1000);
++          const startedAt = countdownStartRef.current ? new Date(countdownStartRef.current) : new Date(Date.now() - elapsed * 1000);
+           doLogPlunge(elapsed, startedAt);
+           setCountdown(0);
+         } else {
+           resetCountdown();
+         }
++        countdownStartRef.current = null;
++        localStorage.removeItem(ACTIVE_SESSION_KEY);
+         return;
+       }
+       if (countdown > 0) { resetCountdown(); return; }
+@@ -2483,22 +2556,25 @@ export default function Home() {
+         setIsRunning(false);
+         startTimeRef.current = null;
+       }
++      localStorage.removeItem(ACTIVE_SESSION_KEY);
+     }
+   };
+ 
+   const handleReset = () => {
+     if (countdownMode) { resetCountdown(); }
+     else { setSeconds(0); setIsRunning(false); startTimeRef.current = null; }
+-    // Clear HR session readings so avg is fresh for next plunge
+     hrReadingsRef.current = [];
+     setHrPeak(null);
++    localStorage.removeItem(ACTIVE_SESSION_KEY);
+   };
+ 
+   const resetCountdown = () => {
+     setCountdownRunning(false);
+     setCountdown(0);
+     setCountdownElapsed(0);
++    countdownStartRef.current = null;
+     if (alarmRef.current) { alarmRef.current.stop(); alarmRef.current = null; }
++    localStorage.removeItem(ACTIVE_SESSION_KEY);
+   };
+ 
+   const enableNotifications = async () => {
+@@ -2817,6 +2893,8 @@ export default function Home() {
+                   setCountdown(0);
+                   setCountdownRunning(false);
+                   startTimeRef.current = null;
++                  countdownStartRef.current = null;
++                  localStorage.removeItem(ACTIVE_SESSION_KEY);
+                 }}
+                 className="flex items-center justify-center gap-1 text-blue-300 hover:text-cyan-300 transition-colors text-[9px] uppercase tracking-widest focus:outline-none group w-full min-h-[2.5em] leading-tight"
+                 title="Tap to switch mode"
+diff --git a/replit.md b/replit.md
+index 293612a..44153ac 100644
+--- a/replit.md
++++ b/replit.md
+@@ -41,6 +41,7 @@ Uses a `clientId` for anonymous plunge tracking, linkable to a `userId` upon acc
+ - **Business Owner v1 Polish**: Boot-time slug backfill for any verified listing missing one. Rate-limited click endpoint (`POST /api/community-locations/:id/click` — 30/min/IP/listing, 429 on excess). Open Graph link previews: dynamic 1200×630 SVG at `GET /api/og/biz/:slug.svg` plus a crawler-only HTML middleware at `GET /biz/:slug` that injects `og:`/`twitter:` meta tags for known social-media UAs (Facebook/Twitter/LinkedIn/Slack/WhatsApp/Telegram/Discord/Google/Bing/DuckDuckGo/Apple/Pinterest/Reddit/Embedly); browsers fall through to the SPA. Terms/Privacy gained "Verified Business Listings" sections.
+ - **Hardening**: `app.set("trust proxy", 1)` in `server/index.ts` so `req.ip` resolves to the real client IP behind exactly one trusted hop (Replit's deployment edge). Outbound URLs in invite emails and OG/crawler HTML are built from a single `getCanonicalOrigin()` helper (env `SITE_URL`, default `https://coldstreakapp.com`) — never from `req.get("host")` — to prevent Host-header poisoning. The crawler-vs-browser HTML at `/biz/:slug` sends `Vary: User-Agent` so shared caches don't serve the wrong variant to the wrong audience.
+ - **Store-Compliance Parity (iOS / Android / Web)**: Subscription-management UX, auto-renew disclosure, and account-deletion cancel-billing guidance branch three ways on `Capacitor.getPlatform()` rather than "iOS vs everything else." iOS deep-links to `itms-apps://apps.apple.com/account/subscriptions`; Android deep-links to `https://play.google.com/store/account/subscriptions` (which the Play Store app intercepts); web opens the Stripe billing portal. The auto-renew disclosure inside the Pro upgrade modal cites Apple ID + iPhone Settings on iOS, Google Play account + Play Store path on Android, and Stripe + Settings on web. Both the in-app delete-account modal in `Home.tsx` and the standalone `/delete-account` page list iPhone, Android, and Web cancellation paths. The BusinessDashboard "Manage subscription" panel exposes all three store deep-links unconditionally so co-managers/admins can route owners regardless of which platform they originally subscribed on.
++- **Timer Background Persistence (May 2026)**: Both stopwatch and countdown timers now survive iOS/Android WebView backgrounding and process kills. On start, the active session's wall-clock `startTime`, mode, and countdown parameters are persisted to `localStorage` under `coldstreak-active-session`. On mount and on `CapApp.appStateChange` resume, the restore effect reads the saved session, computes elapsed time from the wall clock, and resumes the timer at the correct position. Both timer intervals use wall-clock math (`Date.now() - startTime`) instead of increment-by-1 `setInterval`, so even brief background throttling self-corrects on the next tick. The saved session is cleared on stop, reset, mode switch, and countdown completion. Payload validation and ref-based running-state guards prevent stale-closure re-initialization and corrupt/malformed localStorage entries.
+ 
+ ## External Dependencies
+ - **PostgreSQL**: Primary database, accessed via Drizzle ORM.
+-- 
+2.50.1
+
