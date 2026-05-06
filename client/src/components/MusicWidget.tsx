@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Music, Play, Settings, X, ExternalLink, Check, Link2, Unlink, Loader2, Zap, ZapOff, VolumeX } from "lucide-react";
+import { Music, Play, Settings, X, ExternalLink, Check, Link2, Unlink, Loader2, Zap, ZapOff, VolumeX, Star, Trash2 } from "lucide-react";
 import { SiSpotify, SiApplemusic } from "react-icons/si";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -26,18 +26,47 @@ const CLEAR_VALUE = "__clear__";
 const CONNECT_VALUE = "__connect_spotify__";
 const CONNECT_APPLE_VALUE = "__connect_apple__";
 
-const PRESETS: { service: MusicService; label: string; url: string; emoji: string }[] = [
-  { service: "spotify", label: "Cold Plunge Focus", url: "https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ", emoji: "❄️" },
-  { service: "spotify", label: "Wim Hof Breathing", url: "https://open.spotify.com/playlist/37i9dQZF1DX9uKNf5jGX6m", emoji: "🌬️" },
-  { service: "spotify", label: "Deep Focus", url: "https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ", emoji: "🧘" },
-  { service: "spotify", label: "Workout Beast Mode", url: "https://open.spotify.com/playlist/37i9dQZF1DX76Wlfdnj7AP", emoji: "🔥" },
-  // Apple Music catalog playlists — work for any signed-in Apple Music user
-  // (no library required). Curated by Apple, stable IDs.
-  { service: "apple", label: "Pure Focus", url: "https://music.apple.com/us/playlist/pure-focus/pl.ec7c003feaf24a86b266f7d9943c5859", emoji: "🎯" },
-  { service: "apple", label: "Wind Down", url: "https://music.apple.com/us/playlist/wind-down/pl.dbc208c00ef944caaa852e7e95dafd76", emoji: "🌙" },
-  { service: "apple", label: "Pump Up", url: "https://music.apple.com/us/playlist/pump-up/pl.b6b78ad348ed4156b8a48d5d8bf6cd47", emoji: "💪" },
-  { service: "apple", label: "Power Workout", url: "https://music.apple.com/us/playlist/power-workout/pl.0ef59752c0cd457dbf1391f08cbd936f", emoji: "🔥" },
-];
+// User-pinned quick picks — playlists, artists, or radio stations the user
+// chose to keep on the front of the music widget. Persisted to localStorage.
+interface PinnedPick {
+  service: MusicService;
+  url: string;
+  label: string;
+}
+const PINS_KEY = "coldstreak-music-pinned";
+const MAX_PINS = 12;
+
+function loadPins(): PinnedPick[] {
+  try {
+    const raw = localStorage.getItem(PINS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((p) => p && typeof p === "object" && typeof p.url === "string" && typeof p.label === "string")
+      .map((p) => ({
+        service: (p.service === "apple" || p.service === "spotify") ? p.service : detectService(p.url),
+        url: p.url,
+        label: p.label,
+      }))
+      .filter((p) => p.service !== "none")
+      .slice(0, MAX_PINS);
+  } catch {
+    return [];
+  }
+}
+
+function savePins(pins: PinnedPick[]) {
+  try { localStorage.setItem(PINS_KEY, JSON.stringify(pins)); } catch {}
+}
+
+function pickKindLabel(url: string): string {
+  const u = url.toLowerCase();
+  if (u.includes("/station/") || u.includes("/radio")) return "Radio";
+  if (u.includes("/artist/")) return "Artist";
+  if (u.includes("/album/")) return "Album";
+  return "Playlist";
+}
 
 function loadConfig(): MusicConfig {
   try {
@@ -137,7 +166,28 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
   const [labelInput, setLabelInput] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [spotifyAuthError, setSpotifyAuthError] = useState<string | null>(null);
+  const [pins, setPins] = useState<PinnedPick[]>(() => loadPins());
+  const [pinAfterSave, setPinAfterSave] = useState(true);
   const lastConfig = useRef(config);
+  const lastPins = useRef(pins);
+
+  useEffect(() => {
+    if (lastPins.current !== pins) {
+      savePins(pins);
+      lastPins.current = pins;
+    }
+  }, [pins]);
+
+  const isPinned = useCallback((url: string) => pins.some((p) => p.url === url), [pins]);
+  const togglePin = useCallback((pick: PinnedPick) => {
+    setPins((prev) => {
+      if (prev.some((p) => p.url === pick.url)) return prev.filter((p) => p.url !== pick.url);
+      return [...prev, pick].slice(-MAX_PINS);
+    });
+  }, []);
+  const removePin = useCallback((url: string) => {
+    setPins((prev) => prev.filter((p) => p.url !== url));
+  }, []);
 
   useEffect(() => {
     if (lastConfig.current !== config) {
@@ -377,8 +427,8 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
     setConfig((prev) => ({ ...prev, service: "none", url: "", label: "" }));
   };
 
-  const handleSavePreset = (preset: typeof PRESETS[number]) => {
-    applyChoice(preset.service, preset.url, preset.label);
+  const handlePickPin = (pick: PinnedPick) => {
+    applyChoice(pick.service, pick.url, pick.label);
     setShowSettings(false);
   };
 
@@ -389,6 +439,9 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
     if (svc === "none") return;
     const label = labelInput.trim() || deriveLabel(u);
     applyChoice(svc, u, label);
+    if (pinAfterSave && !isPinned(u)) {
+      togglePin({ service: svc, url: u, label });
+    }
     setUrlInput("");
     setLabelInput("");
     setShowSettings(false);
@@ -403,7 +456,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
       clearPlaylist();
       return;
     }
-    // Match against user playlists first (Spotify or Apple), then presets.
+    // Match against user playlists first (Spotify or Apple), then pins.
     const userPick = userPlaylists.find((p) => p.url === val);
     if (userPick) {
       applyChoice("spotify", userPick.url, userPick.name);
@@ -414,17 +467,17 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
       applyChoice("apple", applePick.url, applePick.name);
       return;
     }
-    const preset = PRESETS.find((p) => p.url === val);
-    if (preset) handleSavePreset(preset);
+    const pin = pins.find((p) => p.url === val);
+    if (pin) handlePickPin(pin);
   };
 
-  // The dropdown's selected value: if current config matches a preset OR a user playlist,
+  // The dropdown's selected value: if current config matches a pin OR a user playlist,
   // use that URL. Custom URL → synthetic value so the dropdown shows the custom label.
-  const matchedPreset = PRESETS.find((p) => p.url === config.url);
+  const matchedPin = pins.find((p) => p.url === config.url);
   const matchedUserPick = userPlaylists.find((p) => p.url === config.url);
   const matchedApplePick = applePlaylists.find((p) => p.url === config.url);
-  const isCustomSaved = config.service !== "none" && !matchedPreset && !matchedUserPick && !matchedApplePick;
-  const selectValue = matchedPreset?.url ?? matchedUserPick?.url ?? matchedApplePick?.url ?? (isCustomSaved ? config.url : "");
+  const isCustomSaved = config.service !== "none" && !matchedPin && !matchedUserPick && !matchedApplePick;
+  const selectValue = matchedPin?.url ?? matchedUserPick?.url ?? matchedApplePick?.url ?? (isCustomSaved ? config.url : "");
 
   const ServiceIcon = config.service === "spotify" ? SiSpotify : config.service === "apple" ? SiApplemusic : Music;
   const serviceColor = config.service === "spotify" ? "text-green-400" : config.service === "apple" ? "text-pink-400" : "text-cyan-400";
@@ -483,13 +536,15 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
                   ))}
                 </optgroup>
               )}
-              <optgroup label="Quick picks">
-                {PRESETS.map((p) => (
-                  <option key={p.url + p.label} value={p.url}>
-                    {p.emoji} {p.label}
-                  </option>
-                ))}
-              </optgroup>
+              {pins.length > 0 && (
+                <optgroup label="My quick picks">
+                  {pins.map((p) => (
+                    <option key={p.url} value={p.url}>
+                      ⭐ {p.label}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
               {isLoggedIn && !isSpotifyConnected && (
                 <option value={CONNECT_VALUE}>🔗 Connect Spotify to see your playlists…</option>
               )}
@@ -721,29 +776,46 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
                   {applePlaylists.map((p) => {
                     const isActive = config.url === p.url;
                     return (
-                      <button
+                      <div
                         key={p.id}
-                        data-testid={`button-apple-playlist-${p.id}`}
-                        onClick={() => { applyChoice("apple", p.url, p.name); setShowSettings(false); }}
-                        className={`w-full text-left p-2 rounded-lg border transition-all flex items-center gap-2 ${
+                        className={`p-2 rounded-lg border transition-all flex items-center gap-2 ${
                           isActive
                             ? "border-pink-500 bg-pink-900/30 text-white"
                             : "border-slate-700/60 bg-slate-800/40 hover:border-pink-600/60 hover:bg-slate-800/70 text-slate-200"
                         }`}
                       >
-                        {p.imageUrl ? (
-                          <img src={p.imageUrl} alt="" className="w-8 h-8 rounded shrink-0 object-cover" />
-                        ) : (
-                          <div className="w-8 h-8 rounded shrink-0 bg-pink-950/50 flex items-center justify-center">
-                            <SiApplemusic className="w-4 h-4 text-pink-400" />
+                        <button
+                          data-testid={`button-apple-playlist-${p.id}`}
+                          onClick={() => { applyChoice("apple", p.url, p.name); setShowSettings(false); }}
+                          className="flex-1 min-w-0 text-left flex items-center gap-2"
+                        >
+                          {p.imageUrl ? (
+                            <img src={p.imageUrl} alt="" className="w-8 h-8 rounded shrink-0 object-cover" />
+                          ) : (
+                            <div className="w-8 h-8 rounded shrink-0 bg-pink-950/50 flex items-center justify-center">
+                              <SiApplemusic className="w-4 h-4 text-pink-400" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[12px] font-semibold truncate">{p.name}</div>
+                            {p.trackCount > 0 && <div className="text-[10px] text-slate-400">{p.trackCount} track{p.trackCount === 1 ? "" : "s"}</div>}
                           </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[12px] font-semibold truncate">{p.name}</div>
-                          {p.trackCount > 0 && <div className="text-[10px] text-slate-400">{p.trackCount} track{p.trackCount === 1 ? "" : "s"}</div>}
-                        </div>
-                        {isActive && <Check className="w-4 h-4 text-pink-400 shrink-0" />}
-                      </button>
+                          {isActive && <Check className="w-4 h-4 text-pink-400 shrink-0" />}
+                        </button>
+                        <button
+                          data-testid={`button-apple-playlist-pin-${p.id}`}
+                          onClick={() => togglePin({ service: "apple", url: p.url, label: p.name })}
+                          className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                            isPinned(p.url)
+                              ? "bg-yellow-500/20 text-yellow-300 hover:text-yellow-200"
+                              : "bg-slate-900/60 text-slate-500 hover:text-yellow-400"
+                          }`}
+                          aria-label={isPinned(p.url) ? `Unpin ${p.name} from quick picks` : `Pin ${p.name} to quick picks`}
+                          title={isPinned(p.url) ? "Unpin from quick picks" : "Pin to quick picks"}
+                        >
+                          <Star className={`w-3.5 h-3.5 ${isPinned(p.url) ? "fill-yellow-400" : ""}`} />
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -760,29 +832,46 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
                   {userPlaylists.map((p) => {
                     const isActive = config.url === p.url;
                     return (
-                      <button
+                      <div
                         key={p.id}
-                        data-testid={`button-spotify-playlist-${p.id}`}
-                        onClick={() => { applyChoice("spotify", p.url, p.name); setShowSettings(false); }}
-                        className={`w-full text-left flex items-center gap-2 p-2 rounded-lg border transition-all active:scale-[0.99] ${
+                        className={`flex items-center gap-2 p-2 rounded-lg border transition-all ${
                           isActive
                             ? "bg-cyan-950/60 border-cyan-500/60 text-white"
                             : "bg-slate-800/60 border-slate-700/60 text-slate-200 hover:border-cyan-500/40"
                         }`}
                       >
-                        {p.imageUrl ? (
-                          <img src={p.imageUrl} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
-                        ) : (
-                          <div className="w-8 h-8 rounded bg-slate-700 flex items-center justify-center shrink-0">
-                            <SiSpotify className="w-4 h-4 text-green-400" />
+                        <button
+                          data-testid={`button-spotify-playlist-${p.id}`}
+                          onClick={() => { applyChoice("spotify", p.url, p.name); setShowSettings(false); }}
+                          className="flex-1 min-w-0 text-left flex items-center gap-2 active:scale-[0.99]"
+                        >
+                          {p.imageUrl ? (
+                            <img src={p.imageUrl} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
+                          ) : (
+                            <div className="w-8 h-8 rounded bg-slate-700 flex items-center justify-center shrink-0">
+                              <SiSpotify className="w-4 h-4 text-green-400" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-semibold truncate">{p.name}</div>
+                            <div className="text-[10px] text-slate-400 truncate">{p.trackCount} tracks{p.owner ? ` · ${p.owner}` : ""}</div>
                           </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold truncate">{p.name}</div>
-                          <div className="text-[10px] text-slate-400 truncate">{p.trackCount} tracks{p.owner ? ` · ${p.owner}` : ""}</div>
-                        </div>
-                        {isActive && <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
-                      </button>
+                          {isActive && <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
+                        </button>
+                        <button
+                          data-testid={`button-spotify-playlist-pin-${p.id}`}
+                          onClick={() => togglePin({ service: "spotify", url: p.url, label: p.name })}
+                          className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                            isPinned(p.url)
+                              ? "bg-yellow-500/20 text-yellow-300 hover:text-yellow-200"
+                              : "bg-slate-900/60 text-slate-500 hover:text-yellow-400"
+                          }`}
+                          aria-label={isPinned(p.url) ? `Unpin ${p.name} from quick picks` : `Pin ${p.name} to quick picks`}
+                          title={isPinned(p.url) ? "Unpin from quick picks" : "Pin to quick picks"}
+                        >
+                          <Star className={`w-3.5 h-3.5 ${isPinned(p.url) ? "fill-yellow-400" : ""}`} />
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -790,37 +879,69 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
             )}
 
             <div className="mb-4">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-blue-300 mb-2">Quick picks</div>
-              <div className="grid grid-cols-2 gap-2">
-                {PRESETS.map((p) => {
-                  const isActive = config.url === p.url;
-                  const isApple = p.service === "apple";
-                  return (
-                    <button
-                      key={p.url + p.label}
-                      data-testid={`button-music-preset-${p.label.toLowerCase().replace(/\s+/g, "-")}`}
-                      onClick={() => handleSavePreset(p)}
-                      className={`text-left p-2.5 rounded-xl border transition-all active:scale-95 ${
-                        isActive
-                          ? "bg-cyan-950/60 border-cyan-500/60 text-white"
-                          : "bg-slate-800/60 border-slate-700/60 text-slate-200 hover:border-cyan-500/40"
-                      }`}
-                    >
-                      <div className="flex items-start gap-1.5">
-                        <span className="text-base leading-none">{p.emoji}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold truncate">{p.label}</div>
-                          <div className={`text-[10px] flex items-center gap-1 mt-0.5 ${isApple ? "text-pink-400" : "text-green-400"}`}>
-                            {isApple ? <SiApplemusic className="w-2.5 h-2.5" /> : <SiSpotify className="w-2.5 h-2.5" />}
-                            {isApple ? "Apple Music" : "Spotify"}
-                          </div>
-                        </div>
-                        {isActive && <Check className="w-3 h-3 text-cyan-400 shrink-0" />}
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-blue-300">My quick picks</div>
+                {pins.length > 0 && (
+                  <div className="text-[10px] text-slate-500">{pins.length}/{MAX_PINS}</div>
+                )}
               </div>
+              {pins.length === 0 ? (
+                <div
+                  data-testid="text-music-pins-empty"
+                  className="p-3 rounded-xl bg-slate-800/40 border border-dashed border-slate-700/60 text-[11px] text-slate-300 leading-relaxed"
+                >
+                  No quick picks yet. Tap the ⭐ next to any of your Spotify or Apple Music playlists below to pin it here.
+                  Or paste a link to an artist, playlist, or radio station and check "Pin to quick picks".
+                  <div className="mt-1.5 text-[10px] text-slate-400">
+                    💡 Apple Music radio stations work too — open one in Apple Music, tap Share → Copy Link.
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {pins.map((p) => {
+                    const isActive = config.url === p.url;
+                    const isApple = p.service === "apple";
+                    const kind = pickKindLabel(p.url);
+                    return (
+                      <div
+                        key={p.url}
+                        className={`relative text-left p-2.5 rounded-xl border transition-all ${
+                          isActive
+                            ? "bg-cyan-950/60 border-cyan-500/60 text-white"
+                            : "bg-slate-800/60 border-slate-700/60 text-slate-200 hover:border-cyan-500/40"
+                        }`}
+                      >
+                        <button
+                          data-testid={`button-music-pin-${p.url.slice(-12)}`}
+                          onClick={() => handlePickPin(p)}
+                          className="w-full text-left pr-5"
+                        >
+                          <div className="flex items-start gap-1.5">
+                            <Star className="w-3 h-3 text-yellow-400 fill-yellow-400 shrink-0 mt-0.5" />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-semibold truncate">{p.label}</div>
+                              <div className={`text-[10px] flex items-center gap-1 mt-0.5 ${isApple ? "text-pink-400" : "text-green-400"}`}>
+                                {isApple ? <SiApplemusic className="w-2.5 h-2.5" /> : <SiSpotify className="w-2.5 h-2.5" />}
+                                {kind}
+                              </div>
+                            </div>
+                            {isActive && <Check className="w-3 h-3 text-cyan-400 shrink-0" />}
+                          </div>
+                        </button>
+                        <button
+                          data-testid={`button-music-pin-remove-${p.url.slice(-12)}`}
+                          onClick={(e) => { e.stopPropagation(); removePin(p.url); }}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full text-slate-500 hover:text-red-400 hover:bg-slate-900/60 flex items-center justify-center"
+                          aria-label={`Remove ${p.label} from quick picks`}
+                          title="Remove from quick picks"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="mb-4">
@@ -841,16 +962,27 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
                 onChange={(e) => setLabelInput(e.target.value)}
                 className="w-full mt-2 px-3 py-2 bg-slate-800/80 border border-slate-700 rounded-lg text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
               />
+              <label className="flex items-center gap-2 mt-2 text-[11px] text-slate-300 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  data-testid="checkbox-music-pin-after-save"
+                  checked={pinAfterSave}
+                  onChange={(e) => setPinAfterSave(e.target.checked)}
+                  className="w-4 h-4 accent-yellow-500"
+                />
+                Pin to quick picks
+              </label>
               <button
                 data-testid="button-save-music-custom"
                 onClick={handleSaveCustom}
                 disabled={!urlInput.trim() || detectService(urlInput) === "none"}
                 className="w-full mt-2 py-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-sm font-semibold transition-all active:scale-95"
               >
-                Save custom playlist
+                Save playlist
               </button>
               <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
-                Tip: open Spotify or Apple Music, find a playlist or station, tap Share → Copy Link, then paste here.
+                Works with Spotify and Apple Music links — playlists, artists, albums, or radio stations.
+                In each app, tap Share → Copy Link, then paste here.
               </p>
             </div>
 
