@@ -56,4 +56,4 @@ VITE_VAPID_PUBLIC_KEY = "BBAx6BR8nXtRJYMBvC_IhHyel8eAwnoA2x58WWMhDLkvjgBrNlnoxJC
 USE_STRIPE_TEST = "false"
 
 [agent]
-integrations = ["javascript_object_storage:2.0.0"]
+integrations = ["javascript_object_storage:2.0.0", "spotify:1.0.0"]
