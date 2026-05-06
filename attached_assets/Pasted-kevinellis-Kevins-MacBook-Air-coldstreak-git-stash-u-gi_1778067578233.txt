@@ -1,0 +1,52 @@
+kevinellis@Kevins-MacBook-Air coldstreak % git stash -u
+git am timer-background-fix.patch.txt
+git stash pop
+Saved working directory and index state WIP on main: 56f9e7b Merge branch 'main' of https://github.com/coldstreakapp/ColdStreak
+fatal: previous rebase directory .git/rebase-apply still exists but mbox given.
+On branch main
+You are in the middle of an am session.
+  (fix conflicts and then run "git am --continue")
+  (use "git am --skip" to skip this patch)
+  (use "git am --abort" to restore the original branch)
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	new file:   ios/App/ColdStreakWatch Watch App/Assets.xcassets/AccentColor.colorset/Contents.json
+	new file:   ios/App/ColdStreakWatch Watch App/Assets.xcassets/AppIcon.appiconset/ColdStreakIcon.png
+	new file:   ios/App/ColdStreakWatch Watch App/Assets.xcassets/AppIcon.appiconset/Contents.json
+	new file:   ios/App/ColdStreakWatch Watch App/Assets.xcassets/ColdStreakIcon.imageset/ColdStreakIcon.png
+	new file:   ios/App/ColdStreakWatch Watch App/Assets.xcassets/ColdStreakIcon.imageset/Contents.json
+	new file:   ios/App/ColdStreakWatch Watch App/Assets.xcassets/Contents.json
+	new file:   ios/App/ColdStreakWatch Watch App/ColdStreakWatch Watch AppRelease.entitlements
+	new file:   ios/App/ColdStreakWatch Watch App/Services/HRVService.swift
+	new file:   ios/App/ColdStreakWatch Watch App/Services/HapticService.swift
+	new file:   ios/App/ColdStreakWatch Watch App/Services/PhoneSyncService.swift
+	new file:   ios/App/ColdStreakWatch Watch App/Services/PlungeSession.swift
+	new file:   ios/App/ColdStreakWatch Watch App/Services/PlungeWorkoutManager.swift
+	new file:   ios/App/ColdStreakWatch Watch App/Views/PlungeView.swift
+	new file:   ios/App/ColdStreakWatch Watch App/Views/ReadyView.swift
+	new file:   ios/App/WatchSyncPlugin.swift
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   client/src/pages/Home.tsx
+	modified:   ios/App/App.xcodeproj/project.pbxproj
+	modified:   ios/App/App/Info.plist
+	modified:   ios/App/Podfile
+	modified:   ios/App/Podfile.lock
+	modified:   package-lock.json
+	modified:   package.json
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	ios/App/ColdStreakWatch Watch App/ColdStreakWatchApp.swift
+	ios/App/ColdStreakWatch Watch App/Views/RecoveryView.swift
+	ios/App/ColdStreakWatch Watch App/Views/SummaryView.swift
+	ios/App/ColdStreakWatch-Watch-App-Info.plist
+	ios/App/HealthKitPlugin.swift
+	timer-background-fix.patch.txt
+	watchos/
+
+Dropped refs/stash@{0} (373ff88e26c13a8276c33c7bd78ab1cbe8a1535b)
+kevinellis@Kevins-MacBook-Air coldstreak % 
