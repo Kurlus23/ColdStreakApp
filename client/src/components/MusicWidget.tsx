@@ -179,17 +179,30 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
 
   const handleConnect = useCallback(async () => {
     if (!isLoggedIn) return;
+    // Mobile Safari (and Capacitor's WebView) only allows window.open during a
+    // synchronous user-gesture handler. If we wait for the /api/spotify/login
+    // network round-trip first, the popup gets blocked or opens a blank Safari
+    // tab. So: open about:blank synchronously NOW, then redirect it once we
+    // have the auth URL.
+    const popup = window.open("about:blank", "spotify-oauth", "width=520,height=720");
     try {
       setConnecting(true);
       const res = await apiRequest("GET", "/api/spotify/login");
       const data = await res.json() as { url: string };
-      if (data?.url) {
-        // Try popup first; if blocked, fall back to top-level navigation in a new tab
-        const popup = window.open(data.url, "spotify-oauth", "width=520,height=720");
-        if (!popup) window.open(data.url, "_blank", "noopener,noreferrer");
+      if (!data?.url) {
+        if (popup && !popup.closed) popup.close();
+        setConnecting(false);
+        return;
+      }
+      if (popup && !popup.closed) {
+        try { popup.location.href = data.url; } catch { window.location.href = data.url; }
+      } else {
+        // Popup was blocked entirely — fall back to same-tab navigation.
+        window.location.href = data.url;
       }
     } catch (err) {
       console.error("[spotify] connect failed", err);
+      if (popup && !popup.closed) try { popup.close(); } catch {}
       setConnecting(false);
     }
   }, [isLoggedIn]);
