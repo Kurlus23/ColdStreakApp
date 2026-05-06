@@ -2831,6 +2831,17 @@ export default function Home() {
         </div>
       )}
 
+      {/* Music bar — slim full-width strip at top of timer screen with playlist dropdown */}
+      {screen === "timer" && (
+        <div
+          className={`absolute z-10 left-3 right-3 transition-all ${
+            auth.user && !auth.user.emailVerified && !verifyBannerDismissed ? "top-32" : "top-16"
+          }`}
+        >
+          <MusicWidget />
+        </div>
+      )}
+
       {/* ─── TIMER SCREEN ─── */}
       {screen === "timer" && (
         <div className="absolute bottom-20 left-0 right-0 px-3 pb-2">
@@ -3055,11 +3066,6 @@ export default function Home() {
             </div>
           </div>
 
-
-          {/* Music widget — auto-plays your playlist when timer starts (or use Play for free listen) */}
-          <div className="mb-3">
-            <MusicWidget />
-          </div>
 
           {/* Affiliate banner ad — in-content so it never overlaps readouts */}
           {!isPro && !showPostSessionAd && <BannerAd />}

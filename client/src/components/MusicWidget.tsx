@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Music, Play, Settings, X, ExternalLink, Check } from "lucide-react";
 import { SiSpotify, SiApplemusic } from "react-icons/si";
 
@@ -12,6 +12,8 @@ interface MusicConfig {
 }
 
 const STORAGE_KEY = "coldstreak-music-config";
+const CUSTOM_VALUE = "__custom__";
+const CLEAR_VALUE = "__clear__";
 
 const PRESETS: { service: MusicService; label: string; url: string; emoji: string }[] = [
   { service: "spotify", label: "Cold Plunge Focus", url: "https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ", emoji: "❄️" },
@@ -85,8 +87,14 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [labelInput, setLabelInput] = useState("");
+  const lastConfig = useRef(config);
 
-  useEffect(() => { saveConfig(config); }, [config]);
+  useEffect(() => {
+    if (lastConfig.current !== config) {
+      saveConfig(config);
+      lastConfig.current = config;
+    }
+  }, [config]);
 
   const handlePlay = useCallback(() => {
     if (!config.url) { setShowSettings(true); return; }
@@ -110,57 +118,85 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
     setShowSettings(false);
   };
 
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    if (val === CUSTOM_VALUE) { setShowSettings(true); return; }
+    if (val === CLEAR_VALUE) {
+      setConfig({ service: "none", url: "", label: "", autoPlay: config.autoPlay });
+      return;
+    }
+    const preset = PRESETS.find((p) => p.url === val);
+    if (preset) handleSavePreset(preset);
+  };
+
+  // The dropdown's selected value: if current config matches a preset, use that preset's URL.
+  // If it's a custom URL the user saved, use a synthetic value so the dropdown shows the custom label.
+  const matchedPreset = PRESETS.find((p) => p.url === config.url);
+  const isCustomSaved = config.service !== "none" && !matchedPreset;
+  const selectValue = matchedPreset ? matchedPreset.url : isCustomSaved ? config.url : "";
+
   const ServiceIcon = config.service === "spotify" ? SiSpotify : config.service === "apple" ? SiApplemusic : Music;
   const serviceColor = config.service === "spotify" ? "text-green-400" : config.service === "apple" ? "text-pink-400" : "text-cyan-400";
 
   return (
     <>
       <div
-        className={`bg-blue-900/75 backdrop-blur-md rounded-2xl p-3 border border-blue-700/40 ${className}`}
+        className={`bg-blue-900/75 backdrop-blur-md rounded-2xl border border-blue-700/40 shadow-lg shadow-black/30 ${className}`}
         data-testid="card-music-widget"
       >
-        <div className="flex items-center gap-2">
-          <div className={`shrink-0 w-9 h-9 rounded-full bg-blue-950/60 flex items-center justify-center ${serviceColor}`}>
-            <ServiceIcon className="w-4 h-4" />
+        <div className="flex items-center gap-1.5 px-2 py-1.5">
+          <div className={`shrink-0 w-7 h-7 rounded-full bg-blue-950/60 flex items-center justify-center ${serviceColor}`}>
+            <ServiceIcon className="w-3.5 h-3.5" />
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[9px] uppercase tracking-widest text-blue-300 leading-tight">Music</div>
-            <div className="text-xs font-semibold text-white truncate" data-testid="text-music-label">
-              {config.label || "Choose a playlist"}
-            </div>
+
+          {/* Native dropdown — takes most of the width */}
+          <div className="flex-1 min-w-0 relative">
+            <select
+              data-testid="select-music-playlist"
+              value={selectValue}
+              onChange={handleSelectChange}
+              className="w-full appearance-none bg-blue-950/40 border border-blue-700/40 rounded-lg pl-2.5 pr-7 py-1.5 text-xs font-semibold text-white focus:outline-none focus:border-cyan-400 cursor-pointer truncate"
+              aria-label="Choose playlist"
+            >
+              {selectValue === "" && <option value="">🎵 Choose a playlist…</option>}
+              {isCustomSaved && <option value={config.url}>🎶 {config.label || "Custom playlist"}</option>}
+              <optgroup label="Quick picks">
+                {PRESETS.map((p) => (
+                  <option key={p.url + p.label} value={p.url}>
+                    {p.emoji} {p.label}
+                  </option>
+                ))}
+              </optgroup>
+              <option value={CUSTOM_VALUE}>＋ Paste custom Spotify / Apple Music URL…</option>
+              {config.service !== "none" && <option value={CLEAR_VALUE}>✕ Clear current playlist</option>}
+            </select>
+            {/* Custom caret */}
+            <svg
+              className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-blue-300"
+              viewBox="0 0 20 20" fill="currentColor"
+            >
+              <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+            </svg>
           </div>
+
           <button
             data-testid="button-music-play"
             onClick={handlePlay}
-            className="shrink-0 w-9 h-9 rounded-full bg-cyan-500 hover:bg-cyan-400 active:scale-95 transition-all text-white flex items-center justify-center shadow-lg shadow-cyan-500/30"
+            className="shrink-0 w-8 h-8 rounded-full bg-cyan-500 hover:bg-cyan-400 active:scale-95 transition-all text-white flex items-center justify-center shadow-md shadow-cyan-500/30"
             aria-label="Play music now"
-            title="Listen now (free mode)"
+            title="Listen now"
           >
-            <Play className="w-4 h-4 fill-white ml-0.5" />
+            <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
           </button>
           <button
             data-testid="button-music-settings"
             onClick={() => setShowSettings(true)}
-            className="shrink-0 w-9 h-9 rounded-full bg-blue-800/60 hover:bg-blue-700/60 active:scale-95 transition-all text-blue-200 flex items-center justify-center"
+            className="shrink-0 w-8 h-8 rounded-full bg-blue-800/60 hover:bg-blue-700/60 active:scale-95 transition-all text-blue-200 flex items-center justify-center"
             aria-label="Music settings"
           >
             <Settings className="w-3.5 h-3.5" />
           </button>
         </div>
-        {config.service !== "none" && (
-          <div className="flex items-center justify-between mt-2 pt-2 border-t border-blue-800/40">
-            <label className="flex items-center gap-1.5 text-[10px] text-blue-200 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                data-testid="checkbox-music-autoplay"
-                checked={config.autoPlay}
-                onChange={(e) => setConfig({ ...config, autoPlay: e.target.checked })}
-                className="w-3 h-3 accent-cyan-500"
-              />
-              Auto-play when timer starts
-            </label>
-          </div>
-        )}
       </div>
 
       {showSettings && (
@@ -251,6 +287,21 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
                 Tip: open Spotify or Apple Music, find a playlist or station, tap Share → Copy Link, then paste here.
               </p>
             </div>
+
+            {config.service !== "none" && (
+              <div className="mb-3 p-2.5 bg-slate-800/50 rounded-lg">
+                <label className="flex items-center gap-2 text-xs text-blue-100 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    data-testid="checkbox-music-autoplay"
+                    checked={config.autoPlay}
+                    onChange={(e) => setConfig({ ...config, autoPlay: e.target.checked })}
+                    className="w-4 h-4 accent-cyan-500"
+                  />
+                  Auto-launch playlist when timer starts
+                </label>
+              </div>
+            )}
 
             {config.service !== "none" && (
               <button
