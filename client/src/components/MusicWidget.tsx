@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Music, Play, Settings, X, ExternalLink, Check, Link2, Unlink, Loader2 } from "lucide-react";
+import { Music, Play, Settings, X, ExternalLink, Check, Link2, Unlink, Loader2, Zap, ZapOff, VolumeX } from "lucide-react";
 import { SiSpotify, SiApplemusic } from "react-icons/si";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -12,6 +12,7 @@ interface MusicConfig {
   url: string;
   label: string;
   autoPlay: boolean;
+  featureEnabled: boolean;
 }
 
 const STORAGE_KEY = "coldstreak-music-config";
@@ -37,11 +38,12 @@ function loadConfig(): MusicConfig {
           url: typeof parsed.url === "string" ? parsed.url : "",
           label: typeof parsed.label === "string" ? parsed.label : "",
           autoPlay: parsed.autoPlay !== false,
+          featureEnabled: parsed.featureEnabled !== false,
         };
       }
     }
   } catch {}
-  return { service: "none", url: "", label: "", autoPlay: true };
+  return { service: "none", url: "", label: "", autoPlay: true, featureEnabled: true };
 }
 
 function saveConfig(cfg: MusicConfig) {
@@ -68,6 +70,7 @@ function deriveLabel(url: string): string {
 
 export function openMusic(): boolean {
   const cfg = loadConfig();
+  if (!cfg.featureEnabled) return false;
   if (cfg.service === "none" || !cfg.url) return false;
   try {
     window.open(cfg.url, "_blank", "noopener,noreferrer");
@@ -79,7 +82,7 @@ export function openMusic(): boolean {
 
 export function shouldAutoPlay(): boolean {
   const cfg = loadConfig();
-  return cfg.autoPlay && cfg.service !== "none" && !!cfg.url;
+  return cfg.featureEnabled && cfg.autoPlay && cfg.service !== "none" && !!cfg.url;
 }
 
 interface SpotifyMeResponse {
@@ -213,7 +216,19 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
   }, [config.url]);
 
   const applyChoice = (service: MusicService, url: string, label: string) => {
-    setConfig({ service, url, label, autoPlay: config.autoPlay });
+    setConfig((prev) => ({ ...prev, service, url, label }));
+  };
+
+  const toggleAutoPlay = () => {
+    setConfig((prev) => ({ ...prev, autoPlay: !prev.autoPlay }));
+  };
+
+  const setFeatureEnabled = (enabled: boolean) => {
+    setConfig((prev) => ({ ...prev, featureEnabled: enabled }));
+  };
+
+  const clearPlaylist = () => {
+    setConfig((prev) => ({ ...prev, service: "none", url: "", label: "" }));
   };
 
   const handleSavePreset = (preset: typeof PRESETS[number]) => {
@@ -238,7 +253,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
     if (val === CUSTOM_VALUE) { setShowSettings(true); return; }
     if (val === CONNECT_VALUE) { handleConnect(); return; }
     if (val === CLEAR_VALUE) {
-      setConfig({ service: "none", url: "", label: "", autoPlay: config.autoPlay });
+      clearPlaylist();
       return;
     }
     // Match against user playlists first, then presets
@@ -263,6 +278,20 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
 
   return (
     <>
+      {!config.featureEnabled ? (
+        <div className={`flex justify-end ${className}`} data-testid="card-music-widget-collapsed">
+          <button
+            data-testid="button-music-reenable"
+            onClick={() => setShowSettings(true)}
+            className="flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-full bg-blue-950/60 hover:bg-blue-900/70 border border-blue-800/40 text-xs font-semibold text-blue-200 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+            aria-label="Music is off — tap to open music settings and re-enable"
+            title="Music is off — tap to enable"
+          >
+            <VolumeX className="w-4 h-4" />
+            Music off · Tap to enable
+          </button>
+        </div>
+      ) : (
       <div
         className={`bg-blue-900/75 backdrop-blur-md rounded-2xl border border-blue-700/40 shadow-lg shadow-black/30 ${className}`}
         data-testid="card-music-widget"
@@ -315,11 +344,24 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
           </div>
 
           <button
+            data-testid="button-music-autoplay-toggle"
+            onClick={toggleAutoPlay}
+            className={`shrink-0 w-8 h-8 rounded-full active:scale-95 transition-all flex items-center justify-center ${
+              config.autoPlay
+                ? "bg-cyan-950/70 text-cyan-300 hover:text-cyan-200 border border-cyan-500/40"
+                : "bg-blue-950/40 text-blue-400 hover:text-blue-200 border border-blue-800/40"
+            }`}
+            aria-label={config.autoPlay ? "Auto-launch with timer is ON — tap to turn off" : "Auto-launch with timer is OFF — tap to turn on"}
+            title={config.autoPlay ? "Auto-launch with timer: ON" : "Auto-launch with timer: OFF"}
+          >
+            {config.autoPlay ? <Zap className="w-3.5 h-3.5" /> : <ZapOff className="w-3.5 h-3.5" />}
+          </button>
+          <button
             data-testid="button-music-play"
             onClick={handlePlay}
             className="shrink-0 w-8 h-8 rounded-full bg-cyan-500 hover:bg-cyan-400 active:scale-95 transition-all text-white flex items-center justify-center shadow-md shadow-cyan-500/30"
             aria-label="Play music now"
-            title="Listen now"
+            title="Listen now (doesn't start the timer)"
           >
             <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
           </button>
@@ -333,6 +375,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
           </button>
         </div>
       </div>
+      )}
 
       {showSettings && (
         <div
@@ -357,6 +400,26 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
               >
                 <X className="w-4 h-4" />
               </button>
+            </div>
+
+            {/* Master feature toggle */}
+            <div className="mb-4 p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
+              <label className="flex items-center justify-between gap-3 cursor-pointer select-none">
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-white">Show music bar</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">
+                    Turn off to hide the music bar entirely. The timer will never auto-launch music.
+                    Note: this won't stop music already playing in Spotify or Apple Music — use that app to stop it.
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  data-testid="checkbox-music-feature-enabled"
+                  checked={config.featureEnabled}
+                  onChange={(e) => setFeatureEnabled(e.target.checked)}
+                  className="w-5 h-5 accent-cyan-500 shrink-0"
+                />
+              </label>
             </div>
 
             {/* Spotify connection panel */}
@@ -516,7 +579,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
                     type="checkbox"
                     data-testid="checkbox-music-autoplay"
                     checked={config.autoPlay}
-                    onChange={(e) => setConfig({ ...config, autoPlay: e.target.checked })}
+                    onChange={(e) => setConfig((prev) => ({ ...prev, autoPlay: e.target.checked }))}
                     className="w-4 h-4 accent-cyan-500"
                   />
                   Auto-launch playlist when timer starts
@@ -528,7 +591,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
               <button
                 data-testid="button-music-clear"
                 onClick={() => {
-                  setConfig({ service: "none", url: "", label: "", autoPlay: config.autoPlay });
+                  clearPlaylist();
                   setShowSettings(false);
                 }}
                 className="w-full py-2 text-xs text-slate-400 hover:text-red-400 transition-colors"
