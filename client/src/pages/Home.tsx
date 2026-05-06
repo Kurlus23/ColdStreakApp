@@ -2537,9 +2537,13 @@ export default function Home() {
 
   const handleStart = () => {
     Analytics.timerStarted();
+    // Validate countdown duration FIRST (so we don't open music for a bailed-out countdown),
+    // then launch music BEFORE starting the timer so the music app has a head start while the
+    // user is still on screen. Timer kicks off immediately after.
     if (countdownMode) {
       const total = minutesInput * 60 + secondsInput;
       if (total <= 0) { toast({ title: "Set a duration first", variant: "destructive" }); return; }
+      if (shouldAutoPlay()) { try { openMusic(); } catch {} }
       const now = Date.now();
       countdownTotalRef.current = total;
       countdownStartRef.current = now;
@@ -2548,13 +2552,12 @@ export default function Home() {
       setCountdownRunning(true);
       localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "countdown", startTime: now, countdownTotal: total, minutesInput, secondsInput }));
     } else {
+      if (shouldAutoPlay()) { try { openMusic(); } catch {} }
       const now = Date.now();
       startTimeRef.current = now;
       setIsRunning(true);
       localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "stopwatch", startTime: now }));
     }
-    // Auto-play music only after we've confirmed the timer actually starts (not bailed out)
-    if (shouldAutoPlay()) { try { openMusic(); } catch {} }
   };
 
   const handleStop = () => {
