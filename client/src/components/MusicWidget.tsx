@@ -31,6 +31,12 @@ const PRESETS: { service: MusicService; label: string; url: string; emoji: strin
   { service: "spotify", label: "Wim Hof Breathing", url: "https://open.spotify.com/playlist/37i9dQZF1DX9uKNf5jGX6m", emoji: "🌬️" },
   { service: "spotify", label: "Deep Focus", url: "https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ", emoji: "🧘" },
   { service: "spotify", label: "Workout Beast Mode", url: "https://open.spotify.com/playlist/37i9dQZF1DX76Wlfdnj7AP", emoji: "🔥" },
+  // Apple Music catalog playlists — work for any signed-in Apple Music user
+  // (no library required). Curated by Apple, stable IDs.
+  { service: "apple", label: "Pure Focus", url: "https://music.apple.com/us/playlist/pure-focus/pl.ec7c003feaf24a86b266f7d9943c5859", emoji: "🎯" },
+  { service: "apple", label: "Wind Down", url: "https://music.apple.com/us/playlist/wind-down/pl.dbc208c00ef944caaa852e7e95dafd76", emoji: "🌙" },
+  { service: "apple", label: "Pump Up", url: "https://music.apple.com/us/playlist/pump-up/pl.b6b78ad348ed4156b8a48d5d8bf6cd47", emoji: "💪" },
+  { service: "apple", label: "Power Workout", url: "https://music.apple.com/us/playlist/power-workout/pl.0ef59752c0cd457dbf1391f08cbd936f", emoji: "🔥" },
 ];
 
 function loadConfig(): MusicConfig {
@@ -130,6 +136,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
   const [urlInput, setUrlInput] = useState("");
   const [labelInput, setLabelInput] = useState("");
   const [connecting, setConnecting] = useState(false);
+  const [spotifyAuthError, setSpotifyAuthError] = useState<string | null>(null);
   const lastConfig = useRef(config);
 
   useEffect(() => {
@@ -323,8 +330,14 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
       const sp = params.get("spotify");
       if (!sp) return;
       if (sp === "connected") {
+        setSpotifyAuthError(null);
         queryClient.invalidateQueries({ queryKey: ["/api/spotify/me"] });
         queryClient.invalidateQueries({ queryKey: ["/api/spotify/playlists"] });
+      } else if (sp === "error") {
+        setSpotifyAuthError(
+          "Spotify sign-in didn't finish. If you signed up for Spotify with Facebook, set a Spotify password first at spotify.com/account, then try again here. Spotify accounts in Development Mode also need to be added to the testers list."
+        );
+        setShowSettings(true);
       }
       // Clean the query string so refresh doesn't re-trigger.
       params.delete("spotify");
@@ -602,6 +615,14 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
                     <div className="text-[11px] text-blue-200 mb-2">
                       Sign in with Spotify to pick from your own playlists.
                     </div>
+                    {spotifyAuthError && (
+                      <div
+                        data-testid="text-spotify-auth-error"
+                        className="mb-2 p-2 rounded-lg bg-red-950/50 border border-red-800/60 text-[10px] text-red-200 leading-snug"
+                      >
+                        {spotifyAuthError}
+                      </div>
+                    )}
                     <button
                       data-testid="button-spotify-connect"
                       onClick={handleConnect}
@@ -654,7 +675,10 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
                 {appleAuthorized ? (
                   <>
                     <div className="text-[11px] text-pink-200 mb-2">
-                      Connected. Your library playlists ({applePlaylists.length}) appear in the dropdown.
+                      Connected. {applePlaylists.length > 0
+                        ? <>Your library playlists ({applePlaylists.length}) appear in the dropdown.</>
+                        : <>Your library is empty — pick a playlist from <span className="font-semibold text-pink-100">Quick picks</span> below or paste any Apple Music link.</>
+                      }
                     </div>
                     <button
                       data-testid="button-apple-disconnect"
@@ -770,6 +794,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
               <div className="grid grid-cols-2 gap-2">
                 {PRESETS.map((p) => {
                   const isActive = config.url === p.url;
+                  const isApple = p.service === "apple";
                   return (
                     <button
                       key={p.url + p.label}
@@ -785,9 +810,9 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
                         <span className="text-base leading-none">{p.emoji}</span>
                         <div className="flex-1 min-w-0">
                           <div className="text-xs font-semibold truncate">{p.label}</div>
-                          <div className="text-[10px] text-green-400 flex items-center gap-1 mt-0.5">
-                            <SiSpotify className="w-2.5 h-2.5" />
-                            Spotify
+                          <div className={`text-[10px] flex items-center gap-1 mt-0.5 ${isApple ? "text-pink-400" : "text-green-400"}`}>
+                            {isApple ? <SiApplemusic className="w-2.5 h-2.5" /> : <SiSpotify className="w-2.5 h-2.5" />}
+                            {isApple ? "Apple Music" : "Spotify"}
                           </div>
                         </div>
                         {isActive && <Check className="w-3 h-3 text-cyan-400 shrink-0" />}
