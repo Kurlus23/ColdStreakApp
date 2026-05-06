@@ -6,6 +6,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getAuthToken } from "@/hooks/use-auth";
 import * as appleMusic from "@/lib/appleMusic";
 import type { AppleMusicPlaylistSummary } from "@/lib/appleMusic";
+import { Capacitor } from "@capacitor/core";
+
+const IS_NATIVE_APP = (() => { try { return Capacitor.isNativePlatform(); } catch { return false; } })();
 
 export type MusicService = "spotify" | "apple" | "none";
 
@@ -555,8 +558,28 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
               </div>
             )}
 
+            {/* Apple Music: not supported inside the iOS/Android app yet — auth
+                  popup is blocked by the WebView. Surface a clear explanation
+                  with a workaround instead of letting users get stuck. */}
+            {IS_NATIVE_APP && (
+              <div className="mb-4 p-3 rounded-xl bg-pink-950/20 border border-pink-800/40">
+                <div className="flex items-center gap-2 mb-2">
+                  <SiApplemusic className="w-4 h-4 text-pink-400" />
+                  <div className="text-xs font-semibold text-white">Apple Music</div>
+                </div>
+                <div className="text-[11px] text-blue-200 mb-1">
+                  Apple Music linking isn't supported inside the ColdStreak app yet.
+                </div>
+                <div className="text-[10px] text-slate-400 leading-snug">
+                  To use your own Apple Music playlists, open <span className="font-semibold text-blue-300">coldstreakapp.com</span> in
+                  Safari, link your account there, then paste a playlist URL here using the "+ Paste custom Spotify / Apple Music URL…" option.
+                  Spotify works normally inside the app.
+                </div>
+              </div>
+            )}
+
             {/* Apple Music connection panel — browser-side, no ColdStreak login needed */}
-            {appleAvailable && (
+            {!IS_NATIVE_APP && appleAvailable && (
               <div className="mb-4 p-3 rounded-xl bg-pink-950/20 border border-pink-800/40">
                 <div className="flex items-center gap-2 mb-2">
                   <SiApplemusic className="w-4 h-4 text-pink-400" />

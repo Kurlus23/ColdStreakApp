@@ -61,6 +61,7 @@ Preferred communication style: Simple, everyday language.
 *   Outbound URLs are built from `getCanonicalOrigin()` (env `SITE_URL`) to prevent Host-header poisoning; never use `req.get("host")`.
 *   Spotify callback uses a signed JWT state token for CSRF protection; ensure `SESSION_SECRET` is configured.
 *   Streak freezes are a Pro feature and are limited to 2 per calendar month, with a 1-6 day backward window.
+*   Apple Music linking is **web-only** — disabled inside Capacitor (TestFlight/Play). MusicKit JS uses an iframe + postMessage popup that doesn't propagate auth back through iOS/Android WebViews, hanging the authorize() promise. `client/src/lib/appleMusic.ts#isInNativeApp()` short-circuits `isAvailable()` so the in-app UI shows a "link via coldstreakapp.com in Safari" panel instead. Spotify is unaffected (uses redirect-based OAuth). Long-term fix is a native MusicKit Capacitor plugin.
 
 ## Pointers
 

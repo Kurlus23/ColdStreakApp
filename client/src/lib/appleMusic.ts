@@ -5,6 +5,8 @@
 // to load, (b) configure it once with our server-issued developer token, and
 // (c) expose authorize/playlists helpers to the UI.
 
+import { Capacitor } from "@capacitor/core";
+
 declare global {
   interface Window {
     MusicKit?: any;
@@ -13,6 +15,16 @@ declare global {
 
 const APP_NAME = "ColdStreak";
 const APP_BUILD = "1.0.0";
+
+// MusicKit JS uses iframe + postMessage for its auth popup. That model is
+// effectively broken inside iOS WKWebView (Capacitor) — the user can complete
+// Apple's auth, but the result never propagates back to our WebView, so the
+// authorize() promise hangs forever. Until we add a native iOS MusicKit
+// plugin, we hard-disable Apple Music inside the native app and tell users
+// to link from the web.
+export function isInNativeApp(): boolean {
+  try { return Capacitor.isNativePlatform(); } catch { return false; }
+}
 
 let configurePromise: Promise<any> | null = null;
 
@@ -64,6 +76,8 @@ export async function getInstance(): Promise<any> {
 }
 
 export async function isAvailable(): Promise<boolean> {
+  // Hard-disable inside Capacitor — see note at top of file.
+  if (isInNativeApp()) return false;
   try {
     await getInstance();
     return true;
@@ -85,8 +99,16 @@ export async function authorize(): Promise<string | null> {
   const inst = await getInstance();
   // MusicKit's authorize() opens Apple's own popup and returns the
   // music-user-token on success, or throws / returns falsy on cancel.
-  const token = await inst.authorize();
-  return token || null;
+  // We race against a 90s timeout because in some browser/popup-blocker
+  // configurations the promise never settles even though the popup closed.
+  const TIMEOUT_MS = 90_000;
+  const result: string | null = await Promise.race([
+    inst.authorize().then((t: any) => t || null).catch(() => null),
+    new Promise<string | null>((resolve) =>
+      setTimeout(() => resolve(inst.isAuthorized && inst.musicUserToken ? inst.musicUserToken : null), TIMEOUT_MS)
+    ),
+  ]);
+  return result;
 }
 
 export async function unauthorize(): Promise<void> {
