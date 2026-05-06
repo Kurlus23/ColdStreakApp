@@ -737,3 +737,15 @@ id = "F27oDf6TLpURVtlPaku98"
 uri = "file://timer-background-fix.patch.txt"
 type = "text"
 title = "Timer Background Persistence Fix - apply with git am"
+
+[[outputs]]
+id = "7-m0IF5XV2rdh6xHMdB0w"
+uri = "file://Home.tsx.txt"
+type = "text"
+title = "Home.tsx (full file with timer fix)"
+
+[[outputs]]
+id = "dXZXMItTlEINKuCs0oW4M"
+uri = "file://replit-md.txt"
+type = "text"
+title = "replit.md (full file with timer fix entry)"

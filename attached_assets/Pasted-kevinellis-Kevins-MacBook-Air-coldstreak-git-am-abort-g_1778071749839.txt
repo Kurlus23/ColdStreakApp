@@ -1,0 +1,44 @@
+kevinellis@Kevins-MacBook-Air coldstreak % git am --abort
+git diff HEAD~1 HEAD -- client/src/pages/Home.tsx | head -100
+diff --git a/client/src/pages/Home.tsx b/client/src/pages/Home.tsx
+index 3270edb..a5d96dd 100644
+--- a/client/src/pages/Home.tsx
++++ b/client/src/pages/Home.tsx
+@@ -1429,7 +1429,7 @@ export default function Home() {
+         }
+         // Timeout: GATT/Govee send every ~1 s so 3 s is enough; TP25 needs up to
+         // 7 s on iOS for custom service discovery + subscribe + write round-trip.
+-        const timeoutMs = protocol === "tp25" ? 7_000 : 3_000;
++        const timeoutMs = protocol === "tp25" ? 3_000 : 3_000;
+         timer = setTimeout(async () => {
+           await BleClient.stopNotifications(deviceId, svc, char).catch(() => {});
+           settle(false);
+@@ -1774,7 +1774,7 @@ export default function Home() {
+       } else {
+         await BleClient.disconnect(deviceId).catch(() => {});
+         btDeviceRef.current = null;
+-        toast({ title: "Device connected — protocol unknown", description: "Could not read temperature from this device.", variant: "destructive" });
++        toast({ title: "[D1] Device connected — protocol unknown", description: "Could not read temperature from this device.", variant: "destructive" });
+       }
+     } catch (err: any) {
+       const msg = err?.message ?? "";
+@@ -1869,7 +1869,7 @@ export default function Home() {
+       } else {
+         await BleClient.disconnect(deviceId).catch(() => {});
+         btDeviceRef.current = null;
+-        toast({ title: "Device connected — protocol unknown", description: "Could not read temperature from this device.", variant: "destructive" });
++        toast({ title: "[D1] Device connected — protocol unknown", description: "Could not read temperature from this device.", variant: "destructive" });
+       }
+     } catch (err: any) {
+       const msg = err?.message ?? "";
+kevinellis@Kevins-MacBook-Air coldstreak % git am -3 timer-background-fix.patch.txt
+Applying: Make cold plunge timer survive app backgrounding and restarts
+error: sha1 information is lacking or useless (client/src/pages/Home.tsx).
+error: could not build fake ancestor
+Patch failed at 0001 Make cold plunge timer survive app backgrounding and restarts
+hint: Use 'git am --show-current-patch=diff' to see the failed patch
+hint: When you have resolved this problem, run "git am --continue".
+hint: If you prefer to skip this patch, run "git am --skip" instead.
+hint: To restore the original branch and stop patching, run "git am --abort".
+hint: Disable this message with "git config set advice.mergeConflict false"
+kevinellis@Kevins-MacBook-Air coldstreak % 
