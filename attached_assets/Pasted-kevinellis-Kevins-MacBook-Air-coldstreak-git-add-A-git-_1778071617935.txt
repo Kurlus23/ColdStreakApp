@@ -1,0 +1,53 @@
+kevinellis@Kevins-MacBook-Air coldstreak % git add -A
+git commit -m "WIP: Watch app integration"
+git am timer-background-fix.patch.txt
+[main 0d03e2e] WIP: Watch app integration
+ 43 files changed, 2968 insertions(+), 17 deletions(-)
+ create mode 100644 ios/App/ColdStreakWatch Watch App/Assets.xcassets/AccentColor.colorset/Contents.json
+ create mode 100644 ios/App/ColdStreakWatch Watch App/Assets.xcassets/AppIcon.appiconset/ColdStreakIcon.png
+ create mode 100644 ios/App/ColdStreakWatch Watch App/Assets.xcassets/AppIcon.appiconset/Contents.json
+ create mode 100644 ios/App/ColdStreakWatch Watch App/Assets.xcassets/ColdStreakIcon.imageset/ColdStreakIcon.png
+ create mode 100644 ios/App/ColdStreakWatch Watch App/Assets.xcassets/ColdStreakIcon.imageset/Contents.json
+ create mode 100644 ios/App/ColdStreakWatch Watch App/Assets.xcassets/Contents.json
+ create mode 100644 ios/App/ColdStreakWatch Watch App/ColdStreakWatch Watch AppRelease.entitlements
+ create mode 100644 ios/App/ColdStreakWatch Watch App/ColdStreakWatchApp.swift
+ create mode 100644 ios/App/ColdStreakWatch Watch App/Services/HRVService.swift
+ create mode 100644 ios/App/ColdStreakWatch Watch App/Services/HapticService.swift
+ create mode 100644 ios/App/ColdStreakWatch Watch App/Services/PhoneSyncService.swift
+ create mode 100644 ios/App/ColdStreakWatch Watch App/Services/PlungeSession.swift
+ create mode 100644 ios/App/ColdStreakWatch Watch App/Services/PlungeWorkoutManager.swift
+ create mode 100644 ios/App/ColdStreakWatch Watch App/Views/PlungeView.swift
+ create mode 100644 ios/App/ColdStreakWatch Watch App/Views/ReadyView.swift
+ create mode 100644 ios/App/ColdStreakWatch Watch App/Views/RecoveryView.swift
+ create mode 100644 ios/App/ColdStreakWatch Watch App/Views/SummaryView.swift
+ create mode 100644 ios/App/ColdStreakWatch-Watch-App-Info.plist
+ create mode 100644 ios/App/HealthKitPlugin.swift
+ create mode 100644 ios/App/WatchSyncPlugin.swift
+ create mode 100644 timer-background-fix.patch.txt
+ create mode 100644 watchos/ColdStreakWatch/ColdStreakWatchApp.swift
+ create mode 100644 watchos/ColdStreakWatch/Resources/ColdStreakWatch.entitlements
+ create mode 100644 watchos/ColdStreakWatch/Resources/Info.plist
+ create mode 100644 watchos/ColdStreakWatch/Services/HRVService.swift
+ create mode 100644 watchos/ColdStreakWatch/Services/HapticService.swift
+ create mode 100644 watchos/ColdStreakWatch/Services/PhoneSyncService.swift
+ create mode 100644 watchos/ColdStreakWatch/Services/PlungeSession.swift
+ create mode 100644 watchos/ColdStreakWatch/Services/PlungeWorkoutManager.swift
+ create mode 100644 watchos/ColdStreakWatch/Views/PlungeView.swift
+ create mode 100644 watchos/ColdStreakWatch/Views/ReadyView.swift
+ create mode 100644 watchos/ColdStreakWatch/Views/RecoveryView.swift
+ create mode 100644 watchos/ColdStreakWatch/Views/SummaryView.swift
+ create mode 100644 watchos/XCODE_SETUP.md
+ create mode 100644 watchos/ios-bridge/HealthKitPlugin.swift
+ create mode 100644 watchos/ios-bridge/WatchSyncPlugin.swift
+Applying: Make cold plunge timer survive app backgrounding and restarts
+error: patch failed: client/src/pages/Home.tsx:2459
+error: client/src/pages/Home.tsx: patch does not apply
+error: patch failed: replit.md:41
+error: replit.md: patch does not apply
+Patch failed at 0001 Make cold plunge timer survive app backgrounding and restarts
+hint: Use 'git am --show-current-patch=diff' to see the failed patch
+hint: When you have resolved this problem, run "git am --continue".
+hint: If you prefer to skip this patch, run "git am --skip" instead.
+hint: To restore the original branch and stop patching, run "git am --abort".
+hint: Disable this message with "git config set advice.mergeConflict false"
+kevinellis@Kevins-MacBook-Air coldstreak % 
