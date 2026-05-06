@@ -701,6 +701,27 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
+  // ── Apple Music ────────────────────────────────────────────────────────
+  // Returns a developer token (long-lived, ~5-month expiry) for MusicKit JS to
+  // configure itself with. This token is intentionally public — it identifies
+  // OUR app to Apple Music, not the end user. Per-user auth (the music-user-
+  // token) is handled entirely in the browser by MusicKit JS.
+  app.get("/api/apple-music/developer-token", async (_req, res) => {
+    try {
+      const { generateDeveloperToken, isAppleMusicConfigured } = await import("./appleMusic");
+      if (!isAppleMusicConfigured()) {
+        return res.status(503).json({ error: "Apple Music not configured" });
+      }
+      const token = generateDeveloperToken();
+      // Allow the browser to cache for an hour; we refresh server-side anyway.
+      res.set("Cache-Control", "private, max-age=3600");
+      res.json({ token });
+    } catch (err) {
+      console.error("[apple-music] developer token generation failed", err);
+      res.status(500).json({ error: "Failed to generate developer token" });
+    }
+  });
+
   // ── Community locations ────────────────────────────────────────────────
 
   app.get("/api/community-locations", async (req, res) => {

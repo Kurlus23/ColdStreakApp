@@ -4,6 +4,8 @@ import { SiSpotify, SiApplemusic } from "react-icons/si";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getAuthToken } from "@/hooks/use-auth";
+import * as appleMusic from "@/lib/appleMusic";
+import type { AppleMusicPlaylistSummary } from "@/lib/appleMusic";
 
 export type MusicService = "spotify" | "apple" | "none";
 
@@ -19,6 +21,7 @@ const STORAGE_KEY = "coldstreak-music-config";
 const CUSTOM_VALUE = "__custom__";
 const CLEAR_VALUE = "__clear__";
 const CONNECT_VALUE = "__connect_spotify__";
+const CONNECT_APPLE_VALUE = "__connect_apple__";
 
 const PRESETS: { service: MusicService; label: string; url: string; emoji: string }[] = [
   { service: "spotify", label: "Cold Plunge Focus", url: "https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ", emoji: "❄️" },
@@ -145,6 +148,70 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
     },
   });
 
+  // ── Apple Music state (browser-side; no server-stored tokens) ──────────
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  const [appleAuthorized, setAppleAuthorized] = useState(false);
+  const [applePlaylists, setApplePlaylists] = useState<AppleMusicPlaylistSummary[]>([]);
+  const [appleConnecting, setAppleConnecting] = useState(false);
+  const [appleError, setAppleError] = useState<string | null>(null);
+
+  // On mount: probe MusicKit availability + restore prior auth (the music-user-
+  // token persists across reloads in MusicKit's own storage).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const ok = await appleMusic.isAvailable();
+      if (cancelled) return;
+      setAppleAvailable(ok);
+      if (!ok) return;
+      const authed = await appleMusic.isAuthorized();
+      if (cancelled) return;
+      setAppleAuthorized(authed);
+      if (authed) {
+        try {
+          const pls = await appleMusic.fetchLibraryPlaylists();
+          if (!cancelled) setApplePlaylists(pls);
+        } catch (err) {
+          console.error("[apple-music] failed to fetch playlists on mount", err);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleAppleConnect = useCallback(async () => {
+    setAppleError(null);
+    setAppleConnecting(true);
+    try {
+      const token = await appleMusic.authorize();
+      if (!token) {
+        setAppleError("Sign-in cancelled.");
+        setAppleConnecting(false);
+        return;
+      }
+      setAppleAuthorized(true);
+      try {
+        const pls = await appleMusic.fetchLibraryPlaylists();
+        setApplePlaylists(pls);
+      } catch (err: any) {
+        console.error("[apple-music] playlist fetch failed", err);
+        setAppleError(err?.message ?? "Could not load your Apple Music playlists.");
+      }
+    } catch (err: any) {
+      console.error("[apple-music] connect failed", err);
+      setAppleError(err?.message ?? "Could not connect to Apple Music.");
+    } finally {
+      setAppleConnecting(false);
+    }
+  }, []);
+
+  const handleAppleDisconnect = useCallback(async () => {
+    await appleMusic.unauthorize();
+    setAppleAuthorized(false);
+    setApplePlaylists([]);
+    setAppleError(null);
+  }, []);
+
   // Listen for callback popup posting "spotify:connected"
   useEffect(() => {
     function onMessage(e: MessageEvent) {
@@ -252,14 +319,20 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
     const val = e.target.value;
     if (val === CUSTOM_VALUE) { setShowSettings(true); return; }
     if (val === CONNECT_VALUE) { handleConnect(); return; }
+    if (val === CONNECT_APPLE_VALUE) { handleAppleConnect(); return; }
     if (val === CLEAR_VALUE) {
       clearPlaylist();
       return;
     }
-    // Match against user playlists first, then presets
+    // Match against user playlists first (Spotify or Apple), then presets.
     const userPick = userPlaylists.find((p) => p.url === val);
     if (userPick) {
       applyChoice("spotify", userPick.url, userPick.name);
+      return;
+    }
+    const applePick = applePlaylists.find((p) => p.url === val);
+    if (applePick) {
+      applyChoice("apple", applePick.url, applePick.name);
       return;
     }
     const preset = PRESETS.find((p) => p.url === val);
@@ -270,8 +343,9 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
   // use that URL. Custom URL → synthetic value so the dropdown shows the custom label.
   const matchedPreset = PRESETS.find((p) => p.url === config.url);
   const matchedUserPick = userPlaylists.find((p) => p.url === config.url);
-  const isCustomSaved = config.service !== "none" && !matchedPreset && !matchedUserPick;
-  const selectValue = matchedPreset?.url ?? matchedUserPick?.url ?? (isCustomSaved ? config.url : "");
+  const matchedApplePick = applePlaylists.find((p) => p.url === config.url);
+  const isCustomSaved = config.service !== "none" && !matchedPreset && !matchedUserPick && !matchedApplePick;
+  const selectValue = matchedPreset?.url ?? matchedUserPick?.url ?? matchedApplePick?.url ?? (isCustomSaved ? config.url : "");
 
   const ServiceIcon = config.service === "spotify" ? SiSpotify : config.service === "apple" ? SiApplemusic : Music;
   const serviceColor = config.service === "spotify" ? "text-green-400" : config.service === "apple" ? "text-pink-400" : "text-cyan-400";
@@ -321,6 +395,15 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
                   ))}
                 </optgroup>
               )}
+              {appleAuthorized && applePlaylists.length > 0 && (
+                <optgroup label="Your Apple Music">
+                  {applePlaylists.map((p) => (
+                    <option key={p.id} value={p.url}>
+                      🍎 {p.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
               <optgroup label="Quick picks">
                 {PRESETS.map((p) => (
                   <option key={p.url + p.label} value={p.url}>
@@ -330,6 +413,9 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
               </optgroup>
               {isLoggedIn && !isSpotifyConnected && (
                 <option value={CONNECT_VALUE}>🔗 Connect Spotify to see your playlists…</option>
+              )}
+              {appleAvailable && !appleAuthorized && (
+                <option value={CONNECT_APPLE_VALUE}>🍎 Connect Apple Music to see your playlists…</option>
               )}
               <option value={CUSTOM_VALUE}>＋ Paste custom Spotify / Apple Music URL…</option>
               {config.service !== "none" && <option value={CLEAR_VALUE}>✕ Clear current playlist</option>}
@@ -466,6 +552,88 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
             {!isLoggedIn && (
               <div className="mb-4 p-3 rounded-xl bg-slate-800/50 border border-slate-700/40 text-[11px] text-slate-300">
                 Sign in to ColdStreak to link your Spotify account and use your own playlists.
+              </div>
+            )}
+
+            {/* Apple Music connection panel — browser-side, no ColdStreak login needed */}
+            {appleAvailable && (
+              <div className="mb-4 p-3 rounded-xl bg-pink-950/20 border border-pink-800/40">
+                <div className="flex items-center gap-2 mb-2">
+                  <SiApplemusic className="w-4 h-4 text-pink-400" />
+                  <div className="text-xs font-semibold text-white">Apple Music</div>
+                </div>
+                {appleAuthorized ? (
+                  <>
+                    <div className="text-[11px] text-pink-200 mb-2">
+                      Connected. Your library playlists ({applePlaylists.length}) appear in the dropdown.
+                    </div>
+                    <button
+                      data-testid="button-apple-disconnect"
+                      onClick={handleAppleDisconnect}
+                      className="w-full py-1.5 text-[11px] text-slate-300 hover:text-red-400 border border-slate-700 hover:border-red-800 rounded-lg flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <Unlink className="w-3 h-3" />
+                      Disconnect Apple Music
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-[11px] text-blue-200 mb-2">
+                      Sign in with your Apple ID to pick from your own Apple Music playlists. Requires an active Apple Music subscription.
+                    </div>
+                    <button
+                      data-testid="button-apple-connect"
+                      onClick={handleAppleConnect}
+                      disabled={appleConnecting}
+                      className="w-full py-2 bg-pink-600 hover:bg-pink-500 disabled:opacity-60 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      {appleConnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />}
+                      {appleConnecting ? "Waiting for Apple…" : "Connect Apple Music"}
+                    </button>
+                    {appleError && (
+                      <div className="mt-2 text-[10px] text-red-300">{appleError}</div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* User's Apple Music playlists */}
+            {appleAuthorized && applePlaylists.length > 0 && (
+              <div className="mb-4">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-pink-300 mb-2">
+                  Your Apple Music playlists
+                </div>
+                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                  {applePlaylists.map((p) => {
+                    const isActive = config.url === p.url;
+                    return (
+                      <button
+                        key={p.id}
+                        data-testid={`button-apple-playlist-${p.id}`}
+                        onClick={() => { applyChoice("apple", p.url, p.name); setShowSettings(false); }}
+                        className={`w-full text-left p-2 rounded-lg border transition-all flex items-center gap-2 ${
+                          isActive
+                            ? "border-pink-500 bg-pink-900/30 text-white"
+                            : "border-slate-700/60 bg-slate-800/40 hover:border-pink-600/60 hover:bg-slate-800/70 text-slate-200"
+                        }`}
+                      >
+                        {p.imageUrl ? (
+                          <img src={p.imageUrl} alt="" className="w-8 h-8 rounded shrink-0 object-cover" />
+                        ) : (
+                          <div className="w-8 h-8 rounded shrink-0 bg-pink-950/50 flex items-center justify-center">
+                            <SiApplemusic className="w-4 h-4 text-pink-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[12px] font-semibold truncate">{p.name}</div>
+                          {p.trackCount > 0 && <div className="text-[10px] text-slate-400">{p.trackCount} track{p.trackCount === 1 ? "" : "s"}</div>}
+                        </div>
+                        {isActive && <Check className="w-4 h-4 text-pink-400 shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

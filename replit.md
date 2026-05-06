@@ -1,59 +1,75 @@
 # ColdStreak
 
-## Overview
-ColdStreak is a cold plunge tracking web application, PWA, and Android app. It allows users to log cold plunge sessions, monitor "Cold Score" and streaks, set weekly goals, earn achievements, and participate in leaderboards. The app also features a directory of curated and community-submitted "Chill Places." A Pro version offers an ad-free experience and unlimited history. The project aims to be a comprehensive platform for cold plunge enthusiasts.
+ColdStreak is a cold plunge tracking web application, PWA, and Android app that helps users log sessions, monitor progress, set goals, and connect with a community.
 
-## User Preferences
+## Run & Operate
+
+*   **Run Dev**: `npm run dev`
+*   **Build**: `npm run build`
+*   **Typecheck**: `npm run typecheck`
+*   **Codegen (Drizzle)**: `npm run generate-drizzle`
+*   **DB Push (Drizzle)**: `npm run db:push`
+*   **Environment Variables**: `VITE_API_URL`, `DATABASE_URL`, `JWT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `POSTHOG_API_KEY`, `SENTRY_DSN`, `APPLE_MUSIC_TEAM_ID`, `APPLE_MUSIC_KEY_ID`, `APPLE_MUSIC_PRIVATE_KEY`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SESSION_SECRET`, `SITE_URL`.
+
+## Stack
+
+*   **Frontend**: React 18, TypeScript, Vite, `wouter`, TanStack React Query, `shadcn/ui`, Tailwind CSS.
+*   **Backend**: Express.js, TypeScript.
+*   **Runtime**: Node.js (version specified in `package.json`).
+*   **ORM**: Drizzle ORM.
+*   **Validation**: _Populate as you build_
+*   **Build Tool**: Vite.
+
+## Where things live
+
+*   `/client`: Frontend source code.
+*   `/server`: Backend source code.
+*   `/shared`: Shared types, schemas, and API contracts.
+*   `./shared/schema.ts`: Database schema definitions.
+*   `./shared/routesManifest.ts`: Typed API contract.
+*   `./client/src/theme/tailwind.config.js`: Tailwind CSS configuration including custom theme.
+*   `./client/src/index.html`: Main HTML file for PWA manifest and script injection.
+*   `./capacitor.config.ts`: Capacitor configuration for Android app.
+
+## Architecture decisions
+
+*   **Device Identity**: Uses `clientId` for anonymous tracking, linkable to `userId` upon account creation.
+*   **UI/UX Theme**: `shadcn/ui` with custom dark navy/cyan theme using DM Sans and Outfit fonts.
+*   **Mobile Strategy**: Web app wrapped by Capacitor for Android, ensuring a consistent codebase.
+*   **External Music Integrations**: No server-side OAuth or token storage for Apple Music. Spotify uses Authorization Code flow with server-side token management.
+*   **Store Compliance**: Subscription and account deletion UX branches by platform (iOS, Android, Web) for deep linking to respective store management.
+*   **Crawler Optimization**: Dynamic SVG for Open Graph images and crawler-specific HTML injection with `Vary: User-Agent` header to prevent caching issues.
+
+## Product
+
+*   **Plunge Tracking**: Log sessions, monitor "Cold Score" and streaks.
+*   **Gamification**: Weekly goals, achievements, leaderboards.
+*   **Community**: Directory of "Chill Places" (curated and user-submitted).
+*   **Pro Features**: Ad-free experience, unlimited history, streak freezes.
+*   **Timer Functionality**: Stopwatch and countdown timers with background persistence across process kills.
+*   **Bluetooth Thermometer Support**: Integrates with Inkbird IBS-TH2 Plus and similar devices.
+*   **Business Owner Dashboard**: Manage verified listings, view analytics, manage co-managers, and generate public profile pages.
+*   **Music Integration**: Connects with Spotify and Apple Music to auto-play playlists with timer sessions.
+
+## User preferences
+
 Preferred communication style: Simple, everyday language.
 
-## System Architecture
+## Gotchas
 
-### Frontend
-- **Framework**: React 18 with TypeScript, using Vite.
-- **Routing**: `wouter`.
-- **State Management & Data Fetching**: TanStack React Query.
-- **UI/UX**: `shadcn/ui` (New York style) on Radix UI, styled with Tailwind CSS, custom dark navy/cyan theme. Fonts are DM Sans and Outfit.
-- **PWA**: `manifest.json` and service worker for mobile installation.
-- **Mobile App**: Capacitor wraps the web app for Android.
+*   `app.set("trust proxy", 1)` is crucial in `server/index.ts` for correct `req.ip` resolution on Replit.
+*   Outbound URLs are built from `getCanonicalOrigin()` (env `SITE_URL`) to prevent Host-header poisoning; never use `req.get("host")`.
+*   Spotify callback uses a signed JWT state token for CSRF protection; ensure `SESSION_SECRET` is configured.
+*   Streak freezes are a Pro feature and are limited to 2 per calendar month, with a 1-6 day backward window.
 
-### Backend
-- **Framework**: Express.js with TypeScript.
-- **Authentication**: JWT for tokens, bcrypt for password hashing.
-- **API Endpoints**: RESTful APIs for user management, plunge tracking, leaderboards, community locations, and Stripe integration.
-- **Storage Layer**: `IStorage` interface with `DatabaseStorage` using Drizzle ORM.
+## Pointers
 
-### Shared Layer
-- **Schema**: Defines database schemas for `users`, `plunges`, `leaderboardEntries`, `proUsers`, `userLocations`, `events`, and `event_participants`.
-- **Routes Manifest**: Provides a typed API contract.
-
-### Device Identity
-Uses a `clientId` for anonymous plunge tracking, linkable to a `userId` upon account creation.
-
-### UI/UX Decisions
-- **Home Screen Background**: Dynamic background images from `attached_assets/`. Future plans include a customizable wallpaper system for users.
-- **Avatar/Profile Photos**: Currently uses URL field to avoid file storage.
-
-### Feature Specifications
-- **Smartwatch Companion Apps**: Planned for Apple Watch, Garmin, and Amazfit, focusing on timer control and HR sensing. The watch acts as a remote control, with data storage and Cold Score calculation remaining on the phone app.
-- **Bluetooth Thermometer Support**: Currently supports Inkbird IBS-TH2 Plus via BLE advertisement scanning. Includes logic to support off-brand thermometers that mimic Inkbird's advertising but use a different encoding, as well as robust reconnection and diagnostic features.
-- **Business Owner Dashboard** (`/business`): Verified-listing owners sign in with their existing ColdStreak account; access is granted when their account email matches the listing's `contactEmail` (case-insensitive). Shows views, plunges, unique plungers, click breakdown (website/booking/directions/phone/yelp/facebook/share), trend chart (7/30/90-day window via recharts), and a leaderboard for plunges at that location. Includes listing deletion, account deletion link, and Apple-compliant subscription management links. Backed by `location_views` + `location_clicks` event log tables (cascade-delete from `user_locations`) plus the canonical `viewCount` on `user_locations` for all-time views. Conditional nav button appears in the user menu only when the signed-in account owns at least one verified listing. Query keys are scoped to `auth.user.id` and the cache is cleared on logout/forced-logout to prevent cross-account data leak.
-- **Business Owner v1 Expansion**: Public profile pages at `/biz/:slug` (SEO meta tags, hours-aware "open now" badge with overnight wrap, click-tracked website/booking/directions/phone links, top-10 leaderboard). Owner dashboard panels: Share & QR (downloadable QR PNG, copy URL, native share, slug auto-generation), Hours Editor (7-day grid with closed-flag + per-listing IANA timezone via curated `<select>`), Co-managers (email allowlist; access shared with verified owners; adds trigger a one-time invite email via Resend), CSV Export (sortable by best score / period plunges / lifetime / last seen — privacy-safe with anonymized identity hashes only, no email/userId/clientId leakage). Admins (isAdmin) see all verified listings and can manage any listing's co-managers for support. Schema additions: `userLocations.slug` (unique nullable text), `userLocations.hours` (jsonb — `BusinessHours` shape, cast at read sites), `userLocations.timezone` (text nullable, IANA TZ — `isOpenNow` uses `Intl.DateTimeFormat` to resolve), `userLocations.coManagerEmails` (text[]).
-- **Business Owner v1 Polish**: Boot-time slug backfill for any verified listing missing one. Rate-limited click endpoint (`POST /api/community-locations/:id/click` — 30/min/IP/listing, 429 on excess). Open Graph link previews: dynamic 1200×630 SVG at `GET /api/og/biz/:slug.svg` plus a crawler-only HTML middleware at `GET /biz/:slug` that injects `og:`/`twitter:` meta tags for known social-media UAs (Facebook/Twitter/LinkedIn/Slack/WhatsApp/Telegram/Discord/Google/Bing/DuckDuckGo/Apple/Pinterest/Reddit/Embedly); browsers fall through to the SPA. Terms/Privacy gained "Verified Business Listings" sections.
-- **Hardening**: `app.set("trust proxy", 1)` in `server/index.ts` so `req.ip` resolves to the real client IP behind exactly one trusted hop (Replit's deployment edge). Outbound URLs in invite emails and OG/crawler HTML are built from a single `getCanonicalOrigin()` helper (env `SITE_URL`, default `https://coldstreakapp.com`) — never from `req.get("host")` — to prevent Host-header poisoning. The crawler-vs-browser HTML at `/biz/:slug` sends `Vary: User-Agent` so shared caches don't serve the wrong variant to the wrong audience.
-- **Store-Compliance Parity (iOS / Android / Web)**: Subscription-management UX, auto-renew disclosure, and account-deletion cancel-billing guidance branch three ways on `Capacitor.getPlatform()` rather than "iOS vs everything else." iOS deep-links to `itms-apps://apps.apple.com/account/subscriptions`; Android deep-links to `https://play.google.com/store/account/subscriptions` (which the Play Store app intercepts); web opens the Stripe billing portal. The auto-renew disclosure inside the Pro upgrade modal cites Apple ID + iPhone Settings on iOS, Google Play account + Play Store path on Android, and Stripe + Settings on web. Both the in-app delete-account modal in `Home.tsx` and the standalone `/delete-account` page list iPhone, Android, and Web cancellation paths. The BusinessDashboard "Manage subscription" panel exposes all three store deep-links unconditionally so co-managers/admins can route owners regardless of which platform they originally subscribed on.
-- **Timer Background Persistence (May 2026)**: Both stopwatch and countdown timers now survive iOS/Android WebView backgrounding and process kills. On start, the active session's wall-clock `startTime`, mode, and countdown parameters are persisted to `localStorage` under `coldstreak-active-session`. On mount and on `CapApp.appStateChange` resume, the restore effect reads the saved session, computes elapsed time from the wall clock, and resumes the timer at the correct position. Both timer intervals use wall-clock math (`Date.now() - startTime`) instead of increment-by-1 `setInterval`, so even brief background throttling self-corrects on the next tick. The saved session is cleared on stop, reset, mode switch, and countdown completion. Payload validation and ref-based running-state guards prevent stale-closure re-initialization and corrupt/malformed localStorage entries.
-- **Music Widget (May 2026)**: `client/src/components/MusicWidget.tsx` is a slim full-width "music bar" pinned at the top of the timer screen (just under the header, auto-shifts down when the email-verify banner is present). Row: service icon + native `<select>` dropdown of curated presets (Cold Plunge Focus, Wim Hof Breathing, Deep Focus, Workout Beast Mode) plus "Paste custom Spotify/Apple Music URL…" and "Clear current playlist" entries + **inline auto-play toggle** (⚡/⚡-off, one-tap to flip whether music launches with the timer — no need to open settings) + Play button (manual listen on demand) + ⚙ Settings. Selection + preferences stored in localStorage under `coldstreak-music-config` as `{service, url, label, autoPlay, featureEnabled}`. Two playback modes: (1) **Auto-play with timer** — when enabled, `handleStart()` calls `openMusic()` AFTER the timer is confirmed started; (2) **Free listen mode** — the bar's Play button always opens the chosen playlist on demand without starting a timer. Service is auto-detected from the URL (spotify.com / spotify: → Spotify; music.apple.com / music: → Apple Music). Stopping playback is delegated to the host music app since cross-app playback control isn't available from the WebView. **Master "Show music bar" toggle** at the top of the settings modal — when off, the entire bar collapses to a tiny "Music off" pill (re-opens settings on tap) and `shouldAutoPlay()` returns false unconditionally so the timer never auto-launches music. Both `openMusic()` and `shouldAutoPlay()` short-circuit on `featureEnabled = false` so disabling is a hard kill-switch even for callers that bypass the widget UI.
-- **Spotify OAuth (May 2026)**: Per-user Spotify account linking via Authorization Code flow with client secret. Spotify Developer app registered with redirect URI `https://coldstreakapp.com/api/spotify/callback`. Env: `SPOTIFY_CLIENT_ID` (env var), `SPOTIFY_CLIENT_SECRET` (secret). Schema: new `spotify_accounts` table (one-per-user via `userId UNIQUE`; stores `accessToken`, `refreshToken`, `expiresAt`, `scope`, `displayName`, `spotifyUserId`). Server module `server/spotify.ts` handles auth URL generation, code-for-token exchange, lazy refresh (when expiry < 60s away), `/v1/me` lookup, and `/v1/me/playlists` fetch. Routes (`server/routes.ts` ~617): `GET /api/spotify/login` (auth required → returns Spotify authorize URL with signed JWT state binding callback to userId), `GET /api/spotify/callback` (exchanges code, upserts tokens, returns small HTML page that posts `spotify:connected` to opener and self-closes), `GET /api/spotify/me` (connection status + display name), `GET /api/spotify/playlists` (refreshes token if needed, returns user playlists with images), `POST /api/spotify/disconnect`. State token is a 10-min JWT signed with `SESSION_SECRET` containing `{uid, n}` — protects against CSRF and binds the callback to the originating user since the callback has no auth header. MusicWidget shows a Spotify connection panel in the settings modal (Connect / Disconnect button + connection status), merges user playlists into the dropdown as a separate optgroup, and listens for both `postMessage` (web popup) and window `focus` (native browser return) to re-fetch status. Standalone storage helpers `getSpotifyAccount` / `upsertSpotifyAccount` / `updateSpotifyTokens` / `deleteSpotifyAccount` in `server/storage.ts` (off `IStorage` to keep the interface lean).
-- **Streak Protection (Pro feature, May 2026)**: Pro members get **2 streak freezes per calendar month** to retroactively protect a missed day so their streak doesn't break. Schema: new `streak_freezes` table (`id`, `userId`, `freezeDate` as YYYY-MM-DD, `createdAt`). Server: `GET /api/streak-freezes` returns the user's frozen dates plus monthly quota; `POST /api/streak-freezes` validates Pro status, enforces the 1–6 day backward window (no future days, no today), rejects duplicates, and enforces the monthly limit (HTTP 429 when exceeded). Standalone helpers `getStreakFreezes` / `createStreakFreeze` in `server/storage.ts` (kept off `IStorage` to avoid bloating the interface). Frontend: `getStreak(plunges, freezeDates)` in `Home.tsx` now treats freeze dates as credited days when walking the streak. The "Streak: N days" text on the timer pane is a button — anonymous → opens login modal, free user → opens Pro upgrade modal, Pro user → opens the Streak Freeze modal showing remaining quota and a 6-day grid of past missed days that can be frozen with one tap. Days already plunged are visually flagged "Plunged ✓" and disabled; already-frozen days show a snowflake. Query keys are scoped to `auth.user.id` so freeze data doesn't leak across accounts.
-
-## External Dependencies
-- **PostgreSQL**: Primary database, accessed via Drizzle ORM.
-- **Stripe**: For Pro subscription payments.
-- **PostHog**: Analytics and event tracking.
-- **Sentry**: Error monitoring.
-- **Capacitor**: For native Android app wrapping.
-- **Google Fonts**: For DM Sans and Outfit typefaces.
-- **`jsonwebtoken`**: For JWT authentication.
-- **`bcryptjs`**: For password hashing.
-- **`@capacitor-community/media`**: For camera roll interactions.
-- **`piexifjs`**: For embedding EXIF data.
+*   **React Query Docs**: [https://tanstack.com/query/latest](https://tanstack.com/query/latest)
+*   **Drizzle ORM Docs**: [https://orm.drizzle.team/](https://orm.drizzle.team/)
+*   **Tailwind CSS Docs**: [https://tailwindcss.com/docs](https://tailwindcss.com/docs)
+*   **Capacitor Docs**: [https://capacitorjs.com/docs](https://capacitorjs.com/docs)
+*   **Stripe Docs**: [https://stripe.com/docs](https://stripe.com/docs)
+*   **PostHog Docs**: [https://posthog.com/docs](https://posthog.com/docs)
+*   **Sentry Docs**: [https://docs.sentry.io/](https://docs.sentry.io/)
+*   **MusicKit JS Docs**: [https://developer.apple.com/documentation/musickitjs](https://developer.apple.com/documentation/musickitjs)
+*   **Spotify Web API Docs**: [https://developer.spotify.com/documentation/web-api/](https://developer.spotify.com/documentation/web-api/)
