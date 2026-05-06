@@ -101,7 +101,18 @@ export async function fetchSpotifyMe(accessToken: string): Promise<SpotifyMe> {
   const r = await fetch("https://api.spotify.com/v1/me", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!r.ok) throw new Error(`Spotify /me failed: ${r.status}`);
+  if (!r.ok) {
+    const body = await r.text().catch(() => "");
+    console.error(`[spotify] /me ${r.status} body:`, body);
+    // 403 in Development Mode = user not on app's allowlist. Surface a friendly
+    // message so the connection-failed page tells the user what to do.
+    if (r.status === 403) {
+      throw new Error(
+        `Your Spotify account isn't on this app's tester list yet. Open the Spotify Developer Dashboard → ColdStreak app → User Management, and add the EXACT email Spotify has on file for your account (check spotify.com/account if you signed up with Facebook). Then try again. (Spotify said: ${body.slice(0, 200)})`
+      );
+    }
+    throw new Error(`Spotify /me failed: ${r.status} ${body.slice(0, 200)}`);
+  }
   return (await r.json()) as SpotifyMe;
 }
 
