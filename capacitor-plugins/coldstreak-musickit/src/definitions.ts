@@ -18,4 +18,12 @@ export interface ColdstreakMusickitPlugin {
    * with authorized: true.
    */
   getUserToken(opts: { developerToken: string }): Promise<{ userToken: string }>;
+
+  /**
+   * Plays an Apple Music playlist via iOS's `ApplicationMusicPlayer`.
+   * Accepts either a catalog URL (music.apple.com/<country>/playlist/...)
+   * or a library URL (music.apple.com/library/playlist/...). The plugin
+   * auto-prompts for Apple Music permission if needed.
+   */
+  playPlaylist(opts: { url: string }): Promise<{ played: boolean }>;
 }

@@ -38,6 +38,7 @@ export function isInNativeApp(): boolean {
 interface NativeMusicKitPlugin {
   requestAuthorization(): Promise<{ status: string; authorized: boolean }>;
   getUserToken(opts: { developerToken: string }): Promise<{ userToken: string }>;
+  playPlaylist(opts: { url: string }): Promise<{ played: boolean }>;
 }
 
 // registerPlugin works even if the underlying native code isn't present — it
@@ -47,8 +48,33 @@ const NativeMusicKit = registerPlugin<NativeMusicKitPlugin>("ColdstreakMusickit"
   web: () => ({
     requestAuthorization: async () => { throw new Error("Native MusicKit plugin not available on web"); },
     getUserToken: async () => { throw new Error("Native MusicKit plugin not available on web"); },
+    playPlaylist: async () => { throw new Error("Native MusicKit plugin not available on web"); },
   }),
 });
+
+/** True for any music.apple.com playlist URL (catalog or library). */
+export function isAppleMusicPlaylistUrl(url: string): boolean {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    return u.hostname.endsWith("music.apple.com") && u.pathname.includes("/playlist/");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Native-only: hand an Apple Music playlist URL to iOS's
+ * `ApplicationMusicPlayer` so playback starts immediately (instead of just
+ * deep-linking to the Apple Music app where the user has to tap play).
+ * Returns true on success, false if not in native or plugin missing.
+ * Throws on real failures (permission denied, playlist not found, etc).
+ */
+export async function playPlaylistNative(url: string): Promise<boolean> {
+  if (!isInNativeApp() || !isNativePluginAvailable()) return false;
+  const result = await NativeMusicKit.playPlaylist({ url });
+  return !!result?.played;
+}
 
 function isNativePluginAvailable(): boolean {
   if (!isInNativeApp()) return false;

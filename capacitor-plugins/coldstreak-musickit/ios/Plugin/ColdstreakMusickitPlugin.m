@@ -7,4 +7,5 @@
 CAP_PLUGIN(ColdstreakMusickitPlugin, "ColdstreakMusickit",
   CAP_PLUGIN_METHOD(requestAuthorization, CAPPluginReturnPromise);
   CAP_PLUGIN_METHOD(getUserToken, CAPPluginReturnPromise);
+  CAP_PLUGIN_METHOD(playPlaylist, CAPPluginReturnPromise);
 )

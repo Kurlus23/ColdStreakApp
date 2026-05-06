@@ -78,6 +78,21 @@ export function openMusic(): boolean {
   const cfg = loadConfig();
   if (!cfg.featureEnabled) return false;
   if (cfg.service === "none" || !cfg.url) return false;
+  // In Capacitor, Apple Music universal links open the Apple Music app but
+  // don't auto-play — user has to tap play manually. Use the native plugin
+  // to push the playlist to ApplicationMusicPlayer so playback starts
+  // immediately. Fire-and-forget; on any failure we fall back to the URL.
+  if (appleMusic.isInNativeApp() && appleMusic.isAppleMusicPlaylistUrl(cfg.url)) {
+    appleMusic.playPlaylistNative(cfg.url).then((ok) => {
+      if (!ok) {
+        try { window.open(cfg.url, "_blank", "noopener,noreferrer"); } catch {}
+      }
+    }).catch((err) => {
+      console.warn("[apple-music/native] play failed, falling back to URL", err);
+      try { window.open(cfg.url, "_blank", "noopener,noreferrer"); } catch {}
+    });
+    return true;
+  }
   try {
     window.open(cfg.url, "_blank", "noopener,noreferrer");
     return true;
@@ -321,6 +336,15 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
 
   const handlePlay = useCallback(() => {
     if (!config.url) { setShowSettings(true); return; }
+    if (appleMusic.isInNativeApp() && appleMusic.isAppleMusicPlaylistUrl(config.url)) {
+      appleMusic.playPlaylistNative(config.url).then((ok) => {
+        if (!ok) { try { window.open(config.url, "_blank", "noopener,noreferrer"); } catch {} }
+      }).catch((err) => {
+        console.warn("[apple-music/native] play failed, falling back to URL", err);
+        try { window.open(config.url, "_blank", "noopener,noreferrer"); } catch {}
+      });
+      return;
+    }
     try { window.open(config.url, "_blank", "noopener,noreferrer"); } catch {}
   }, [config.url]);
 
