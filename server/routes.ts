@@ -611,6 +611,96 @@ export async function registerRoutes(
     }
   });
 
+  // ── Spotify OAuth (per-user) ───────────────────────────────────────────
+  // Auth Code flow w/ client secret. State is a short-lived signed JWT binding
+  // the callback to the user that initiated the flow. Tokens stored per-user
+  // in spotify_accounts and refreshed lazily.
+  app.get("/api/spotify/login", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller?.userId) return res.status(401).json({ error: "Auth required" });
+    const sp = await import("./spotify");
+    if (!sp.isSpotifyConfigured()) return res.status(503).json({ error: "Spotify not configured" });
+    const state = sp.signState(caller.userId);
+    const url = sp.buildAuthorizeUrl(state);
+    res.json({ url });
+  });
+
+  app.get("/api/spotify/callback", async (req, res) => {
+    const sp = await import("./spotify");
+    const code = typeof req.query.code === "string" ? req.query.code : "";
+    const state = typeof req.query.state === "string" ? req.query.state : "";
+    const errParam = typeof req.query.error === "string" ? req.query.error : "";
+    const renderClose = (ok: boolean, message: string) => {
+      const safe = message.replace(/[<>&]/g, "");
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${ok ? "Spotify connected" : "Spotify connection failed"}</title>
+<style>body{font-family:-apple-system,system-ui,sans-serif;background:#0b1220;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:1.5rem;text-align:center}.card{max-width:380px;background:#162033;border:1px solid #1e3a5f;border-radius:16px;padding:1.75rem}.ok{color:#34d399}.err{color:#f87171}h1{font-size:1.1rem;margin:.5rem 0}p{font-size:.85rem;color:#94a3b8;margin:.5rem 0 1rem}button{background:#06b6d4;color:white;border:0;padding:.6rem 1.25rem;border-radius:9999px;font-weight:600;font-size:.85rem;cursor:pointer}</style>
+</head><body><div class="card"><div class="${ok ? 'ok' : 'err'}" style="font-size:2rem">${ok ? '✓' : '✕'}</div><h1>${ok ? 'Spotify connected!' : 'Connection failed'}</h1><p>${safe}</p><button onclick="window.close()">Close window</button></div>
+<script>try{if(window.opener){window.opener.postMessage({type:'spotify:${ok ? 'connected' : 'error'}'},'*');}}catch(e){}setTimeout(function(){try{window.close();}catch(e){}},800);</script>
+</body></html>`);
+    };
+    if (errParam) return renderClose(false, `Spotify returned: ${errParam}`);
+    if (!code || !state) return renderClose(false, "Missing code or state.");
+    const verified = sp.verifyState(state);
+    if (!verified) return renderClose(false, "State token expired or invalid. Please try connecting again.");
+    try {
+      const tokens = await sp.exchangeCodeForTokens(code);
+      const me = await sp.fetchSpotifyMe(tokens.access_token);
+      const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
+      const { upsertSpotifyAccount } = await import("./storage");
+      await upsertSpotifyAccount({
+        userId: verified.uid,
+        spotifyUserId: me.id,
+        displayName: me.display_name,
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token ?? "",
+        expiresAt,
+        scope: tokens.scope ?? null,
+      });
+      return renderClose(true, `Linked as ${me.display_name || me.id}. You can close this window and return to ColdStreak.`);
+    } catch (err: any) {
+      console.error("[spotify] callback error", err);
+      return renderClose(false, err?.message || "Something went wrong exchanging the code.");
+    }
+  });
+
+  app.get("/api/spotify/me", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller?.userId) return res.status(401).json({ error: "Auth required" });
+    const { getSpotifyAccount } = await import("./storage");
+    const acct = await getSpotifyAccount(caller.userId);
+    if (!acct) return res.json({ connected: false });
+    res.json({
+      connected: true,
+      spotifyUserId: acct.spotifyUserId,
+      displayName: acct.displayName,
+      scope: acct.scope,
+    });
+  });
+
+  app.get("/api/spotify/playlists", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller?.userId) return res.status(401).json({ error: "Auth required" });
+    const sp = await import("./spotify");
+    const token = await sp.getValidAccessToken(caller.userId);
+    if (!token) return res.status(401).json({ error: "Spotify not connected or token refresh failed", reconnect: true });
+    try {
+      const playlists = await sp.fetchUserPlaylists(token);
+      res.json({ playlists });
+    } catch (err: any) {
+      console.error("[spotify] playlists error", err);
+      res.status(502).json({ error: "Failed to fetch playlists from Spotify" });
+    }
+  });
+
+  app.post("/api/spotify/disconnect", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller?.userId) return res.status(401).json({ error: "Auth required" });
+    const { deleteSpotifyAccount } = await import("./storage");
+    await deleteSpotifyAccount(caller.userId);
+    res.json({ ok: true });
+  });
+
   // ── Community locations ────────────────────────────────────────────────
 
   app.get("/api/community-locations", async (req, res) => {

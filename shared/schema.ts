@@ -95,6 +95,20 @@ export type StreakFreeze = typeof streakFreezes.$inferSelect;
 export const insertStreakFreezeSchema = createInsertSchema(streakFreezes).omit({ id: true, createdAt: true });
 export type InsertStreakFreeze = z.infer<typeof insertStreakFreezeSchema>;
 
+export const spotifyAccounts = pgTable("spotify_accounts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique(),
+  spotifyUserId: text("spotify_user_id").notNull(),
+  displayName: text("display_name"),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  scope: text("scope"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export type SpotifyAccount = typeof spotifyAccounts.$inferSelect;
+
 export const insertPlungeSchema = createInsertSchema(plunges).omit({
   id: true,
   createdAt: true,

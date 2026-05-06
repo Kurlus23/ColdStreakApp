@@ -12,6 +12,7 @@ import {
   type Report, type InsertReport,
   type BusinessHours,
   streakFreezes, type StreakFreeze,
+  spotifyAccounts, type SpotifyAccount,
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and, not, lt, gte, inArray, sum } from "drizzle-orm";
 
@@ -1844,4 +1845,47 @@ export async function getStreakFreezes(userId: number): Promise<StreakFreeze[]> 
 export async function createStreakFreeze(userId: number, freezeDate: string): Promise<StreakFreeze> {
   const [row] = await db.insert(streakFreezes).values({ userId, freezeDate }).returning();
   return row;
+}
+
+// Spotify accounts — per-user OAuth tokens (standalone helpers; not part of IStorage)
+export async function getSpotifyAccount(userId: number): Promise<SpotifyAccount | undefined> {
+  const [row] = await db.select().from(spotifyAccounts).where(eq(spotifyAccounts.userId, userId));
+  return row;
+}
+export async function upsertSpotifyAccount(values: {
+  userId: number;
+  spotifyUserId: string;
+  displayName: string | null;
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: Date;
+  scope: string | null;
+}): Promise<SpotifyAccount> {
+  // Atomic INSERT ... ON CONFLICT (user_id) DO UPDATE — avoids race where two
+  // concurrent OAuth callbacks for the same user both see "no existing row"
+  // and then collide on the unique index.
+  const [row] = await db.insert(spotifyAccounts)
+    .values(values)
+    .onConflictDoUpdate({
+      target: spotifyAccounts.userId,
+      set: {
+        spotifyUserId: values.spotifyUserId,
+        displayName: values.displayName,
+        accessToken: values.accessToken,
+        refreshToken: values.refreshToken,
+        expiresAt: values.expiresAt,
+        scope: values.scope,
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
+  return row;
+}
+export async function updateSpotifyTokens(userId: number, accessToken: string, expiresAt: Date, refreshToken?: string): Promise<void> {
+  await db.update(spotifyAccounts)
+    .set({ accessToken, expiresAt, ...(refreshToken ? { refreshToken } : {}), updatedAt: new Date() })
+    .where(eq(spotifyAccounts.userId, userId));
+}
+export async function deleteSpotifyAccount(userId: number): Promise<void> {
+  await db.delete(spotifyAccounts).where(eq(spotifyAccounts.userId, userId));
 }
