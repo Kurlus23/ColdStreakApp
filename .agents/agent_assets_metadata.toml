@@ -749,3 +749,15 @@ id = "dXZXMItTlEINKuCs0oW4M"
 uri = "file://replit-md.txt"
 type = "text"
 title = "replit.md (full file with timer fix entry)"
+
+[[outputs]]
+id = "49DtQ_Pdhh-3R5aYK7BKL"
+uri = "file://screenshots/music-bar-timer-screen.jpeg"
+type = "image"
+title = "Timer screen with new music bar at top"
+
+[[outputs]]
+id = "gO1e31LCu82M-disJ49nB"
+uri = "file://screenshots/music-settings-modal.jpeg"
+type = "image"
+title = "Music settings modal (presets + custom URL + autoplay)"
