@@ -1,0 +1,161 @@
+Done installing documentation for xcodeproj after 0 seconds
+1 gem installed
+kevinellis@Kevins-MacBook-Air coldstreak % npx cap sync ios
+[warn] Cannot copy web assets from public to ios/App/App/public
+       Web asset directory specified by webDir does not exist. This is not an error because server.url is set in config.
+✔ Creating capacitor.config.json in ios/App/App in 1.30ms
+✔ copy ios in 59.47ms
+✔ Updating iOS plugins in 7.76ms
+✖ Updating iOS native dependencies with pod install - failed!
+✖ update ios - failed!
+[error] Analyzing dependencies
+        Downloading dependencies
+        Generating Pods project
+        
+        ――― MARKDOWN TEMPLATE ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+        
+        ### Command
+        
+        ```
+        /opt/homebrew/Cellar/cocoapods/1.16.2_2/libexec/bin/pod install
+        ```
+        
+        ### Report
+        
+        * What did you do?
+        
+        * What did you expect to happen?
+        
+        * What happened instead?
+        
+        
+        ### Stack
+        
+        ```
+        CocoaPods : 1.16.2
+        Ruby : ruby 4.0.2 (2026-03-17 revision d3da9fec82) +PRISM [arm64-darwin25]
+        RubyGems : 4.0.8
+        Host : macOS 26.4.1 (25E253)
+        Xcode : 26.4 (17E192)
+        Git : git version 2.50.1 (Apple Git-155)
+        Ruby lib dir : /opt/homebrew/Cellar/ruby/4.0.2/lib
+        Repositories : trunk - CDN - https://cdn.cocoapods.org/
+        ```
+        
+        ### Plugins
+        
+        ```
+        cocoapods-deintegrate : 1.0.5
+        cocoapods-plugins     : 1.0.0
+        cocoapods-search      : 1.0.1
+        cocoapods-trunk       : 1.6.0
+        cocoapods-try         : 1.2.0
+        ```
+        
+        ### Podfile
+        
+        ```ruby
+        require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+        
+        platform :ios, '15.0'
+        use_frameworks!
+        
+        # workaround to avoid Xcode caching of Pods that requires
+        # Product -> Clean Build Folder after new Cordova plugins installed
+        # Requires CocoaPods 1.6 or newer
+        install! 'cocoapods', :disable_input_output_paths => true
+        
+        def capacitor_pods
+        pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+        pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+        pod 'CapacitorCommunityBluetoothLe', :path => '../../node_modules/@capacitor-community/bluetooth-le'
+        pod 'CapacitorCommunityInAppReview', :path => '../../node_modules/@capacitor-community/in-app-review'
+        pod 'CapacitorCommunityMedia', :path => '../../node_modules/@capacitor-community/media'
+        pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
+        pod 'CapacitorCamera', :path => '../../node_modules/@capacitor/camera'
+        pod 'CapacitorClipboard', :path => '../../node_modules/@capacitor/clipboard'
+        pod 'CapacitorFilesystem', :path => '../../node_modules/@capacitor/filesystem'
+        pod 'CapacitorGeolocation', :path => '../../node_modules/@capacitor/geolocation'
+        pod 'CapacitorShare', :path => '../../node_modules/@capacitor/share'
+        pod 'ColdstreakMusickit', :path => '../../capacitor-plugins/coldstreak-musickit'
+        end
+        
+        target 'App' do
+        capacitor_pods
+        # Add your Pods here
+        end
+        
+        post_install do |installer|
+        assertDeploymentTarget(installer)
+        end
+        ```
+        
+        ### Error
+        
+        ```
+        ArgumentError - [Xcodeproj] Unable to find compatibility version string for object version `70`.
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/xcodeproj-1.27.0/lib/xcodeproj/project.rb:85:in
+        'Xcodeproj::Project#initialize'
+        /opt/homebrew/Cellar/cocoapods/1.16.2_2/libexec/gems/cocoapods-1.16.2/lib/cocoapods/project.rb:48:in
+        'Pod::Project#initialize'
+        /opt/homebrew/Cellar/cocoapods/1.16.2_2/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer/xcode/pods_project_generator/project_generator.rb:82:in
+        'Pod::Installer::Xcode::ProjectGenerator#create_project'
+        /opt/homebrew/Cellar/cocoapods/1.16.2_2/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer/xcode/pods_project_generator/project_generator.rb:73:in
+        'Pod::Installer::Xcode::ProjectGenerator#generate!'
+        /opt/homebrew/Cellar/cocoapods/1.16.2_2/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer/xcode/single_pods_project_generator.rb:16:in
+        'Pod::Installer::Xcode::SinglePodsProjectGenerator#generate!'
+        /opt/homebrew/Cellar/cocoapods/1.16.2_2/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:320:in 'block
+        in Pod::Installer#create_and_save_projects'
+        /opt/homebrew/Cellar/cocoapods/1.16.2_2/libexec/gems/cocoapods-1.16.2/lib/cocoapods/user_interface.rb:64:in
+        'Pod::UserInterface.section'
+        /opt/homebrew/Cellar/cocoapods/1.16.2_2/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:315:in
+        'Pod::Installer#create_and_save_projects'
+        /opt/homebrew/Cellar/cocoapods/1.16.2_2/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:307:in
+        'Pod::Installer#generate_pods_project'
+        /opt/homebrew/Cellar/cocoapods/1.16.2_2/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:183:in
+        'Pod::Installer#integrate'
+        /opt/homebrew/Cellar/cocoapods/1.16.2_2/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:170:in
+        'Pod::Installer#install!'
+        /opt/homebrew/Cellar/cocoapods/1.16.2_2/libexec/gems/cocoapods-1.16.2/lib/cocoapods/command/install.rb:52:in
+        'Pod::Command::Install#run'
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/claide-1.1.0/lib/claide/command.rb:334:in 'CLAide::Command.run'
+        /opt/homebrew/Cellar/cocoapods/1.16.2_2/libexec/gems/cocoapods-1.16.2/lib/cocoapods/command.rb:52:in
+        'Pod::Command.run'
+        /opt/homebrew/Cellar/cocoapods/1.16.2_2/libexec/gems/cocoapods-1.16.2/bin/pod:55:in '<top (required)>'
+        /opt/homebrew/Cellar/ruby/4.0.2/lib/ruby/4.0.0/rubygems.rb:304:in 'Kernel#load'
+        /opt/homebrew/Cellar/ruby/4.0.2/lib/ruby/4.0.0/rubygems.rb:304:in 'Gem.activate_and_load_bin_path'
+        /opt/homebrew/Cellar/cocoapods/1.16.2_2/libexec/bin/pod:25:in '<main>'
+        ```
+        
+        ――― TEMPLATE END ――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+        
+        [!] Oh no, an error occurred.
+        
+        Search for existing GitHub issues similar to yours:
+        https://github.com/CocoaPods/CocoaPods/search?q=%5BXcodeproj%5D+Unable+to+find+compatibility+version+string+for+object+version+%6070%60.&type=Issues
+        
+        If none exists, create a ticket, with the template displayed above, on:
+        https://github.com/CocoaPods/CocoaPods/issues/new
+        
+        Be sure to first read the contributing guide for details on how to properly submit a ticket:
+        https://github.com/CocoaPods/CocoaPods/blob/master/CONTRIBUTING.md
+        
+        Don't forget to anonymize any private data!
+        
+        Looking for related issues on cocoapods/cocoapods...
+        - Unable to find compatibility version string for object version `70`
+        https://github.com/CocoaPods/CocoaPods/issues/12889 [open] [2 comments]
+        27 Feb 2026
+        
+        - Unable to find compatibility version string for object version `70`
+        https://github.com/CocoaPods/CocoaPods/issues/12840 [open] [18 comments]
+        12 Feb 2026
+        
+        - CocoaPods don't install in my project
+        https://github.com/CocoaPods/CocoaPods/issues/12764 [open] [5 comments]
+        28 Jan 2026
+        
+        and 7 more at:
+        https://github.com/cocoapods/cocoapods/search?q=%5BXcodeproj%5D%20Unable%20to%20find%20compatibility%20version%20string%20for%20object%20version%20%6070%60.&type=Issues&utf8=✓
+        
+kevinellis@Kevins-MacBook-Air coldstreak % 
