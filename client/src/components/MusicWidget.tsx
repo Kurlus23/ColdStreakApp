@@ -503,9 +503,35 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
         data-testid="card-music-widget"
       >
         <div className="flex items-center gap-1.5 px-2 py-1.5">
-          <div className={`shrink-0 w-7 h-7 rounded-full bg-blue-950/60 flex items-center justify-center ${serviceColor}`}>
+          <button
+            data-testid="button-music-open-app"
+            onClick={() => {
+              // Tap icon → jump to the corresponding music app. Opens the
+              // currently selected playlist if set (deep-links into Spotify/
+              // Apple Music app via universal link); otherwise opens the
+              // service's home page so the user can browse.
+              const fallback =
+                config.service === "spotify" ? "https://open.spotify.com" :
+                config.service === "apple" ? "https://music.apple.com" :
+                null;
+              const target = config.url || fallback;
+              if (!target) { setShowSettings(true); return; }
+              try { window.open(target, "_blank", "noopener,noreferrer"); } catch {}
+            }}
+            className={`shrink-0 w-7 h-7 rounded-full bg-blue-950/60 hover:bg-blue-900/70 active:scale-95 transition-all flex items-center justify-center ${serviceColor} focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400`}
+            aria-label={
+              config.service === "spotify" ? "Open in Spotify" :
+              config.service === "apple" ? "Open in Apple Music" :
+              "Open music settings"
+            }
+            title={
+              config.service === "spotify" ? "Open in Spotify" :
+              config.service === "apple" ? "Open in Apple Music" :
+              "Music settings"
+            }
+          >
             <ServiceIcon className="w-3.5 h-3.5" />
-          </div>
+          </button>
 
           {/* Native dropdown — takes most of the width */}
           <div className="flex-1 min-w-0 relative">
