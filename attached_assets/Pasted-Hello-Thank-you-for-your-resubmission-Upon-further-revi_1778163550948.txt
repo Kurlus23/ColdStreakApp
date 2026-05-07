@@ -1,0 +1,72 @@
+Hello,
+
+Thank you for your resubmission. Upon further review, we identified additional issues that need your attention. See below for more information.
+
+If you have any questions, we are here to help. Reply to this message in App Store Connect and let us know.
+
+Review Environment
+
+Submission ID: edbcf8e4-bf76-43a4-9b1d-adf0e3a8792b
+Review date: May 07, 2026
+Review Device: iPhone 17 Pro Max
+Version reviewed: 1.0 (21)
+
+Guideline 2.1 - Information Needed
+
+
+We were unable to sign in with the following demo account credentials you provided in App Store Connect:
+
+User name: coldstreakapp17@gmail.com
+Password: ColdStreak-Dev-2026!
+
+To avoid delays, it is essential to provide access to the app's full features and functionality with every submission.
+
+Next Steps
+
+Provide the username and password for a valid demo account in App Store Connect that provides full access to the app's features and functionality or include a demonstration mode that shows all of the features and functionality available in the app. Note that we cannot use a demo video showing the app in use to continue the review.
+
+Resources
+
+Learn how to share information when submitting an app for review.
+Guideline 3.1.2(c) - Business - Payments - Subscriptions
+
+Issue Description
+
+The submission did not include all the required information for apps offering auto-renewable subscriptions.
+
+
+The following information needs to be included in the App Store metadata:
+
+- A functional link to the Terms of Use (EULA). If you are using the standard Apple Terms of Use (EULA), include a link to the Terms of Use in the App Description. If you are using a custom EULA, add it in App Store Connect.
+
+
+Next Steps
+
+Update the App Store metadata to include the information specified above.
+
+Once the app and metadata includes all of the required information, or if they already do, reply to this message with a screen recording to confirm. Include this information in the Notes field of the App Review Information section in App Store Connect for future submissions.
+
+Resources
+
+Apps offering auto-renewable subscriptions must include all of the following required information in the app itself:
+
+- Title of auto-renewing subscription (this may be the same as the In-App Purchase product name)
+- Length of subscription
+- Price of subscription, and price per unit if appropriate
+- Functional links to the privacy policy and Terms of Use (EULA)
+
+The app metadata must also include functional links to the privacy policy in the Privacy Policy field in App Store Connect and the Terms of Use (EULA) in the App Description or EULA field in App Store Connect.
+
+Review Schedule 2 of the Apple Developer Program License Agreement to learn more.
+Support
+
+- Reply to this message in your preferred language if you need assistance. If you need additional support, use the Contact Us module.
+- Consult with fellow developers and Apple engineers on the Apple Developer Forums.
+- Request an App Review Appointment at Meet with Apple to discuss your app's review. Appointments subject to availability during your local business hours on Tuesdays and Thursdays.
+- Provide feedback on this message and your review experience by completing a short survey.
+
+Request a phone call from App Review
+
+At your request, we can arrange for an Apple Representative to call you within the next three to five business days to discuss your App Review issue.
+
+Request a call to discuss your app's review
