@@ -2841,7 +2841,25 @@ export default function Home() {
             auth.user && !auth.user.emailVerified && !verifyBannerDismissed ? "top-32" : "top-16"
           }`}
         >
-          <MusicWidget />
+          {isPro ? (
+            <MusicWidget />
+          ) : (
+            <button
+              data-testid="button-music-upgrade"
+              onClick={() => setShowUpgradeModal(true)}
+              className="w-full bg-blue-900/75 backdrop-blur-md rounded-2xl border border-blue-700/40 shadow-lg shadow-black/30 px-3 py-2 flex items-center gap-2 hover:bg-blue-900/90 active:scale-[0.99] transition-all"
+              title="Music integration is a Pro feature"
+            >
+              <div className="shrink-0 w-7 h-7 rounded-full bg-blue-950/60 flex items-center justify-center">
+                <Crown className="w-3.5 h-3.5 text-yellow-400" />
+              </div>
+              <div className="flex-1 min-w-0 text-left">
+                <div className="text-white text-xs font-semibold truncate">Music — Pro feature</div>
+                <div className="text-blue-300 text-[10px] truncate">Auto-play Spotify or Apple Music with timer</div>
+              </div>
+              <Lock className="w-3.5 h-3.5 text-yellow-400/80 shrink-0" />
+            </button>
+          )}
         </div>
       )}
 
@@ -3887,7 +3905,7 @@ export default function Home() {
                   <span className="ml-auto text-yellow-400 text-sm font-bold">from $3.99</span>
                 </div>
                 <ul className="space-y-1 text-blue-300 text-xs">
-                  {["Unlimited plunge history", "Chill Places + leaderboards", "Advanced stats & personal bests", "CSV / Apple Health export", "No ads"].map((f) => (
+                  {["Unlimited plunge history", "Music integration (Spotify + Apple Music)", "Bluetooth thermometer & heart rate", "Chill Places + leaderboards", "Advanced stats & personal bests", "CSV / Apple Health export", "No ads"].map((f) => (
                     <li key={f} className="flex items-center gap-1.5"><Sparkles className="w-3 h-3 text-cyan-400 shrink-0" />{f}</li>
                   ))}
                 </ul>

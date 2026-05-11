@@ -49,10 +49,10 @@ const slides = [
     body: null,
     features: [
       { emoji: "♾️", label: "Unlimited plunge history" },
+      { emoji: "🎵", label: "Spotify & Apple Music auto-play" },
+      { emoji: "📡", label: "Bluetooth thermometer & HR" },
       { emoji: "🏆", label: "Leaderboards & Chill Places" },
-      { emoji: "❄️", label: "Streak freezes (save missed days)" },
-      { emoji: "📊", label: "Advanced stats & personal bests" },
-      { emoji: "📤", label: "CSV & Apple Health export" },
+      { emoji: "❄️", label: "Streak freezes" },
       { emoji: "🚫", label: "No ads, ever" },
     ],
   },
