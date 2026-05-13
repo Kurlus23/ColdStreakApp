@@ -1,0 +1,46 @@
+Hello,
+
+Thank you for your resubmission. Upon further review, we identified additional issues that need your attention. See below for more information.
+
+If you have any questions, we are here to help. Reply to this message in App Store Connect and let us know.
+
+Review Environment
+
+Submission ID: edbcf8e4-bf76-43a4-9b1d-adf0e3a8792b
+Review date: May 13, 2026
+Review Device: iPad Air 11-inch (M3), Apple Watch, and iPhone 17 Pro Max
+Version reviewed: 1.0 (22)
+
+Guideline 2.1(b) - Performance - App Completeness
+
+
+Issue Description
+
+The In-App Purchase products in the app exhibited one or more bugs which create a poor user experience. Specifically, an error message was prompted when we attempted to purchase any plan. Review the details and resources below to troubleshoot this issue.
+
+Review device details: 
+
+- Device type: iPad Air 11-inch (M3) and iPhone 17 Pro Max 
+- OS version: iPadOS 26.4.1 and iOS 26.4.1
+
+Next Steps
+
+Apple reviews In-App Purchase products in the sandbox and the In-App Purchase products do not need prior approval to function in review. Review the product configurations, complete any missing information, and test them in the sandbox.
+
+To offer In-App Purchases in the app, the Account Holder must also accept the Paid Apps Agreement in the Business section of App Store Connect. Confirm you have a Paid Apps Agreement in effect.
+
+If you still need assistance after completing the steps and reviewing the resources, visit the Apple Developer Forums. If you can’t find an answer from an existing thread, start a new thread with your question to get guidance from Apple engineers and other developers.
+
+Resources
+
+Learn more about app completeness requirements in guideline 2.1(b).
+Support
+
+- Reply to this message in your preferred language if you need assistance. If you need additional support, use the Contact Us module.
+- Consult with fellow developers and Apple engineers on the Apple Developer Forums.
+- Request an App Review Appointment at Meet with Apple to discuss your app's review. Appointments subject to availability during your local business hours on Tuesdays and Thursdays.
+- Provide feedback on this message and your review experience by completing a short survey.
+
+Request a phone call from App Review
+
+At your request, we can arrange for an Apple Representative to call you within the next three to five business days to discuss your App Review issue.
