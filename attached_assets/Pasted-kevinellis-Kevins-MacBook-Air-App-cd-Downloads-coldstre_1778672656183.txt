@@ -1,0 +1,197 @@
+kevinellis@Kevins-MacBook-Air App % cd ~/Downloads/coldstreak
+kevinellis@Kevins-MacBook-Air coldstreak % cat > .env.local <<'EOF'
+VITE_REVENUECAT_IOS_API_KEY=appl_BwwCgqRxwvTDjOiMsGUSpdBOzki
+EOF
+kevinellis@Kevins-MacBook-Air coldstreak % cat .env.local
+VITE_REVENUECAT_IOS_API_KEY=appl_BwwCgqRxwvTDjOiMsGUSpdBOzki
+kevinellis@Kevins-MacBook-Air coldstreak % npm run build
+npx cap sync ios
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.0 building client environment for production...
+transforming (1) src/main.tsxBrowserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 2429 modules transformed.
+../dist/public/index.html                                   3.24 kB │ gzip:   1.29 kB
+../dist/public/assets/image_1775083022624-CZYBsB4j.png  1,707.50 kB
+../dist/public/assets/index-BX1htuof.css                  115.41 kB │ gzip:  18.35 kB
+../dist/public/assets/web-C5lGtiB7.js                       0.16 kB │ gzip:   0.15 kB
+../dist/public/assets/index-D9ON3Ktg.js                     0.34 kB │ gzip:   0.23 kB
+../dist/public/assets/index-DV-O5xON.js                     0.36 kB │ gzip:   0.24 kB
+../dist/public/assets/web-an8PXvkH.js                       0.36 kB │ gzip:   0.25 kB
+../dist/public/assets/web-C6pDngw6.js                       0.73 kB │ gzip:   0.24 kB
+../dist/public/assets/web-fGuDjSn9.js                       0.76 kB │ gzip:   0.35 kB
+../dist/public/assets/web-DJrNLiJb.js                       0.90 kB │ gzip:   0.47 kB
+../dist/public/assets/web-BMRqi2wW.js                       8.33 kB │ gzip:   2.40 kB
+../dist/public/assets/web-Cu8jrybr.js                       8.67 kB │ gzip:   2.96 kB
+../dist/public/assets/index-Do6dIXxD.js                 1,213.32 kB │ gzip: 333.10 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 3.30s
+building server...
+
+  ../ColdStreak/dist/index.cjs  1.2mb ⚠️
+
+⚡ Done in 101ms
+✔ Copying web assets from public to ios/App/App/public in 126.44ms
+✔ Creating capacitor.config.json in ios/App/App in 852.88μs
+✔ copy ios in 210.85ms
+✔ Updating iOS plugins in 8.88ms
+✖ Updating iOS native dependencies with pod install - failed!
+✖ update ios - failed!
+[error] Analyzing dependencies
+        Downloading dependencies
+        Generating Pods project
+        
+        ――― MARKDOWN TEMPLATE ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+        
+        ### Command
+        
+        ```
+        /opt/homebrew/lib/ruby/gems/4.0.0/bin/pod install
+        ```
+        
+        ### Report
+        
+        * What did you do?
+        
+        * What did you expect to happen?
+        
+        * What happened instead?
+        
+        
+        ### Stack
+        
+        ```
+        CocoaPods : 1.16.2
+        Ruby : ruby 4.0.3 (2026-04-21 revision 85ddef263a) +PRISM [arm64-darwin25]
+        RubyGems : 4.0.10
+        Host : macOS 26.4.1 (25E253)
+        Xcode : 26.4 (17E192)
+        Git : git version 2.50.1 (Apple Git-155)
+        Ruby lib dir : /opt/homebrew/Cellar/ruby/4.0.3/lib
+        Repositories : trunk - CDN - https://cdn.cocoapods.org/
+        ```
+        
+        ### Plugins
+        
+        ```
+        cocoapods-deintegrate : 1.0.5
+        cocoapods-plugins     : 1.0.0
+        cocoapods-search      : 1.0.1
+        cocoapods-trunk       : 1.6.0
+        cocoapods-try         : 1.2.0
+        ```
+        
+        ### Podfile
+        
+        ```ruby
+        require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+        
+        platform :ios, '15.0'
+        use_frameworks!
+        
+        # workaround to avoid Xcode caching of Pods that requires
+        # Product -> Clean Build Folder after new Cordova plugins installed
+        # Requires CocoaPods 1.6 or newer
+        install! 'cocoapods', :disable_input_output_paths => true
+        
+        def capacitor_pods
+        pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+        pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+        pod 'CapacitorCommunityBluetoothLe', :path => '../../node_modules/@capacitor-community/bluetooth-le'
+        pod 'CapacitorCommunityInAppReview', :path => '../../node_modules/@capacitor-community/in-app-review'
+        pod 'CapacitorCommunityMedia', :path => '../../node_modules/@capacitor-community/media'
+        pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
+        pod 'CapacitorCamera', :path => '../../node_modules/@capacitor/camera'
+        pod 'CapacitorClipboard', :path => '../../node_modules/@capacitor/clipboard'
+        pod 'CapacitorFilesystem', :path => '../../node_modules/@capacitor/filesystem'
+        pod 'CapacitorGeolocation', :path => '../../node_modules/@capacitor/geolocation'
+        pod 'CapacitorShare', :path => '../../node_modules/@capacitor/share'
+        pod 'ColdstreakMusickit', :path => '../../capacitor-plugins/coldstreak-musickit'
+        end
+        
+        target 'App' do
+        capacitor_pods
+        # Add your Pods here
+        end
+        
+        post_install do |installer|
+        assertDeploymentTarget(installer)
+        end
+        ```
+        
+        ### Error
+        
+        ```
+        ArgumentError - [Xcodeproj] Unable to find compatibility version string for object version `70`.
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/xcodeproj-1.27.0/lib/xcodeproj/project.rb:85:in
+        'Xcodeproj::Project#initialize'
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/cocoapods-1.16.2/lib/cocoapods/project.rb:48:in 'Pod::Project#initialize'
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/cocoapods-1.16.2/lib/cocoapods/installer/xcode/pods_project_generator/project_generator.rb:82:in
+        'Pod::Installer::Xcode::ProjectGenerator#create_project'
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/cocoapods-1.16.2/lib/cocoapods/installer/xcode/pods_project_generator/project_generator.rb:73:in
+        'Pod::Installer::Xcode::ProjectGenerator#generate!'
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/cocoapods-1.16.2/lib/cocoapods/installer/xcode/single_pods_project_generator.rb:16:in
+        'Pod::Installer::Xcode::SinglePodsProjectGenerator#generate!'
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:320:in 'block in
+        Pod::Installer#create_and_save_projects'
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/cocoapods-1.16.2/lib/cocoapods/user_interface.rb:64:in
+        'Pod::UserInterface.section'
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:315:in
+        'Pod::Installer#create_and_save_projects'
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:307:in
+        'Pod::Installer#generate_pods_project'
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:183:in
+        'Pod::Installer#integrate'
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:170:in
+        'Pod::Installer#install!'
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/cocoapods-1.16.2/lib/cocoapods/command/install.rb:52:in
+        'Pod::Command::Install#run'
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/claide-1.1.0/lib/claide/command.rb:334:in 'CLAide::Command.run'
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/cocoapods-1.16.2/lib/cocoapods/command.rb:52:in 'Pod::Command.run'
+        /opt/homebrew/lib/ruby/gems/4.0.0/gems/cocoapods-1.16.2/bin/pod:55:in '<top (required)>'
+        /opt/homebrew/Cellar/ruby/4.0.3/lib/ruby/4.0.0/rubygems.rb:305:in 'Kernel#load'
+        /opt/homebrew/Cellar/ruby/4.0.3/lib/ruby/4.0.0/rubygems.rb:305:in 'Gem.activate_and_load_bin_path'
+        /opt/homebrew/lib/ruby/gems/4.0.0/bin/pod:25:in '<main>'
+        ```
+        
+        ――― TEMPLATE END ――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+        
+        [!] Oh no, an error occurred.
+        
+        Search for existing GitHub issues similar to yours:
+        https://github.com/CocoaPods/CocoaPods/search?q=%5BXcodeproj%5D+Unable+to+find+compatibility+version+string+for+object+version+%6070%60.&type=Issues
+        
+        If none exists, create a ticket, with the template displayed above, on:
+        https://github.com/CocoaPods/CocoaPods/issues/new
+        
+        Be sure to first read the contributing guide for details on how to properly submit a ticket:
+        https://github.com/CocoaPods/CocoaPods/blob/master/CONTRIBUTING.md
+        
+        Don't forget to anonymize any private data!
+        
+        Looking for related issues on cocoapods/cocoapods...
+        - Unable to find compatibility version string for object version `70`
+        https://github.com/CocoaPods/CocoaPods/issues/12889 [open] [2 comments]
+        27 Feb 2026
+        
+        - Unable to find compatibility version string for object version `70`
+        https://github.com/CocoaPods/CocoaPods/issues/12840 [open] [18 comments]
+        12 Feb 2026
+        
+        - CocoaPods don't install in my project
+        https://github.com/CocoaPods/CocoaPods/issues/12764 [open] [5 comments]
+        28 Jan 2026
+        
+        and 7 more at:
+        https://github.com/cocoapods/cocoapods/search?q=%5BXcodeproj%5D%20Unable%20to%20find%20compatibility%20version%20string%20for%20object%20version%20%6070%60.&type=Issues&utf8=✓
+        
+kevinellis@Kevins-MacBook-Air coldstreak % 
