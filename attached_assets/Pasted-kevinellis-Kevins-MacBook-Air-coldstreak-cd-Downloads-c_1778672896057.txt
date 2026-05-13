@@ -1,0 +1,60 @@
+kevinellis@Kevins-MacBook-Air coldstreak % cd ~/Downloads/coldstreak
+kevinellis@Kevins-MacBook-Air coldstreak % mv .env.local client/.env.local
+kevinellis@Kevins-MacBook-Air coldstreak % cat client/.env.local
+VITE_REVENUECAT_IOS_API_KEY=appl_BwwCgqRxwvTDjOiMsGUSpdBOzki
+kevinellis@Kevins-MacBook-Air coldstreak % npm run build
+npx cap sync ios
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.0 building client environment for production...
+transforming (1) src/main.tsxBrowserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 2429 modules transformed.
+../dist/public/index.html                                   3.24 kB │ gzip:   1.29 kB
+../dist/public/assets/image_1775083022624-CZYBsB4j.png  1,707.50 kB
+../dist/public/assets/index-BX1htuof.css                  115.41 kB │ gzip:  18.35 kB
+../dist/public/assets/web-C5lGtiB7.js                       0.16 kB │ gzip:   0.15 kB
+../dist/public/assets/index-D9ON3Ktg.js                     0.34 kB │ gzip:   0.23 kB
+../dist/public/assets/index-DV-O5xON.js                     0.36 kB │ gzip:   0.24 kB
+../dist/public/assets/web-an8PXvkH.js                       0.36 kB │ gzip:   0.25 kB
+../dist/public/assets/web-C6pDngw6.js                       0.73 kB │ gzip:   0.24 kB
+../dist/public/assets/web-fGuDjSn9.js                       0.76 kB │ gzip:   0.35 kB
+../dist/public/assets/web-DJrNLiJb.js                       0.90 kB │ gzip:   0.47 kB
+../dist/public/assets/web-BMRqi2wW.js                       8.33 kB │ gzip:   2.40 kB
+../dist/public/assets/web-Cu8jrybr.js                       8.67 kB │ gzip:   2.96 kB
+../dist/public/assets/index-Do6dIXxD.js                 1,213.32 kB │ gzip: 333.10 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 3.36s
+building server...
+
+  ../ColdStreak/dist/index.cjs  1.2mb ⚠️
+
+⚡ Done in 109ms
+✔ Copying web assets from public to ios/App/App/public in 180.72ms
+✔ Creating capacitor.config.json in ios/App/App in 1.43ms
+✔ copy ios in 263.55ms
+✔ Updating iOS plugins in 7.69ms
+✔ Updating iOS native dependencies with pod install in 3.15s
+[info] Found 10 Capacitor plugins for ios:
+       @capacitor-community/bluetooth-le@8.1.3
+       @capacitor-community/in-app-review@8.0.0
+       @capacitor-community/media@9.0.2
+       @capacitor/app@8.0.1
+       @capacitor/camera@8.0.2
+       @capacitor/clipboard@8.0.1
+       @capacitor/filesystem@8.1.2
+       @capacitor/geolocation@8.1.0
+       @capacitor/share@8.0.1
+       coldstreak-musickit@0.1.0
+✔ update ios in 3.19s
+[info] Sync finished in 3.589s
+kevinellis@Kevins-MacBook-Air coldstreak % grep -o "appl_[A-Za-z0-9]*" dist/public/assets/index-*.js | head -3
+kevinellis@Kevins-MacBook-Air coldstreak % 
