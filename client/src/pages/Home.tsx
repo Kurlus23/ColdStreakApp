@@ -7560,23 +7560,33 @@ export default function Home() {
               </p>
               <p>
                 By continuing you agree to our{" "}
-                <a
-                  href="/terms"
+                <button
+                  type="button"
                   data-testid="link-terms-iap"
-                  className="text-cyan-400 underline hover:text-cyan-300"
-                  onClick={(e) => { e.stopPropagation(); }}
+                  className="text-cyan-400 underline hover:text-cyan-300 inline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowUpgradeModal(false);
+                    navigate("/terms");
+                  }}
                 >
                   Terms of Use (EULA)
-                </a>{" "}
+                </button>{" "}
                 and{" "}
-                <a
-                  href="/privacy"
+                <button
+                  type="button"
                   data-testid="link-privacy-iap"
-                  className="text-cyan-400 underline hover:text-cyan-300"
-                  onClick={(e) => { e.stopPropagation(); }}
+                  className="text-cyan-400 underline hover:text-cyan-300 inline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowUpgradeModal(false);
+                    navigate("/privacy");
+                  }}
                 >
                   Privacy Policy
-                </a>
+                </button>
                 .
               </p>
             </div>
