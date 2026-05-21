@@ -15,7 +15,7 @@ const ADS = [
     brand: "Primaal Health Smart Ice Bath",
     tagline: "All-in-one smart cold plunge — app-controlled chiller, tub & lid included",
     cta: "Shop on Amazon",
-    href: "https://amzn.to/4slE17u",
+    href: "https://www.amazon.com/dp/B0D954MF6L?tag=coldstreak-20",
     bg: "from-blue-900/60 to-slate-900/80",
     accent: "text-blue-400",
     badge: "bg-blue-500/20 border-blue-500/40 text-blue-300",

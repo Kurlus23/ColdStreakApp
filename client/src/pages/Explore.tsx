@@ -143,7 +143,7 @@ export const GEAR_ITEMS: GearItem[] = [
     name: "Primaal Health Smart Ice Bath",
     description: "All-in-one smart cold plunge — app-controlled chiller, insulated tub, and lid included. Schedule from your phone.",
     image: "/gear-primaal-icebath.png",
-    link: "https://amzn.to/4slE17u",
+    link: "https://www.amazon.com/dp/B0D954MF6L?tag=coldstreak-20",
     linkLabel: "View on Amazon",
     category: "plunges",
   },
