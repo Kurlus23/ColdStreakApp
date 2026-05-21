@@ -538,6 +538,15 @@ export const GEAR_ITEMS: GearItem[] = [
     category: "apparel",
   },
   {
+    id: "rooster-trunks",
+    name: "\"Stop Staring\" Rooster Swim Trunks",
+    description: "Cheeky men's quick-dry boardshorts with a bold rooster graphic and a not-so-subtle punchline — mesh-lined with pockets for poolside laughs.",
+    image: "/gear-rooster-trunks.png",
+    link: "https://www.amazon.com/dp/B08T9J79TP?tag=coldstreak-20",
+    linkLabel: "View on Amazon",
+    category: "apparel",
+  },
+  {
     id: "monkey-banana-trunks",
     name: "Monkey-with-Banana Swim Trunks",
     description: "Lighthearted men's boardshorts featuring a chimp in shades brandishing a banana — bring some fun to your cold plunge or beach session.",
