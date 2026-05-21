@@ -537,6 +537,15 @@ export const GEAR_ITEMS: GearItem[] = [
     linkLabel: "View on Amazon",
     category: "apparel",
   },
+  {
+    id: "monkey-banana-trunks",
+    name: "Monkey-with-Banana Swim Trunks",
+    description: "Lighthearted men's boardshorts featuring a chimp in shades brandishing a banana — bring some fun to your cold plunge or beach session.",
+    image: "/gear-monkey-trunks.png",
+    link: "https://www.amazon.com/dp/B0752BDXGR?tag=coldstreak-20",
+    linkLabel: "View on Amazon",
+    category: "apparel",
+  },
 ];
 
 interface GeoPos { lat: number; lng: number; }
