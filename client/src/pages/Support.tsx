@@ -21,11 +21,11 @@ export default function Support() {
               The fastest way to reach us is by email. We typically respond within 1–2 business days.
             </p>
             <a
-              href="mailto:support@coldstreakapp.com"
+              href="mailto:coldstreaksupport@gmail.com"
               data-testid="link-email-support"
               className="inline-block bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-5 py-3 rounded-xl"
             >
-              support@coldstreakapp.com
+              coldstreaksupport@gmail.com
             </a>
             <p className="text-slate-500 text-xs mt-3">
               You can also send a message from inside the app: open <strong>Settings → Support</strong> and use the in-app contact form.
@@ -76,7 +76,7 @@ export default function Support() {
               <div>
                 <h3 className="font-semibold text-slate-900 mb-1">I was charged but my Pro features aren't active.</h3>
                 <p className="text-slate-600">
-                  Try <strong>Restore Purchases</strong> first (see above). If that doesn't work, email us at support@coldstreakapp.com with the email used at checkout and we'll resolve it within one business day.
+                  Try <strong>Restore Purchases</strong> first (see above). If that doesn't work, email us at coldstreaksupport@gmail.com with the email used at checkout and we'll resolve it within one business day.
                 </p>
               </div>
 
@@ -85,7 +85,7 @@ export default function Support() {
                 <p className="text-slate-600">
                   <strong>iOS purchases:</strong> request refunds through Apple at <a href="https://reportaproblem.apple.com" className="text-cyan-600 underline">reportaproblem.apple.com</a>.<br/>
                   <strong>Android purchases:</strong> request refunds through Google Play.<br/>
-                  <strong>Web purchases:</strong> email us at support@coldstreakapp.com.
+                  <strong>Web purchases:</strong> email us at coldstreaksupport@gmail.com.
                 </p>
               </div>
             </div>
