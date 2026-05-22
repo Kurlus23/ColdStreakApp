@@ -5273,6 +5273,53 @@ export default function Home() {
               </details>
             </div>
 
+            {/* ── Apple Health (HealthKit) ─────────────────────────── */}
+            {/* Apple Guideline 2.5.1: clearly identify HealthKit usage in the UI. */}
+            {Capacitor.getPlatform() === 'ios' && (
+              <div data-testid="card-apple-health" className="bg-gradient-to-br from-pink-900/40 to-blue-900/60 backdrop-blur-md rounded-2xl border border-pink-500/30 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Heart className="w-5 h-5 text-pink-400 fill-pink-400" />
+                  <h3 className="text-white font-bold text-sm">Apple Health</h3>
+                </div>
+                <p className="text-blue-200 text-xs leading-relaxed">
+                  ColdStreak uses Apple HealthKit to import your heart rate and HRV from Apple Watch (or any device that writes to Apple Health) when no Bluetooth strap is paired. This is how your plunges get a heart-rate average without a chest strap.
+                </p>
+                <div className="bg-blue-950/60 rounded-xl border border-blue-700/30 p-3 space-y-1.5">
+                  <p className="text-pink-300 text-[11px] font-semibold uppercase tracking-wide">Data read from Apple Health</p>
+                  <ul className="text-blue-200 text-[11px] space-y-1">
+                    <li>• Heart Rate — averaged across your plunge window</li>
+                    <li>• Heart Rate Variability (HRV) — for recovery insights</li>
+                  </ul>
+                  <p className="text-blue-400 text-[11px] mt-2">No data is written to Apple Health, and nothing leaves your device without your action.</p>
+                </div>
+                <button
+                  data-testid="button-apple-health-connect"
+                  onClick={async () => {
+                    const ok = await ensureHealthKitAuth();
+                    if (ok) {
+                      toast({ title: "Apple Health connected", description: "Heart rate and HRV will be pulled from Apple Health for your plunges." });
+                    } else {
+                      toast({
+                        title: "Permission needed",
+                        description: "Open iPhone Settings → Health → Data Access & Devices → ColdStreak and turn on Heart Rate and HRV.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-400 hover:to-red-400 text-white font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  <Heart className="w-4 h-4" /> Connect Apple Health
+                </button>
+                <button
+                  data-testid="button-apple-health-settings"
+                  onClick={() => { window.location.href = "x-apple-health://"; }}
+                  className="w-full py-2 rounded-xl border border-pink-500/40 text-pink-300 text-xs font-semibold transition-all active:scale-[0.98] hover:border-pink-400"
+                >
+                  Manage permissions in the Health app
+                </button>
+              </div>
+            )}
+
             {/* Manual reminder */}
             <p className="text-blue-600/70 text-[10px] text-center px-2 pb-1">
               No BLE device? You can always type your water temperature manually on the timer screen.

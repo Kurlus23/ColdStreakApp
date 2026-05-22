@@ -1,0 +1,58 @@
+Hello,
+
+Thank you for your resubmission. Upon further review, we identified additional issues that need your attention. See below for more information.
+
+If you have any questions, we are here to help. Reply to this message in App Store Connect and let us know.  
+
+Review Environment
+
+Submission ID: edbcf8e4-bf76-43a4-9b1d-adf0e3a8792b
+Review date: May 22, 2026
+Review Device: iPhone 17 Pro Max, iPad Air 11-inch (M3), and Apple Watch
+Version reviewed: 1.0 (24)
+
+Guideline 3 - Business
+
+
+Issue Description
+
+We began our review, but we are unable to continue because we need additional information about the app.
+
+Specifically, can you confirm that the following prices are the intended prices of your In-App Purchase products? 
+
+- Verified Business 3 Locations $79.99/month
+- Up to 10 Verified Locations $129.99/month
+
+Once we receive your confirmation, we will continue our review. If there's additional information you'd like to provide, please include it in your response to this message in App Store Connect.
+
+Resources
+
+Learn more about guideline 3 requirements in guideline 3.
+
+Guideline 2.5.1 - Performance - Software Requirements
+
+
+Issue Description
+
+The app uses the HealthKit or CareKit APIs but does not clearly identify the HealthKit and CareKit functionality in the app's user interface.
+
+Apps using these APIs should be clearly indicated to provide transparency and valuable information to users. 
+
+Next Steps
+
+To resolve this issue, it would be appropriate to clearly identify the HealthKit and CareKit functionality in the app's user interface.
+
+Resources
+
+Learn more about software requirements in guideline 2.5.1.
+
+Support
+
+- Reply to this message in your preferred language if you need assistance. If you need additional support, use the Contact Us module.
+- Consult with fellow developers and Apple engineers on the Apple Developer Forums.
+- Request an App Review Appointment at Meet with Apple to discuss your app's review. Appointments subject to availability during your local business hours on Tuesdays and Thursdays.
+- Provide feedback on this message and your review experience by completing a short survey.
+
+Request a phone call from App Review
+
+At your request, we can arrange for an Apple Representative to call you within the next three to five business days to discuss your App Review issue.
