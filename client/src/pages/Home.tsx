@@ -7114,6 +7114,15 @@ export default function Home() {
             </span>
           </div>
 
+          {/* Cold Take (Pro perk — appears 12s after timer starts, rotates every 45s, scales with time + temp + streak + first-plunge) */}
+          <ColdTakeOverlay
+            isActive={isActive}
+            elapsedSeconds={displaySeconds}
+            tempF={temperature}
+            isFirstPlunge={plunges.length === 0}
+            streakDays={streak}
+          />
+
           {/* Mode label */}
           <div className="text-blue-400 text-xs font-semibold uppercase tracking-widest -mb-4">
             {countdownMode ? "Countdown" : "Stopwatch"}
@@ -7149,15 +7158,6 @@ export default function Home() {
               </>
             )}
           </div>
-
-          {/* Cold Take (Pro perk — appears 12s after timer starts, rotates every 45s, scales with time + temp + streak + first-plunge) */}
-          <ColdTakeOverlay
-            isActive={isActive}
-            elapsedSeconds={displaySeconds}
-            tempF={temperature}
-            isFirstPlunge={plunges.length === 0}
-            streakDays={streak}
-          />
 
           {/* Stop button */}
           <button
