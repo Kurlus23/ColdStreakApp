@@ -1,0 +1,68 @@
+kevinellis@Kevins-MacBook-Air ~ % cd ~/Downloads/coldstreak
+git pull
+npm run build
+cd ios/App && sed -i '' 's/objectVersion = 70;/objectVersion = 56;/' App.xcodeproj/project.pbxproj && cd ../..
+npx cap sync ios
+npx cap open ios
+Already up to date.
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.0 building client environment for production...
+transforming (1) src/main.tsxBrowserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 3118 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/kevinellis/Downloads/coldstreak/client/src/lib/share.ts is dynamically imported by /Users/kevinellis/Downloads/coldstreak/client/src/components/PlungeCard.tsx but also statically imported by /Users/kevinellis/Downloads/coldstreak/client/src/components/PlungeCard.tsx, /Users/kevinellis/Downloads/coldstreak/client/src/pages/BadgeProfile.tsx, /Users/kevinellis/Downloads/coldstreak/client/src/pages/EventPage.tsx, /Users/kevinellis/Downloads/coldstreak/client/src/pages/Explore.tsx, /Users/kevinellis/Downloads/coldstreak/client/src/pages/Home.tsx, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) /Users/kevinellis/Downloads/coldstreak/client/src/lib/watchSync.ts is dynamically imported by /Users/kevinellis/Downloads/coldstreak/client/src/pages/Home.tsx, /Users/kevinellis/Downloads/coldstreak/client/src/pages/Home.tsx but also statically imported by /Users/kevinellis/Downloads/coldstreak/client/src/pages/Home.tsx, dynamic import will not move module into another chunk.
+
+../dist/public/index.html                                   3.41 kB │ gzip:   1.37 kB
+../dist/public/assets/image_1775083022624-CZYBsB4j.png  1,707.50 kB
+../dist/public/assets/index-BeU5N5th.css                  124.89 kB │ gzip:  19.66 kB
+../dist/public/assets/web-XxbL65HA.js                       0.16 kB │ gzip:   0.16 kB
+../dist/public/assets/index-DWNJAi5D.js                     0.34 kB │ gzip:   0.23 kB
+../dist/public/assets/index-Bc7aqM2D.js                     0.36 kB │ gzip:   0.24 kB
+../dist/public/assets/web-BeG5x7He.js                       0.36 kB │ gzip:   0.25 kB
+../dist/public/assets/web-DoZxhi1Z.js                       0.73 kB │ gzip:   0.24 kB
+../dist/public/assets/web-BzBXdHdT.js                       0.76 kB │ gzip:   0.35 kB
+../dist/public/assets/web-BBgLVLMe.js                       0.90 kB │ gzip:   0.47 kB
+../dist/public/assets/web-Pz2X970O.js                       8.33 kB │ gzip:   2.40 kB
+../dist/public/assets/web-CwHlp3uZ.js                       8.67 kB │ gzip:   2.97 kB
+../dist/public/assets/web-CZi48wX2.js                       9.90 kB │ gzip:   2.01 kB
+../dist/public/assets/index-DcQOM2Ye.js                 1,800.26 kB │ gzip: 495.84 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.52s
+building server...
+
+  dist/index.cjs  1.3mb ⚠️
+
+⚡ Done in 115ms
+✔ Copying web assets from public to ios/App/App/public in 127.67ms
+✔ Creating capacitor.config.json in ios/App/App in 1.95ms
+✔ copy ios in 188.35ms
+✔ Updating iOS plugins in 7.07ms
+✔ Updating iOS native dependencies with pod install in 3.81s
+[info] Found 10 Capacitor plugins for ios:
+       @capacitor-community/bluetooth-le@8.1.3
+       @capacitor-community/in-app-review@8.0.0
+       @capacitor-community/media@9.0.2
+       @capacitor/app@8.0.1
+       @capacitor/camera@8.0.2
+       @capacitor/clipboard@8.0.1
+       @capacitor/filesystem@8.1.2
+       @capacitor/geolocation@8.1.0
+       @capacitor/share@8.0.1
+       @revenuecat/purchases-capacitor@13.0.1
+✔ update ios in 3.85s
+[info] Sync finished in 4.111s
+✔ Opening the Xcode workspace... in 3.02s
+kevinellis@Kevins-MacBook-Air coldstreak % 
