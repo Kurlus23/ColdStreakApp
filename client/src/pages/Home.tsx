@@ -546,6 +546,7 @@ export default function Home() {
   const [savePrivateName, setSavePrivateName] = useState("");
   const sharingLockRef = useRef(false);
   const weightHoldRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const weightPullInFlightRef = useRef(false);
   const weightHoldCountRef = useRef(0);
   const [promptSubmitLeaderboard, setPromptSubmitLeaderboard] = useState(true);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
@@ -1208,10 +1209,13 @@ export default function Home() {
         }
 
         // If neither server nor local has a weight, try seeding from Apple Health (iOS only).
+        // Race guard: only apply if the user hasn't set a weight while the async call was in flight.
         const hasServerWeight = data.bodyWeight && data.bodyWeight > 0;
         if (!hasServerWeight && !localWeight && isHealthKitPossible()) {
           fetchLatestBodyWeightLbs().then((res) => {
             if (!res || res.lbs < 60 || res.lbs > 500) return;
+            // Re-check: did the user (or another path) set a weight while we were waiting?
+            if (localStorage.getItem("coldstreak-body-weight")) return;
             const lbs = Math.round(res.lbs);
             setBodyWeightLbs(lbs);
             localStorage.setItem("coldstreak-body-weight", String(lbs));
@@ -4154,23 +4158,29 @@ export default function Home() {
                 <button
                   data-testid="button-pull-weight-healthkit"
                   onClick={async () => {
-                    const ok = await ensureHealthKitAuth();
-                    if (!ok) {
-                      toast({ title: "Apple Health not connected", description: "Enable Health access for ColdStreak in Settings.", variant: "destructive" });
-                      return;
+                    if (weightPullInFlightRef.current) return;
+                    weightPullInFlightRef.current = true;
+                    try {
+                      const ok = await ensureHealthKitAuth();
+                      if (!ok) {
+                        toast({ title: "Apple Health not connected", description: "Open iPhone Settings → Health → Data Access & Devices → ColdStreak and turn on Body Mass.", variant: "destructive" });
+                        return;
+                      }
+                      const res = await fetchLatestBodyWeightLbs();
+                      if (!res || res.lbs < 60 || res.lbs > 500) {
+                        toast({ title: "No weight found in Apple Health", description: "Either no weight is logged, or Body Mass access is off. Check Settings → Health → ColdStreak, then log your weight in the Apple Health app." });
+                        return;
+                      }
+                      const lbs = Math.round(res.lbs);
+                      setBodyWeightLbs(lbs);
+                      localStorage.setItem("coldstreak-body-weight", String(lbs));
+                      const token = localStorage.getItem("coldstreak-auth-token");
+                      if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: lbs }) }).catch(() => {});
+                      const ageDays = Math.floor((Date.now() - res.recordedAt) / 86400000);
+                      toast({ title: `Updated to ${lbs} lbs`, description: ageDays === 0 ? "Pulled from Apple Health (today)." : `Pulled from Apple Health (${ageDays}d ago).` });
+                    } finally {
+                      weightPullInFlightRef.current = false;
                     }
-                    const res = await fetchLatestBodyWeightLbs();
-                    if (!res || res.lbs < 60 || res.lbs > 500) {
-                      toast({ title: "No weight found", description: "Log your weight in the Apple Health app, then try again." });
-                      return;
-                    }
-                    const lbs = Math.round(res.lbs);
-                    setBodyWeightLbs(lbs);
-                    localStorage.setItem("coldstreak-body-weight", String(lbs));
-                    const token = localStorage.getItem("coldstreak-auth-token");
-                    if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: lbs }) }).catch(() => {});
-                    const ageDays = Math.floor((Date.now() - res.recordedAt) / 86400000);
-                    toast({ title: `Updated to ${lbs} lbs`, description: ageDays === 0 ? "Pulled from Apple Health (today)." : `Pulled from Apple Health (${ageDays}d ago).` });
                   }}
                   className="mt-2 text-xs text-cyan-400 hover:text-cyan-300 underline-offset-2 hover:underline active:scale-95"
                 >
@@ -5315,20 +5325,21 @@ export default function Home() {
 
             {/* ── Apple Health (HealthKit) ─────────────────────────── */}
             {/* Apple Guideline 2.5.1: clearly identify HealthKit usage in the UI. */}
-            {Capacitor.getPlatform() === 'ios' && (
+            {isHealthKitPossible() && (
               <div data-testid="card-apple-health" className="bg-gradient-to-br from-pink-900/40 to-blue-900/60 backdrop-blur-md rounded-2xl border border-pink-500/30 p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <Heart className="w-5 h-5 text-pink-400 fill-pink-400" />
                   <h3 className="text-white font-bold text-sm">Apple Health</h3>
                 </div>
                 <p className="text-blue-200 text-xs leading-relaxed">
-                  ColdStreak uses Apple HealthKit to import your heart rate and HRV from Apple Watch (or any device that writes to Apple Health) when no Bluetooth strap is paired. This is how your plunges get a heart-rate average without a chest strap.
+                  ColdStreak uses Apple HealthKit to import your heart rate, HRV, and body weight from Apple Watch (or any device that writes to Apple Health). This is how your plunges get a heart-rate average without a chest strap and accurate calorie estimates without re-entering your weight.
                 </p>
                 <div className="bg-blue-950/60 rounded-xl border border-blue-700/30 p-3 space-y-1.5">
                   <p className="text-pink-300 text-[11px] font-semibold uppercase tracking-wide">Data read from Apple Health</p>
                   <ul className="text-blue-200 text-[11px] space-y-1">
                     <li>• Heart Rate — averaged across your plunge window</li>
                     <li>• Heart Rate Variability (HRV) — for recovery insights</li>
+                    <li>• Body Weight — used to estimate calories burned</li>
                   </ul>
                   <p className="text-blue-400 text-[11px] mt-2">No data is written to Apple Health, and nothing leaves your device without your action.</p>
                 </div>
