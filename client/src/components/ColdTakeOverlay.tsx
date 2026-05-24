@@ -11,10 +11,14 @@ export function ColdTakeOverlay({
   isActive,
   elapsedSeconds,
   tempF,
+  isFirstPlunge,
+  streakDays,
 }: {
   isActive: boolean;
   elapsedSeconds: number;
   tempF?: number | null;
+  isFirstPlunge?: boolean;
+  streakDays?: number | null;
 }) {
   const { data } = useQuery<ColdTakeResponse>({
     queryKey: ["/api/cold-take"],
@@ -23,22 +27,25 @@ export function ColdTakeOverlay({
     gcTime: 24 * 60 * 60 * 1000,
   });
 
-  // Derive everything from elapsedSeconds — no timers, no state, no leaks.
   // Slot increments every 45s starting at the 12s reveal mark.
   const slot = Math.max(0, Math.floor((elapsedSeconds - FIRST_REVEAL_SEC) / ROTATE_EVERY_SEC));
   const visible = elapsedSeconds >= FIRST_REVEAL_SEC && data != null;
 
-  // Bucket recomputation: only re-pick when the slot, temp tier, or
-  // time tier (30s/120s/300s) actually changes.
-  const tempTier = tempF == null ? 0 : tempF < 40 ? 1 : tempF > 50 ? 2 : 3;
+  // Recompute keys — only when something tier-affecting changes.
+  const tempTier = tempF == null ? 0 : tempF < 45 ? 1 : tempF > 50 ? 2 : 3;
   const timeTier =
     elapsedSeconds < 30 ? 0 : elapsedSeconds < 120 ? 1 : elapsedSeconds < 300 ? 2 : 3;
+  const streakTier = (streakDays ?? 0) >= 30 ? 1 : 0;
 
   const take = useMemo(() => {
     if (!data) return null;
-    return pickColdTake(elapsedSeconds, tempF ?? null, data.seed, slot);
+    return pickColdTake(
+      { seconds: elapsedSeconds, tempF: tempF ?? null, isFirstPlunge, streakDays },
+      data.seed,
+      slot,
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.seed, slot, tempTier, timeTier]);
+  }, [data?.seed, slot, tempTier, timeTier, streakTier, isFirstPlunge]);
 
   if (!take) return null;
 

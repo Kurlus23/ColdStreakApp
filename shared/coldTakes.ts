@@ -1,8 +1,39 @@
 // Cold Takes — tagged by time-in-water + water temperature.
 // Picker selects from contextually relevant buckets, falling back to GENERAL.
 
+export const FIRST_PLUNGE: string[] = [
+  "There's still time to back out.",
+  "First time? It only gets worse from here.",
+  "Welcome. We're so sorry.",
+  "Day 1. The before times.",
+  "You don't know what you're getting into. Literally.",
+  "Plunge #1. The legend begins. Or ends.",
+  "Bookmark this moment. You'll romanticize it later.",
+  "This is the easiest one. We promise.",
+  "Initiation in progress.",
+  "Cold plungers everywhere just gained a sibling.",
+];
+
+export const LONG_STREAK: string[] = [
+  "Streak intact. Sanity questionable.",
+  "At this point it's a personality trait.",
+  "Your streak is the only warm thing about you.",
+  "Day after day after day. You.",
+  "The streak demands tribute.",
+  "Skipping a day? Not on the streak's watch.",
+  "Your streak has its own LinkedIn now.",
+  "Long streaks are built on short tempers.",
+  "Your streak is older than some friendships.",
+  "Streak says hi. Streak demands more.",
+  "Other apps gave up on you. ColdStreak didn't.",
+  "Your streak is judging you for hesitating.",
+];
+
 export const EARLY: string[] = [
   "This could've been a warm shower.",
+  "You voluntarily entered ice water. Again.",
+  "You could just go for a walk instead.",
+  "No one is making you do this.",
   "Don't gasp. Don't gasp. You gasped.",
   "Cold shock response: 1, you: 0.",
   "The first 15 seconds are the worst. Probably.",
@@ -46,6 +77,11 @@ export const EARLY: string[] = [
 
 export const SHORT: string[] = [
   "Halfway done. Maybe. Probably not.",
+  "The water isn't getting warmer. Sorry.",
+  "One minute in and suddenly breathing is a skill.",
+  "Your metabolism is currently confused.",
+  "The app believes in you. Your body does not.",
+  "Discipline has entered the chat.",
   "Don't check the timer. You'll be sad.",
   "Acceptance is the only exit.",
   "Resistance is futile. Also painful.",
@@ -99,6 +135,8 @@ export const SHORT: string[] = [
 
 export const LONG: string[] = [
   "Your survival instincts have left the chat.",
+  "Your watch thinks you're in danger.",
+  "Your heart would like to unsubscribe.",
   "This is no longer wellness. It's commitment issues.",
   "Your ancestors are nervously watching from the afterlife.",
   "The polar bears are calling to check on you.",
@@ -190,6 +228,7 @@ export const EXTREME: string[] = [
 ];
 
 export const BRUTAL_COLD: string[] = [
+  "This is no longer wellness. This is Arctic cosplay.",
   "This water has never seen sunlight.",
   "The fish here have evolved beyond emotion.",
   "Even the polar bears would tap out.",
@@ -215,6 +254,7 @@ export const BRUTAL_COLD: string[] = [
 ];
 
 export const MILD: string[] = [
+  "Your ancestors survived winters. You panic at 54°.",
   "Cold? In this economy?",
   "This is basically a swimming pool. Toughen up.",
   "Your great-grandfather bathed in this. For fun.",
@@ -233,6 +273,17 @@ export const MILD: string[] = [
 ];
 
 export const GENERAL: string[] = [
+  "Character development is stored in the cold.",
+  "Imagine explaining this hobby to your grandparents.",
+  "At least your streak is alive.",
+  "This is cheaper than therapy. Barely.",
+  "Future you keeps signing up for this.",
+  "Congratulations, your survival instincts are functioning normally.",
+  "Your bathtub fears you now.",
+  "This is what dopamine addiction looks like.",
+  "Cold water. Warm ego.",
+  "The Vikings would still think this is weird.",
+  "Achievement unlocked: voluntary discomfort.",
   "Suffering, but make it aesthetic.",
   "You are the bear. The bear is you.",
   "Bear mode: activated.",
@@ -304,24 +355,58 @@ export const GENERAL: string[] = [
   "Resilience: now in a tub near you.",
 ];
 
-export type Bucket = "EARLY" | "SHORT" | "LONG" | "EXTREME" | "BRUTAL_COLD" | "MILD" | "GENERAL";
+export type Bucket =
+  | "EARLY" | "SHORT" | "LONG" | "EXTREME"
+  | "BRUTAL_COLD" | "MILD"
+  | "FIRST_PLUNGE" | "LONG_STREAK"
+  | "GENERAL";
 
 export const ALL_BUCKETS: Record<Bucket, string[]> = {
-  EARLY, SHORT, LONG, EXTREME, BRUTAL_COLD, MILD, GENERAL,
+  EARLY, SHORT, LONG, EXTREME, BRUTAL_COLD, MILD, FIRST_PLUNGE, LONG_STREAK, GENERAL,
+};
+
+export type ColdTakeContext = {
+  seconds: number;                  // elapsed time in water
+  tempF?: number | null;            // water temp in °F (null/undefined if unknown)
+  isFirstPlunge?: boolean;          // true if user has zero prior logged plunges
+  streakDays?: number | null;       // current streak length in days
 };
 
 // Pick a contextually-appropriate take.
-// seconds: elapsed time in water
-// tempF: water temperature (Fahrenheit). Pass null/undefined if unknown.
 // seed: stable seed for the day (so all users see the same picks)
 // slot: rotation index (0 = first take, 1 = second, etc.)
+export function pickColdTake(ctx: ColdTakeContext, seed: number, slot: number): string;
+// Legacy positional signature kept for back-compat:
 export function pickColdTake(
   seconds: number,
   tempF: number | null | undefined,
   seed: number,
   slot: number,
+): string;
+export function pickColdTake(
+  a: ColdTakeContext | number,
+  b: number | null | undefined,
+  c?: number,
+  d?: number,
 ): string {
+  const ctx: ColdTakeContext = typeof a === "number"
+    ? { seconds: a, tempF: b as number | null | undefined }
+    : a;
+  const seed = typeof a === "number" ? (c as number) : (b as number);
+  const slot = typeof a === "number" ? (d as number) : (c as number);
+
+  const { seconds, tempF, isFirstPlunge, streakDays } = ctx;
   const candidates: string[] = [];
+
+  // First-plunge takes priority (only ever happens once)
+  if (isFirstPlunge) {
+    candidates.push(...FIRST_PLUNGE, ...FIRST_PLUNGE, ...FIRST_PLUNGE);
+  }
+
+  // Long-streak callouts for committed users (30+ days)
+  if (typeof streakDays === "number" && streakDays >= 30) {
+    candidates.push(...LONG_STREAK, ...LONG_STREAK);
+  }
 
   // Time-based pools (weighted higher to drive contextual feel)
   if (seconds < 30) {
@@ -336,7 +421,7 @@ export function pickColdTake(
 
   // Temperature-based pools
   if (typeof tempF === "number" && Number.isFinite(tempF)) {
-    if (tempF < 40) candidates.push(...BRUTAL_COLD);
+    if (tempF < 45) candidates.push(...BRUTAL_COLD);
     else if (tempF > 50) candidates.push(...MILD);
   }
 
