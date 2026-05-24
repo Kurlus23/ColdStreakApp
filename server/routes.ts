@@ -2243,6 +2243,25 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     };
   }
 
+  app.get("/api/cold-take", async (_req, res) => {
+    try {
+      const { COLD_TAKES } = await import("@shared/coldTakes");
+      const now = new Date();
+      const dayOfYear = Math.floor(
+        (Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) -
+          Date.UTC(now.getUTCFullYear(), 0, 0)) / 86400000
+      );
+      const seed = now.getUTCFullYear() * 1000 + dayOfYear;
+      const primary = COLD_TAKES[seed % COLD_TAKES.length];
+      const secondary = COLD_TAKES[(seed * 7 + 13) % COLD_TAKES.length];
+      const tertiary = COLD_TAKES[(seed * 13 + 29) % COLD_TAKES.length];
+      res.set("Cache-Control", "public, max-age=300");
+      res.json({ takes: [primary, secondary, tertiary], date: now.toISOString().slice(0, 10) });
+    } catch (e) {
+      res.status(500).json({ error: "cold-take unavailable" });
+    }
+  });
+
   app.post("/api/revenuecat/sync", async (req, res) => {
     try {
       const caller = extractUser(req);

@@ -25,6 +25,7 @@ import { usePlunges, useCreatePlunge, useUpdatePlunge, useDeletePlunge } from "@
 import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry, type LeaderboardEntryWithBadge } from "@/hooks/use-leaderboard";
 import { useProStatus, PENDING_CHECKOUT_KEY, PENDING_SESSION_KEY } from "@/hooks/use-pro-status";
 import { PlungeCard, buildShareText } from "@/components/PlungeCard";
+import { ColdTakeOverlay } from "@/components/ColdTakeOverlay";
 import { BannerAd, FeedAd, InterstitialAd } from "@/components/AdUnit";
 import { MusicWidget, openMusic, shouldAutoPlay } from "@/components/MusicWidget";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
@@ -7109,6 +7110,9 @@ export default function Home() {
               </>
             )}
           </div>
+
+          {/* Cold Take (Pro perk — appears 12s after timer starts, rotates every 45s) */}
+          <ColdTakeOverlay isActive={isActive} />
 
           {/* Stop button */}
           <button
