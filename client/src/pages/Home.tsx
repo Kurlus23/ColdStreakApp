@@ -7111,8 +7111,8 @@ export default function Home() {
             )}
           </div>
 
-          {/* Cold Take (Pro perk — appears 12s after timer starts, rotates every 45s) */}
-          <ColdTakeOverlay isActive={isActive} />
+          {/* Cold Take (Pro perk — appears 12s after timer starts, rotates every 45s, scales with time + temp) */}
+          <ColdTakeOverlay isActive={isActive} elapsedSeconds={displaySeconds} tempF={temperature} />
 
           {/* Stop button */}
           <button
