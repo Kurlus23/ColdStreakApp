@@ -37,7 +37,7 @@ import { isNative, nativeShare } from "@/lib/nativeShare";
 import { shareContent } from "@/lib/share";
 import { saveCustomAlarmUrl, loadCustomAlarmUrl, clearCustomAlarmUrl } from "@/lib/alarm-storage";
 import { drainWatchQueue, startWatchListener, stopWatchListener } from "@/lib/watchSync";
-import { ensureHealthKitAuth, fetchHrAvgForWindow, isHealthKitPossible } from "@/lib/healthKit";
+import { ensureHealthKitAuth, fetchHrAvgForWindow, fetchLatestBodyWeightLbs, isHealthKitPossible } from "@/lib/healthKit";
 import { Explore, GEAR_ITEMS, type GearCategory } from "@/pages/Explore";
 import {
   PASSPORT_LOCATIONS, usePassportBadges, distanceMiles,
@@ -1205,6 +1205,18 @@ export default function Home() {
 
         if (Object.keys(patch).length > 0) {
           fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(patch) }).catch(() => {});
+        }
+
+        // If neither server nor local has a weight, try seeding from Apple Health (iOS only).
+        const hasServerWeight = data.bodyWeight && data.bodyWeight > 0;
+        if (!hasServerWeight && !localWeight && isHealthKitPossible()) {
+          fetchLatestBodyWeightLbs().then((res) => {
+            if (!res || res.lbs < 60 || res.lbs > 500) return;
+            const lbs = Math.round(res.lbs);
+            setBodyWeightLbs(lbs);
+            localStorage.setItem("coldstreak-body-weight", String(lbs));
+            fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: lbs }) }).catch(() => {});
+          }).catch(() => {});
         }
       })
       .catch(() => {});
@@ -4138,6 +4150,33 @@ export default function Home() {
                 })()}
                 <span className="text-blue-500 text-xs">lbs ({Math.round(bodyWeightLbs / 2.205)} kg)</span>
               </div>
+              {isHealthKitPossible() && (
+                <button
+                  data-testid="button-pull-weight-healthkit"
+                  onClick={async () => {
+                    const ok = await ensureHealthKitAuth();
+                    if (!ok) {
+                      toast({ title: "Apple Health not connected", description: "Enable Health access for ColdStreak in Settings.", variant: "destructive" });
+                      return;
+                    }
+                    const res = await fetchLatestBodyWeightLbs();
+                    if (!res || res.lbs < 60 || res.lbs > 500) {
+                      toast({ title: "No weight found", description: "Log your weight in the Apple Health app, then try again." });
+                      return;
+                    }
+                    const lbs = Math.round(res.lbs);
+                    setBodyWeightLbs(lbs);
+                    localStorage.setItem("coldstreak-body-weight", String(lbs));
+                    const token = localStorage.getItem("coldstreak-auth-token");
+                    if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: lbs }) }).catch(() => {});
+                    const ageDays = Math.floor((Date.now() - res.recordedAt) / 86400000);
+                    toast({ title: `Updated to ${lbs} lbs`, description: ageDays === 0 ? "Pulled from Apple Health (today)." : `Pulled from Apple Health (${ageDays}d ago).` });
+                  }}
+                  className="mt-2 text-xs text-cyan-400 hover:text-cyan-300 underline-offset-2 hover:underline active:scale-95"
+                >
+                  📥 Pull from Apple Health
+                </button>
+              )}
               <p className="text-blue-500 text-xs mt-1">Used to estimate calories burned per plunge.</p>
             </div>
 

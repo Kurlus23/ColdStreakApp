@@ -32,6 +32,7 @@ public class HealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "requestAuth", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getHrAvg", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getRecentHrv", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getBodyMass", returnType: CAPPluginReturnPromise),
     ]
 
     private let store = HKHealthStore()
@@ -48,6 +49,7 @@ public class HealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         let read: Set<HKObjectType> = [
             HKObjectType.quantityType(forIdentifier: .heartRate)!,
             HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
+            HKObjectType.quantityType(forIdentifier: .bodyMass)!,
         ]
         store.requestAuthorization(toShare: nil, read: read) { success, _ in
             call.resolve(["granted": success])
@@ -113,6 +115,34 @@ public class HealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
             let ms = samples.map { $0.quantity.doubleValue(for: unit) }
             let avg = ms.reduce(0, +) / Double(ms.count)
             call.resolve(["avgMs": avg.rounded(), "samples": ms.count])
+        }
+        store.execute(q)
+    }
+
+    /// Returns the user's most recent body mass sample from Apple Health, in pounds.
+    /// Used to seed ColdStreak's weight setting so users don't have to re-enter it.
+    @objc func getBodyMass(_ call: CAPPluginCall) {
+        guard let massType = HKObjectType.quantityType(forIdentifier: .bodyMass) else {
+            call.resolve(["lbs": NSNull(), "recordedAt": NSNull()])
+            return
+        }
+
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+        let q = HKSampleQuery(
+            sampleType: massType,
+            predicate: nil,
+            limit: 1,
+            sortDescriptors: [sort]
+        ) { _, samples, _ in
+            guard let sample = samples?.first as? HKQuantitySample else {
+                call.resolve(["lbs": NSNull(), "recordedAt": NSNull()])
+                return
+            }
+            let lbs = sample.quantity.doubleValue(for: HKUnit.pound())
+            call.resolve([
+                "lbs": lbs.rounded(),
+                "recordedAt": sample.endDate.timeIntervalSince1970 * 1000.0,
+            ])
         }
         store.execute(q)
     }

@@ -15,6 +15,7 @@ interface HealthKitPlugin {
   requestAuth: () => Promise<{ granted: boolean }>;
   getHrAvg: (opts: { startMs: number; endMs: number }) => Promise<{ avg: number | null; samples: number }>;
   getRecentHrv: (opts: { lookbackMinutes: number }) => Promise<{ avgMs: number | null; samples: number }>;
+  getBodyMass: () => Promise<{ lbs: number | null; recordedAt: number | null }>;
 }
 
 const HealthKit = registerPlugin<HealthKitPlugin>("HealthKit");
@@ -49,6 +50,18 @@ export async function fetchHrAvgForWindow(startedAt: Date, endedAt: Date): Promi
     return avg ?? null;
   } catch (err) {
     console.warn("[healthKit] getHrAvg failed:", err);
+    return null;
+  }
+}
+
+export async function fetchLatestBodyWeightLbs(): Promise<{ lbs: number; recordedAt: number } | null> {
+  if (!isHealthKitPossible()) return null;
+  try {
+    const { lbs, recordedAt } = await HealthKit.getBodyMass();
+    if (lbs == null || recordedAt == null) return null;
+    return { lbs, recordedAt };
+  } catch (err) {
+    console.warn("[healthKit] getBodyMass failed:", err);
     return null;
   }
 }
