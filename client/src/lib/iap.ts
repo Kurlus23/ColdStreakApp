@@ -6,6 +6,7 @@ import {
   type PurchasesPackage,
   type PurchasesOffering,
 } from "@revenuecat/purchases-capacitor";
+import { apiRequest } from "@/lib/queryClient";
 
 export const PRO_ENTITLEMENT_ID = "pro";
 export const VERIFIED_BUSINESS_ENTITLEMENT_ID = "verified_business";
@@ -284,20 +285,15 @@ export async function syncIAPToServer(email: string): Promise<{ ok: boolean; isP
     const ent = info.entitlements?.active?.[PRO_ENTITLEMENT_ID];
     const planType = activeProPlanFromCustomerInfo(info);
 
-    const res = await fetch("/api/revenuecat/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: email.toLowerCase(),
-        appUserId: info.originalAppUserId,
-        isPro: !!ent,
-        planType,
-        productIdentifier: ent?.productIdentifier ?? null,
-        expirationDate: ent?.expirationDate ?? null,
-        originalPurchaseDate: ent?.originalPurchaseDate ?? null,
-      }),
+    const res = await apiRequest("POST", "/api/revenuecat/sync", {
+      email: email.toLowerCase(),
+      appUserId: info.originalAppUserId,
+      isPro: !!ent,
+      planType,
+      productIdentifier: ent?.productIdentifier ?? null,
+      expirationDate: ent?.expirationDate ?? null,
+      originalPurchaseDate: ent?.originalPurchaseDate ?? null,
     });
-    if (!res.ok) return { ok: false };
     const data = await res.json();
     return { ok: true, isPro: !!data.isPro, planType: data.planType };
   } catch (err) {
