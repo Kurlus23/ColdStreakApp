@@ -51,15 +51,15 @@ export function ColdTakeOverlay({
 
   return (
     <div
-      className={`max-w-md px-6 text-center transition-opacity duration-500 ${
-        visible ? "opacity-90" : "opacity-0"
+      className={`max-w-md mx-4 px-5 py-3 rounded-2xl bg-blue-950/70 backdrop-blur-sm border border-cyan-400/20 shadow-lg shadow-black/30 text-center transition-opacity duration-500 ${
+        visible ? "opacity-100" : "opacity-0"
       }`}
       data-testid="text-cold-take"
     >
-      <div className="text-blue-300/70 text-[10px] uppercase tracking-[0.2em] mb-1.5">
-        Cold Take
+      <div className="text-cyan-300/80 text-[10px] uppercase tracking-[0.25em] mb-1.5 font-semibold">
+        ❄ Cold Take
       </div>
-      <div className="text-blue-100 text-base italic font-light leading-snug">
+      <div className="text-white text-base italic font-light leading-snug">
         "{take}"
       </div>
     </div>
