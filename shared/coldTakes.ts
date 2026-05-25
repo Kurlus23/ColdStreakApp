@@ -236,6 +236,7 @@ export const EXTREME: string[] = [
   "Goggins is sending a welfare check.",
   "Your guardian angel has filed a workers' comp claim.",
   "The Reaper is in the lobby, but you're not on the list.",
+  "If you see Jesus, tell him I said hi… and that I'm coming in hot.",
   "You've turned wellness into warfare.",
   "Cold plungers everywhere are taking screenshots.",
   "Your name will be whispered in saunas.",
