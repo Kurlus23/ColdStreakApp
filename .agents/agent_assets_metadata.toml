@@ -773,3 +773,9 @@ id = "HM5G5mT0dVEsQPUNRt7bd"
 uri = "file://exports/jokes_review.md"
 type = "text"
 title = "Joke Review List"
+
+[[outputs]]
+id = "aLhOlKegDHr1FPYssPVMC"
+uri = "file://exports/jokes_final.md"
+type = "text"
+title = "Final Joke List (384 takes)"
