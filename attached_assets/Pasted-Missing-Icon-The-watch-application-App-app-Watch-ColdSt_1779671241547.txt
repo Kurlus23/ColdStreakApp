@@ -1,0 +1,101 @@
+Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*27.5x27.5@2x.png' (Notification Center 42mm). Please visit https://developer.apple.com/watchkit/ for more information.
+The server’s response was: ‘{
+    code = 90394;
+    description = "Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*27.5x27.5@2x.png' (Notification Center 42mm). Please visit https://developer.apple.com/watchkit/ for more information.";
+}’.
+
+Invalid Bundle Identifier. Attempting to change bundle identifier from com.coldstreak.app.watch to com.coldstreak.app.watchkitapp is disallowed for bundle App.app/Watch/ColdStreakWatch Watch App.app.
+The server’s response was: ‘{
+    code = 90477;
+    description = "Invalid Bundle Identifier. Attempting to change bundle identifier from com.coldstreak.app.watch to com.coldstreak.app.watchkitapp is disallowed for bundle App.app/Watch/ColdStreakWatch Watch App.app.";
+}’.
+
+Invalid Info.plist key. The key 'WKSupportsAlwaysOnDisplay' in bundle App.app/Watch/ColdStreakWatch Watch App.app is invalid.
+The server’s response was: ‘{
+    code = 90363;
+    description = "Invalid Info.plist key. The key 'WKSupportsAlwaysOnDisplay' in bundle App.app/Watch/ColdStreakWatch Watch App.app is invalid.";
+}’.
+
+Missing WKCompanionAppBundleIdentifier. The Info.plist of Apple Watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing a WKCompanionAppBundleIdentifier value.
+The server’s response was: ‘{
+    code = 90536;
+    description = "Missing WKCompanionAppBundleIdentifier. The Info.plist of Apple Watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing a WKCompanionAppBundleIdentifier value.";
+}’.
+
+Missing entitlement. The Info.plist for the watchOS app bundle at “App.app/Watch/ColdStreakWatch Watch App.app” uses the workout-processing value for WKBackgroundModes without the com.apple.developer.healthkit entitlement signed into the bundle.
+The server’s response was: ‘{
+    code = 90701;
+    description = "Missing entitlement. The Info.plist for the watchOS app bundle at \U201cApp.app/Watch/ColdStreakWatch Watch App.app\U201d uses the workout-processing value for WKBackgroundModes without the com.apple.developer.healthkit entitlement signed into the bundle.";
+}’.
+
+Missing Icon. The watch app 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon, '*108x108@2x.png' (Short Look 44mm). Apps built with the watchOS 5 SDK must include Apple Watch Series 4 icons. For more information, please visit https://developer.apple.com/watchkit/.
+The server’s response was: ‘{
+    code = 90741;
+    description = "Missing Icon. The watch app 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon, '*108x108@2x.png' (Short Look 44mm). Apps built with the watchOS 5 SDK must include Apple Watch Series 4 icons. For more information, please visit https://developer.apple.com/watchkit/.";
+}’.
+
+Missing app icon. Include a large app icon as a 1024 by 1024 pixel PNG in the asset catalog of apps built for watchOS. Without this icon, apps can't be submitted for review. For details, visit: https://developer.apple.com/documentation/xcode/configuring-your-app-icon.
+The server’s response was: ‘{
+    code = 90719;
+    description = "Missing app icon. Include a large app icon as a 1024 by 1024 pixel PNG in the asset catalog of apps built for watchOS. Without this icon, apps can't be submitted for review. For details, visit: https://developer.apple.com/documentation/xcode/configuring-your-app-icon.";
+}’.
+
+Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*29x29@2x.png' (Companion Settings (2x)). Please visit https://developer.apple.com/watchkit/ for more information.
+The server’s response was: ‘{
+    code = 90394;
+    description = "Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*29x29@2x.png' (Companion Settings (2x)). Please visit https://developer.apple.com/watchkit/ for more information.";
+}’.
+
+Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*40x40@2x.png' (Home Screen 38mm). Please visit https://developer.apple.com/watchkit/ for more information.
+The server’s response was: ‘{
+    code = 90394;
+    description = "Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*40x40@2x.png' (Home Screen 38mm). Please visit https://developer.apple.com/watchkit/ for more information.";
+}’.
+
+Missing Icon. The watch app 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon, '*50x50@2x.png' (Long Look 44mm). Apps built with the watchOS 5 SDK must include Apple Watch Series 4 icons. For more information, please visit https://developer.apple.com/watchkit/.
+The server’s response was: ‘{
+    code = 90741;
+    description = "Missing Icon. The watch app 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon, '*50x50@2x.png' (Long Look 44mm). Apps built with the watchOS 5 SDK must include Apple Watch Series 4 icons. For more information, please visit https://developer.apple.com/watchkit/.";
+}’.
+
+Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*86x86@2x.png' (Short Look 38mm). Please visit https://developer.apple.com/watchkit/ for more information.
+The server’s response was: ‘{
+    code = 90394;
+    description = "Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*86x86@2x.png' (Short Look 38mm). Please visit https://developer.apple.com/watchkit/ for more information.";
+}’.
+
+Invalid bundle structure. The “App.app/Watch/ColdStreakWatch Watch App.app/ColdStreakWatch Watch App” binary file is not permitted. Your app cannot contain standalone executables or libraries, other than a valid CFBundleExecutable of supported bundles. For details, visit: https://developer.apple.com/documentation/bundleresources/placing_content_in_a_bundle
+The server’s response was: ‘{
+    code = 90171;
+    description = "Invalid bundle structure. The \U201cApp.app/Watch/ColdStreakWatch Watch App.app/ColdStreakWatch Watch App\U201d binary file is not permitted. Your app cannot contain standalone executables or libraries, other than a valid CFBundleExecutable of supported bundles. For details, visit: https://developer.apple.com/documentation/bundleresources/placing_content_in_a_bundle";
+}’.
+
+Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*44x44@2x.png' (Long Look 42mm). Please visit https://developer.apple.com/watchkit/ for more information.
+The server’s response was: ‘{
+    code = 90394;
+    description = "Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*44x44@2x.png' (Long Look 42mm). Please visit https://developer.apple.com/watchkit/ for more information.";
+}’.
+
+Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*24x24@2x.png' (Notification Center 38mm). Please visit https://developer.apple.com/watchkit/ for more information.
+The server’s response was: ‘{
+    code = 90394;
+    description = "Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*24x24@2x.png' (Notification Center 38mm). Please visit https://developer.apple.com/watchkit/ for more information.";
+}’.
+
+Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*98x98@2x.png' (Short Look 42mm). Please visit https://developer.apple.com/watchkit/ for more information.
+The server’s response was: ‘{
+    code = 90394;
+    description = "Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*98x98@2x.png' (Short Look 42mm). Please visit https://developer.apple.com/watchkit/ for more information.";
+}’.
+
+Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*29x29@3x.png' (Companion Settings (3x)). Please visit https://developer.apple.com/watchkit/ for more information.
+The server’s response was: ‘{
+    code = 90394;
+    description = "Missing Icon. The watch application 'App.app/Watch/ColdStreakWatch Watch App.app' is missing icon with name pattern '*29x29@3x.png' (Companion Settings (3x)). Please visit https://developer.apple.com/watchkit/ for more information.";
+}’.
+
+Missing SDK Version. The Watch OS Mach-O file in Payload/App.app/Watch/ColdStreakWatch Watch App.app is missing an SDK version field. Rebuild the app with a recommended version of Xcode and resubmit.
+The server’s response was: ‘{
+    code = 90814;
+    description = "Missing SDK Version. The Watch OS Mach-O file in Payload/App.app/Watch/ColdStreakWatch Watch App.app is missing an SDK version field. Rebuild the app with a recommended version of Xcode and resubmit.";
+}’.
