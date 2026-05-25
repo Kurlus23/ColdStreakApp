@@ -761,3 +761,9 @@ id = "gO1e31LCu82M-disJ49nB"
 uri = "file://screenshots/music-settings-modal.jpeg"
 type = "image"
 title = "Music settings modal (presets + custom URL + autoplay)"
+
+[[outputs]]
+id = "XDMU-RUBofBE2f0lJVeZp"
+uri = "file://exports/coldstreak_6.5inch_1242x2688.png"
+type = "image"
+title = "ColdStreak 6.5\" App Store Screenshot (1242x2688)"
