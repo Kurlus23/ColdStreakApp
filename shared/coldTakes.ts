@@ -52,6 +52,7 @@ export const EARLY: string[] = [
   "Breathing advice: in through the nose, out through the screams.",
   "Your face is doing things. Weird things.",
   "Goosebumps: nature's bubble wrap.",
+  "Current status: 10% human, 90% goosebumps.",
   "Your hair stood up to applaud you.",
   "Pores: officially closed for business.",
   "First plunge is free. After that, it's $19.99.",
