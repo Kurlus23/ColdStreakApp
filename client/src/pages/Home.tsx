@@ -19,6 +19,7 @@ import {
 
 import confetti from "canvas-confetti";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { usePlunges, useCreatePlunge, useUpdatePlunge, useDeletePlunge } from "@/hooks/use-plunges";
@@ -4161,14 +4162,26 @@ export default function Home() {
                     if (weightPullInFlightRef.current) return;
                     weightPullInFlightRef.current = true;
                     try {
+                      const openIosSettings = () => {
+                        try { window.location.href = "app-settings:"; } catch (err) { console.warn("[health] open settings failed:", err); }
+                      };
                       const ok = await ensureHealthKitAuth();
                       if (!ok) {
-                        toast({ title: "Apple Health not connected", description: "Open iPhone Settings → Health → Data Access & Devices → ColdStreak and turn on Body Mass.", variant: "destructive" });
+                        toast({
+                          title: "Apple Health not connected",
+                          description: "Tap Open Settings, then go to Health → Data Access & Devices → ColdStreak and turn on Body Mass.",
+                          variant: "destructive",
+                          action: <ToastAction altText="Open Settings" onClick={openIosSettings}>Open Settings</ToastAction>,
+                        });
                         return;
                       }
                       const res = await fetchLatestBodyWeightLbs();
                       if (!res || res.lbs < 60 || res.lbs > 500) {
-                        toast({ title: "No weight found in Apple Health", description: "Either no weight is logged, or Body Mass access is off. Check Settings → Health → ColdStreak, then log your weight in the Apple Health app." });
+                        toast({
+                          title: "No weight found in Apple Health",
+                          description: "Either no weight is logged, or Body Mass access is off. Check Settings → Health → ColdStreak, then log your weight in the Apple Health app.",
+                          action: <ToastAction altText="Open Settings" onClick={openIosSettings}>Open Settings</ToastAction>,
+                        });
                         return;
                       }
                       const lbs = Math.round(res.lbs);
