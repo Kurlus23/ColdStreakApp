@@ -1,0 +1,44 @@
+ls ~/Downloads/coldstreak-OLD-backup/ios/App/App/
+-rw-r--r--  1 kevinellis  staff  26352 May 13 07:47 /Users/kevinellis/Downloads/coldstreak-OLD-backup/ios/App/App.xcodeproj/project.pbxproj
+AppDelegate.swift	Base.lproj		config.xml		public
+Assets.xcassets		capacitor.config.json	Info.plist
+kevinellis@Kevins-MacBook-Air coldstreak % ls -la ~/Downloads/coldstreak-OLD-backup/ios/App/
+cat ~/Downloads/coldstreak-OLD-backup/ios/App/App.xcodeproj/project.pbxproj | grep -c "PBXFileReference"
+cat ~/Downloads/coldstreak-OLD-backup/ios/App/App.xcodeproj/project.pbxproj | grep -i "watch\|healthkit" | head -20
+total 72
+drwxr-xr-x  14 kevinellis  staff    448 May 13 07:40 .
+drwxr-xr-x   6 kevinellis  staff    192 May 13 07:47 ..
+-rw-r--r--@  1 kevinellis  staff  10244 May  6 15:13 .DS_Store
+-rw-r--r--@  1 kevinellis  staff      0 May 13 07:40 .env.local
+drwxr-xr-x  10 kevinellis  staff    320 May 13 07:47 App
+drwxr-xr-x@  5 kevinellis  staff    160 May 13 07:45 App.xcodeproj
+drwxr-xr-x@  5 kevinellis  staff    160 May  6 15:13 App.xcworkspace
+drwxr-xr-x   7 kevinellis  staff    224 May  6 15:13 ColdStreakWatch Watch App
+-rw-r--r--   1 kevinellis  staff    249 May  6 15:13 ColdStreakWatch-Watch-App-Info.plist
+-rw-r--r--   1 kevinellis  staff   5289 May  6 15:13 HealthKitPlugin.swift
+-rw-r--r--   1 kevinellis  staff   1455 May 13 07:47 Podfile
+-rw-r--r--   1 kevinellis  staff   3793 May  6 15:13 Podfile.lock
+drwxr-xr-x  10 kevinellis  staff    320 May  6 15:13 Pods
+-rw-r--r--   1 kevinellis  staff   3460 May  6 15:13 WatchSyncPlugin.swift
+17
+		D2316FF42F9AFEAE001F4A42 /* ColdStreakWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D2316FEA2F9AFEAC001F4A42 /* ColdStreakWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D2FD52492F9BA5BD00E8F1E8 /* WatchSyncPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2FD52462F9BA40B00E8F1E8 /* WatchSyncPlugin.swift */; };
+		D2FD524A2F9BA5C800E8F1E8 /* HealthKitPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2FD52452F9BA40B00E8F1E8 /* HealthKitPlugin.swift */; };
+			remoteInfo = "ColdStreakWatch Watch App";
+		D2316FF52F9AFEAE001F4A42 /* Embed Watch Content */ = {
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+				D2316FF42F9AFEAE001F4A42 /* ColdStreakWatch Watch App.app in Embed Watch Content */,
+			name = "Embed Watch Content";
+		D2316FEA2F9AFEAC001F4A42 /* ColdStreakWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ColdStreakWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D2FD52452F9BA40B00E8F1E8 /* HealthKitPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitPlugin.swift; sourceTree = "<group>"; };
+		D2FD52462F9BA40B00E8F1E8 /* WatchSyncPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSyncPlugin.swift; sourceTree = "<group>"; };
+		D2316FEB2F9AFEAC001F4A42 /* ColdStreakWatch Watch App */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "ColdStreakWatch Watch App"; sourceTree = "<group>"; };
+				D2FD52452F9BA40B00E8F1E8 /* HealthKitPlugin.swift */,
+				D2FD52462F9BA40B00E8F1E8 /* WatchSyncPlugin.swift */,
+				D2316FEB2F9AFEAC001F4A42 /* ColdStreakWatch Watch App */,
+				D2316FEA2F9AFEAC001F4A42 /* ColdStreakWatch Watch App.app */,
+				D2316FF52F9AFEAE001F4A42 /* Embed Watch Content */,
+		D2316FE92F9AFEAC001F4A42 /* ColdStreakWatch Watch App */ = {
+			buildConfigurationList = D2316FF82F9AFEAE001F4A42 /* Build configuration list for PBXNativeTarget "ColdStreakWatch Watch App" */;
+				D2316FEB2F9AFEAC001F4A42 /* ColdStreakWatch Watch App */,
+kevinellis@Kevins-MacBook-Air coldstreak % 
