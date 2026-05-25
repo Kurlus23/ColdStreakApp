@@ -5057,8 +5057,8 @@ export default function Home() {
               >
                 <span className="text-orange-400">⚠️</span>
                 <span className="flex-1">
-                  <span className="font-semibold">Apple Watch — Live HR not working?</span>
-                  <span className="text-orange-300/60"> Tap here</span>
+                  <span className="font-semibold">Apple Watch &amp; HealthKit settings</span>
+                  <span className="text-orange-300/60"> — tap to open</span>
                 </span>
               </button>
               {hrConnected ? (
