@@ -49,6 +49,7 @@ export const EARLY: string[] = [
   "You're not freezing. You're optimizing.",
   "The water is fine. Your nervous system disagrees.",
   "Breathe through your nose. Or just panic. Either way.",
+  "Breathing advice: in through the nose, out through the screams.",
   "Your face is doing things. Weird things.",
   "Goosebumps: nature's bubble wrap.",
   "Your hair stood up to applaud you.",
