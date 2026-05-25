@@ -1,0 +1,356 @@
+,Change completely,Funny: Keep,Make Funnier
+FIRST_PLUNGE (shown only on someone's very first plunge),,,x
+"5: ""There's still time to back out.""",,,x
+"6: ""First time? It only gets worse from here.""",,,x
+"7: ""Welcome. We're so sorry.""",,,x
+"8: ""Day 1. The before times.""",x,,
+"9: ""You don't know what you're getting into. Literally.""",,,x
+"10: ""Plunge #1. The legend begins. Or ends.""",,,x
+"11: ""Bookmark this moment. You'll romanticize it later.""",x,,
+"12: ""This is the easiest one. We promise.""",,,x
+"13: ""Initiation in progress.""",,,x
+"14: ""Cold plungers everywhere just gained a sibling.""",,,x
+LONG_STREAK (30+ day streaks),,,
+"18: ""Streak intact. Sanity questionable.""",,,x
+"19: ""At this point it's a personality trait.""",,,x
+"20: ""Your streak is the only warm thing about you.""",,,x
+"21: ""Day after day after day. You.""",x,,
+"22: ""The streak demands tribute.""",x,,
+"23: ""Skipping a day? Not on the streak's watch.""",x,,
+"24: ""Your streak has its own LinkedIn now.""",,,x
+"25: ""Long streaks are built on short tempers.""",,,x
+"26: ""Your streak is older than some friendships.""",,,x
+"27: ""Streak says hi. Streak demands more.""",,,x
+"28: ""Other apps gave up on you. ColdStreak didn't.""",x,,
+"29: ""Your streak is judging you for hesitating.""",,,x
+EARLY (first 30 seconds in water),,,
+"33: ""This could've been a warm shower.""",,x,
+"34: ""You voluntarily entered ice water. Again.""",x,,
+"35: ""You could just go for a walk instead.""",,x,
+"36: ""No one is making you do this.""",,,x
+"37: ""Don't gasp. Don't gasp. You gasped.""",,,x
+"38: ""Cold shock response: 1, you: 0.""",x,,
+"39: ""The first 15 seconds are the worst. Probably.""",,x,
+"40: ""Breathe. Or hyperventilate. Either works.""",,x,
+"41: ""You volunteered as tribute.""",,,x
+"42: ""You came here to suffer beautifully.""",x,,
+"43: ""Welcome to the longest 60 seconds of your life.""",,,x
+"44: ""Your nervous system filed a complaint.""",,,x
+"45: ""Your body is begging you to stop. Your ego said no.""",,,x
+"46: ""Cold doesn't negotiate.""",x,,
+"47: ""Your sympathetic nervous system is awake. Very awake.""",x,,
+"48: ""Fight or flight? You chose 'sit very still.'""",x,,
+"49: ""You're not freezing. You're optimizing.""",,,x
+"50: ""The water is fine. Your nervous system disagrees.""",x,,
+"51: ""Breathe through your nose. Or just panic. Either way.""",,,x
+"52: ""Your face is doing things. Weird things.""",,,x
+"53: ""Goosebumps: nature's bubble wrap.""",,,x
+"54: ""Your hair stood up to applaud you.""",,,x
+"55: ""Pores: officially closed for business.""",,,x
+"56: ""First plunge is free. After that, it's $19.99.""",,x,
+"57: ""Hot tubs are for the weak. (We're kidding. Hot tubs are great.)""",x,,
+"58: ""Cold is just spicy temperature.""",x,,
+"59: ""You signed up for this. Voluntarily.""",x,,
+"60: ""Your warm bed misses you.""",,,x
+"61: ""Plot twist: it doesn't get easier. You get colder.""",,,x
+"62: ""Adventure is just suffering with good lighting.""",,,x
+"63: ""Stay still. The cold gets bored.""",x,,
+"64: ""Be the iceberg, not the Titanic.""",x,,
+"65: ""Don't move. The cold notices movement.""",x,,
+"66: ""Sink with grace.""",x,,
+"67: ""The cold remembers your weaknesses.""",x,,
+"68: ""Your skin is screaming. Ignore it.""",x,,
+"69: ""Numb is the new euphoric.""",,,x
+"70: ""Your dignity exited at second three.""",x,,
+"71: ""Welcome to the worst spa day ever.""",,,x
+"72: ""You're paying premium for goosebumps.""",,,x
+"73: ""Coffee is going to taste incredible after this.""",,,x
+"74: ""Your shower will feel like Hawaii.""",,,x
+"75: ""If your friends could see you now, they'd call 911.""",,,x
+SHORT (30 sec – 2 min),,,
+"79: ""Halfway done. Maybe. Probably not.""",x,,
+"80: ""The water isn't getting warmer. Sorry.""",x,,
+"81: ""One minute in and suddenly breathing is a skill.""",,x,
+"82: ""Your metabolism is currently confused.""",,,x
+"83: ""The app believes in you. Your body does not.""",x,,
+"84: ""Discipline has entered the chat.""",,,x
+"85: ""Don't check the timer. You'll be sad.""",,,x
+"86: ""Acceptance is the only exit.""",x,,
+"87: ""Resistance is futile. Also painful.""",x,,
+"88: ""Time moves slower in cold water. Einstein-ish.""",x,,
+"89: ""A minute here is a year anywhere else.""",,,x
+"90: ""The cold is your therapist now.""",,,x
+"91: ""Tell the cold your problems. It won't listen.""",,,x
+"92: ""Patience is a cold-blooded virtue.""",,,x
+"93: ""Vasoconstriction is a vibe.""",x,,
+"94: ""Norepinephrine has entered the chat.""",,,x
+"95: ""Your dopamine receptors are about to throw a party.""",,,x
+"96: ""Your blood vessels are doing yoga.""",,,x
+"97: ""Mitochondria are doing pull-ups.""",,,x
+"98: ""Brown fat says hi.""",,,x
+"99: ""Cortisol who?""",,,x
+"100: ""Your vagus nerve is having a moment.""",,,x
+"101: ""Vagal tone: maximized.""",x,,
+"102: ""HRV says hello.""",,,x
+"103: ""Capillaries: doing the most.""",x,,
+"104: ""Your toes have left the chat.""",,,x
+"105: ""Toes? What toes.""",,,x
+"106: ""Fingers? Optional.""",x,,
+"107: ""Sensation is overrated.""",,,x
+"108: ""Numbness is just advanced toughness.""",x,,
+"109: ""Your nipples have entered another dimension.""",,,x
+"110: ""Your shrinkage is temporary. Your bragging rights are forever.""",,,x
+"111: ""Stoicism, but make it wet.""",,,x
+"112: ""Marcus Aurelius would approve.""",,,x
+"113: ""Wim Hof would be proud. Your toes wouldn't.""",,,x
+"114: ""Goggins is watching. Don't disappoint him.""",,,x
+"115: ""Type 2 fun is the only fun.""",x,,
+"116: ""You're crushing it. Or being crushed. Same thing.""",x,,
+"117: ""Cold water is the world's loudest meditation.""",x,,
+"118: ""Meditation, but the floor is lava. Cold lava.""",,,x
+"119: ""Box breathing? More like ice cube breathing.""",,,x
+"120: ""Diaphragm: working overtime.""",x,,
+"121: ""Your hypothalamus deserves a raise.""",,,x
+"122: ""Even your gut bacteria are shivering.""",,,x
+"123: ""Pee now or forever hold your peace.""",x,,
+"124: ""You will pee. It's science.""",,,
+"125: ""Just 30 more seconds. (We're lying.)""",x,,
+"126: ""Almost done. (Also lying.)""",,,x
+"127: ""Your body is rerouting traffic. To survive.""",,,x
+"128: ""Core temperature: protected. Barely.""",x,,
+"129: ""Your organs are huddling.""",x,,
+"130: ""Cold immersion: 1, your comfort zone: 0.""",,,x
+"131: ""Embrace the suck. Literally.""",,,x
+"132: ""Your therapist is cheaper than this.""",,,x
+"133: ""You paid money to feel like this.""",,,x
+LONG (2 – 5 min),,,
+"137: ""Your survival instincts have left the chat.""",,,x
+"138: ""Your watch thinks you're in danger.""",,,x
+"139: ""Your heart would like to unsubscribe.""",x,,
+"140: ""This is no longer wellness. It's commitment issues.""",,,x
+"141: ""Your ancestors are nervously watching from the afterlife.""",,,x
+"142: ""The polar bears are calling to check on you.""",,,x
+"143: ""Your guardian angel is also shivering.""",,,x
+"144: ""Somewhere, your cardiologist just woke up sweating.""",,x,
+"145: ""Your insurance adjuster has questions.""",,,x
+"146: ""Your significant other is rehearsing the eulogy.""",,,x
+"147: ""Your hypothalamus filed a missing person report.""",,,x
+"148: ""Your warm-blooded ancestors are disappointed.""",,,x
+"149: ""You have become the cold.""",x,,
+"150: ""Cold? You're past cold now. You're a state of mind.""",x,,
+"151: ""Your nervous system has accepted its fate.""",x,,
+"152: ""Your body has stopped trying to warm you. It's given up.""",x,,
+"153: ""Brown fat is now begging for backup.""",x,,
+"154: ""Your blood has gone on strike.""",x,,
+"155: ""You and the water are negotiating peace terms.""",x,,
+"156: ""The cold respects you now. Slightly.""",x,,
+"157: ""You're no longer plunging. You're residing.""",x,,
+"158: ""Hypothermia called. Wanted to compare notes.""",,,x
+"159: ""Your shivering has stopped. That's... concerning.""",,,x
+"160: ""Time is no longer linear.""",x,,
+"161: ""Reality is melting. Wait, no, that's just you.""",x,,
+"162: ""You can hear colors now.""",x,,
+"163: ""Your spirit guide is a polar bear named Stan.""",,,x
+"164: ""You're entering monk territory.""",x,,
+"165: ""Tibetan monks are taking notes.""",x,,
+"166: ""This is what enlightenment costs.""",x,,
+"167: ""You've earned the right to be insufferable about this.""",x,,
+"168: ""Your discomfort tolerance just reached PhD level.""",x,,
+"169: ""Wim Hof is somewhere, slow clapping.""",,,x
+"170: ""Goggins would offer you a fist bump. From a heated room.""",,,x
+"171: ""Navy SEALs are forwarding your video to each other.""",x,,
+"172: ""The Vikings would be impressed. The Vikings.""",x,,
+"173: ""You've outlasted most documentary subjects.""",x,,
+"174: ""Frostbite is now within rights to introduce itself.""",x,,
+"175: ""Your extremities are filing for emancipation.""",,,x
+"176: ""Your toes left a forwarding address.""",,,x
+"177: ""Your fingers have started a new life elsewhere.""",,,x
+"178: ""Your insurance premiums are about to rise.""",x,,
+"179: ""Even the thermometer is concerned.""",,,x
+"180: ""Your wearable just sent a 911 alert.""",,,x
+"181: ""Your watch is asking if you're okay.""",,,x
+"182: ""Apple Health is now a hostage negotiator.""",,,x
+"183: ""Your future self is begging you to get out.""",,,x
+"184: ""Your past self is laughing nervously.""",,,x
+"185: ""Your present self is dissociating.""",x,,
+"186: ""Three personalities are now in this tub.""",x,,
+"187: ""You're discovering things about yourself. Concerning things.""",,,x
+"188: ""What started as wellness has become rebellion.""",x,,
+EXTREME (5+ min),,,
+"192: ""6 minutes? Your ancestors are finally impressed.""",x,,
+"193: ""You've officially stayed in longer than most people stay motivated.""",,,x
+"194: ""At 6 minutes, this becomes a psychological experiment.""",,,
+"195: ""6 minutes in freezing water. Therapy might've been easier.""",,,x
+"196: ""Your Apple Watch is getting concerned.""",x,,
+"197: ""You're either building discipline or developing a supervillain origin story.""",,,x
+"198: ""Most people quit at discomfort. You scheduled it.""",x,,
+"199: ""Congratulations. You are now emotionally refrigerated.""",,,x
+"200: ""6 minutes. The polar bears have accepted you.""",x,,
+"201: ""Your metabolism is currently filing paperwork.""",,,x
+"202: ""You've unlocked: Advanced Bad Decisions.""",,,x
+"203: ""This app legally considers you amphibious now.""",x,,
+"204: ""At this point the cold is probably scared of you.""",,,x
+"205: ""You stayed in long enough to question every life decision.""",,,x
+"206: ""6 minutes? That's not recovery. That's character development.""",,,x
+"207: ""Doctors hate him. Fingers hate him more.""",,,x
+"208: ""You could've watched half a TikTok instead.""",,,x
+"209: ""Core temperature: negotiable.""",,,x
+"210: ""Impressive. Concerning, but impressive.""",,,x
+"211: ""This is no longer impressive. It's a cry for help.""",,,x
+"212: ""Your therapist would like to schedule an emergency session.""",,,x
+"213: ""You're in an Olympic event now. Solo. Underwater.""",x,,
+"214: ""Hostage situations end faster than this.""",,,x
+"215: ""Your loved ones are organizing an intervention.""",,,x
+"216: ""You've passed 'biohacker'. You're now in 'cult leader' territory.""",x,,
+"217: ""Documentaries will be made about this.""",x,,
+"218: ""Future archaeologists will study your bones.""",,,x
+"219: ""You're not building character. You're building a legend.""",,,x
+"220: ""Your obituary writes itself.""",,,x
+"221: ""The water has aged. You have aged. Civilizations have risen and fallen.""",x,,
+"222: ""Your phone has died of secondhand cold.""",,,x
+"223: ""Penguins are uncomfortable watching this.""",,,x
+"224: ""You have transcended discomfort. And reason.""",,,x
+"225: ""The cold has surrendered. You won.""",,,x
+"226: ""You are the cold now. Pass it on.""",x,,
+"227: ""Hypothermia took one look and left.""",,,x
+"228: ""Your nervous system filed for retirement.""",,,x
+"229: ""Doctors hate this one weird trick.""",x,,
+"230: ""This is technically a medical emergency in 47 countries.""",,x,
+"231: ""Your insurance company just blocked your number.""",,x,
+"232: ""You're an outlier on every chart now.""",x,,
+"233: ""Statisticians are gathered. They have questions.""",x,,
+"234: ""Wim Hof just texted: 'okay, take it down a notch.'""",,,x
+"235: ""Goggins is sending a welfare check.""",,,x
+"236: ""Your guardian angel has filed a workers' comp claim.""",,,x
+"237: ""The Reaper is in the lobby, but you're not on the list.""",x,,
+"238: ""You've turned wellness into warfare.""",x,,
+"239: ""Cold plungers everywhere are taking screenshots.""",x,,
+"240: ""Your name will be whispered in saunas.""",,x,
+"241: ""Legends will speak of this plunge.""",x,,
+"242: ""Children will learn of you in school.""",,,x
+"243: ""Your bloodline has been notified.""",x,,
+"244: ""This is no longer voluntary. The cold won't let you leave.""",x,,
+"245: ""You and the tub are in a committed relationship now.""",,,x
+"246: ""The tub has called you 'home' three times now.""",x,,
+BRUTAL_COLD (water < 45°F),,,
+"250: ""This is no longer wellness. This is Arctic cosplay.""",x,,
+"251: ""This water has never seen sunlight.""",x,,
+"252: ""The fish here have evolved beyond emotion.""",x,,
+"253: ""Even the polar bears would tap out.""",,,x
+"254: ""Antarctica is offended you call this cold.""",,,x
+"255: ""The thermometer broke. Out of solidarity.""",,,x
+"256: ""Ice cubes are looking at this water in horror.""",x,,
+"257: ""Your blood is reconsidering its career.""",,,x
+"258: ""This is below the freezing point of self-respect.""",,x,
+"259: ""Liquid? Debatable.""",,,x
+"260: ""Solid? Almost.""",x,,
+"261: ""Witches have drowned in warmer water.""",,x,
+"262: ""This is what the Titanic remembers.""",,x,
+"263: ""Whales avoid water this cold.""",,,x
+"264: ""Polar bears use this water for bragging rights.""",,,x
+"265: ""Your soul just considered leaving early.""",,,x
+"266: ""The pain has its own zip code.""",x,,
+"267: ""There is no Mr. Heater that can save you.""",x,,
+"268: ""Furnaces weep at temperatures like this.""",x,,
+"269: ""The cold here has weight.""",x,,
+"270: ""Your bones now have opinions.""",x,,
+"271: ""Even your DNA is shivering.""",,,x
+"272: ""Your cells are passing notes about you.""",,,x
+MILD (water > 50°F),,,
+"276: ""Your ancestors survived winters. You panic at 54°.""",,,x
+"277: ""Cold? In this economy?""",,,x
+"278: ""This is basically a swimming pool. Toughen up.""",,,x
+"279: ""Your great-grandfather bathed in this. For fun.""",,,x
+"280: ""Real cold plungers would call this 'a refreshing dip.'""",,,x
+"281: ""You're acclimating to luxury, not cold.""",,,x
+"282: ""The Vikings would laugh at this temperature.""",,,x
+"283: ""Crank it down. You can handle more.""",x,,
+"284: ""This is what hot tubs feel like in Greenland.""",,x,
+"285: ""Polar bears would find this... tepid.""",,,x
+"286: ""Your ancestors are unimpressed.""",,,x
+"287: ""Are you sure this counts as a plunge?""",,,x
+"288: ""Babies bathe in this temperature.""",x,,
+"289: ""Save the screenshots until it's actually cold.""",,x,
+"290: ""This is 'starter cold'. Welcome.""",,,x
+"291: ""Don't tell the hardcore plungers about this.""",,x,
+GENERAL (always in the mix as fallback),,,
+"295: ""Character development is stored in the cold.""",x,,
+"296: ""Imagine explaining this hobby to your grandparents.""",,x,
+"297: ""At least your streak is alive.""",x,,
+"298: ""This is cheaper than therapy. Barely.""",,,x
+"299: ""Future you keeps signing up for this.""",x,,
+"300: ""Congratulations, your survival instincts are functioning normally.""",x,,
+"301: ""Your bathtub fears you now.""",x,,
+"302: ""This is what dopamine addiction looks like.""",,,x
+"303: ""Cold water. Warm ego.""",,,x
+"304: ""The Vikings would still think this is weird.""",,x,
+"305: ""Achievement unlocked: voluntary discomfort.""",,,x
+"306: ""Suffering, but make it aesthetic.""",x,,
+"307: ""You are the bear. The bear is you.""",x,,
+"308: ""Bear mode: activated.""",x,,
+"309: ""Cold and unbothered.""",x,,
+"310: ""Cold and thriving.""",x,,
+"311: ""Cold and slightly concerned.""",x,,
+"312: ""Cold and rethinking life choices.""",,,x
+"313: ""Life choices: questionable. Plunge: legendary.""",,,x
+"314: ""Your weekend plans are concerning.""",x,,
+"315: ""Normal people are eating pancakes right now.""",,x,
+"316: ""Your hobbies are now a personality.""",x,,
+"317: ""You will tell everyone about this. They will not care.""",,x,
+"318: ""Skills section: cold tolerance.""",,,x
+"319: ""LinkedIn isn't ready for this.""",x,,
+"320: ""Add this to your resume. They'll have questions.""",,,x
+"321: ""Stoic mode: activated.""",x,,
+"322: ""Memento mori, but make it wet.""",x,,
+"323: ""The cold reminds you you're alive.""",x,,
+"324: ""Aliveness has a price. The price is shivering.""",x,,
+"325: ""You're going to do this again tomorrow.""",x,,
+"326: ""Welcome to the addiction.""",x,,
+"327: ""Cold water is a gateway drug.""",x,,
+"328: ""Soon you'll be doing this in the ocean.""",x,,
+"329: ""Soon you'll be that person.""",x,,
+"330: ""Embrace the identity. Embrace the cold.""",x,,
+"331: ""You're built for this. Sort of.""",x,,
+"332: ""You can do hard things. This is one of them.""",,,x
+"333: ""Hard things make easy things easier.""",,,x
+"334: ""Bad day at work? Cold prepared you.""",x,,
+"335: ""Awkward dinner? Cold prepared you.""",x,,
+"336: ""Existential dread? Cold prepared you.""",x,,
+"337: ""Your tolerance is now your superpower.""",x,,
+"338: ""Spider-Man got bitten. You got cold.""",,,x
+"339: ""Origin story: ice tub.""",,,x
+"340: ""Hero pose: shivering.""",x,,
+"341: ""Villain: warm water.""",x,,
+"342: ""Nemesis: the urge to leave.""",x,,
+"343: ""Final boss: the last 30 seconds.""",x,,
+"344: ""You're winning. We can't prove it, but vibes.""",,,x
+"345: ""Vibes are immaculate. Despite the shivering.""",,,x
+"346: ""Discomfort is the dividend.""",x,,
+"347: ""Your stress hormones are getting a workout.""",,,x
+"348: ""You will sleep like a stone tonight.""",x,,
+"349: ""Inflammation? Never heard of her.""",,x,
+"350: ""Your aches and pains are also confused.""",,,x
+"351: ""Look at you, doing the thing.""",x,,
+"352: ""Future you is high-fiving present you.""",x,,
+"353: ""Cold doesn't build character. It reveals it.""",,,x
+"354: ""This is humility, served cold.""",,,x
+"355: ""Your ego doesn't fit in this tub.""",x,,
+"356: ""Trust the process. The cold, cold process.""",,,x
+"357: ""Your definition of fun has evolved.""",,x,
+"358: ""Hard mode selected.""",,,x
+"359: ""You chose violence.""",x,,
+"360: ""You chose chaos.""",x,,
+"361: ""The chaos is the point.""",x,,
+"362: ""Discomfort is the teacher. The cold is the classroom.""",,,x
+"363: ""Class is in session.""",x,,
+"364: ""Pop quiz: how long can you stay?""",x,,
+"365: ""PhD in suffering, with honors.""",,,x
+"366: ""Cold plungers don't die. They just freeze in time.""",,,x
+"367: ""The cold doesn't care about your podcast.""",x,,
+"368: ""The cold doesn't care, period.""",x,,
+"369: ""Wellness, but make it hurt.""",,x,
+"370: ""Spa day, but make it military.""",,x,
+"371: ""Self-care, but extreme.""",,,x
+"372: ""Adventure is just suffering with good lighting.""",,,x
+"373: ""You're more durable than yesterday.""",x,,
+"374: ""Resilience: now in a tub near you.""",x,,
