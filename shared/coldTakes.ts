@@ -300,6 +300,7 @@ export const GENERAL: string[] = [
   "Imagine explaining this hobby to your grandparents.",
   "At least your streak is alive.",
   "This is cheaper than therapy. Barely.",
+  "You're one plunge away from either enlightenment or a very expensive hospital bill.",
   "Future you keeps signing up for this.",
   "Congratulations, your survival instincts are functioning normally.",
   "Your bathtub fears you now.",
