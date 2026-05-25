@@ -75,6 +75,9 @@ export const EARLY: string[] = [
   "Coffee is going to taste incredible after this.",
   "Your shower will feel like Hawaii.",
   "If your friends could see you now, they'd call 911.",
+  "You volunteered for this. No one is coming to save you.",
+  "Current temperature: regret.",
+  "This is fine. I'm not having a mild panic attack.",
 ];
 
 export const SHORT: string[] = [
@@ -133,6 +136,11 @@ export const SHORT: string[] = [
   "Embrace the suck. Literally.",
   "Your therapist is cheaper than this.",
   "You paid money to feel like this.",
+  "Breathe. Endure. Become unbreakable.",
+  "The only thing shrinking faster than my balls is my will to live.",
+  "Current vibe: human popsicle with anxiety.",
+  "My balls have officially entered witness protection.",
+  "Even your hormones are like 'Girl, what are we doing?'",
 ];
 
 export const LONG: string[] = [
@@ -188,6 +196,8 @@ export const LONG: string[] = [
   "Three personalities are now in this tub.",
   "You're discovering things about yourself. Concerning things.",
   "What started as wellness has become rebellion.",
+  "This is where mental toughness is manufactured.",
+  "If your lips turn blue, that's just free lipstick.",
 ];
 
 export const EXTREME: string[] = [
@@ -248,6 +258,8 @@ export const EXTREME: string[] = [
   "This is no longer voluntary. The cold won't let you leave.",
   "You and the tub are in a committed relationship now.",
   "The tub has called you 'home' three times now.",
+  "Cold plunge pro tip: if your heart stops, that's just Level 2.",
+  "If you die here, at least you'll be pre-chilled for the morgue.",
 ];
 
 export const BRUTAL_COLD: string[] = [
@@ -274,6 +286,15 @@ export const BRUTAL_COLD: string[] = [
   "Your bones now have opinions.",
   "Even your DNA is shivering.",
   "Your cells are passing notes about you.",
+  "The ice doesn't care if you live or die. Neither should you.",
+  "Your mother called. She said even she wouldn't get in this water.",
+  "This plunge is colder than the look your mom gave you when you got that tattoo.",
+  "Colder than your mom's meatloaf. And twice as shocking.",
+  "Colder than the text your mom sent after you forgot her birthday.",
+  "This plunge hits harder than your mom's wooden spoon.",
+  "This water's colder than your chances of getting laid after that shrinkage.",
+  "This plunge hits harder than your dad's belt.",
+  "This plunge is harsher than your group chat when you cancel plans.",
 ];
 
 export const MILD: string[] = [
@@ -293,6 +314,7 @@ export const MILD: string[] = [
   "Save the screenshots until it's actually cold.",
   "This is 'starter cold'. Welcome.",
   "Don't tell the hardcore plungers about this.",
+  "Your ancestors survived worse. Stop whining.",
 ];
 
 export const GENERAL: string[] = [
@@ -377,6 +399,18 @@ export const GENERAL: string[] = [
   "Adventure is just suffering with good lighting.",
   "You're more durable than yesterday.",
   "Resilience: now in a tub near you.",
+  "Name a more iconic duo than me and immediate regret. I'll wait… shivering.",
+  "Cold water doesn't build character. Surviving it does.",
+  "Your mom raised a warrior… or a masochist. Still undecided.",
+  "Your mother didn't raise a quitter… but she definitely raised an idiot.",
+  "Name a bigger masochist. I'll wait… while you freeze.",
+  "You're not just cold plunging. You're leveling up.",
+  "Voluntary torture builds character… or kills you. 50/50.",
+  "Stronger than yesterday. Dumber than yesterday.",
+  "Plunging daily: because therapy is expensive and hypothermia is free.",
+  "Ice bath logic: pay money to feel poor, cold, and stupid all at once.",
+  "I do this so I can eat carbs guilt-free later.",
+  "Freezing so beautifully even Elsa would be jealous.",
 ];
 
 export type Bucket =
