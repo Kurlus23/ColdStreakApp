@@ -232,6 +232,7 @@ export const EXTREME: string[] = [
   "You're an outlier on every chart now.",
   "Statisticians are gathered. They have questions.",
   "Wim Hof just texted: 'okay, take it down a notch.'",
+  "Wim Hof called. He said even he's impressed you're this stupid.",
   "Goggins is sending a welfare check.",
   "Your guardian angel has filed a workers' comp claim.",
   "The Reaper is in the lobby, but you're not on the list.",
