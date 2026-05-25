@@ -767,3 +767,9 @@ id = "XDMU-RUBofBE2f0lJVeZp"
 uri = "file://exports/coldstreak_6.5inch_1242x2688.png"
 type = "image"
 title = "ColdStreak 6.5\" App Store Screenshot (1242x2688)"
+
+[[outputs]]
+id = "HM5G5mT0dVEsQPUNRt7bd"
+uri = "file://exports/jokes_review.md"
+type = "text"
+title = "Joke Review List"
