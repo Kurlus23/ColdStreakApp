@@ -1,0 +1,57 @@
+kevinellis@Kevins-MacBook-Air coldstreak % brew upgrade cocoapods
+==> Auto-updating Homebrew...
+Adjust how often this is run with `$HOMEBREW_AUTO_UPDATE_SECS` or disable with
+`$HOMEBREW_NO_AUTO_UPDATE=1`. Hide these hints with `$HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).
+==> Downloading https://ghcr.io/v2/homebrew/core/portable-ruby/blobs/sha256:4ba8d535df01e4bf97e6661c3815796fd77364ea2552606e891659133a76f0e1
+################################################################################################################# 100.0%
+==> Pouring portable-ruby-4.0.5_1.arm64_big_sur.bottle.tar.gz
+==> Auto-updated Homebrew!
+Updated 2 taps (homebrew/core and homebrew/cask).
+==> New Formulae
+arf: Modern R console with syntax highlighting and fuzzy search
+backplane-cli: CLI for interacting with the OpenShift Backplane API
+cargo-insta: Snapshot testing CLI for Rust
+chunkah: OCI building tool for content-based layers
+cloudmonkey: Apache CloudStack CloudMonkey CLI
+codeburn: See where your AI coding tokens go - by task, tool, model, and project
+committed: Nitpicking commit history since beabf39
+crit: Your feedback loop with the agent: review plans and code locally
+dexter-lsp: Elixir LSP optimized for large codebases
+erlang@28: Programming language for highly scalable real-time systems
+fallow: Codebase intelligence for TypeScript and JavaScript
+far2l-tty: Unix TTY port of FAR Manager v2 (with NetRocks support)
+gascity: Orchestration-builder SDK for multi-agent coding workflows
+gmp-ecm: Elliptic Curve Method for integer factorization
+go-hass-agent: Native Home Assistant agent for desktop/laptop devices
+herdr: Agent multiplexer that lives in your terminal
+hexapoda: Colorful modal hex editor
+ladder: Selfhosted alternative to 12ft.io and 1ft.io HTTP web proxies
+leaf-md: Terminal Markdown previewer with a GUI-like experience
+lisette: Language inspired by Rust that compiles to Go
+m4ri: Library for fast arithmetic with dense matrices over GF(2)
+mado: Fast Markdown linter written in Rust
+marmot: Open-source data catalog exposing metadata to AI agents
+mercury-cli: CLI interface for Mercury banking
+miasma: Trap AI web scrapers in an endless poison pit
+mips-linux-gnu-binutils: GNU Binutils for mips-linux-gnu cross development
+nettle@3: Low-level cryptographic library
+openjdk@25: Development kit for the Java programming language
+osdctl: CLI tool for managed OpenShift clusters
+panache: Language server, formatter, and linter for Markdown, Quarto, and R Markdown
+phpantom-lsp: Fast PHP language server written in Rust
+plutosvg: Tiny SVG rendering library in C
+quickjs-ng: QuickJS, the Next Generation: a mighty JavaScript engine
+rustnet: Cross-platform network monitoring terminal UI with deep packet inspection
+satellite-tracker: Terminal-based real-time satellite tracking and orbit prediction application
+skm: Simple and powerful SSH keys manager
+sol2: C++ <-> Lua API wrapper with advanced features and top notch performance
+tinyice: Modern, all-in-one Icecast-compatible audio/video streaming server
+vcfanno: Annotate a VCF with other VCFs/BEDs/tabixed files
+vs-preview: Previewer for VapourSynth scripts
+vtzero: Minimalist vector tile decoder and encoder in C++
+zerolang: Programming language for agents with explicit effects and predictable memory
+
+You have 8 outdated formulae installed.
+
+Error: cocoapods not installed
+kevinellis@Kevins-MacBook-Air coldstreak % 
