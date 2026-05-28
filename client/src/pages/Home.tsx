@@ -5363,7 +5363,11 @@ export default function Home() {
                     if (ok) {
                       toast({ title: "Apple Health connected", description: "Heart rate and HRV will be pulled from Apple Health for your plunges." });
                     } else {
-                      window.location.href = "x-apple-health://";
+                      toast({
+                        title: "Grant access in Health",
+                        description: "Opening Health app. Tap Sharing tab → Apps → ColdStreak, then turn on Heart Rate, HRV, and Body Mass.",
+                      });
+                      setTimeout(() => { window.location.href = "x-apple-health://"; }, 400);
                     }
                   }}
                   className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-400 hover:to-red-400 text-white font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
