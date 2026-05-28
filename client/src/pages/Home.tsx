@@ -5363,23 +5363,12 @@ export default function Home() {
                     if (ok) {
                       toast({ title: "Apple Health connected", description: "Heart rate and HRV will be pulled from Apple Health for your plunges." });
                     } else {
-                      toast({
-                        title: "Permission needed",
-                        description: "Open iPhone Settings → Health → Data Access & Devices → ColdStreak and turn on Heart Rate and HRV.",
-                        variant: "destructive",
-                      });
+                      window.location.href = "x-apple-health://";
                     }
                   }}
                   className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-400 hover:to-red-400 text-white font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   <Heart className="w-4 h-4" /> Connect Apple Health
-                </button>
-                <button
-                  data-testid="button-apple-health-settings"
-                  onClick={() => { window.location.href = "x-apple-health://"; }}
-                  className="w-full py-2 rounded-xl border border-pink-500/40 text-pink-300 text-xs font-semibold transition-all active:scale-[0.98] hover:border-pink-400"
-                >
-                  Manage permissions in the Health app
                 </button>
               </div>
             )}
