@@ -13,6 +13,14 @@ const ColdstreakMusickit = registerPlugin<ColdstreakMusickitPlugin>(
       getUserToken: async () => {
         throw new Error("ColdstreakMusickit is iOS-only");
       },
+      playPlaylist: async () => {
+        throw new Error("ColdstreakMusickit is iOS-only");
+      },
+      pause: async () => { throw new Error("ColdstreakMusickit is iOS-only"); },
+      resume: async () => { throw new Error("ColdstreakMusickit is iOS-only"); },
+      skipNext: async () => { throw new Error("ColdstreakMusickit is iOS-only"); },
+      skipPrevious: async () => { throw new Error("ColdstreakMusickit is iOS-only"); },
+      stop: async () => { throw new Error("ColdstreakMusickit is iOS-only"); },
     }),
   },
 );

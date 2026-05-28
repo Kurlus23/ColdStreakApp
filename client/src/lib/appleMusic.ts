@@ -39,6 +39,11 @@ interface NativeMusicKitPlugin {
   requestAuthorization(): Promise<{ status: string; authorized: boolean }>;
   getUserToken(opts: { developerToken: string }): Promise<{ userToken: string }>;
   playPlaylist(opts: { url: string }): Promise<{ played: boolean }>;
+  pause(): Promise<{ ok: boolean }>;
+  resume(): Promise<{ ok: boolean }>;
+  skipNext(): Promise<{ ok: boolean }>;
+  skipPrevious(): Promise<{ ok: boolean }>;
+  stop(): Promise<{ ok: boolean }>;
 }
 
 // registerPlugin works even if the underlying native code isn't present — it
@@ -49,8 +54,80 @@ const NativeMusicKit = registerPlugin<NativeMusicKitPlugin>("ColdstreakMusickit"
     requestAuthorization: async () => { throw new Error("Native MusicKit plugin not available on web"); },
     getUserToken: async () => { throw new Error("Native MusicKit plugin not available on web"); },
     playPlaylist: async () => { throw new Error("Native MusicKit plugin not available on web"); },
+    pause: async () => { throw new Error("Native MusicKit plugin not available on web"); },
+    resume: async () => { throw new Error("Native MusicKit plugin not available on web"); },
+    skipNext: async () => { throw new Error("Native MusicKit plugin not available on web"); },
+    skipPrevious: async () => { throw new Error("Native MusicKit plugin not available on web"); },
+    stop: async () => { throw new Error("Native MusicKit plugin not available on web"); },
   }),
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Playback control (auto-routes web MusicKit JS vs native plugin)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Pause Apple Music playback. Returns true on success. */
+export async function pause(): Promise<boolean> {
+  if (isInNativeApp()) {
+    if (!isNativePluginAvailable()) return false;
+    try { const r = await NativeMusicKit.pause(); return !!r?.ok; } catch { return false; }
+  }
+  try {
+    const inst = await getInstance();
+    await inst.pause();
+    return true;
+  } catch { return false; }
+}
+
+/** Resume Apple Music playback. Returns true on success. */
+export async function resume(): Promise<boolean> {
+  if (isInNativeApp()) {
+    if (!isNativePluginAvailable()) return false;
+    try { const r = await NativeMusicKit.resume(); return !!r?.ok; } catch { return false; }
+  }
+  try {
+    const inst = await getInstance();
+    await inst.play();
+    return true;
+  } catch { return false; }
+}
+
+export async function skipNext(): Promise<boolean> {
+  if (isInNativeApp()) {
+    if (!isNativePluginAvailable()) return false;
+    try { const r = await NativeMusicKit.skipNext(); return !!r?.ok; } catch { return false; }
+  }
+  try {
+    const inst = await getInstance();
+    await inst.skipToNextItem();
+    return true;
+  } catch { return false; }
+}
+
+export async function skipPrevious(): Promise<boolean> {
+  if (isInNativeApp()) {
+    if (!isNativePluginAvailable()) return false;
+    try { const r = await NativeMusicKit.skipPrevious(); return !!r?.ok; } catch { return false; }
+  }
+  try {
+    const inst = await getInstance();
+    await inst.skipToPreviousItem();
+    return true;
+  } catch { return false; }
+}
+
+/** Stop playback and clear the queue (removes now-playing UI from lock screen). */
+export async function stop(): Promise<boolean> {
+  if (isInNativeApp()) {
+    if (!isNativePluginAvailable()) return false;
+    try { const r = await NativeMusicKit.stop(); return !!r?.ok; } catch { return false; }
+  }
+  try {
+    const inst = await getInstance();
+    await inst.stop();
+    return true;
+  } catch { return false; }
+}
 
 /** True for any music.apple.com playlist URL (catalog or library). */
 export function isAppleMusicPlaylistUrl(url: string): boolean {

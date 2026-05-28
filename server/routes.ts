@@ -694,6 +694,50 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     }
   });
 
+  // Transport-control proxy: pause/resume/skip on the user's active Spotify
+  // device. Requires `user-modify-playback-state` scope (added to
+  // SPOTIFY_SCOPES) — existing users who connected before this scope existed
+  // will get 403s here and need to reconnect.
+  app.post("/api/spotify/control", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller?.userId) return res.status(401).json({ error: "Auth required" });
+    const action = String(req.body?.action || "").toLowerCase();
+    const validActions = ["play", "pause", "next", "previous"] as const;
+    if (!(validActions as readonly string[]).includes(action)) {
+      return res.status(400).json({ error: "action must be one of: play, pause, next, previous" });
+    }
+    const sp = await import("./spotify");
+    const token = await sp.getValidAccessToken(caller.userId);
+    if (!token) return res.status(401).json({ error: "Spotify not connected", reconnect: true });
+
+    // Spotify endpoints: PUT /me/player/{pause,play}, POST /me/player/{next,previous}
+    const isPlay = action === "play" || action === "pause";
+    const method = isPlay ? "PUT" : "POST";
+    const path = `me/player/${action === "play" ? "play" : action === "pause" ? "pause" : action}`;
+    try {
+      const r = await fetch(`https://api.spotify.com/v1/${path}`, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // 204 = success, 404 = no active device, 403 = missing scope / non-premium
+      if (r.status === 204 || r.status === 202) return res.json({ ok: true });
+      if (r.status === 404) {
+        return res.status(409).json({ error: "No active Spotify device. Open Spotify on a device first.", noDevice: true });
+      }
+      if (r.status === 403) {
+        return res.status(403).json({
+          error: "Spotify needs to be reconnected to allow playback control (or this requires Spotify Premium).",
+          reconnect: true,
+        });
+      }
+      const txt = await r.text().catch(() => "");
+      return res.status(502).json({ error: `Spotify API error (${r.status})`, detail: txt.slice(0, 200) });
+    } catch (err: any) {
+      console.error("[spotify] control error", err);
+      return res.status(502).json({ error: "Failed to contact Spotify" });
+    }
+  });
+
   app.post("/api/spotify/disconnect", async (req, res) => {
     const caller = extractUser(req);
     if (!caller?.userId) return res.status(401).json({ error: "Auth required" });

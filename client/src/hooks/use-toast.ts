@@ -6,7 +6,12 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+// How long a toast lingers after `dismiss()` is called before it's removed
+// from state. The shadcn template ships this at 1_000_000ms (effectively
+// "never auto-remove") which left dismissed toasts hanging on screen. The
+// Toaster also passes `duration` to each toast (5000ms) so they auto-dismiss
+// after 5s, then this delay gives the close animation a moment to play.
+const TOAST_REMOVE_DELAY = 400
 
 type ToasterToast = ToastProps & {
   id: string

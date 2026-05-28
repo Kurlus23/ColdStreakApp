@@ -12,12 +12,18 @@ const JWT_SECRET = process.env.SESSION_SECRET || "coldstreak-dev-secret";
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || "";
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || "";
 
-// Minimum scopes for current features: identity (display name) + playlist reads.
-// Do NOT add email/library/top scopes unless we actually use them.
+// Minimum scopes for current features: identity (display name) + playlist reads
+// + playback control (pause/resume/skip from our music widget controls).
+// Existing users connected before user-modify-playback-state was added will
+// need to reconnect to get playback control — Spotify will return 403 for
+// /me/player calls without the scope, and our /api/spotify/control endpoint
+// surfaces that as a "reconnect required" message.
 export const SPOTIFY_SCOPES = [
   "user-read-private",
   "playlist-read-private",
   "playlist-read-collaborative",
+  "user-modify-playback-state",
+  "user-read-playback-state",
 ].join(" ");
 
 function getRedirectUri(): string {

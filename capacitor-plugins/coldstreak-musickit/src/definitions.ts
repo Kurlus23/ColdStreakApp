@@ -26,4 +26,19 @@ export interface ColdstreakMusickitPlugin {
    * auto-prompts for Apple Music permission if needed.
    */
   playPlaylist(opts: { url: string }): Promise<{ played: boolean }>;
+
+  /** Pauses the currently playing track in `ApplicationMusicPlayer`. */
+  pause(): Promise<{ ok: boolean }>;
+
+  /** Resumes playback from where it was paused. */
+  resume(): Promise<{ ok: boolean }>;
+
+  /** Skips to the next track in the queue. */
+  skipNext(): Promise<{ ok: boolean }>;
+
+  /** Skips to the previous track. */
+  skipPrevious(): Promise<{ ok: boolean }>;
+
+  /** Stops playback and clears the queue. */
+  stop(): Promise<{ ok: boolean }>;
 }

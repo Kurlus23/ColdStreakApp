@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Music, Play, Settings, X, ExternalLink, Check, Link2, Unlink, Loader2, Zap, ZapOff, VolumeX, Star, Trash2 } from "lucide-react";
+import { Music, Play, Pause, SkipBack, SkipForward, Square, Settings, X, ExternalLink, Check, Link2, Unlink, Loader2, Zap, ZapOff, VolumeX, Star, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { SiSpotify, SiApplemusic } from "react-icons/si";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -168,6 +169,13 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
   const [spotifyAuthError, setSpotifyAuthError] = useState<string | null>(null);
   const [pins, setPins] = useState<PinnedPick[]>(() => loadPins());
   const [pinAfterSave, setPinAfterSave] = useState(true);
+  // Optimistic play/pause state for the transport-control row. We don't poll
+  // the underlying player (would burn battery and rate limits); instead we
+  // flip locally when the user presses a button. The play button auto-
+  // becomes a pause button after Play, and vice versa.
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [controlBusy, setControlBusy] = useState<null | "play" | "pause" | "prev" | "next" | "stop">(null);
+  const { toast } = useToast();
   const lastConfig = useRef(config);
   const lastPins = useRef(pins);
 
@@ -399,6 +407,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
 
   const handlePlay = useCallback(() => {
     if (!config.url) { setShowSettings(true); return; }
+    setIsPlaying(true);
     if (appleMusic.isInNativeApp() && appleMusic.isAppleMusicPlaylistUrl(config.url)) {
       appleMusic.playPlaylistNative(config.url).then((ok) => {
         if (!ok) { try { window.open(config.url, "_blank", "noopener,noreferrer"); } catch {} }
@@ -410,6 +419,92 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
     }
     try { window.open(config.url, "_blank", "noopener,noreferrer"); } catch {}
   }, [config.url]);
+
+  // ── Transport controls (pause/resume/skip/stop) ──────────────────────────
+  // Routes to the native Apple Music plugin (if installed) or Spotify Web
+  // API via our /api/spotify/control proxy. Failures are surfaced via toast
+  // and the optimistic isPlaying flag is rolled back.
+  const runSpotifyControl = useCallback(async (action: "play" | "pause" | "next" | "previous"): Promise<boolean> => {
+    try {
+      const res = await apiRequest("POST", "/api/spotify/control", { action });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const reconnect = data?.reconnect ? " Disconnect and reconnect Spotify in Music Settings." : "";
+        toast({
+          title: "Spotify control failed",
+          description: (data?.error || "Couldn't control Spotify.") + reconnect,
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    } catch (err: any) {
+      toast({
+        title: "Spotify control failed",
+        description: err?.message || "Couldn't reach Spotify.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  }, [toast]);
+
+  const handlePause = useCallback(async () => {
+    if (controlBusy) return;
+    setControlBusy("pause");
+    setIsPlaying(false);
+    let ok = false;
+    if (config.service === "apple") {
+      ok = await appleMusic.pause();
+    } else if (config.service === "spotify") {
+      ok = await runSpotifyControl("pause");
+    }
+    if (!ok) setIsPlaying(true);
+    setControlBusy(null);
+  }, [config.service, controlBusy, runSpotifyControl]);
+
+  const handleResume = useCallback(async () => {
+    if (controlBusy) return;
+    setControlBusy("play");
+    setIsPlaying(true);
+    let ok = false;
+    if (config.service === "apple") {
+      ok = await appleMusic.resume();
+      // If resume failed (e.g. queue empty after a stop), fall back to
+      // re-loading the playlist.
+      if (!ok && appleMusic.isInNativeApp() && appleMusic.isAppleMusicPlaylistUrl(config.url)) {
+        ok = await appleMusic.playPlaylistNative(config.url);
+      }
+    } else if (config.service === "spotify") {
+      ok = await runSpotifyControl("play");
+    }
+    if (!ok) setIsPlaying(false);
+    setControlBusy(null);
+  }, [config.service, config.url, controlBusy, runSpotifyControl]);
+
+  const handleSkipNext = useCallback(async () => {
+    if (controlBusy) return;
+    setControlBusy("next");
+    if (config.service === "apple") await appleMusic.skipNext();
+    else if (config.service === "spotify") await runSpotifyControl("next");
+    setControlBusy(null);
+  }, [config.service, controlBusy, runSpotifyControl]);
+
+  const handleSkipPrevious = useCallback(async () => {
+    if (controlBusy) return;
+    setControlBusy("prev");
+    if (config.service === "apple") await appleMusic.skipPrevious();
+    else if (config.service === "spotify") await runSpotifyControl("previous");
+    setControlBusy(null);
+  }, [config.service, controlBusy, runSpotifyControl]);
+
+  const handleStop = useCallback(async () => {
+    if (controlBusy) return;
+    setControlBusy("stop");
+    setIsPlaying(false);
+    if (config.service === "apple") await appleMusic.stop();
+    else if (config.service === "spotify") await runSpotifyControl("pause");
+    setControlBusy(null);
+  }, [config.service, controlBusy, runSpotifyControl]);
 
   const applyChoice = (service: MusicService, url: string, label: string) => {
     setConfig((prev) => ({ ...prev, service, url, label }));
@@ -620,6 +715,68 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
             <Settings className="w-3.5 h-3.5" />
           </button>
         </div>
+
+        {/* Transport controls — only shown when a playlist is selected. Lets
+            the user pause / resume / skip / stop the music without leaving
+            ColdStreak. Routes to native Apple Music plugin or Spotify Web
+            API depending on which service is active. */}
+        {config.service !== "none" && config.url && (
+          <div className="flex items-center justify-center gap-1.5 px-2 pb-1.5 pt-0.5 border-t border-blue-800/30">
+            <button
+              data-testid="button-music-skip-previous"
+              onClick={handleSkipPrevious}
+              disabled={controlBusy !== null}
+              className="w-9 h-9 rounded-full bg-blue-950/60 hover:bg-blue-900/70 active:scale-95 transition-all text-blue-100 hover:text-white disabled:opacity-40 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+              aria-label="Previous track"
+              title="Previous"
+            >
+              {controlBusy === "prev" ? <Loader2 className="w-4 h-4 animate-spin" /> : <SkipBack className="w-4 h-4 fill-current" />}
+            </button>
+            {isPlaying ? (
+              <button
+                data-testid="button-music-pause"
+                onClick={handlePause}
+                disabled={controlBusy !== null}
+                className="w-10 h-10 rounded-full bg-cyan-500 hover:bg-cyan-400 active:scale-95 transition-all text-white shadow-md shadow-cyan-500/30 disabled:opacity-60 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+                aria-label="Pause"
+                title="Pause"
+              >
+                {controlBusy === "pause" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pause className="w-4 h-4 fill-white" />}
+              </button>
+            ) : (
+              <button
+                data-testid="button-music-resume"
+                onClick={handleResume}
+                disabled={controlBusy !== null}
+                className="w-10 h-10 rounded-full bg-cyan-500 hover:bg-cyan-400 active:scale-95 transition-all text-white shadow-md shadow-cyan-500/30 disabled:opacity-60 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+                aria-label="Play"
+                title="Play"
+              >
+                {controlBusy === "play" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-white ml-0.5" />}
+              </button>
+            )}
+            <button
+              data-testid="button-music-skip-next"
+              onClick={handleSkipNext}
+              disabled={controlBusy !== null}
+              className="w-9 h-9 rounded-full bg-blue-950/60 hover:bg-blue-900/70 active:scale-95 transition-all text-blue-100 hover:text-white disabled:opacity-40 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+              aria-label="Next track"
+              title="Next"
+            >
+              {controlBusy === "next" ? <Loader2 className="w-4 h-4 animate-spin" /> : <SkipForward className="w-4 h-4 fill-current" />}
+            </button>
+            <button
+              data-testid="button-music-stop"
+              onClick={handleStop}
+              disabled={controlBusy !== null}
+              className="w-9 h-9 rounded-full bg-blue-950/60 hover:bg-blue-900/70 active:scale-95 transition-all text-blue-100 hover:text-white disabled:opacity-40 flex items-center justify-center ml-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+              aria-label="Stop"
+              title="Stop"
+            >
+              {controlBusy === "stop" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Square className="w-3.5 h-3.5 fill-current" />}
+            </button>
+          </div>
+        )}
       </div>
       )}
 

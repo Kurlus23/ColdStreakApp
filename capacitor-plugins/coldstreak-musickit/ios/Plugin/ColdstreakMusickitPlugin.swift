@@ -145,6 +145,78 @@ public class ColdstreakMusickitPlugin: CAPPlugin {
         }
     }
 
+    /// Pauses `ApplicationMusicPlayer`. No-op (resolves ok:false) if nothing
+    /// is playing. Safe to call on any iOS 15+ device.
+    @objc func pause(_ call: CAPPluginCall) {
+        if #available(iOS 15.0, *) {
+            ApplicationMusicPlayer.shared.pause()
+            call.resolve(["ok": true])
+        } else {
+            call.reject("Requires iOS 15 or later")
+        }
+    }
+
+    /// Resumes playback. If the queue is empty this is a no-op from iOS's
+    /// perspective; we still resolve ok:true to keep the JS surface simple.
+    @objc func resume(_ call: CAPPluginCall) {
+        if #available(iOS 15.0, *) {
+            Task {
+                do {
+                    try await ApplicationMusicPlayer.shared.play()
+                    call.resolve(["ok": true])
+                } catch {
+                    call.reject("Resume failed: \(error.localizedDescription)", nil, error)
+                }
+            }
+        } else {
+            call.reject("Requires iOS 15 or later")
+        }
+    }
+
+    @objc func skipNext(_ call: CAPPluginCall) {
+        if #available(iOS 15.0, *) {
+            Task {
+                do {
+                    try await ApplicationMusicPlayer.shared.skipToNextEntry()
+                    call.resolve(["ok": true])
+                } catch {
+                    call.reject("Skip-next failed: \(error.localizedDescription)", nil, error)
+                }
+            }
+        } else {
+            call.reject("Requires iOS 15 or later")
+        }
+    }
+
+    @objc func skipPrevious(_ call: CAPPluginCall) {
+        if #available(iOS 15.0, *) {
+            Task {
+                do {
+                    try await ApplicationMusicPlayer.shared.skipToPreviousEntry()
+                    call.resolve(["ok": true])
+                } catch {
+                    call.reject("Skip-previous failed: \(error.localizedDescription)", nil, error)
+                }
+            }
+        } else {
+            call.reject("Requires iOS 15 or later")
+        }
+    }
+
+    /// Stops playback and clears the queue so the lock-screen "now playing"
+    /// UI goes away. Use this when the user wants to fully end playback
+    /// (vs. pause, which leaves the queue in place).
+    @objc func stop(_ call: CAPPluginCall) {
+        if #available(iOS 15.0, *) {
+            let player = ApplicationMusicPlayer.shared
+            player.pause()
+            player.queue = ApplicationMusicPlayer.Queue(for: [])
+            call.resolve(["ok": true])
+        } else {
+            call.reject("Requires iOS 15 or later")
+        }
+    }
+
     @available(iOS 16.0, *)
     private static func playLibraryPlaylist(id: String, call: CAPPluginCall) {
         Task {
