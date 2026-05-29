@@ -1,0 +1,108 @@
+kevinellis@Kevins-MacBook-Air coldstreak-musickit % cd ~/Downloads/coldstreak
+npm install ./capacitor-plugins/coldstreak-musickit
+npm run build
+sed -i '' 's/objectVersion = 70;/objectVersion = 56;/g' ios/App/App.xcodeproj/project.pbxproj
+npx cap sync ios
+npx cap open ios
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: coldstreak-musickit@0.1.0
+npm warn Found: @capacitor/core@8.3.0
+npm warn node_modules/@capacitor/core
+npm warn   peer @capacitor/core@">=8.0.0" from @capacitor-community/bluetooth-le@8.1.3
+npm warn   node_modules/@capacitor-community/bluetooth-le
+npm warn     @capacitor-community/bluetooth-le@"^8.1.3" from the root project
+npm warn   12 more (@capacitor-community/in-app-review, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer @capacitor/core@"^6.0.0 || ^7.0.0" from coldstreak-musickit@0.1.0
+npm warn capacitor-plugins/coldstreak-musickit
+npm warn   coldstreak-musickit@0.1.0
+npm warn   node_modules/coldstreak-musickit
+npm warn
+npm warn Conflicting peer dependency: @capacitor/core@7.6.5
+npm warn node_modules/@capacitor/core
+npm warn   peer @capacitor/core@"^6.0.0 || ^7.0.0" from coldstreak-musickit@0.1.0
+npm warn   capacitor-plugins/coldstreak-musickit
+npm warn     coldstreak-musickit@0.1.0
+npm warn     node_modules/coldstreak-musickit
+
+up to date, audited 770 packages in 3s
+
+111 packages are looking for funding
+  run `npm fund` for details
+
+21 vulnerabilities (1 low, 12 moderate, 7 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+npm notice
+npm notice New minor version of npm available! 11.12.1 -> 11.16.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.16.0
+npm notice To update run: npm install -g npm@11.16.0
+npm notice
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.0 building client environment for production...
+transforming (1) src/main.tsxBrowserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 3121 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/kevinellis/Downloads/coldstreak/client/src/lib/share.ts is dynamically imported by /Users/kevinellis/Downloads/coldstreak/client/src/components/PlungeCard.tsx but also statically imported by /Users/kevinellis/Downloads/coldstreak/client/src/components/PlungeCard.tsx, /Users/kevinellis/Downloads/coldstreak/client/src/pages/BadgeProfile.tsx, /Users/kevinellis/Downloads/coldstreak/client/src/pages/EventPage.tsx, /Users/kevinellis/Downloads/coldstreak/client/src/pages/Explore.tsx, /Users/kevinellis/Downloads/coldstreak/client/src/pages/Home.tsx, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) /Users/kevinellis/Downloads/coldstreak/client/src/lib/watchSync.ts is dynamically imported by /Users/kevinellis/Downloads/coldstreak/client/src/pages/Home.tsx, /Users/kevinellis/Downloads/coldstreak/client/src/pages/Home.tsx but also statically imported by /Users/kevinellis/Downloads/coldstreak/client/src/pages/Home.tsx, dynamic import will not move module into another chunk.
+
+../dist/public/index.html                                   3.41 kB │ gzip:   1.37 kB
+../dist/public/assets/image_1775083022624-CZYBsB4j.png  1,707.50 kB
+../dist/public/assets/index-BbdPEWCh.css                  125.65 kB │ gzip:  19.77 kB
+../dist/public/assets/web-D3Ir1lXq.js                       0.16 kB │ gzip:   0.15 kB
+../dist/public/assets/index-BaO7yI7H.js                     0.34 kB │ gzip:   0.24 kB
+../dist/public/assets/index-G4FXgDJA.js                     0.36 kB │ gzip:   0.24 kB
+../dist/public/assets/web-SSbtb7xR.js                       0.36 kB │ gzip:   0.25 kB
+../dist/public/assets/web--mQu0J1H.js                       0.73 kB │ gzip:   0.24 kB
+../dist/public/assets/web-DOHVhNGS.js                       0.76 kB │ gzip:   0.35 kB
+../dist/public/assets/web-vo7IBHLb.js                       0.90 kB │ gzip:   0.47 kB
+../dist/public/assets/web-h3uhq8oo.js                       8.33 kB │ gzip:   2.40 kB
+../dist/public/assets/web-DW3xmuu3.js                       8.67 kB │ gzip:   2.96 kB
+../dist/public/assets/web-CAQwJUOI.js                       9.90 kB │ gzip:   2.01 kB
+../dist/public/assets/index-9dq-hw4i.js                 1,843.57 kB │ gzip: 510.28 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.88s
+building server...
+
+  dist/index.cjs  1.3mb ⚠️
+
+⚡ Done in 156ms
+✔ Copying web assets from public to ios/App/App/public in 452.33ms
+✔ Creating capacitor.config.json in ios/App/App in 1.27ms
+✔ copy ios in 531.49ms
+✔ Updating iOS plugins in 10.68ms
+✔ Updating iOS native dependencies with pod install in 7.41s
+[info] Found 11 Capacitor plugins for ios:
+       @capacitor-community/bluetooth-le@8.1.3
+       @capacitor-community/in-app-review@8.0.0
+       @capacitor-community/media@9.0.2
+       @capacitor/app@8.0.1
+       @capacitor/camera@8.0.2
+       @capacitor/clipboard@8.0.1
+       @capacitor/filesystem@8.1.2
+       @capacitor/geolocation@8.1.0
+       @capacitor/share@8.0.1
+       @revenuecat/purchases-capacitor@13.0.1
+       coldstreak-musickit@0.1.0
+✔ update ios in 7.49s
+[info] Sync finished in 8.237s
+✔ Opening the Xcode workspace... in 3.02s
