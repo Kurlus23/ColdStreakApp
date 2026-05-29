@@ -1,0 +1,97 @@
+kevinellis@Kevins-MacBook-Air coldstreak % cd ~/Downloads/coldstreak
+git pull
+
+# rebuild the Apple Music plugin + reinstall it
+cd capacitor-plugins/coldstreak-musickit && npm run build && cd ../..
+npm install ./capacitor-plugins/coldstreak-musickit
+
+# build the web app
+npm run build
+
+# fix the objectVersion so CocoaPods can read the project
+sed -i '' 's/objectVersion = 70;/objectVersion = 56;/g' ios/App/App.xcodeproj/project.pbxproj
+
+# sync into iOS
+npx cap sync ios
+
+# open Xcode
+npx cap open ios
+remote: Enumerating objects: 121, done.
+remote: Counting objects: 100% (121/121), done.
+remote: Compressing objects: 100% (19/19), done.
+remote: Total 90 (delta 70), reused 87 (delta 67), pack-reused 0 (from 0)
+Unpacking objects: 100% (90/90), 4.65 MiB | 79.00 KiB/s, done.
+From https://github.com/Kurlus23/ColdStreakApp
+   ea93cc2..eb79143  main       -> origin/main
+Updating ea93cc2..eb79143
+Fast-forward
+ attached_assets/IMG_6028_1779757208133.png                                  | Bin 0 -> 424315 bytes
+ attached_assets/IMG_6114_1779980623620.png                                  | Bin 0 -> 1265560 bytes
+ attached_assets/IMG_6115_1779980710977.png                                  | Bin 0 -> 1891306 bytes
+ attached_assets/IMG_6116_1779980823898.png                                  | Bin 0 -> 654709 bytes
+ attached_assets/IMG_6117_1779980823898.png                                  | Bin 0 -> 350710 bytes
+ ...Confirm-new-web-bundle-has-the-features-grep-l-ColdTak_1779755808866.txt | 356 ++++++++++++++++++++++++++++++++++++
+ ...it-pull-npm-run-build-npx-cap-sync-ios-remote-Enumerat_1779755993639.txt | 319 ++++++++++++++++++++++++++++++++
+ ...evinellis-Kevins-MacBook-Air-coldstreak-brew-upgrade-c_1779756340740.txt |  57 ++++++
+ ...evinellis-Kevins-MacBook-Air-coldstreak-cd-Downloads-c_1779757320033.txt | 196 ++++++++++++++++++++
+ ...evinellis-Kevins-MacBook-Air-coldstreak-sudo-gem-insta_1779756118643.txt | 161 ++++++++++++++++
+ attached_assets/image_1779745192534.png                                     | Bin 0 -> 122505 bytes
+ attached_assets/image_1779757750317.png                                     | Bin 0 -> 122713 bytes
+ attached_assets/image_1779757818328.png                                     | Bin 0 -> 203216 bytes
+ attached_assets/image_1779981902628.png                                     | Bin 0 -> 104906 bytes
+ .../coldstreak-musickit/ios/Plugin/ColdstreakMusickitPlugin.swift           |  72 ++++++++
+ capacitor-plugins/coldstreak-musickit/src/definitions.ts                    |  15 ++
+ capacitor-plugins/coldstreak-musickit/src/index.ts                          |   8 +
+ client/src/components/MusicWidget.tsx                                       | 159 +++++++++++++++-
+ client/src/components/ui/toast.tsx                                          |  12 +-
+ client/src/components/ui/toaster.tsx                                        |   4 +-
+ client/src/hooks/use-toast.ts                                               |   7 +-
+ client/src/lib/appleMusic.ts                                                |  77 ++++++++
+ client/src/pages/Home.tsx                                                   |  13 +-
+ server/routes.ts                                                            |  44 +++++
+ server/spotify.ts                                                           |  10 +-
+ 25 files changed, 1490 insertions(+), 20 deletions(-)
+ create mode 100644 attached_assets/IMG_6028_1779757208133.png
+ create mode 100644 attached_assets/IMG_6114_1779980623620.png
+ create mode 100644 attached_assets/IMG_6115_1779980710977.png
+ create mode 100644 attached_assets/IMG_6116_1779980823898.png
+ create mode 100644 attached_assets/IMG_6117_1779980823898.png
+ create mode 100644 attached_assets/Pasted--Confirm-new-web-bundle-has-the-features-grep-l-ColdTak_1779755808866.txt
+ create mode 100644 attached_assets/Pasted-git-pull-npm-run-build-npx-cap-sync-ios-remote-Enumerat_1779755993639.txt
+ create mode 100644 attached_assets/Pasted-kevinellis-Kevins-MacBook-Air-coldstreak-brew-upgrade-c_1779756340740.txt
+ create mode 100644 attached_assets/Pasted-kevinellis-Kevins-MacBook-Air-coldstreak-cd-Downloads-c_1779757320033.txt
+ create mode 100644 attached_assets/Pasted-kevinellis-Kevins-MacBook-Air-coldstreak-sudo-gem-insta_1779756118643.txt
+ create mode 100644 attached_assets/image_1779745192534.png
+ create mode 100644 attached_assets/image_1779757750317.png
+ create mode 100644 attached_assets/image_1779757818328.png
+ create mode 100644 attached_assets/image_1779981902628.png
+zsh: command not found: #
+npm error Missing script: "build"
+npm error
+npm error To see a list of scripts, run:
+npm error   npm run
+npm error A complete log of this run can be found in: /Users/kevinellis/.npm/_logs/2026-05-29T11_11_13_182Z-debug-0.log
+npm error code ENOENT
+npm error syscall open
+npm error path /Users/kevinellis/Downloads/coldstreak/capacitor-plugins/coldstreak-musickit/capacitor-plugins/coldstreak-musickit/package.json
+npm error errno -2
+npm error enoent Could not read package.json: Error: ENOENT: no such file or directory, open '/Users/kevinellis/Downloads/coldstreak/capacitor-plugins/coldstreak-musickit/capacitor-plugins/coldstreak-musickit/package.json'
+npm error enoent This is related to npm not being able to find a file.
+npm error enoent
+npm error A complete log of this run can be found in: /Users/kevinellis/.npm/_logs/2026-05-29T11_11_13_351Z-debug-0.log
+zsh: command not found: #
+npm error Missing script: "build"
+npm error
+npm error To see a list of scripts, run:
+npm error   npm run
+npm error A complete log of this run can be found in: /Users/kevinellis/.npm/_logs/2026-05-29T11_11_13_746Z-debug-0.log
+zsh: command not found: #
+sed: ios/App/App.xcodeproj/project.pbxproj: No such file or directory
+zsh: command not found: #
+[error] Could not find the web assets directory: ./www.
+        Please create it and make sure it has an index.html file. You can change the path of this directory in
+        capacitor.config.json (webDir option). You may need to compile the web assets for your app (typically npm run
+        build). More info: https://capacitorjs.com/docs/basics/workflow#sync-your-project
+zsh: command not found: #
+✔ Opening the Xcode workspace... in 3.02s
+kevinellis@Kevins-MacBook-Air coldstreak-musickit % 
