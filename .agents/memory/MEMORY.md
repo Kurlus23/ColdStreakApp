@@ -1,0 +1,1 @@
+- [iOS CocoaPods objectVersion 70→56](ios-cocoapods-objectversion.md) — re-run the sed before EVERY cap sync; Xcode 26.x keeps rewriting it back to 70.
