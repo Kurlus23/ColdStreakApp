@@ -7110,7 +7110,7 @@ export default function Home() {
       )}
 
       {/* ─── ACTIVE TIMER OVERLAY ─── */}
-      {isActive && isPro && screen === "timer" && (
+      {isActive && screen === "timer" && (
         <div
           className="fixed inset-0 z-[60] bg-blue-950/98 backdrop-blur-md flex flex-col items-center justify-center gap-8 transition-all duration-300 animate-in fade-in"
         >
@@ -7167,7 +7167,7 @@ export default function Home() {
             )}
           </div>
 
-          {/* Cold Take (Pro perk — appears 12s after timer starts, rotates every 45s, scales with time + temp + streak + first-plunge) */}
+          {/* Cold Take (appears 12s after timer starts, rotates every 45s, scales with time + temp + streak + first-plunge) */}
           <ColdTakeOverlay
             isActive={isActive}
             elapsedSeconds={displaySeconds}
