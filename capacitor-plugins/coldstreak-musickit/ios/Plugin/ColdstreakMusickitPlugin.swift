@@ -210,7 +210,7 @@ public class ColdstreakMusickitPlugin: CAPPlugin {
         if #available(iOS 15.0, *) {
             let player = ApplicationMusicPlayer.shared
             player.pause()
-            player.queue = ApplicationMusicPlayer.Queue(for: [])
+            player.queue = ApplicationMusicPlayer.Queue()
             call.resolve(["ok": true])
         } else {
             call.reject("Requires iOS 15 or later")
