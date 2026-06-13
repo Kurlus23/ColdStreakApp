@@ -1,1 +1,2 @@
 - [iOS CocoaPods objectVersion 70→56](ios-cocoapods-objectversion.md) — re-run the sed before EVERY cap sync; Xcode 26.x keeps rewriting it back to 70.
+- [Capacitor plugin method registration](capacitor-plugin-method-registration.md) — every @objc Swift method must also be in the .m CAP_PLUGIN_METHOD list or JS calls silently no-op.

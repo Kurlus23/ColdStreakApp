@@ -405,45 +405,34 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
     } catch { /* ignore */ }
   }, []);
 
-  const handlePlay = useCallback(() => {
-    if (!config.url) { setShowSettings(true); return; }
-    setIsPlaying(true);
-    if (appleMusic.isInNativeApp() && appleMusic.isAppleMusicPlaylistUrl(config.url)) {
-      appleMusic.playPlaylistNative(config.url).then((ok) => {
-        if (!ok) { try { window.open(config.url, "_blank", "noopener,noreferrer"); } catch {} }
-      }).catch((err) => {
-        console.warn("[apple-music/native] play failed, falling back to URL", err);
-        try { window.open(config.url, "_blank", "noopener,noreferrer"); } catch {}
-      });
-      return;
-    }
-    try { window.open(config.url, "_blank", "noopener,noreferrer"); } catch {}
-  }, [config.url]);
-
   // ── Transport controls (pause/resume/skip/stop) ──────────────────────────
   // Routes to the native Apple Music plugin (if installed) or Spotify Web
   // API via our /api/spotify/control proxy. Failures are surfaced via toast
   // and the optimistic isPlaying flag is rolled back.
-  const runSpotifyControl = useCallback(async (action: "play" | "pause" | "next" | "previous"): Promise<boolean> => {
+  const runSpotifyControl = useCallback(async (action: "play" | "pause" | "next" | "previous", silent = false): Promise<boolean> => {
     try {
       const res = await apiRequest("POST", "/api/spotify/control", { action });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const reconnect = data?.reconnect ? " Disconnect and reconnect Spotify in Music Settings." : "";
-        toast({
-          title: "Spotify control failed",
-          description: (data?.error || "Couldn't control Spotify.") + reconnect,
-          variant: "destructive",
-        });
+        if (!silent) {
+          const reconnect = data?.reconnect ? " Disconnect and reconnect Spotify in Music Settings." : "";
+          toast({
+            title: "Spotify control failed",
+            description: (data?.error || "Couldn't control Spotify.") + reconnect,
+            variant: "destructive",
+          });
+        }
         return false;
       }
       return true;
     } catch (err: any) {
-      toast({
-        title: "Spotify control failed",
-        description: err?.message || "Couldn't reach Spotify.",
-        variant: "destructive",
-      });
+      if (!silent) {
+        toast({
+          title: "Spotify control failed",
+          description: err?.message || "Couldn't reach Spotify.",
+          variant: "destructive",
+        });
+      }
       return false;
     }
   }, [toast]);
@@ -475,7 +464,13 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
         ok = await appleMusic.playPlaylistNative(config.url);
       }
     } else if (config.service === "spotify") {
-      ok = await runSpotifyControl("play");
+      // Resume the active Spotify device. If nothing is playing (no active
+      // device), fall back to deep-linking the selected playlist so it
+      // launches in the Spotify app — mirrors the Apple path above.
+      ok = await runSpotifyControl("play", true);
+      if (!ok && config.url) {
+        try { window.open(config.url, "_blank", "noopener,noreferrer"); ok = true; } catch {}
+      }
     }
     if (!ok) setIsPlaying(false);
     setControlBusy(null);
@@ -594,7 +589,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
         </div>
       ) : (
       <div
-        className={`bg-blue-900/75 backdrop-blur-md rounded-2xl border border-blue-700/40 shadow-lg shadow-black/30 ${className}`}
+        className={`bg-blue-900/40 backdrop-blur-md rounded-2xl border border-blue-700/30 shadow-lg shadow-black/20 ${className}`}
         data-testid="card-music-widget"
       >
         <div className="flex items-center gap-1.5 px-2 py-1.5">
@@ -696,15 +691,6 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
             title={config.autoPlay ? "Auto-launch with timer: ON" : "Auto-launch with timer: OFF"}
           >
             {config.autoPlay ? <Zap className="w-3.5 h-3.5" /> : <ZapOff className="w-3.5 h-3.5" />}
-          </button>
-          <button
-            data-testid="button-music-play"
-            onClick={handlePlay}
-            className="shrink-0 w-8 h-8 rounded-full bg-cyan-500 hover:bg-cyan-400 active:scale-95 transition-all text-white flex items-center justify-center shadow-md shadow-cyan-500/30"
-            aria-label="Play music now"
-            title="Listen now (doesn't start the timer)"
-          >
-            <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
           </button>
           <button
             data-testid="button-music-settings"
