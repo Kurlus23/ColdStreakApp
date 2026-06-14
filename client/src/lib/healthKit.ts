@@ -26,6 +26,53 @@ export function isHealthKitPossible(): boolean {
   return Capacitor.getPlatform() === "ios" && Capacitor.isNativePlatform();
 }
 
+/**
+ * True only if the native HealthKitPlugin is actually compiled into THIS build.
+ * Older TestFlight builds (or builds where the plugin .swift wasn't added to the
+ * iOS App target in Xcode) will return false here — which is the usual reason
+ * "Apple Health won't connect": the bridge simply isn't present to talk to.
+ */
+export function isHealthKitPluginAvailable(): boolean {
+  if (!isHealthKitPossible()) return false;
+  try {
+    return Capacitor.isPluginAvailable("HealthKit");
+  } catch {
+    return false;
+  }
+}
+
+export type HealthKitConnectResult =
+  | "connected"    // auth dialog completed (read access can't be confirmed by Apple)
+  | "unavailable"  // device has no Health data (e.g. iPad)
+  | "no-plugin"    // this build doesn't include the native HealthKit plugin
+  | "not-ios"      // not running inside the native iOS app
+  | "error";       // plugin present but the call failed unexpectedly
+
+/**
+ * Connect flow for the "Connect Apple Health" button. Unlike ensureHealthKitAuth
+ * (silent best-effort), this returns a precise reason so the UI can tell the user
+ * what's actually wrong instead of always blaming permissions.
+ */
+export async function connectHealthKit(): Promise<HealthKitConnectResult> {
+  if (!isHealthKitPossible()) return "not-ios";
+  if (!isHealthKitPluginAvailable()) return "no-plugin";
+  try {
+    const { available } = await HealthKit.isAvailable();
+    if (!available) return "unavailable";
+    await HealthKit.requestAuth();
+    // Apple intentionally never reveals whether READ access was granted, so a
+    // completed dialog is the best signal we get. Real verification happens when
+    // a query later returns data.
+    localStorage.setItem(AUTH_REQUESTED_KEY, "1");
+    return "connected";
+  } catch (err) {
+    // Plugin IS present (checked above) but the call threw — capability/Info.plist
+    // misconfig or a transient bridge error, NOT a missing-plugin build issue.
+    console.warn("[healthKit] connect failed:", err);
+    return "error";
+  }
+}
+
 export async function ensureHealthKitAuth(): Promise<boolean> {
   if (!isHealthKitPossible()) return false;
   try {

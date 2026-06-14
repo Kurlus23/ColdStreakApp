@@ -38,7 +38,7 @@ import { isNative, nativeShare } from "@/lib/nativeShare";
 import { shareContent } from "@/lib/share";
 import { saveCustomAlarmUrl, loadCustomAlarmUrl, clearCustomAlarmUrl } from "@/lib/alarm-storage";
 import { drainWatchQueue, startWatchListener, stopWatchListener } from "@/lib/watchSync";
-import { ensureHealthKitAuth, fetchHrAvgForWindow, fetchLatestBodyWeightLbs, isHealthKitPossible } from "@/lib/healthKit";
+import { ensureHealthKitAuth, connectHealthKit, fetchHrAvgForWindow, fetchLatestBodyWeightLbs, isHealthKitPossible } from "@/lib/healthKit";
 import { Explore, GEAR_ITEMS, type GearCategory } from "@/pages/Explore";
 import {
   PASSPORT_LOCATIONS, usePassportBadges, distanceMiles,
@@ -5359,9 +5359,27 @@ export default function Home() {
                 <button
                   data-testid="button-apple-health-connect"
                   onClick={async () => {
-                    const ok = await ensureHealthKitAuth();
-                    if (ok) {
-                      toast({ title: "Apple Health connected", description: "Heart rate and HRV will be pulled from Apple Health for your plunges." });
+                    const result = await connectHealthKit();
+                    if (result === "connected") {
+                      toast({ title: "Apple Health connected", description: "Heart rate, HRV, and weight will be pulled from Apple Health for your plunges. Make sure Heart Rate, HRV, and Body Mass are turned ON in the Health permission screen." });
+                    } else if (result === "no-plugin") {
+                      toast({
+                        title: "Update needed",
+                        description: "This app version doesn't include Apple Health support yet. Install the latest TestFlight/App Store build, then try again.",
+                        variant: "destructive",
+                      });
+                    } else if (result === "unavailable") {
+                      toast({
+                        title: "Apple Health unavailable",
+                        description: "This device doesn't have Apple Health data available.",
+                        variant: "destructive",
+                      });
+                    } else if (result === "error") {
+                      toast({
+                        title: "Couldn't open Apple Health",
+                        description: "Something went wrong reaching Apple Health. Please try again, or check ColdStreak under Settings → Health → Data Access & Devices.",
+                        variant: "destructive",
+                      });
                     } else {
                       toast({
                         title: "Grant access in Health",
