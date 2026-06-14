@@ -25,6 +25,14 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, creat
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
+// Shared username rules — used by signup, profile edit, and availability checks.
+export const usernameSchema = z
+  .string()
+  .trim()
+  .min(3, "Username must be at least 3 characters")
+  .max(20, "Username must be 20 characters or less")
+  .regex(/^[a-zA-Z0-9_]+$/, "Use only letters, numbers, and underscores");
+
 export const plunges = pgTable("plunges", {
   id: serial("id").primaryKey(),
   clientId: text("client_id"), // device-specific UUID for data isolation (nullable for legacy rows)

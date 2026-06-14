@@ -50,10 +50,11 @@ export interface IStorage {
   deleteUserLocation(id: number): Promise<void>;
   nominateUserLocation(id: number): Promise<UserLocation | null>;
   // Auth users
-  createUser(email: string, passwordHash: string): Promise<User>;
+  createUser(email: string, passwordHash: string, opts?: { username?: string; displayName?: string; bodyWeight?: number }): Promise<User>;
   upsertAdminAccount(email: string, passwordHash: string, opts?: { username?: string }): Promise<void>;
   getUserByEmail(email: string): Promise<User | null>;
   getUserByUsername(username: string): Promise<User | null>;
+  getUserByUsernameInsensitive(username: string): Promise<User | null>;
   getUserById(id: number): Promise<User | null>;
   deleteUser(id: number): Promise<void>;
   setResetToken(email: string, token: string, expiry: Date): Promise<boolean>;
@@ -62,7 +63,7 @@ export interface IStorage {
   updatePassword(id: number, passwordHash: string): Promise<void>;
   setVerifyToken(userId: number, token: string): Promise<void>;
   verifyEmailToken(token: string): Promise<User | null>;
-  updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number }): Promise<User>;
+  updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number; username?: string }): Promise<User>;
   getUserCount(): Promise<number>;
 
   // Client visits (server-side first-touch / activity ground truth)
@@ -478,10 +479,22 @@ export class DatabaseStorage implements IStorage {
     return updated ?? null;
   }
 
-  async createUser(email: string, passwordHash: string): Promise<User> {
+  async createUser(
+    email: string,
+    passwordHash: string,
+    opts?: { username?: string; displayName?: string; bodyWeight?: number },
+  ): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values({ email: email.toLowerCase(), passwordHash })
+      .values({
+        email: email.toLowerCase(),
+        passwordHash,
+        ...(opts?.username ? { username: opts.username } : {}),
+        ...(opts?.displayName ? { displayName: opts.displayName } : {}),
+        ...(typeof opts?.bodyWeight === "number" && opts.bodyWeight > 0
+          ? { bodyWeight: Math.round(opts.bodyWeight) }
+          : {}),
+      })
       .returning();
     return user;
   }
@@ -521,6 +534,15 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | null> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user ?? null;
+  }
+
+  // Case-insensitive lookup — used to enforce unique handles regardless of casing.
+  async getUserByUsernameInsensitive(username: string): Promise<User | null> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(sql`lower(${users.username}) = ${username.toLowerCase()}`);
     return user ?? null;
   }
 
@@ -573,7 +595,7 @@ export class DatabaseStorage implements IStorage {
     return updated ?? null;
   }
 
-  async updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number }): Promise<User> {
+  async updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number; username?: string }): Promise<User> {
     const [updated] = await db.update(users)
       .set(patch)
       .where(eq(users.id, id))

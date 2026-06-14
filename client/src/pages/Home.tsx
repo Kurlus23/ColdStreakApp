@@ -49,7 +49,7 @@ import {
 } from "@/lib/passport";
 import { useMutation } from "@tanstack/react-query";
 
-import { type Plunge, type UserLocation } from "@shared/schema";
+import { type Plunge, type UserLocation, usernameSchema } from "@shared/schema";
 
 async function resizeImageToBase64(file: File, maxPx = 800, quality = 0.75): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -1026,6 +1026,13 @@ export default function Home() {
   const [username, setUsername] = useState<string>(() => {
     return localStorage.getItem("coldstreak-username") ?? "";
   });
+  // Account-level unique login handle (distinct from the editable display name above).
+  const [accountUsername, setAccountUsername] = useState<string>(() => {
+    return localStorage.getItem("coldstreak-account-username") ?? "";
+  });
+  const [accountNameDraft, setAccountNameDraft] = useState<string>("");
+  const [accountNameStatus, setAccountNameStatus] = useState<"idle" | "saving" | "saved" | "taken" | "invalid">("idle");
+  useEffect(() => { setAccountNameDraft(accountUsername); }, [accountUsername]);
   const { data: ownBadgeProfile } = useQuery<{ avatarUrl?: string | null }>({
     queryKey: ["/api/badge-profile", username],
     enabled: !!username,
@@ -1191,6 +1198,11 @@ export default function Home() {
         const localWeight = Number(localStorage.getItem("coldstreak-body-weight")) || 0;
         const patch: { displayName?: string; bodyWeight?: number } = {};
 
+        if (data.username) {
+          setAccountUsername(data.username);
+          localStorage.setItem("coldstreak-account-username", data.username);
+        }
+
         if (data.displayName) {
           setUsername(data.displayName);
           localStorage.setItem("coldstreak-username", data.displayName);
@@ -1255,7 +1267,7 @@ export default function Home() {
     const email = authEmail;
     const ok = authMode === "login"
       ? await auth.login(email, authPassword)
-      : await auth.register(email, authPassword);
+      : (await auth.register(email, authPassword)).ok;
     if (ok) {
       setAuthEmail("");
       setAuthPassword("");
@@ -1263,6 +1275,67 @@ export default function Home() {
       verifyProForEmail(email);
       // Auto-sync local plunges immediately on login/register
       backgroundSync();
+    }
+  };
+
+  // Onboarding account creation — registers, stores handle/name/weight, then syncs.
+  const handleOnboardingRegister = async (args: { email: string; password: string; username: string; bodyWeight?: number }) => {
+    const result = await auth.register(args.email, args.password, {
+      username: args.username,
+      displayName: args.username,
+      bodyWeight: args.bodyWeight,
+    });
+    if (!result.ok) return { ok: false, error: result.error };
+    setAccountUsername(args.username);
+    localStorage.setItem("coldstreak-account-username", args.username);
+    setUsername(args.username);
+    localStorage.setItem("coldstreak-username", args.username);
+    if (args.bodyWeight && args.bodyWeight > 0) {
+      const lbs = Math.round(args.bodyWeight);
+      setBodyWeightLbs(lbs);
+      localStorage.setItem("coldstreak-body-weight", String(lbs));
+    }
+    verifyProForEmail(args.email);
+    backgroundSync();
+    return { ok: true };
+  };
+
+  // Onboarding Apple Health weight import — returns lbs (or a reason it failed).
+  const handleOnboardingImportWeight = async (): Promise<{ lbs: number | null; message?: string }> => {
+    try {
+      const result = await connectHealthKit();
+      if (result === "no-plugin") return { lbs: null, message: "This app version doesn't include Apple Health support yet." };
+      if (result === "unavailable") return { lbs: null, message: "Apple Health isn't available on this device." };
+      if (result !== "connected") return { lbs: null, message: "Turn on Body Mass for ColdStreak in Health settings, then try again." };
+      const res = await fetchLatestBodyWeightLbs();
+      if (!res || res.lbs < 60 || res.lbs > 500) return { lbs: null, message: "No weight found in Apple Health." };
+      return { lbs: res.lbs };
+    } catch {
+      return { lbs: null, message: "Could not read from Apple Health." };
+    }
+  };
+
+  // Save an edited account username from the Profile menu (validates + handles 409).
+  const saveAccountUsername = async (raw: string) => {
+    const value = raw.trim();
+    if (!usernameSchema.safeParse(value).success) { setAccountNameStatus("invalid"); return; }
+    if (value.toLowerCase() === accountUsername.toLowerCase()) { setAccountNameStatus("idle"); return; }
+    const token = localStorage.getItem("coldstreak-auth-token");
+    if (!token) return;
+    setAccountNameStatus("saving");
+    try {
+      const res = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ username: value }),
+      });
+      if (res.status === 409) { setAccountNameStatus("taken"); return; }
+      if (!res.ok) { setAccountNameStatus("invalid"); return; }
+      setAccountUsername(value);
+      localStorage.setItem("coldstreak-account-username", value);
+      setAccountNameStatus("saved");
+    } catch {
+      setAccountNameStatus("idle");
     }
   };
 
@@ -1281,8 +1354,10 @@ export default function Home() {
     setShowPostSessionAd(false);
     setSyncDone(false);
     localStorage.removeItem("coldstreak-username");
+    localStorage.removeItem("coldstreak-account-username");
     localStorage.removeItem("coldstreak-body-weight");
     setUsername("");
+    setAccountUsername("");
     setBodyWeightLbs(154);
     queryClient.removeQueries({ queryKey: ["/api/plunges"] });
   };
@@ -2714,7 +2789,12 @@ export default function Home() {
   return (
     <div className="relative overflow-hidden bg-blue-950" style={{ height: "100dvh" }}>
       {showOnboarding && (
-        <Onboarding onComplete={() => setShowOnboarding(false)} />
+        <Onboarding
+          onComplete={() => setShowOnboarding(false)}
+          onRegister={handleOnboardingRegister}
+          onImportWeight={handleOnboardingImportWeight}
+          healthKitAvailable={isHealthKitPossible()}
+        />
       )}
 
       {/* ─── INTRO VIDEO OVERLAY ─── */}
@@ -5482,6 +5562,101 @@ export default function Home() {
           <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
             <div className="space-y-3 min-w-0">
 
+              {/* Account */}
+              {auth.user ? (
+                <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl px-5 py-5 border border-blue-800/50 space-y-4" data-testid="card-account">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-white font-bold text-lg flex items-center gap-2"><User className="w-5 h-5 text-cyan-400" /> Account</h2>
+                    {isPro ? (
+                      <span data-testid="status-pro" className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/40">Pro</span>
+                    ) : (
+                      <span data-testid="status-pro" className="text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-blue-800/60 text-blue-300 border border-blue-700/50">Free</span>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Email</label>
+                    <div data-testid="text-account-email" className="text-white text-sm bg-blue-900/50 border border-blue-700/40 rounded-xl px-3 py-2.5 truncate">{auth.user.email}</div>
+                  </div>
+
+                  {/* Username */}
+                  <div>
+                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Username</label>
+                    <input
+                      data-testid="input-account-username"
+                      type="text"
+                      placeholder="username"
+                      value={accountNameDraft}
+                      maxLength={20}
+                      onChange={(e) => { setAccountNameDraft(e.target.value); if (accountNameStatus !== "idle") setAccountNameStatus("idle"); }}
+                      onBlur={(e) => saveAccountUsername(e.target.value)}
+                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                    />
+                    {accountNameStatus === "taken" && <p data-testid="text-username-status" className="text-red-400 text-xs mt-1">That username is taken.</p>}
+                    {accountNameStatus === "invalid" && <p data-testid="text-username-status" className="text-red-400 text-xs mt-1">Use 3–20 letters, numbers, or underscores.</p>}
+                    {accountNameStatus === "saving" && <p data-testid="text-username-status" className="text-blue-400 text-xs mt-1">Saving…</p>}
+                    {accountNameStatus === "saved" && <p data-testid="text-username-status" className="text-green-400 text-xs mt-1">Saved.</p>}
+                    {accountNameStatus === "idle" && <p className="text-blue-500 text-xs mt-1">Your unique login handle.</p>}
+                  </div>
+
+                  {/* Display name */}
+                  <div>
+                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Display Name</label>
+                    <input
+                      data-testid="input-account-displayname"
+                      type="text"
+                      placeholder="Enter your display name…"
+                      value={username}
+                      maxLength={24}
+                      onChange={(e) => { setUsername(e.target.value); localStorage.setItem("coldstreak-username", e.target.value); }}
+                      onBlur={(e) => {
+                        const token = localStorage.getItem("coldstreak-auth-token");
+                        if (!token || !e.target.value.trim()) return;
+                        fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ displayName: e.target.value.trim() }) }).catch(() => {});
+                      }}
+                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                    />
+                    <p className="text-blue-500 text-xs mt-1">Shown on leaderboards.</p>
+                  </div>
+
+                  {/* Body weight */}
+                  <div>
+                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Body Weight</label>
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const saveWeight = (val: number) => {
+                          const clamped = Math.min(400, Math.max(80, val));
+                          setBodyWeightLbs(clamped);
+                          localStorage.setItem("coldstreak-body-weight", String(clamped));
+                          const token = localStorage.getItem("coldstreak-auth-token");
+                          if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: clamped }) }).catch(() => {});
+                        };
+                        return (<>
+                          <button data-testid="button-account-weight-decrease" onClick={() => saveWeight(bodyWeightLbs - 1)}
+                            className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
+                          >−</button>
+                          <div data-testid="text-account-weight"
+                            className="w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none"
+                          >{bodyWeightLbs}</div>
+                          <button data-testid="button-account-weight-increase" onClick={() => saveWeight(bodyWeightLbs + 1)}
+                            className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
+                          >+</button>
+                          <span className="text-blue-500 text-xs">lbs ({Math.round(bodyWeightLbs / 2.205)} kg)</span>
+                        </>);
+                      })()}
+                    </div>
+                    <p className="text-blue-500 text-xs mt-1">Only used to estimate calories burned.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl px-5 py-5 border border-blue-800/50 text-center" data-testid="card-account-signedout">
+                  <User className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                  <p className="text-white text-sm font-semibold mb-1">You're not signed in</p>
+                  <p className="text-blue-400 text-xs">Create an account from Settings to save your progress and edit your profile.</p>
+                </div>
+              )}
+
               {/* Header */}
               <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl px-5 pt-5 pb-4 border border-blue-800/50">
                 <div className="flex items-center justify-between mb-3">
@@ -7254,14 +7429,14 @@ export default function Home() {
             <span className="text-[10px] font-semibold">Gear</span>
           </button>
 
-          {/* Achievements */}
+          {/* Profile */}
           <button
-            data-testid="nav-achievements"
+            data-testid="nav-profile"
             onClick={() => navTo("achievements")}
             className={`flex-1 flex flex-col items-center gap-1 transition-colors ${screen === "achievements" ? "text-white" : "text-blue-500 hover:text-blue-300"}`}
           >
-            <Trophy className="w-5 h-5" />
-            <span className="text-[10px] font-semibold">Badges</span>
+            <User className="w-5 h-5" />
+            <span className="text-[10px] font-semibold">Profile</span>
           </button>
 
           {/* Devices */}

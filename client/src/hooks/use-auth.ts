@@ -9,6 +9,7 @@ export interface AuthUser {
   email: string;
   emailVerified: boolean;
   isAdmin?: boolean;
+  username?: string | null;
 }
 
 function loadUser(): AuthUser | null {
@@ -76,18 +77,22 @@ export function useAuth() {
     });
   }, []);
 
-  const register = useCallback(async (email: string, password: string): Promise<boolean> => {
+  const register = useCallback(async (
+    email: string,
+    password: string,
+    opts?: { username?: string; displayName?: string; bodyWeight?: number },
+  ): Promise<{ ok: boolean; error?: string }> => {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiRequest("POST", "/api/auth/register", { email, password });
+      const res = await apiRequest("POST", "/api/auth/register", { email, password, ...opts });
       const data = await res.json();
       persist(data.token, data.user);
-      return true;
+      return { ok: true };
     } catch (err: any) {
       const msg = await extractMessage(err);
       setError(msg);
-      return false;
+      return { ok: false, error: msg };
     } finally {
       setLoading(false);
     }

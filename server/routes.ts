@@ -3,6 +3,7 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import type { UserLocation } from "@shared/schema";
+import { usernameSchema } from "@shared/schema";
 import { z } from "zod";
 import Stripe from "stripe";
 import bcrypt from "bcryptjs";
@@ -216,16 +217,29 @@ export async function registerRoutes(
 
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { email, password } = z.object({
+      const { email, password, username, displayName, bodyWeight } = z.object({
         email: z.string().email(),
         password: z.string().min(6, "Password must be at least 6 characters"),
+        username: usernameSchema.optional(),
+        displayName: z.string().trim().max(32).optional(),
+        bodyWeight: z.number().positive().optional(),
       }).parse(req.body);
 
       const existing = await storage.getUserByEmail(email);
       if (existing) return res.status(409).json({ message: "An account with this email already exists" });
 
+      if (username) {
+        const taken = await storage.getUserByUsernameInsensitive(username);
+        if (taken) return res.status(409).json({ message: "That username is already taken" });
+      }
+
       const passwordHash = await bcrypt.hash(password, 10);
-      const user = await storage.createUser(email, passwordHash);
+      // Default the public display name to the chosen username so leaderboards have a name.
+      const user = await storage.createUser(email, passwordHash, {
+        username,
+        displayName: displayName || username,
+        bodyWeight,
+      });
       const token = signToken({ userId: user.id, email: user.email });
 
       // Send verification email (fire and forget — don't block signup)
@@ -242,11 +256,22 @@ export async function registerRoutes(
         }
       }).catch(console.error);
 
-      res.status(201).json({ token, user: { id: user.id, email: user.email, emailVerified: false } });
+      res.status(201).json({ token, user: { id: user.id, email: user.email, emailVerified: false, username: user.username ?? null } });
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       throw err;
     }
+  });
+
+  // Live username availability check for the signup/profile UI.
+  app.get("/api/auth/check-username", async (req, res) => {
+    const raw = String(req.query.username || "");
+    const parsed = usernameSchema.safeParse(raw);
+    if (!parsed.success) {
+      return res.json({ available: false, reason: parsed.error.errors[0].message });
+    }
+    const taken = await storage.getUserByUsernameInsensitive(parsed.data);
+    res.json({ available: !taken, reason: taken ? "That username is already taken" : undefined });
   });
 
   // One-time admin password reset, gated by a long shared secret.
@@ -324,7 +349,7 @@ export async function registerRoutes(
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUserById(payload.userId);
     if (!user) return res.status(401).json({ message: "User not found" });
-    res.json({ displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null });
+    res.json({ username: user.username ?? null, displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null });
   });
 
   app.patch("/api/auth/profile", async (req, res) => {
@@ -332,12 +357,24 @@ export async function registerRoutes(
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
     const existing = await storage.getUserById(payload.userId);
     if (!existing) return res.status(401).json({ message: "User not found" });
-    const { displayName, bodyWeight } = req.body;
-    const patch: { displayName?: string; bodyWeight?: number } = {};
+    const { displayName, bodyWeight, username } = req.body;
+    const patch: { displayName?: string; bodyWeight?: number; username?: string } = {};
     if (typeof displayName === "string") patch.displayName = displayName.trim().slice(0, 32);
     if (typeof bodyWeight === "number" && bodyWeight > 0) patch.bodyWeight = Math.round(bodyWeight);
+    if (typeof username === "string") {
+      const parsed = usernameSchema.safeParse(username);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0].message });
+      // Only enforce uniqueness when the handle is actually changing (case-insensitive).
+      if (!existing.username || existing.username.toLowerCase() !== parsed.data.toLowerCase()) {
+        const taken = await storage.getUserByUsernameInsensitive(parsed.data);
+        if (taken && taken.id !== payload.userId) {
+          return res.status(409).json({ message: "That username is already taken" });
+        }
+      }
+      patch.username = parsed.data;
+    }
     const user = await storage.updateUserProfile(payload.userId, patch);
-    res.json({ displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null });
+    res.json({ username: user.username ?? null, displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null });
   });
 
   app.delete("/api/auth/account", async (req, res) => {
