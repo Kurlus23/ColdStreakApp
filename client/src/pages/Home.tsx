@@ -4165,8 +4165,24 @@ export default function Home() {
                       const openIosSettings = () => {
                         try { window.location.href = "app-settings:"; } catch (err) { console.warn("[health] open settings failed:", err); }
                       };
-                      const ok = await ensureHealthKitAuth();
-                      if (!ok) {
+                      const result = await connectHealthKit();
+                      if (result === "no-plugin") {
+                        toast({
+                          title: "Update needed",
+                          description: "This app version doesn't include Apple Health support yet. Install the latest TestFlight/App Store build, then try again.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      if (result === "unavailable") {
+                        toast({
+                          title: "Apple Health unavailable",
+                          description: "This device doesn't have Apple Health data available.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      if (result !== "connected") {
                         toast({
                           title: "Apple Health not connected",
                           description: "Tap Open Settings, then go to Health → Data Access & Devices → ColdStreak and turn on Body Mass.",
