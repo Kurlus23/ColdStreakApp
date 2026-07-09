@@ -142,6 +142,112 @@ export function shouldAutoPlay(): boolean {
   return cfg.featureEnabled && cfg.autoPlay && cfg.service !== "none" && !!cfg.url;
 }
 
+// ── Mini transport for the full-screen plunge timer overlay ────────────────
+// Compact prev / play-pause / next pill that reuses the same control paths as
+// the main widget: native Apple Music plugin or /api/spotify/control proxy.
+// Renders nothing when no playlist is configured or the feature is off.
+export function MusicTransportMini({ className = "" }: { className?: string }) {
+  const { toast } = useToast();
+  const [config] = useState<MusicConfig>(() => loadConfig());
+  const [isPlaying, setIsPlaying] = useState<boolean>(() => shouldAutoPlay());
+  const [busy, setBusy] = useState<"prev" | "toggle" | "next" | null>(null);
+
+  const spotifyControl = useCallback(async (action: "play" | "pause" | "next" | "previous", silent = false): Promise<boolean> => {
+    try {
+      const res = await apiRequest("POST", "/api/spotify/control", { action });
+      if (!res.ok) {
+        if (!silent) {
+          const data = await res.json().catch(() => ({} as any));
+          toast({ title: "Spotify control failed", description: data?.error || "Couldn't control Spotify.", variant: "destructive" });
+        }
+        return false;
+      }
+      return true;
+    } catch (err: any) {
+      if (!silent) toast({ title: "Spotify control failed", description: err?.message || "Couldn't reach Spotify.", variant: "destructive" });
+      return false;
+    }
+  }, [toast]);
+
+  if (config.service === "none" || !config.url || !config.featureEnabled) return null;
+
+  const toggle = async () => {
+    if (busy) return;
+    setBusy("toggle");
+    if (isPlaying) {
+      setIsPlaying(false);
+      let ok = false;
+      if (config.service === "apple") ok = await appleMusic.pause();
+      else if (config.service === "spotify") ok = await spotifyControl("pause");
+      if (!ok) setIsPlaying(true);
+    } else {
+      setIsPlaying(true);
+      let ok = false;
+      if (config.service === "apple") {
+        ok = await appleMusic.resume();
+        if (!ok && appleMusic.isInNativeApp() && appleMusic.isAppleMusicPlaylistUrl(config.url)) {
+          ok = await appleMusic.playPlaylistNative(config.url);
+        }
+      } else if (config.service === "spotify") {
+        ok = await spotifyControl("play", true);
+        if (!ok && config.url) {
+          try { window.open(config.url, "_blank", "noopener,noreferrer"); ok = true; } catch {}
+        }
+      }
+      if (!ok) setIsPlaying(false);
+    }
+    setBusy(null);
+  };
+
+  const skip = async (dir: "prev" | "next") => {
+    if (busy) return;
+    setBusy(dir);
+    if (config.service === "apple") await (dir === "next" ? appleMusic.skipNext() : appleMusic.skipPrevious());
+    else if (config.service === "spotify") await spotifyControl(dir === "next" ? "next" : "previous");
+    setBusy(null);
+  };
+
+  return (
+    <div className={`flex items-center gap-2 bg-blue-900/60 backdrop-blur-md border border-blue-700/40 rounded-full px-3 py-2 shadow-lg shadow-black/30 ${className}`}>
+      <div className="shrink-0 flex items-center justify-center w-6 h-6">
+        {config.service === "spotify"
+          ? <SiSpotify className="w-4 h-4 text-green-400" />
+          : <SiApplemusic className="w-4 h-4 text-pink-400" />}
+      </div>
+      <span className="text-blue-200 text-xs font-medium truncate max-w-[110px]">{config.label || "Music"}</span>
+      <button
+        data-testid="button-timer-music-prev"
+        onClick={() => skip("prev")}
+        disabled={busy !== null}
+        aria-label="Previous track"
+        className="w-8 h-8 rounded-full flex items-center justify-center text-blue-200 hover:text-white hover:bg-blue-800/60 active:scale-95 transition-all disabled:opacity-50"
+      >
+        {busy === "prev" ? <Loader2 className="w-4 h-4 animate-spin" /> : <SkipBack className="w-4 h-4 fill-current" />}
+      </button>
+      <button
+        data-testid="button-timer-music-toggle"
+        onClick={toggle}
+        disabled={busy !== null}
+        aria-label={isPlaying ? "Pause" : "Play"}
+        className="w-9 h-9 rounded-full bg-cyan-500/90 hover:bg-cyan-400 flex items-center justify-center text-blue-950 active:scale-95 transition-all disabled:opacity-50"
+      >
+        {busy === "toggle"
+          ? <Loader2 className="w-4 h-4 animate-spin" />
+          : isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+      </button>
+      <button
+        data-testid="button-timer-music-next"
+        onClick={() => skip("next")}
+        disabled={busy !== null}
+        aria-label="Next track"
+        className="w-8 h-8 rounded-full flex items-center justify-center text-blue-200 hover:text-white hover:bg-blue-800/60 active:scale-95 transition-all disabled:opacity-50"
+      >
+        {busy === "next" ? <Loader2 className="w-4 h-4 animate-spin" /> : <SkipForward className="w-4 h-4 fill-current" />}
+      </button>
+    </div>
+  );
+}
+
 interface SpotifyMeResponse {
   connected: boolean;
   displayName?: string | null;

@@ -28,7 +28,7 @@ import { useProStatus, PENDING_CHECKOUT_KEY, PENDING_SESSION_KEY } from "@/hooks
 import { PlungeCard, buildShareText } from "@/components/PlungeCard";
 import { ColdTakeOverlay } from "@/components/ColdTakeOverlay";
 import { BannerAd, FeedAd, InterstitialAd } from "@/components/AdUnit";
-import { MusicWidget, openMusic, shouldAutoPlay } from "@/components/MusicWidget";
+import { MusicWidget, MusicTransportMini, openMusic, shouldAutoPlay } from "@/components/MusicWidget";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
 import { Analytics } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
@@ -7375,6 +7375,9 @@ export default function Home() {
               </>
             )}
           </div>
+
+          {/* Music transport — pause/skip without leaving the plunge (Pro) */}
+          {isPro && <MusicTransportMini />}
 
           {/* Cold Take (appears 12s after timer starts, rotates every 45s, scales with time + temp + streak + first-plunge) */}
           <ColdTakeOverlay
