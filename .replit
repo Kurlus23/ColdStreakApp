@@ -57,4 +57,4 @@ USE_STRIPE_TEST = "false"
 SPOTIFY_CLIENT_ID = "3a228da8269c4d7aae428ee6f520dcd8"
 
 [agent]
-integrations = ["javascript_object_storage:2.0.0", "spotify:1.0.0"]
+integrations = ["javascript_object_storage:2.0.0", "spotify:1.0.0", "github:1.0.0"]
