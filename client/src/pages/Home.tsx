@@ -6735,7 +6735,7 @@ export default function Home() {
           >
             <div className="flex items-center justify-between">
               <h3 className="text-white font-bold text-base flex items-center gap-2">
-                <Camera className="w-4 h-4 text-cyan-400" /> Add Photo &amp; Location
+                <Sparkles className="w-4 h-4 text-cyan-400" /> Plunge Complete
               </h3>
               <button
                 data-testid="button-skip-photo"
@@ -6802,73 +6802,6 @@ export default function Home() {
                 </div>
               );
             })()}
-
-            {/* Hidden web fallback input */}
-            <input
-              ref={photoInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              data-testid="input-photo-upload"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                try {
-                  const data = await resizeImageToBase64(file);
-                  setPromptPhotoData(data);
-                } catch {
-                  toast({ title: "Could not load photo", variant: "destructive" });
-                }
-              }}
-            />
-
-            {/* Photo preview or take-photo button */}
-            {promptPhotoData ? (
-              <div className="relative w-full rounded-2xl overflow-hidden border-2 border-cyan-500/60">
-                <img src={promptPhotoData} alt="Preview" className="w-full h-40 object-cover" />
-                <button
-                  onClick={() => setPromptPhotoData(null)}
-                  className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-lg hover:bg-red-600/80 transition-colors"
-                >Remove</button>
-              </div>
-            ) : (
-              <button
-                data-testid="button-take-photo"
-                onClick={async () => {
-                  if (Capacitor.isNativePlatform()) {
-                    try {
-                      const camPerm = await CapCamera.checkPermissions();
-                      if (camPerm.camera !== "granted") {
-                        await CapCamera.requestPermissions({ permissions: ["camera"] });
-                      }
-                      const photo = await CapCamera.getPhoto({
-                        resultType: CameraResultType.Base64,
-                        source: CameraSource.Camera,
-                        quality: 70,
-                        width: 1000,
-                        correctOrientation: true,
-                      });
-                      if (photo.base64String) {
-                        const mime = photo.format === "png" ? "image/png" : "image/jpeg";
-                        setPromptPhotoData(`data:${mime};base64,${photo.base64String}`);
-                      }
-                    } catch (err: any) {
-                      const msg = String(err ?? "");
-                      if (!msg.includes("cancel") && !msg.includes("dismiss") && !msg.includes("User cancelled")) {
-                        toast({ title: "Camera error", description: msg || "Could not open camera", variant: "destructive" });
-                      }
-                    }
-                  } else {
-                    await startWebCamera();
-                  }
-                }}
-                className="w-full flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-blue-600/50 hover:border-cyan-500/50 py-8 transition-all"
-              >
-                <Camera className="w-8 h-8 text-cyan-400" />
-                <span className="text-blue-300 text-sm font-semibold">Take Photo</span>
-              </button>
-            )}
 
             {/* Location picker */}
             <div className="space-y-2">

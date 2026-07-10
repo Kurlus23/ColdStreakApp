@@ -326,6 +326,7 @@ export default function Admin() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmDeleteEvent, setConfirmDeleteEvent] = useState<number | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("issues-first");
+  const [activitySort, setActivitySort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
 
   // Email lookup
   const [lookupEmail, setLookupEmail] = useState("");
@@ -843,7 +844,65 @@ export default function Admin() {
         </div>
   ) : null;
 
-  tiles["user-activity"] = userActivity ? (
+  const activityAccessors: Record<string, (u: NonNullable<typeof userActivity>[number]) => string | number | null> = {
+    email: (u) => u.email.toLowerCase(),
+    role: (u) => (u.isAdmin ? 2 : u.isPro ? 1 : 0),
+    plunges: (u) => u.totalPlunges,
+    days: (u) => u.uniqueDays,
+    streak: (u) => u.currentStreak,
+    month: (u) => u.plungesThisMonth,
+    temp: (u) => u.lastPlungeTemp,
+    duration: (u) => u.lastPlungeDurationSec,
+    score: (u) => u.lastPlungeScore,
+    shares: (u) => u.totalShares,
+    signedUp: (u) => (u.signedUpAt ? Date.parse(u.signedUpAt) : null),
+    lastPlunge: (u) => (u.lastPlungeAt ? Date.parse(u.lastPlungeAt) : null),
+    lastShare: (u) => (u.lastShareAt ? Date.parse(u.lastShareAt) : null),
+    lastApi: (u) => (u.lastApiSeenAt ? Date.parse(u.lastApiSeenAt) : null),
+    platforms: (u) => (u.platforms ? u.platforms.toLowerCase() : null),
+    location: (u) => (u.country ? u.country.toLowerCase() : u.timezone ? u.timezone.toLowerCase() : null),
+  };
+  const sortedActivity = (() => {
+    if (!userActivity) return userActivity;
+    if (!activitySort) return userActivity;
+    const acc = activityAccessors[activitySort.key];
+    if (!acc) return userActivity;
+    const dir = activitySort.dir === "asc" ? 1 : -1;
+    return [...userActivity].sort((a, b) => {
+      const av = acc(a);
+      const bv = acc(b);
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1; // nulls always last
+      if (bv == null) return -1;
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+  })();
+  const activityTh = (key: string, label: string, opts?: { right?: boolean; title?: string }) => {
+    const active = activitySort?.key === key;
+    const arrow = active ? (activitySort!.dir === "desc" ? " ▼" : " ▲") : "";
+    return (
+      <th
+        className={`${opts?.right ? "text-right" : "text-left"} px-3 py-2 cursor-pointer select-none hover:text-white whitespace-nowrap ${active ? "text-cyan-300" : ""}`}
+        title={opts?.title ?? "Click to sort"}
+        data-testid={`th-activity-${key}`}
+        onClick={() =>
+          setActivitySort((prev) =>
+            prev?.key === key
+              ? prev.dir === "desc"
+                ? { key, dir: "asc" }
+                : null
+              : { key, dir: "desc" }
+          )
+        }
+      >
+        {label}{arrow}
+      </th>
+    );
+  };
+
+  tiles["user-activity"] = userActivity && sortedActivity ? (
         <div className="mb-6 max-w-7xl">
           <h2 className="text-base font-bold text-white mb-2">
             User Activity <span className="text-xs font-normal text-slate-400">({userActivity.length} accounts)</span>
@@ -852,26 +911,26 @@ export default function Admin() {
             <table className="min-w-full text-xs">
               <thead className="bg-slate-900/60 text-slate-300">
                 <tr>
-                  <th className="text-left px-3 py-2">Email</th>
-                  <th className="text-left px-3 py-2">Role</th>
-                  <th className="text-right px-3 py-2">Plunges</th>
-                  <th className="text-right px-3 py-2">Days</th>
-                  <th className="text-right px-3 py-2">Streak</th>
-                  <th className="text-right px-3 py-2">This Month</th>
-                  <th className="text-right px-3 py-2">Last °F</th>
-                  <th className="text-right px-3 py-2">Last Long</th>
-                  <th className="text-right px-3 py-2" title="Current (last plunge) / Best this month / Best lifetime">Score (cur/mo/life)</th>
-                  <th className="text-right px-3 py-2">Shares</th>
-                  <th className="text-left px-3 py-2">Signed Up</th>
-                  <th className="text-left px-3 py-2">Last Plunge</th>
-                  <th className="text-left px-3 py-2">Last Share</th>
-                  <th className="text-left px-3 py-2">Last API Hit</th>
-                  <th className="text-left px-3 py-2">Platforms</th>
-                  <th className="text-left px-3 py-2">Location</th>
+                  {activityTh("email", "Email")}
+                  {activityTh("role", "Role")}
+                  {activityTh("plunges", "Plunges", { right: true })}
+                  {activityTh("days", "Days", { right: true })}
+                  {activityTh("streak", "Streak", { right: true })}
+                  {activityTh("month", "This Month", { right: true })}
+                  {activityTh("temp", "Last °F", { right: true })}
+                  {activityTh("duration", "Last Long", { right: true })}
+                  {activityTh("score", "Score (cur/mo/life)", { right: true, title: "Current (last plunge) / Best this month / Best lifetime — click to sort by current" })}
+                  {activityTh("shares", "Shares", { right: true })}
+                  {activityTh("signedUp", "Signed Up")}
+                  {activityTh("lastPlunge", "Last Plunge")}
+                  {activityTh("lastShare", "Last Share")}
+                  {activityTh("lastApi", "Last API Hit")}
+                  {activityTh("platforms", "Platforms")}
+                  {activityTh("location", "Location")}
                 </tr>
               </thead>
               <tbody>
-                {userActivity.map((u) => {
+                {sortedActivity.map((u) => {
                   const fmtDate = (s: string | null) => s ? new Date(s).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "2-digit" }) : "—";
                   const fmtDur = (sec: number | null) => {
                     if (sec == null) return "—";
