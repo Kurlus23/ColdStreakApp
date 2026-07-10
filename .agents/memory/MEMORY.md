@@ -2,3 +2,5 @@
 - [Capacitor plugin method registration](capacitor-plugin-method-registration.md) — every @objc Swift method must also be in the .m CAP_PLUGIN_METHOD list or JS calls silently no-op.
 - [HealthKit iOS plugin wiring](healthkit-ios-wiring.md) — "won't connect" = .swift not in Xcode App target/capability/plist, not a code bug; check Capacitor.isPluginAvailable.
 - [Mood check-in & push conventions](mood-checkin-and-push.md) — timed notifications use the web-push sweeper pattern (no native plugin); plunge mutations need assertPlungeOwnership; db:push hangs, use psql for additive columns.
+- [Post-plunge photo removed](post-plunge-photo-removed.md) — photo capture UI was deliberately removed from the plunge-complete sheet; don't treat as regression or re-add unasked.
+- [Mockup sandbox registry restart](mockup-sandbox-registry-restart.md) — new mockup files need a preview-server workflow restart; screenshot previews via external_url only.

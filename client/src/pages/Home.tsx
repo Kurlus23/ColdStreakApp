@@ -13,7 +13,7 @@ import {
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2, VolumeX, FileText,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff, Heart, X,
+  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff, Heart, X, Droplets, Thermometer,
   Image as ImageIcon, MessageCircle, Send, Eye, EyeOff
 } from "lucide-react";
 
@@ -6722,51 +6722,88 @@ export default function Home() {
         );
       })()}
 
-      {/* ─── PHOTO / LOCATION PROMPT ─── */}
+      {/* ─── PHOTO / LOCATION PROMPT (Plunge Complete — "Level Up Your Mind") ─── */}
       {photoPromptId !== null && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center">
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setPhotoPromptId(null)}
-          />
+        <div className="fixed inset-0 z-40 bg-[#060c18] overflow-y-auto">
           <div
             data-testid="sheet-photo-prompt"
-            className="relative z-10 w-full max-w-lg bg-blue-950 border border-blue-700/60 rounded-t-3xl p-5 pb-8 space-y-4 shadow-2xl"
+            className="relative min-h-full w-full max-w-lg mx-auto bg-[#0a1122] border-x border-t border-cyan-500/30 px-5 pt-6 pb-8 space-y-4 shadow-[0_-10px_40px_rgba(6,182,212,0.15)]"
           >
+            {/* Glow edge indicator */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-cyan-400 rounded-full blur-[2px] opacity-70"></div>
+
+            {/* Header */}
             <div className="flex items-center justify-between">
-              <h3 className="text-white font-bold text-base flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-cyan-400" /> Plunge Complete
-              </h3>
+              <div>
+                <div className="text-cyan-400 font-bold uppercase tracking-widest text-[10px] flex items-center gap-1.5 mb-1">
+                  <Sparkles className="w-3 h-3" /> Plunge Complete
+                </div>
+                <h2 className="text-white font-black text-2xl tracking-tight">Level Up Your Mind</h2>
+              </div>
               <button
                 data-testid="button-skip-photo"
                 onClick={() => setPhotoPromptId(null)}
-                className="text-blue-400 hover:text-white text-sm font-semibold transition-colors"
-              >Skip</button>
+                className="w-8 h-8 rounded-full bg-blue-950/50 flex items-center justify-center text-blue-400 hover:text-white hover:bg-blue-900 transition-colors"
+              ><X className="w-5 h-5" /></button>
             </div>
 
-            {/* Badge earned celebration */}
-            {(StreakBadge || DaysBadge) && (
-              <div className="flex items-center gap-2 bg-blue-900/60 border border-blue-700/40 rounded-xl px-3 py-2">
-                <span className="text-blue-400 text-xs flex-1">
-                  {streak > 0 ? `${streak}-day streak!` : `${totalPlungeDaysThisYear} days this year`}
-                </span>
-                {StreakBadge}
-                {DaysBadge}
+            {/* Stats Row */}
+            {promptPlungeRef.current && (
+              <div className="flex items-center gap-3">
+                <div className="flex-1 bg-blue-950/40 border border-blue-800/50 rounded-2xl p-3 flex flex-col items-center justify-center gap-1">
+                  <Thermometer className="w-4 h-4 text-cyan-400" />
+                  <span data-testid="text-complete-temp" className="text-white font-bold text-sm">{promptPlungeRef.current.temperature}°F</span>
+                  <span className="text-blue-400 text-[10px] uppercase tracking-wider font-semibold">Temp</span>
+                </div>
+                <div className="flex-1 bg-blue-950/40 border border-blue-800/50 rounded-2xl p-3 flex flex-col items-center justify-center gap-1">
+                  <Droplets className="w-4 h-4 text-cyan-400" />
+                  <span data-testid="text-complete-time" className="text-white font-bold text-sm">
+                    {Math.floor(promptPlungeRef.current.duration / 60)}:{String(promptPlungeRef.current.duration % 60).padStart(2, "0")}
+                  </span>
+                  <span className="text-blue-400 text-[10px] uppercase tracking-wider font-semibold">Time</span>
+                </div>
+                <div className="flex-1 bg-blue-950/40 border border-blue-800/50 rounded-2xl p-3 flex flex-col items-center justify-center gap-1">
+                  <Activity className="w-4 h-4 text-amber-400" />
+                  <span data-testid="text-complete-score" className="text-white font-bold text-sm">
+                    {promptPlungeRef.current.score ? Number(promptPlungeRef.current.score).toFixed(1) : "—"}
+                  </span>
+                  <span className="text-blue-400 text-[10px] uppercase tracking-wider font-semibold">Score</span>
+                </div>
               </div>
             )}
 
-            {/* Cold Take unlocked */}
-            {promptColdTake && (
-              <div
-                data-testid="card-cold-take-unlocked"
-                className="bg-gradient-to-br from-cyan-950/80 to-blue-900/60 border border-cyan-400/30 rounded-2xl px-4 py-3"
-              >
-                <div className="text-cyan-300/80 text-[10px] uppercase tracking-[0.25em] mb-1 font-semibold">
-                  ❄ Cold Take Unlocked
+            {/* Streak banner */}
+            {(streak > 0 || StreakBadge || DaysBadge) && (
+              <div className="bg-gradient-to-r from-orange-500/15 to-amber-500/5 border border-orange-500/20 rounded-xl p-3.5 flex items-center justify-between shadow-[0_0_15px_rgba(249,115,22,0.1)]">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl drop-shadow-[0_0_10px_rgba(249,115,22,0.8)]">🔥</span>
+                  <div className="flex flex-col">
+                    <span className="text-orange-400 font-extrabold text-sm tracking-wide">
+                      {streak > 0 ? `${streak}-Day Streak!` : `${totalPlungeDaysThisYear} days this year`}
+                    </span>
+                    <span className="text-orange-500/70 text-[10px] uppercase font-bold tracking-wider mt-0.5">Kept it alive</span>
+                  </div>
                 </div>
-                <p data-testid="text-unlocked-take" className="text-white text-sm font-medium leading-snug">
-                  {promptColdTake}
-                </p>
+                <div className="flex items-center gap-2">
+                  {StreakBadge}
+                  {DaysBadge}
+                </div>
+              </div>
+            )}
+
+            {/* Cold Take unlocked — collectible card */}
+            {promptColdTake && (
+              <div data-testid="card-cold-take-unlocked" className="relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-2xl blur opacity-30"></div>
+                <div className="relative bg-[#0d172e] border border-cyan-900/50 rounded-2xl px-5 py-6 flex flex-col items-center justify-center text-center overflow-hidden">
+                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent"></div>
+                  <span className="text-cyan-400/80 text-[10px] uppercase tracking-[0.3em] font-bold mb-3 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]">
+                    Cold Take Unlocked
+                  </span>
+                  <p data-testid="text-unlocked-take" className="text-white text-base font-serif italic font-medium leading-snug px-2 drop-shadow-md">
+                    "{promptColdTake}"
+                  </p>
+                </div>
               </div>
             )}
 
@@ -6782,22 +6819,28 @@ export default function Home() {
               return (
                 <div
                   data-testid="card-xp-progress"
-                  className="bg-blue-900/50 border border-blue-700/40 rounded-2xl px-4 py-3 space-y-2"
+                  className="bg-gradient-to-b from-blue-900/30 to-blue-950/20 border border-blue-800/60 rounded-2xl p-4 relative overflow-hidden"
                 >
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-blue-300 font-semibold">Next badge: {next.emoji} {next.label}</span>
-                    <span data-testid="text-xp-remaining" className="text-cyan-300 font-bold">
-                      {remaining} {remaining === 1 ? "day" : "days"} to go
-                    </span>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 blur-2xl rounded-full translate-x-1/2 -translate-y-1/2"></div>
+                  <div className="flex items-start justify-between mb-3 relative z-10">
+                    <div>
+                      <h3 className="text-white font-bold text-sm">Next Badge: {next.label}</h3>
+                      <p data-testid="text-xp-remaining" className="text-blue-300 text-xs font-medium mt-0.5">
+                        {remaining} {remaining === 1 ? "day" : "days"} to go
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-xl">{next.emoji}</span>
+                      <span className="text-cyan-400 text-[10px] font-bold mt-1">{uniqueDays} / {next.days} days</span>
+                    </div>
                   </div>
-                  <div className="h-2.5 bg-blue-950 rounded-full overflow-hidden border border-blue-800/60">
+                  <div className="h-2 bg-blue-950 rounded-full overflow-hidden border border-blue-900/50 shadow-inner relative z-10">
                     <div
-                      className="h-full bg-gradient-to-r from-cyan-500 to-cyan-300 rounded-full transition-all duration-700"
+                      className="h-full bg-gradient-to-r from-cyan-600 via-cyan-400 to-cyan-300 rounded-full relative transition-all duration-700"
                       style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <div className="text-blue-500 text-[10px]">
-                    {uniqueDays} of {next.days} plunge days
+                    >
+                      <div className="absolute right-0 top-0 bottom-0 w-4 bg-white/40 blur-[2px] rounded-full"></div>
+                    </div>
                   </div>
                 </div>
               );
@@ -7031,7 +7074,8 @@ export default function Home() {
               </div>
             )}
 
-            {/* Save */}
+            {/* Save + Share */}
+            <div className="grid grid-cols-4 gap-3">
             <button
               data-testid="button-save-photo"
               disabled={promptSaving}
@@ -7187,11 +7231,10 @@ export default function Home() {
                   }
                 );
               }}
-              className="w-full py-3 rounded-2xl font-bold text-sm transition-all active:scale-95 disabled:opacity-40 bg-cyan-500 hover:bg-cyan-400 text-white shadow-lg shadow-cyan-500/30"
+              className="col-span-3 py-4 rounded-2xl bg-gradient-to-r from-cyan-600 to-cyan-400 hover:from-cyan-500 hover:to-cyan-300 text-white font-black text-lg transition-all active:scale-[0.98] disabled:opacity-40 shadow-[0_0_30px_-10px_rgba(6,182,212,0.5)] flex items-center justify-center gap-2"
             >
-              {promptSaving ? "Saving…" : "Save"}
+              {promptSaving ? "Saving…" : "Save Plunge"}
             </button>
-
 
             {/* Share plunge */}
             {promptPlungeRef.current && (
@@ -7223,28 +7266,31 @@ export default function Home() {
                   sharingLockRef.current = false;
                   setPromptSharing(false);
                 }}
-                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-blue-600/60 text-sm font-semibold transition-all active:scale-95 ${promptSharing ? "opacity-50 cursor-not-allowed text-blue-500" : "text-blue-300 hover:border-cyan-500/60 hover:text-cyan-300"}`}
+                className={`col-span-1 flex flex-col items-center justify-center gap-1 rounded-2xl bg-blue-900/40 hover:bg-blue-800/40 border border-blue-800/50 transition-colors active:scale-[0.98] ${promptSharing ? "opacity-50 cursor-not-allowed text-blue-500" : "text-blue-300 hover:text-cyan-300"}`}
               >
-                <Share2 className="w-4 h-4" /> {promptSharing ? "Sharing…" : "Share with friends"}
+                <Share2 className="w-5 h-5" />
               </button>
             )}
+            </div>
 
             {/* Discard */}
-            <button
-              data-testid="button-discard-plunge"
-              onClick={() => {
-                if (!photoPromptId) return;
-                deletePlunge.mutate(photoPromptId, {
-                  onSuccess: () => {
-                    toast({ title: "Plunge discarded", description: "Nothing was saved." });
-                  },
-                });
-                setPhotoPromptId(null);
-              }}
-              className="w-full py-2 text-red-400/70 hover:text-red-300 text-xs font-semibold transition-colors"
-            >
-              Discard plunge
-            </button>
+            <div className="text-center pt-1">
+              <button
+                data-testid="button-discard-plunge"
+                onClick={() => {
+                  if (!photoPromptId) return;
+                  deletePlunge.mutate(photoPromptId, {
+                    onSuccess: () => {
+                      toast({ title: "Plunge discarded", description: "Nothing was saved." });
+                    },
+                  });
+                  setPhotoPromptId(null);
+                }}
+                className="text-blue-400/40 hover:text-red-400 text-xs font-bold uppercase tracking-wider transition-colors"
+              >
+                Discard Plunge
+              </button>
+            </div>
           </div>
         </div>
       )}
