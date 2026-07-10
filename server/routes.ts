@@ -513,10 +513,34 @@ export async function registerRoutes(
     }
   });
 
+  // Ownership check for plunge mutations: account-linked plunges require the
+  // matching authenticated user; anonymous plunges require the matching client id.
+  async function assertPlungeOwnership(req: Request, id: number): Promise<{ ok: true } | { ok: false; status: number; message: string }> {
+    const plunge = await storage.getPlungeById(id);
+    if (!plunge) return { ok: false, status: 404, message: "Plunge not found" };
+    if (plunge.userId != null) {
+      const authUser = extractUser(req);
+      if (!authUser || authUser.userId !== plunge.userId) {
+        return { ok: false, status: 403, message: "Not allowed" };
+      }
+      return { ok: true };
+    }
+    if (plunge.clientId != null) {
+      const clientId = req.headers["x-client-id"];
+      if (typeof clientId !== "string" || clientId !== plunge.clientId) {
+        return { ok: false, status: 403, message: "Not allowed" };
+      }
+    }
+    // Legacy rows with neither userId nor clientId cannot be verified — allow.
+    return { ok: true };
+  }
+
   app.patch("/api/plunges/:id", async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
     try {
+      const owner = await assertPlungeOwnership(req, id);
+      if (!owner.ok) return res.status(owner.status).json({ message: owner.message });
       const patch = api.plunges.update.input.parse(req.body);
       const updated = await storage.updatePlunge(id, patch);
       if (!updated) return res.status(404).json({ message: "Plunge not found" });
@@ -532,6 +556,8 @@ export async function registerRoutes(
   app.delete(api.plunges.delete.path, async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const owner = await assertPlungeOwnership(req, id);
+    if (!owner.ok) return res.status(owner.status).json({ message: owner.message });
     await storage.deletePlunge(id);
     res.status(204).send();
   });
@@ -3326,6 +3352,53 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
       sendDailyStreakReminders();
     }
   }, 60 * 1000);
+
+  // ── 1-hour post-plunge mood check-in push ───────────────────────────────
+  async function sendMoodCheckInPushes() {
+    try {
+      const due = await storage.getPlungesNeedingMoodPrompt();
+      for (const plunge of due) {
+        try {
+          // Atomic mark first: skips plunges answered since the sweep query,
+          // and a failing push can never spam the user on retries.
+          const marked = await storage.markMoodPrompted(plunge.id);
+          if (!marked) continue;
+
+          const subs = plunge.userId
+            ? await storage.getPushSubscriptionsByUser(plunge.userId)
+            : plunge.clientId
+              ? await storage.getPushSubscriptionsByClient(plunge.clientId)
+              : [];
+          if (subs.length === 0) continue;
+
+          const payload = JSON.stringify({
+            title: "How are you feeling? ❄️",
+            body: "Quick check-in — how's your body feeling after that plunge?",
+            url: `/?mood=${plunge.id}`,
+            tag: `mood-checkin-${plunge.id}`,
+          });
+
+          for (const sub of subs) {
+            try {
+              await webpush.sendNotification(
+                { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                payload
+              );
+            } catch (err: any) {
+              if (err.statusCode === 410 || err.statusCode === 404) {
+                await storage.deletePushSubscription(sub.endpoint);
+              }
+            }
+          }
+        } catch (err) {
+          console.error(`[mood] Error prompting plunge ${plunge.id}:`, err);
+        }
+      }
+    } catch (err) {
+      console.error("[mood] Mood check-in sweep error:", err);
+    }
+  }
+  setInterval(sendMoodCheckInPushes, 60 * 1000);
 
   // Hourly cleanup — delete events whose end window has passed
   setInterval(async () => {

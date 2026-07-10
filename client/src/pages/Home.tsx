@@ -50,6 +50,26 @@ import {
 import { useMutation } from "@tanstack/react-query";
 
 import { type Plunge, type UserLocation, usernameSchema } from "@shared/schema";
+import { pickColdTake, type ColdTakeContext } from "@shared/coldTakes";
+import { MoodCheckIn } from "@/components/MoodCheckIn";
+
+// Pick a fresh cold take the user hasn't unlocked yet and persist it to the
+// unlocked collection. Falls back to a repeat only if the pool is exhausted.
+function unlockColdTake(ctx: ColdTakeContext): string {
+  const KEY = "coldstreak-unlocked-takes";
+  let unlocked: string[] = [];
+  try { unlocked = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch {}
+  const seed = Math.floor(Math.random() * 1000000);
+  let take = pickColdTake(ctx, seed, 0);
+  for (let slot = 1; slot < 60 && unlocked.includes(take); slot++) {
+    take = pickColdTake(ctx, seed, slot);
+  }
+  if (!unlocked.includes(take)) {
+    unlocked.push(take);
+    try { localStorage.setItem(KEY, JSON.stringify(unlocked)); } catch {}
+  }
+  return take;
+}
 
 async function resizeImageToBase64(file: File, maxPx = 800, quality = 0.75): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -533,6 +553,7 @@ export default function Home() {
 
   // Photo / location prompt
   const [photoPromptId, setPhotoPromptId] = useState<number | null>(null);
+  const [promptColdTake, setPromptColdTake] = useState<string | null>(null);
   const [promptPhotoData, setPromptPhotoData] = useState<string | null>(null);
   const [promptLocationId, setPromptLocationId] = useState<string>("");
   const [promptCustomLocation, setPromptCustomLocation] = useState<string>("");
@@ -2419,6 +2440,12 @@ export default function Home() {
           toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${temperature}°F` });
           promptPlungeRef.current = { score: String(score), duration: durationSec, temperature, timerUsed: true };
           if (!auth.user) setPendingSignupNudge(true);
+          setPromptColdTake(unlockColdTake({
+            seconds: durationSec,
+            tempF: temperature,
+            isFirstPlunge: plunges.length === 0,
+            streakDays: streak,
+          }));
           setPhotoPromptId(newPlunge.id);
           setPromptPhotoData(null);
           setPromptLocationId("home");
@@ -6728,6 +6755,54 @@ export default function Home() {
               </div>
             )}
 
+            {/* Cold Take unlocked */}
+            {promptColdTake && (
+              <div
+                data-testid="card-cold-take-unlocked"
+                className="bg-gradient-to-br from-cyan-950/80 to-blue-900/60 border border-cyan-400/30 rounded-2xl px-4 py-3"
+              >
+                <div className="text-cyan-300/80 text-[10px] uppercase tracking-[0.25em] mb-1 font-semibold">
+                  ❄ Cold Take Unlocked
+                </div>
+                <p data-testid="text-unlocked-take" className="text-white text-sm font-medium leading-snug">
+                  {promptColdTake}
+                </p>
+              </div>
+            )}
+
+            {/* XP progress to next badge */}
+            {(() => {
+              const uniqueDays = new Set(plunges.map((p) => new Date(p.createdAt).toLocaleDateString())).size;
+              const ordered = [...DAYS_TIERS].sort((a, b) => a.days - b.days);
+              const next = ordered.find((t) => uniqueDays < t.days) ?? null;
+              const prevDays = [...ordered].reverse().find((t) => uniqueDays >= t.days)?.days ?? 0;
+              if (!next) return null;
+              const pct = Math.min(100, Math.max(4, Math.round(((uniqueDays - prevDays) / (next.days - prevDays)) * 100)));
+              const remaining = next.days - uniqueDays;
+              return (
+                <div
+                  data-testid="card-xp-progress"
+                  className="bg-blue-900/50 border border-blue-700/40 rounded-2xl px-4 py-3 space-y-2"
+                >
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-blue-300 font-semibold">Next badge: {next.emoji} {next.label}</span>
+                    <span data-testid="text-xp-remaining" className="text-cyan-300 font-bold">
+                      {remaining} {remaining === 1 ? "day" : "days"} to go
+                    </span>
+                  </div>
+                  <div className="h-2.5 bg-blue-950 rounded-full overflow-hidden border border-blue-800/60">
+                    <div
+                      className="h-full bg-gradient-to-r from-cyan-500 to-cyan-300 rounded-full transition-all duration-700"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <div className="text-blue-500 text-[10px]">
+                    {uniqueDays} of {next.days} plunge days
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Hidden web fallback input */}
             <input
               ref={photoInputRef}
@@ -7240,6 +7315,9 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* ─── POST-PLUNGE MOOD CHECK-IN ─── */}
+      <MoodCheckIn plunges={plunges} visible={photoPromptId === null && !showWebCamera} />
 
       {/* ─── WEB CAMERA OVERLAY ─── */}
       {showWebCamera && (

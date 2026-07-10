@@ -36,6 +36,7 @@ function buildHeaders(extra?: Record<string, string>): Record<string, string> {
   const token = getAuthToken();
   const headers: Record<string, string> = { ...(extra || {}) };
   if (token) headers["Authorization"] = `Bearer ${token}`;
+  headers["X-Client-Id"] = getClientId();
   return headers;
 }
 

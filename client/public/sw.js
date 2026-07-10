@@ -89,16 +89,16 @@ self.addEventListener("fetch", (e) => {
   );
 });
 
-// Push — show streak reminder notification
+// Push — show notification (streak reminder, mood check-in, etc.)
 self.addEventListener("push", (e) => {
-  let data = { title: "ColdStreak 🧊", body: "Don't let your streak expire!", url: "/" };
+  let data = { title: "ColdStreak 🧊", body: "Don't let your streak expire!", url: "/", tag: "streak-reminder" };
   try { if (e.data) data = { ...data, ...e.data.json() }; } catch {}
   e.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-72.png",
-      tag: "streak-reminder",
+      tag: data.tag || "streak-reminder",
       renotify: true,
       data: { url: data.url },
     })
@@ -112,7 +112,10 @@ self.addEventListener("notificationclick", (e) => {
   e.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url === targetUrl && "focus" in client) return client.focus();
+        if ("focus" in client) {
+          client.postMessage({ type: "notification-navigate", url: targetUrl });
+          return client.focus();
+        }
       }
       if (clients.openWindow) return clients.openWindow(targetUrl);
     })

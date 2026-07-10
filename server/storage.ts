@@ -19,6 +19,9 @@ import { desc, eq, sql, or, isNull, and, not, lt, gte, inArray, sum } from "driz
 export interface IStorage {
   // Plunges
   getPlunges(clientId?: string, userId?: number): Promise<Plunge[]>;
+  getPlungesNeedingMoodPrompt(): Promise<Plunge[]>;
+  markMoodPrompted(id: number): Promise<boolean>;
+  getPlungeById(id: number): Promise<Plunge | null>;
   createPlunge(plunge: InsertPlunge): Promise<Plunge>;
   updatePlunge(id: number, patch: UpdatePlunge): Promise<Plunge>;
   deletePlunge(id: number): Promise<void>;
@@ -232,6 +235,35 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(plunges.createdAt));
     }
     return await db.select().from(plunges).orderBy(desc(plunges.createdAt));
+  }
+
+  async getPlungesNeedingMoodPrompt(): Promise<Plunge[]> {
+    const now = Date.now();
+    const windowStart = new Date(now - 3 * 60 * 60 * 1000); // no prompts for plunges older than 3h
+    const windowEnd = new Date(now - 60 * 60 * 1000); // at least 1h old
+    return await db.select().from(plunges)
+      .where(and(
+        isNull(plunges.mood),
+        isNull(plunges.moodPromptedAt),
+        gte(plunges.createdAt, windowStart),
+        lt(plunges.createdAt, windowEnd),
+      ))
+      .orderBy(desc(plunges.createdAt));
+  }
+
+  async markMoodPrompted(id: number): Promise<boolean> {
+    // Atomic: only stamp if still unanswered and unprompted, so a mood submitted
+    // between the sweep query and this call suppresses the notification.
+    const rows = await db.update(plunges)
+      .set({ moodPromptedAt: new Date() })
+      .where(and(eq(plunges.id, id), isNull(plunges.mood), isNull(plunges.moodPromptedAt)))
+      .returning({ id: plunges.id });
+    return rows.length > 0;
+  }
+
+  async getPlungeById(id: number): Promise<Plunge | null> {
+    const [row] = await db.select().from(plunges).where(eq(plunges.id, id));
+    return row ?? null;
   }
 
   async createPlunge(plunge: InsertPlunge): Promise<Plunge> {
