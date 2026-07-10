@@ -13,5 +13,6 @@ export const modules: ModuleMap = {
   "./components/mockups/plunge-complete/CelebrationFirst.tsx": () => import("../components/mockups/plunge-complete/CelebrationFirst.tsx"),
   "./components/mockups/plunge-complete/ColdTakeReveal.tsx": () => import("../components/mockups/plunge-complete/ColdTakeReveal.tsx"),
   "./components/mockups/plunge-complete/Current.tsx": () => import("../components/mockups/plunge-complete/Current.tsx"),
+  "./components/mockups/plunge-complete/HybridCombo.tsx": () => import("../components/mockups/plunge-complete/HybridCombo.tsx"),
   "./components/mockups/plunge-complete/LevelUp.tsx": () => import("../components/mockups/plunge-complete/LevelUp.tsx")
 };
