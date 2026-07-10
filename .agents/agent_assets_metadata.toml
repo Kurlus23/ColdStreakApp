@@ -779,3 +779,9 @@ id = "aLhOlKegDHr1FPYssPVMC"
 uri = "file://exports/jokes_final.md"
 type = "text"
 title = "Final Joke List (384 takes)"
+
+[[outputs]]
+id = "rtmIO04jYSEXjA7mgXl8M"
+uri = "file://exports/cold_takes.xlsx"
+type = "table"
+title = "ColdStreak Cold Takes (372 one-liners)"
