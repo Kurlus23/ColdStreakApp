@@ -9,5 +9,9 @@ export const modules: ModuleMap = {
   "./components/mockups/founding-badge/LeaderboardEntry.tsx": () => import("../components/mockups/founding-badge/LeaderboardEntry.tsx"),
   "./components/mockups/founding-badge/UpgradeBanner.tsx": () => import("../components/mockups/founding-badge/UpgradeBanner.tsx"),
   "./components/mockups/nav-preview/DevicesScreen.tsx": () => import("../components/mockups/nav-preview/DevicesScreen.tsx"),
-  "./components/mockups/nav-preview/TimerScreen.tsx": () => import("../components/mockups/nav-preview/TimerScreen.tsx")
+  "./components/mockups/nav-preview/TimerScreen.tsx": () => import("../components/mockups/nav-preview/TimerScreen.tsx"),
+  "./components/mockups/plunge-complete/CelebrationFirst.tsx": () => import("../components/mockups/plunge-complete/CelebrationFirst.tsx"),
+  "./components/mockups/plunge-complete/ColdTakeReveal.tsx": () => import("../components/mockups/plunge-complete/ColdTakeReveal.tsx"),
+  "./components/mockups/plunge-complete/Current.tsx": () => import("../components/mockups/plunge-complete/Current.tsx"),
+  "./components/mockups/plunge-complete/LevelUp.tsx": () => import("../components/mockups/plunge-complete/LevelUp.tsx")
 };
