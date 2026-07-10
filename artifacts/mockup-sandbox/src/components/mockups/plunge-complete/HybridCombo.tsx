@@ -17,46 +17,43 @@ export function HybridCombo() {
       {/* Background illustration / texture */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-[#060c18] to-[#060c18]"></div>
 
-      {/* Main Sheet */}
-      <div className="relative w-full bg-[#0a1122] border-t border-cyan-500/30 rounded-t-[2.5rem] pt-8 pb-10 px-6 shadow-[0_-10px_40px_rgba(6,182,212,0.15)] flex flex-col h-[90%]">
+      {/* Main Sheet — full screen, no internal scroll */}
+      <div className="relative w-full bg-[#0a1122] border-t border-cyan-500/30 pt-7 pb-8 px-6 shadow-[0_-10px_40px_rgba(6,182,212,0.15)] flex flex-col h-full">
         
         {/* Glow edge indicator */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-cyan-400 rounded-full blur-[2px] opacity-70"></div>
         
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6 shrink-0">
-           <div className="flex items-center gap-2">
-             <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center border border-cyan-400/30">
-               <Sparkles className="w-4 h-4 text-cyan-300" />
-             </div>
-             <span className="text-cyan-400 font-bold text-sm tracking-widest uppercase">Plunge Complete</span>
-           </div>
-           <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/50 hover:text-white transition-colors">
-             <X className="w-5 h-5" />
-           </button>
+        {/* Header (LevelUp style) */}
+        <div className="flex items-center justify-between mb-5 shrink-0">
+          <div>
+            <div className="text-cyan-400 font-bold uppercase tracking-widest text-[10px] flex items-center gap-1.5 mb-1">
+              <Sparkles className="w-3 h-3" /> Plunge Complete
+            </div>
+            <h2 className="text-white font-black text-2xl tracking-tight">Level Up Your Mind</h2>
+          </div>
+          <button className="w-8 h-8 rounded-full bg-blue-950/50 flex items-center justify-center text-blue-400 hover:text-white hover:bg-blue-900 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto pb-4 scrollbar-none">
-          {/* Hero Stats (CelebrationFirst sizing + LevelUp colors) */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-             <div className="flex flex-col items-center justify-center py-5 px-2 rounded-2xl bg-blue-950/40 border border-blue-800/50 relative overflow-hidden group shadow-inner">
-               <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-               <ThermometerSnowflake className="w-6 h-6 text-cyan-400 mb-2" />
-               <span className="text-3xl font-black text-white tracking-tight">48°</span>
-               <span className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1">Temp</span>
-             </div>
-             <div className="flex flex-col items-center justify-center py-5 px-2 rounded-2xl bg-blue-950/40 border border-blue-800/50 relative overflow-hidden group shadow-inner">
-               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-               <Droplets className="w-6 h-6 text-cyan-400 mb-2" />
-               <span className="text-3xl font-black text-white tracking-tight">2:30</span>
-               <span className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1">Time</span>
-             </div>
-             <div className="flex flex-col items-center justify-center py-5 px-2 rounded-2xl bg-blue-950/40 border border-blue-800/50 relative overflow-hidden group shadow-inner">
-               <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-               <Activity className="w-6 h-6 text-amber-400 mb-2" />
-               <span className="text-3xl font-black text-white tracking-tight">2.2</span>
-               <span className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1">Score</span>
-             </div>
+        <div className="flex-1 flex flex-col justify-start min-h-0">
+          {/* Stats Row (LevelUp tiles) */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex-1 bg-blue-950/40 border border-blue-800/50 rounded-2xl p-3 flex flex-col items-center justify-center gap-1">
+              <ThermometerSnowflake className="w-4 h-4 text-cyan-400" />
+              <span className="text-white font-bold text-sm">48°F</span>
+              <span className="text-blue-400 text-[10px] uppercase tracking-wider font-semibold">Temp</span>
+            </div>
+            <div className="flex-1 bg-blue-950/40 border border-blue-800/50 rounded-2xl p-3 flex flex-col items-center justify-center gap-1">
+              <Droplets className="w-4 h-4 text-cyan-400" />
+              <span className="text-white font-bold text-sm">2:30</span>
+              <span className="text-blue-400 text-[10px] uppercase tracking-wider font-semibold">Time</span>
+            </div>
+            <div className="flex-1 bg-blue-950/40 border border-blue-800/50 rounded-2xl p-3 flex flex-col items-center justify-center gap-1">
+              <Activity className="w-4 h-4 text-amber-400" />
+              <span className="text-white font-bold text-sm">2.2</span>
+              <span className="text-blue-400 text-[10px] uppercase tracking-wider font-semibold">Score</span>
+            </div>
           </div>
 
           {/* Streak Banner (CelebrationFirst Layout) */}
