@@ -1,4 +1,4 @@
-const CACHE_NAME = "coldstreak-v9";
+const CACHE_NAME = "coldstreak-v10";
 const OFFLINE_URL = "/offline.html";
 
 // Assets to pre-cache on install so they're instant on first use
@@ -41,6 +41,9 @@ self.addEventListener("fetch", (e) => {
 
   // Skip non-same-origin requests
   if (url.origin !== location.origin) return;
+
+  // Skip the mockup preview sandbox entirely (dev-only canvas previews)
+  if (url.pathname.startsWith("/__mockup")) return;
 
   // API: network only, empty fallback
   if (url.pathname.startsWith("/api/")) {
