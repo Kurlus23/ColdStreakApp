@@ -50,7 +50,7 @@ import {
 import { useMutation } from "@tanstack/react-query";
 
 import { type Plunge, type UserLocation, usernameSchema } from "@shared/schema";
-import { pickColdTake, TOTAL_COLD_TAKES, type ColdTakeContext } from "@shared/coldTakes";
+import { pickColdTake, type ColdTakeContext } from "@shared/coldTakes";
 import { MoodCheckIn } from "@/components/MoodCheckIn";
 
 // Pick a fresh cold take the user hasn't unlocked yet and persist it to the
@@ -6801,24 +6801,6 @@ export default function Home() {
                   <p data-testid="text-unlocked-take" className="text-white text-base font-serif italic font-medium leading-snug px-2 drop-shadow-md">
                     "{promptColdTake}"
                   </p>
-                  {(() => {
-                    let unlockedCount = 0;
-                    try { unlockedCount = (JSON.parse(localStorage.getItem("coldstreak-unlocked-takes") || "[]") as string[]).length; } catch {}
-                    if (unlockedCount < 1) return null;
-                    unlockedCount = Math.min(unlockedCount, TOTAL_COLD_TAKES);
-                    const pctTakes = Math.min(100, Math.max(1, Math.round((unlockedCount / TOTAL_COLD_TAKES) * 100)));
-                    return (
-                      <div className="w-full mt-4 relative z-10">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-blue-400/70 text-[9px] uppercase tracking-[0.2em] font-bold">Collection</span>
-                          <span data-testid="text-cold-take-count" className="text-cyan-400 text-[10px] font-bold">{unlockedCount} / {TOTAL_COLD_TAKES}</span>
-                        </div>
-                        <div className="h-1 bg-blue-950 rounded-full overflow-hidden border border-blue-900/50">
-                          <div className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 rounded-full" style={{ width: `${pctTakes}%` }}></div>
-                        </div>
-                      </div>
-                    );
-                  })()}
                 </div>
               </div>
             )}
