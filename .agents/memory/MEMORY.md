@@ -1,4 +1,5 @@
 - [iOS CocoaPods objectVersion 70→56](ios-cocoapods-objectversion.md) — re-run the sed before EVERY cap sync; Xcode 26.x keeps rewriting it back to 70.
+- [Mac iOS build sync gotchas](mac-ios-build-sync.md) — Mac stale despite pulls: check git remote; strip package-firewall URLs from package-lock before Mac pulls; Mac needs Node 22 LTS; verify github/main after every Sync Changes.
 - [Capacitor plugin method registration](capacitor-plugin-method-registration.md) — every @objc Swift method must also be in the .m CAP_PLUGIN_METHOD list or JS calls silently no-op.
 - [HealthKit iOS plugin wiring](healthkit-ios-wiring.md) — "won't connect" = .swift not in Xcode App target/capability/plist, not a code bug; check Capacitor.isPluginAvailable.
 - [Mood check-in & push conventions](mood-checkin-and-push.md) — timed notifications use the web-push sweeper pattern (no native plugin); plunge mutations need assertPlungeOwnership; db:push hangs, use psql for additive columns.
