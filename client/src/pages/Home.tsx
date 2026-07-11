@@ -6814,6 +6814,8 @@ export default function Home() {
               if (!next) return null;
               const pct = Math.min(100, Math.max(4, Math.round(((uniqueDays - prevDays) / (next.days - prevDays)) * 100)));
               const remaining = next.days - uniqueDays;
+              const todayStr = new Date().toLocaleDateString();
+              const earnedNewDay = plunges.filter((p) => new Date(p.createdAt).toLocaleDateString() === todayStr).length === 1;
               return (
                 <div
                   data-testid="card-xp-progress"
@@ -6840,6 +6842,9 @@ export default function Home() {
                       <div className="absolute right-0 top-0 bottom-0 w-4 bg-white/40 blur-[2px] rounded-full"></div>
                     </div>
                   </div>
+                  {earnedNewDay && (
+                    <p data-testid="text-day-earned" className="text-right text-[10px] text-cyan-500 font-bold mt-1 animate-pulse relative z-10">+1 Day Earned!</p>
+                  )}
                 </div>
               );
             })()}

@@ -57,7 +57,7 @@ export function HybridCombo() {
           </div>
 
           {/* Streak Banner (CelebrationFirst Layout) */}
-          <div className="mb-6">
+          <div className="mb-4">
             <div className="bg-gradient-to-r from-orange-500/15 to-amber-500/5 border border-orange-500/20 rounded-xl p-3.5 flex items-center justify-between shadow-[0_0_15px_rgba(249,115,22,0.1)]">
                <div className="flex items-center gap-3">
                  <span className="text-xl drop-shadow-[0_0_10px_rgba(249,115,22,0.8)]">🔥</span>
@@ -70,11 +70,11 @@ export function HybridCombo() {
           </div>
 
           {/* The Star: Cold Take Reveal Card */}
-          <div className="relative group cursor-pointer mb-6">
+          <div className="relative group cursor-pointer mb-4">
             {/* Card glow effect */}
             <div className="absolute -inset-0.5 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
             
-            <div className="relative bg-[#0d172e] border border-cyan-900/50 rounded-2xl p-6 flex flex-col items-center justify-center text-center overflow-hidden min-h-[160px]">
+            <div className="relative bg-[#0d172e] border border-cyan-900/50 rounded-2xl p-6 flex flex-col items-center justify-center text-center overflow-hidden min-h-[140px]">
               {/* Inner texture */}
               <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent"></div>
@@ -120,6 +120,7 @@ export function HybridCombo() {
                 <div className="absolute right-0 top-0 bottom-0 w-4 bg-white/40 blur-[2px] rounded-full"></div>
               </div>
             </div>
+            <p className="text-right text-[10px] text-cyan-500 font-bold mt-1 animate-pulse relative z-10">+1 Day Earned!</p>
           </div>
         </div>
 
@@ -148,8 +149,8 @@ export function HybridCombo() {
            </div>
            
            <div className="text-center pt-1">
-             <button className="text-blue-400/40 hover:text-red-400 text-xs font-bold uppercase tracking-wider transition-colors">
-               Discard Plunge
+             <button className="text-red-400/80 hover:text-red-300 text-xs font-bold uppercase tracking-wider transition-colors">
+               Discard
              </button>
            </div>
         </div>
