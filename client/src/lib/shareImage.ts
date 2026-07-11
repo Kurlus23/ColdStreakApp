@@ -50,6 +50,7 @@ function drawOverlay({
   locationId,
   score,
   logo,
+  avatar,
 }: {
   ctx: CanvasRenderingContext2D;
   w: number;
@@ -61,6 +62,7 @@ function drawOverlay({
   locationId?: string | null;
   score?: number;
   logo: HTMLImageElement | null;
+  avatar?: HTMLImageElement | null;
 }) {
   const sc = w / 1080;
   const pad = 44 * sc;
@@ -121,6 +123,26 @@ function drawOverlay({
     ctx.fillText(`ColdStreak ❄️`, w - pad, wordmarkY);
   }
 
+  if (avatar) {
+    const avatarSize = 88 * sc;
+    const border = 4 * sc;
+    const ax = pad;
+    const ay = pad;
+
+    ctx.save();
+    clearShadow(ctx);
+    ctx.beginPath();
+    ctx.arc(ax + avatarSize / 2, ay + avatarSize / 2, avatarSize / 2 + border, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(ax + avatarSize / 2, ay + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(avatar, ax, ay, avatarSize, avatarSize);
+    ctx.restore();
+  }
+
   clearShadow(ctx);
 }
 
@@ -132,10 +154,13 @@ export async function buildShareImage(params: {
   locationName?: string | null;
   locationId?: string | null;
   score?: number;
+  avatarUrl?: string | null;
 }): Promise<string> {
-  const [photo, logo] = await Promise.all([
+  const { avatarUrl, ...rest } = params;
+  const [photo, logo, avatar] = await Promise.all([
     loadImage(params.photoDataUrl),
     loadImage("/icons/icon-192.png").catch(() => null),
+    avatarUrl ? loadImage(avatarUrl).catch(() => null) : Promise.resolve(null),
   ]);
 
   const canvas = document.createElement("canvas");
@@ -144,7 +169,7 @@ export async function buildShareImage(params: {
   const ctx = canvas.getContext("2d")!;
   ctx.drawImage(photo, 0, 0);
 
-  drawOverlay({ ctx, w: canvas.width, h: canvas.height, logo, ...params });
+  drawOverlay({ ctx, w: canvas.width, h: canvas.height, logo, avatar, ...rest });
 
   return canvas.toDataURL("image/jpeg", 0.93);
 }
@@ -152,6 +177,7 @@ export async function buildShareImage(params: {
 export function buildShareBlobFromPreloaded(params: {
   photoImg: HTMLImageElement;
   logoImg: HTMLImageElement | null;
+  avatarImg?: HTMLImageElement | null;
   temperature: number;
   duration: number;
   streak?: number;
@@ -159,13 +185,13 @@ export function buildShareBlobFromPreloaded(params: {
   locationId?: string | null;
   score?: number;
 }): Promise<Blob> {
-  const { photoImg, logoImg, ...rest } = params;
+  const { photoImg, logoImg, avatarImg, ...rest } = params;
   const canvas = document.createElement("canvas");
   canvas.width = photoImg.naturalWidth || photoImg.width;
   canvas.height = photoImg.naturalHeight || photoImg.height;
   const ctx = canvas.getContext("2d")!;
   ctx.drawImage(photoImg, 0, 0);
-  drawOverlay({ ctx, w: canvas.width, h: canvas.height, logo: logoImg, ...rest });
+  drawOverlay({ ctx, w: canvas.width, h: canvas.height, logo: logoImg, avatar: avatarImg, ...rest });
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(

@@ -37,6 +37,7 @@ interface PlungeCardProps {
   homeLabel?: string;
   communityLocs?: UserLocation[];
   isPro?: boolean;
+  avatarUrl?: string | null;
 }
 
 function formatTime(totalSeconds: number) {
@@ -91,7 +92,7 @@ function resolveLocationDisplay(locId: string | null | undefined, locName: strin
   return null;
 }
 
-export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, homeLabel, communityLocs = [], isPro = false }: PlungeCardProps) {
+export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, homeLabel, communityLocs = [], isPro = false, avatarUrl }: PlungeCardProps) {
   const deletePlunge = useDeletePlunge();
   const updatePlunge = useUpdatePlunge();
   const { toast } = useToast();
@@ -189,6 +190,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
           locationName: plunge.locationName,
           locationId: plunge.locationId,
           score: plunge.score ? Number(plunge.score) : undefined,
+          avatarUrl,
         });
         await downloadBlob(composited);
       } else {

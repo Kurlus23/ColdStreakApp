@@ -3808,7 +3808,7 @@ export default function Home() {
                 <div className="space-y-3">
                   {visible.map((plunge, idx) => (
                     <Fragment key={plunge.id}>
-                      <PlungeCard plunge={plunge} bodyWeightLbs={bodyWeightLbs} username={username} streak={streak} homeLabel={homeLabel} communityLocs={communityLocs} isPro={isPro} />
+                      <PlungeCard plunge={plunge} bodyWeightLbs={bodyWeightLbs} username={username} streak={streak} homeLabel={homeLabel} communityLocs={communityLocs} isPro={isPro} avatarUrl={ownAvatarUrl} />
                       {!isPro && (idx + 1) % 5 === 0 && idx !== visible.length - 1 && (
                         <FeedAd index={Math.floor(idx / 5)} />
                       )}
