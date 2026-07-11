@@ -7380,82 +7380,96 @@ export default function Home() {
 
       {/* ─── ACTIVE TIMER OVERLAY ─── */}
       {isActive && screen === "timer" && (
-        <div
-          className="fixed inset-0 z-[60] bg-blue-950/98 backdrop-blur-md flex flex-col items-center justify-center gap-8 transition-all duration-300 animate-in fade-in"
-        >
-          {/* Logo at top */}
-          <div className="absolute top-8 flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] bg-[#020617] flex flex-col items-center justify-between overflow-hidden animate-in fade-in">
+          {/* Underwater background glows */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(6,182,212,0.2),transparent_60%)] pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_100%,rgba(14,165,233,0.15),transparent_60%)] pointer-events-none" />
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')" }} />
+
+          {/* Top — wordmark + mode pill */}
+          <div className="w-full flex flex-col items-center pt-14 pb-4 z-10">
             <span
-              className="text-2xl font-black pointer-events-none select-none"
+              className="text-2xl font-black pointer-events-none select-none tracking-[0.2em] mb-4"
               style={{
-                background: "linear-gradient(to bottom, #ffffff 0%, #67e8f9 60%, #0891b2 100%)",
+                background: "linear-gradient(to bottom, #ffffff 0%, #a5f3fc 60%, #0891b2 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
-                filter: "drop-shadow(0 1px 6px rgba(0,0,0,0.7))",
-                letterSpacing: "0.12em",
+                filter: "drop-shadow(0 2px 12px rgba(8,145,178,0.6))",
               }}
             >
               COLDSTREAK
             </span>
-          </div>
-
-          {/* Mode label */}
-          <div className="text-blue-400 text-xs font-semibold uppercase tracking-widest -mb-4">
-            {countdownMode ? "Countdown" : "Stopwatch"}
-          </div>
-
-          {/* Giant time */}
-          <div
-            className="font-mono font-bold text-white leading-none"
-            style={{ fontSize: isLandscape ? "18vw" : "28vw" }}
-            data-testid="display-timer-overlay"
-          >
-            {formatTime(displaySeconds)}
-          </div>
-
-          {/* Temp + live score + personal best row */}
-          <div className="flex items-center gap-6">
-            <div className="text-center">
-              <div className="text-blue-400 text-xs uppercase tracking-widest mb-0.5">Water Temp</div>
-              <div className="text-white text-2xl font-bold">{tempDisplay}</div>
+            <div className="glass-panel px-4 py-1.5 rounded-full border border-cyan-500/30 text-cyan-300 text-[10px] font-bold uppercase tracking-[0.15em] shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+              {countdownMode ? "Countdown" : "Stopwatch"}
             </div>
-            <div className="w-px h-8 bg-blue-700/50" />
-            <div className="text-center">
-              <div className="text-blue-400 text-xs uppercase tracking-widest mb-0.5">Cold Score</div>
-              <div className="text-cyan-300 text-2xl font-bold">{displayScore}</div>
+          </div>
+
+          {/* Center — giant timer */}
+          <div className="flex-1 flex flex-col items-center justify-center w-full z-10">
+            <div
+              className="font-mono font-bold text-white leading-none tracking-tighter animate-pulse-glow"
+              style={{ fontSize: isLandscape ? "18vw" : "28vw" }}
+              data-testid="display-timer-overlay"
+            >
+              {formatTime(displaySeconds)}
             </div>
-            {personalBest > 0 && (
-              <>
-                <div className="w-px h-8 bg-blue-700/50" />
-                <div className="text-center">
-                  <div className="text-blue-400 text-xs uppercase tracking-widest mb-0.5">Personal Best</div>
-                  <div className="text-yellow-400 text-2xl font-bold">{personalBest.toFixed(1)}</div>
+          </div>
+
+          {/* Bottom section */}
+          <div className="w-full flex flex-col items-center gap-5 pb-10 z-10 px-6">
+            {/* Stats row */}
+            <div className="flex items-center justify-between w-full px-1">
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-1 mb-1">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-300" />
+                  </span>
+                  <div className="text-slate-400 text-[10px] uppercase tracking-widest font-semibold">Live Temp</div>
                 </div>
-              </>
-            )}
+                <div className="text-white text-3xl font-bold tracking-tight">{tempDisplay}</div>
+              </div>
+              <div className="w-px h-12 bg-gradient-to-b from-transparent via-slate-700 to-transparent" />
+              <div className="flex flex-col items-center">
+                <div className="text-cyan-400 text-[10px] uppercase tracking-widest mb-1 font-semibold">Cold Score</div>
+                <div className="text-cyan-300 text-3xl font-bold tracking-tight animate-pulse-glow">{displayScore}</div>
+              </div>
+              {personalBest > 0 && (
+                <>
+                  <div className="w-px h-12 bg-gradient-to-b from-transparent via-slate-700 to-transparent" />
+                  <div className="flex flex-col items-center">
+                    <div className="text-amber-400 text-[10px] uppercase tracking-widest mb-1 font-semibold">Personal Best</div>
+                    <div className="text-amber-400 text-3xl font-bold tracking-tight" style={{ textShadow: "0 0 15px rgba(251,191,36,0.3)" }}>{personalBest.toFixed(1)}</div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Cold Take (appears 12s in, rotates every 45s) */}
+            <ColdTakeOverlay
+              isActive={isActive}
+              elapsedSeconds={displaySeconds}
+              tempF={temperature}
+              isFirstPlunge={plunges.length === 0}
+              streakDays={streak}
+            />
+
+            {/* Music transport — pause/skip without leaving the plunge (Pro) */}
+            {isPro && <MusicTransportMini />}
+
+            {/* Stop button */}
+            <button
+              data-testid="button-stop-overlay"
+              onClick={handleStop}
+              className="w-full relative group mt-2"
+            >
+              <div className="absolute inset-0 bg-red-600 rounded-2xl blur-lg opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="relative bg-gradient-to-b from-red-500 to-red-700 border border-red-400/50 text-white font-bold py-5 rounded-2xl text-xl tracking-wider transition-all active:scale-[0.98] shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)]">
+                STOP
+              </div>
+            </button>
           </div>
-
-          {/* Music transport — pause/skip without leaving the plunge (Pro) */}
-          {isPro && <MusicTransportMini />}
-
-          {/* Cold Take (appears 12s after timer starts, rotates every 45s, scales with time + temp + streak + first-plunge) */}
-          <ColdTakeOverlay
-            isActive={isActive}
-            elapsedSeconds={displaySeconds}
-            tempF={temperature}
-            isFirstPlunge={plunges.length === 0}
-            streakDays={streak}
-          />
-
-          {/* Stop button */}
-          <button
-            data-testid="button-stop-overlay"
-            onClick={handleStop}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-20 py-4 rounded-2xl text-xl transition-all active:scale-95 shadow-lg shadow-blue-600/30"
-          >
-            Stop
-          </button>
         </div>
       )}
 
