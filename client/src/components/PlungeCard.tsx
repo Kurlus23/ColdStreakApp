@@ -7,7 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { getPhoto, deletePhoto } from "@/lib/photoStore";
 import { buildShareImage, dataUrlToBlob } from "@/lib/shareImage";
-import { shareContent } from "@/lib/share";
+import { shareContent, logShareEvent } from "@/lib/share";
+import { isNative, nativeShare } from "@/lib/nativeShare";
 import { InterstitialAd } from "@/components/AdUnit";
 
 function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
@@ -207,14 +208,51 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
     const s = plunge.duration;
     const m = Math.floor(s / 60);
     const durationStr = `${m}:${String(s % 60).padStart(2, "0")}`;
+    const text = [
+      `I just completed a ${plunge.temperature}°F Plunge!`,
+      `⏱️ ${durationStr} | 🔥 ${streak}-day streak`,
+      "Think you can beat me?",
+      "ColdStreak",
+    ].join("\n");
+
+    // Fetch Bitmoji/avatar as a blob to attach to the share
+    let avatarBlob: Blob | null = null;
+    if (avatarUrl) {
+      try {
+        const res = await fetch(avatarUrl);
+        if (res.ok) avatarBlob = await res.blob();
+      } catch { /* share without avatar if fetch fails */ }
+    }
+
+    if (isNative()) {
+      await nativeShare({
+        title: "ColdStreak Plunge",
+        text,
+        photoBlob: avatarBlob ?? undefined,
+        photoFilename: "bitmoji.png",
+      });
+      logShareEvent("plunge", { targetId: plunge.id, channel: "native" });
+      return;
+    }
+
+    // Web: attach avatar as a file if the browser supports it
+    if (avatarBlob && navigator.canShare) {
+      const file = new File([avatarBlob], "bitmoji.png", { type: avatarBlob.type || "image/png" });
+      if (navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], text });
+          logShareEvent("plunge", { targetId: plunge.id, channel: "webshare" });
+          return;
+        } catch (e: any) {
+          if (e?.name === "AbortError") return;
+        }
+      }
+    }
+
+    // Fallback: text only
     await shareContent({
       title: "ColdStreak Plunge",
-      text: [
-        `I just completed a ${plunge.temperature}°F Plunge!`,
-        `⏱️ ${durationStr} | 🔥 ${streak}-day streak`,
-        "Think you can beat me?",
-        "ColdStreak",
-      ].join("\n"),
+      text,
       trackAs: "plunge",
       trackId: plunge.id,
     });
