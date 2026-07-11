@@ -1,0 +1,74 @@
+kevinellis@Kevins-MacBook-Air coldstreak % git checkout -- package.json package-lock.json
+git pull
+npm install
+Updating c723b00..8ba92fc
+Fast-forward
+ .agents/agent_assets_metadata.toml                                          |   6 +
+ .agents/memory/MEMORY.md                                                    |   3 +
+ .agents/memory/mockup-sandbox-registry-restart.md                           |  10 +
+ .agents/memory/mood-checkin-and-push.md                                     |  18 +
+ .agents/memory/post-plunge-photo-removed.md                                 |  10 +
+ .replit                                                                     |   2 +-
+ artifacts/mockup-sandbox/src/.generated/mockup-components.ts                |   9 +-
+ .../src/components/mockups/plunge-complete/CelebrationFirst.tsx             | 123 +++++++
+ .../src/components/mockups/plunge-complete/ColdTakeReveal.tsx               | 127 +++++++
+ artifacts/mockup-sandbox/src/components/mockups/plunge-complete/Current.tsx |  71 ++++
+ .../mockup-sandbox/src/components/mockups/plunge-complete/HybridCombo.tsx   | 160 +++++++++
+ artifacts/mockup-sandbox/src/components/mockups/plunge-complete/LevelUp.tsx | 138 +++++++
+ ...-d-build-ColdStreak-into-a-personal-recovery-dashboard_1783723123626.txt | 225 ++++++++++++
+ ...evinellis-Kevins-MacBook-Air-coldstreak-git-pull-remot_1783647172118.txt | 697 ++++++++++++++++++++++++++++++++++++
+ attached_assets/image_1783620408409.png                                     | Bin 0 -> 69949 bytes
+ attached_assets/image_1783647661444.png                                     | Bin 0 -> 155416 bytes
+ attached_assets/image_1783713680207.png                                     | Bin 0 -> 108960 bytes
+ attached_assets/image_1783722311088.png                                     | Bin 0 -> 4022 bytes
+ attached_assets/image_1783726258412.png                                     | Bin 0 -> 66814 bytes
+ attached_assets/image_1783726573493.png                                     | Bin 0 -> 69507 bytes
+ attached_assets/image_1783726747810.png                                     | Bin 0 -> 186711 bytes
+ ...exf_riker_replit_dev_mockup_preview_plunge-complete_CelebrationFirst.png | Bin 0 -> 136086 bytes
+ ...hvjue0ghgexf_riker_replit_dev_mockup_preview_plunge-complete_Current.png | Bin 0 -> 71465 bytes
+ ...e0ghgexf_riker_replit_dev_mockup_preview_plunge-complete_HybridCombo.png | Bin 0 -> 89388 bytes
+ client/public/sw.js                                                         |  16 +-
+ client/src/components/MoodCheckIn.tsx                                       | 154 ++++++++
+ client/src/hooks/use-plunges.ts                                             |   1 +
+ client/src/pages/Admin.tsx                                                  |  95 ++++-
+ client/src/pages/Home.tsx                                                   | 270 ++++++++------
+ exports/cold_takes.xlsx                                                     | Bin 0 -> 45159 bytes
+ main.py                                                                     |   6 +
+ package-lock.json                                                           | 213 +++++++++++
+ package.json                                                                |   1 +
+ pyproject.toml                                                              |   8 +
+ server/routes.ts                                                            |  73 ++++
+ server/storage.ts                                                           |  32 ++
+ shared/schema.ts                                                            |   5 +
+ uv.lock                                                                     |  35 ++
+ 38 files changed, 2377 insertions(+), 131 deletions(-)
+ create mode 100644 .agents/memory/mockup-sandbox-registry-restart.md
+ create mode 100644 .agents/memory/mood-checkin-and-push.md
+ create mode 100644 .agents/memory/post-plunge-photo-removed.md
+ create mode 100644 artifacts/mockup-sandbox/src/components/mockups/plunge-complete/CelebrationFirst.tsx
+ create mode 100644 artifacts/mockup-sandbox/src/components/mockups/plunge-complete/ColdTakeReveal.tsx
+ create mode 100644 artifacts/mockup-sandbox/src/components/mockups/plunge-complete/Current.tsx
+ create mode 100644 artifacts/mockup-sandbox/src/components/mockups/plunge-complete/HybridCombo.tsx
+ create mode 100644 artifacts/mockup-sandbox/src/components/mockups/plunge-complete/LevelUp.tsx
+ create mode 100644 attached_assets/Pasted-I-d-build-ColdStreak-into-a-personal-recovery-dashboard_1783723123626.txt
+ create mode 100644 attached_assets/Pasted-kevinellis-Kevins-MacBook-Air-coldstreak-git-pull-remot_1783647172118.txt
+ create mode 100644 attached_assets/image_1783620408409.png
+ create mode 100644 attached_assets/image_1783647661444.png
+ create mode 100644 attached_assets/image_1783713680207.png
+ create mode 100644 attached_assets/image_1783722311088.png
+ create mode 100644 attached_assets/image_1783726258412.png
+ create mode 100644 attached_assets/image_1783726573493.png
+ create mode 100644 attached_assets/image_1783726747810.png
+ create mode 100644 attached_assets/screenshots/6999a82a-9043-4c04-9f8b-e10a8f4fc011-00-hvjue0ghgexf_riker_replit_dev_mockup_preview_plunge-complete_CelebrationFirst.png
+ create mode 100644 attached_assets/screenshots/6999a82a-9043-4c04-9f8b-e10a8f4fc011-00-hvjue0ghgexf_riker_replit_dev_mockup_preview_plunge-complete_Current.png
+ create mode 100644 attached_assets/screenshots/6999a82a-9043-4c04-9f8b-e10a8f4fc011-00-hvjue0ghgexf_riker_replit_dev_mockup_preview_plunge-complete_HybridCombo.png
+ create mode 100644 client/src/components/MoodCheckIn.tsx
+ create mode 100644 exports/cold_takes.xlsx
+ create mode 100644 main.py
+ create mode 100644 pyproject.toml
+ create mode 100644 uv.lock
+npm error Exit handler never called!
+npm error This is an error with npm itself. Please report this error at:
+npm error   <https://github.com/npm/cli/issues>
+npm error A complete log of this run can be found in: /Users/kevinellis/.npm/_logs/2026-07-11T00_20_35_146Z-debug-0.log
+kevinellis@Kevins-MacBook-Air coldstreak % 
