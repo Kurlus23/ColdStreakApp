@@ -63,7 +63,7 @@ export function HybridCombo() {
                  <span className="text-xl drop-shadow-[0_0_10px_rgba(249,115,22,0.8)]">🔥</span>
                  <div className="flex flex-col">
                    <span className="text-orange-400 font-extrabold text-sm tracking-wide">1-Day Streak!</span>
-                   <span className="text-orange-500/70 text-[10px] uppercase font-bold tracking-wider mt-0.5">Kept it alive</span>
+                   <span className="text-orange-500/70 text-[10px] uppercase font-bold tracking-wider mt-0.5">Keep it alive</span>
                  </div>
                </div>
             </div>

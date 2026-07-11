@@ -6773,15 +6773,14 @@ export default function Home() {
             )}
 
             {/* Streak banner */}
-            {(streak > 0 || StreakBadge || DaysBadge) && (
-              <div className="bg-gradient-to-r from-orange-500/15 to-amber-500/5 border border-orange-500/20 rounded-xl p-3.5 flex items-center justify-between shadow-[0_0_15px_rgba(249,115,22,0.1)]">
+            <div className="bg-gradient-to-r from-orange-500/15 to-amber-500/5 border border-orange-500/20 rounded-xl p-3.5 flex items-center justify-between shadow-[0_0_15px_rgba(249,115,22,0.1)]">
                 <div className="flex items-center gap-3">
                   <span className="text-xl drop-shadow-[0_0_10px_rgba(249,115,22,0.8)]">🔥</span>
                   <div className="flex flex-col">
                     <span className="text-orange-400 font-extrabold text-sm tracking-wide">
                       {streak > 0 ? `${streak}-Day Streak!` : `${totalPlungeDaysThisYear} days this year`}
                     </span>
-                    <span className="text-orange-500/70 text-[10px] uppercase font-bold tracking-wider mt-0.5">Kept it alive</span>
+                    <span className="text-orange-500/70 text-[10px] uppercase font-bold tracking-wider mt-0.5">{streak > 0 ? "Keep it alive" : "Get Streak'in"}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -6789,7 +6788,6 @@ export default function Home() {
                   {DaysBadge}
                 </div>
               </div>
-            )}
 
             {/* Cold Take unlocked — collectible card */}
             {promptColdTake && (
@@ -7286,9 +7284,9 @@ export default function Home() {
                   });
                   setPhotoPromptId(null);
                 }}
-                className="text-blue-400/40 hover:text-red-400 text-xs font-bold uppercase tracking-wider transition-colors"
+                className="text-red-400/80 hover:text-red-300 text-xs font-bold uppercase tracking-wider transition-colors"
               >
-                Discard Plunge
+                Discard
               </button>
             </div>
           </div>
