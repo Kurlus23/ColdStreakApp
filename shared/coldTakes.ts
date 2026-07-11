@@ -477,6 +477,15 @@ export function pickColdTake(
   return candidates[idx];
 }
 
+// Total number of unique, realistically collectible cold takes (for collection UI).
+// FIRST_PLUNGE takes are excluded: a user's first plunge only ever happens once,
+// so at most one of those can ever be unlocked — counting all 10 would make the
+// collection impossible to complete.
+export const TOTAL_COLD_TAKES = new Set([
+  ...EARLY, ...SHORT, ...LONG, ...EXTREME,
+  ...BRUTAL_COLD, ...MILD, ...LONG_STREAK, ...GENERAL,
+]).size;
+
 // Legacy export — kept for backwards compatibility with the old endpoint shape.
 export const COLD_TAKES: string[] = [
   ...EARLY, ...SHORT, ...LONG, ...EXTREME, ...BRUTAL_COLD, ...MILD, ...GENERAL,

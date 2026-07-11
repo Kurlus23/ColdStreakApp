@@ -87,6 +87,17 @@ export function HybridCombo() {
                 "Your nemesis: that little voice saying <span className="text-cyan-200">'just get out.'</span>"
               </p>
 
+              {/* Collection progress */}
+              <div className="w-full mt-4 relative z-10">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-blue-400/70 text-[9px] uppercase tracking-[0.2em] font-bold">Collection</span>
+                  <span className="text-cyan-400 text-[10px] font-bold">12 / 362</span>
+                </div>
+                <div className="h-1 bg-blue-950 rounded-full overflow-hidden border border-blue-900/50">
+                  <div className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 rounded-full" style={{ width: "4%" }}></div>
+                </div>
+              </div>
+
               {/* Share prompt floating inside */}
               <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="bg-white/10 backdrop-blur-md rounded-full p-1.5 border border-white/20">
