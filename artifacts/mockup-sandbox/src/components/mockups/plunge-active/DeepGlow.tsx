@@ -50,7 +50,13 @@ export function DeepGlow() {
         {/* Stats Row */}
         <div className="flex items-center justify-between w-full px-1">
           <div className="flex flex-col items-center">
-            <div className="text-slate-400 text-[10px] uppercase tracking-widest mb-1 font-semibold">Water Temp</div>
+            <div className="flex items-center gap-1 mb-1">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-300" />
+              </span>
+              <div className="text-slate-400 text-[10px] uppercase tracking-widest font-semibold">Live Temp</div>
+            </div>
             <div className="text-white text-3xl font-bold tracking-tight">42°F</div>
           </div>
           <div className="w-px h-12 bg-gradient-to-b from-transparent via-slate-700 to-transparent" />
