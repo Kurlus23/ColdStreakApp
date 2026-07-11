@@ -1,0 +1,66 @@
+kevinellis@Kevins-MacBook-Air coldstreak % cd ~/coldstreak
+git remote set-url origin https://github.com/Kurlus23/ColdStreakApp.git
+git fetch origin
+git reset --hard origin/main
+npm install
+npm install ./capacitor-plugins/coldstreak-musickit
+npx cap sync ios
+remote: Enumerating objects: 2825, done.
+remote: Counting objects: 100% (1132/1132), done.
+remote: Compressing objects: 100% (295/295), done.
+remote: Total 2825 (delta 875), reused 1057 (delta 820), pack-reused 1693 (from 1)
+Receiving objects: 100% (2825/2825), 101.02 MiB | 1008.00 KiB/s, done.
+Resolving deltas: 100% (2119/2119), completed with 23 local objects.
+From https://github.com/Kurlus23/ColdStreakApp
+   2718800..eb126e1  main       -> origin/main
+HEAD is now at eb126e1 Add screenshot to help debug user's project setup issues
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+npm error Exit handler never called!
+npm error This is an error with npm itself. Please report this error at:
+npm error   <https://github.com/npm/cli/issues>
+npm error A complete log of this run can be found in: /Users/kevinellis/.npm/_logs/2026-07-11T13_06_04_822Z-debug-0.log
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: coldstreak-musickit@0.1.0
+npm warn Found: @capacitor/core@8.3.0
+npm warn node_modules/@capacitor/core
+npm warn   peer @capacitor/core@">=8.0.0" from @capacitor-community/bluetooth-le@8.1.3
+npm warn   node_modules/@capacitor-community/bluetooth-le
+npm warn     @capacitor-community/bluetooth-le@"^8.1.3" from the root project
+npm warn   12 more (@capacitor-community/in-app-review, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer @capacitor/core@"^6.0.0 || ^7.0.0" from coldstreak-musickit@0.1.0
+npm warn capacitor-plugins/coldstreak-musickit
+npm warn   coldstreak-musickit@0.1.0
+npm warn   node_modules/coldstreak-musickit
+npm warn
+npm warn Conflicting peer dependency: @capacitor/core@7.6.7
+npm warn node_modules/@capacitor/core
+npm warn   peer @capacitor/core@"^6.0.0 || ^7.0.0" from coldstreak-musickit@0.1.0
+npm warn   capacitor-plugins/coldstreak-musickit
+npm warn     coldstreak-musickit@0.1.0
+npm warn     node_modules/coldstreak-musickit
+⠏
+npm error Exit handler never called!
+npm error This is an error with npm itself. Please report this error at:
+npm error   <https://github.com/npm/cli/issues>
+npm error A complete log of this run can be found in: /Users/kevinellis/.npm/_logs/2026-07-11T13_08_25_724Z-debug-0.log
+✔ Copying web assets from public to ios/App/App/public in 350.30ms
+✔ Creating capacitor.config.json in ios/App/App in 1.64ms
+✔ copy ios in 411.88ms
+✔ Updating iOS plugins in 7.68ms
+✔ Updating iOS native dependencies with pod install in 3.36s
+[info] Found 9 Capacitor plugins for ios:
+       @capacitor-community/bluetooth-le@8.1.3
+       @capacitor-community/in-app-review@8.0.0
+       @capacitor-community/media@9.0.2
+       @capacitor/app@8.0.1
+       @capacitor/camera@8.0.2
+       @capacitor/clipboard@8.0.1
+       @capacitor/filesystem@8.1.2
+       @capacitor/geolocation@8.1.0
+       @capacitor/share@8.0.1
+✔ update ios in 3.39s
+[info] Sync finished in 3.89s
+kevinellis@Kevins-MacBook-Air coldstreak % 
+kevinellis@Kevins-MacBook-Air coldstreak % 
