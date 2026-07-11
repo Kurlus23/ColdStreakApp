@@ -1,0 +1,55 @@
+git pull
+rm -rf node_modules
+npm install --no-audit --no-fund
+npm install ./capacitor-plugins/coldstreak-musickit
+npx cap sync ios
+remote: Enumerating objects: 5, done.
+remote: Counting objects: 100% (5/5), done.
+remote: Compressing objects: 100% (1/1), done.
+remote: Total 3 (delta 2), reused 3 (delta 2), pack-reused 0 (from 0)
+Unpacking objects: 100% (3/3), 745 bytes | 41.00 KiB/s, done.
+From https://github.com/Kurlus23/ColdStreakApp
+   851e0b9..ca4ac2a  main       -> origin/main
+Updating 851e0b9..ca4ac2a
+Fast-forward
+ package-lock.json | 42 +++++++++++++++++++++---------------------
+ 1 file changed, 21 insertions(+), 21 deletions(-)
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 786 packages in 10s
+
+added 1 package, and audited 789 packages in 3s
+
+112 packages are looking for funding
+  run `npm fund` for details
+
+33 vulnerabilities (2 low, 21 moderate, 9 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+✔ Copying web assets from public to ios/App/App/public in 456.26ms
+✔ Creating capacitor.config.json in ios/App/App in 1.52ms
+✔ copy ios in 512.39ms
+✔ Updating iOS plugins in 7.85ms
+✖ Updating iOS native dependencies with pod install - failed!
+✖ update ios - failed!
+[error] Analyzing dependencies
+        [!] CocoaPods could not find compatible versions for pod "PurchasesHybridCommon":
+        In Podfile:
+        RevenuecatPurchasesCapacitor (from `../../node_modules/@revenuecat/purchases-capacitor`) was resolved to 13.2.2,
+        which depends on
+        PurchasesHybridCommon (= 18.19.0)
+        
+        None of your spec sources contain a spec satisfying the dependency: `PurchasesHybridCommon (= 18.19.0)`.
+        
+        You have either:
+        * out-of-date source repos which you can update with `pod repo update` or with `pod install --repo-update`.
+        * mistyped the name or version.
+        * not added the source repo that hosts the Podspec to your Podfile.
+        
+kevinellis@Kevins-MacBook-Air coldstreak % 
