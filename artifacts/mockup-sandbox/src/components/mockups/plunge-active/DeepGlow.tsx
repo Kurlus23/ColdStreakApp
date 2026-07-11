@@ -65,6 +65,19 @@ export function DeepGlow() {
           </div>
         </div>
 
+        {/* Cold Take */}
+        <div className="glass-panel w-full px-6 py-5 rounded-3xl border border-cyan-500/20 text-center relative overflow-hidden animate-pulse-box-glow">
+          <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent pointer-events-none" />
+          <div className="relative z-10">
+            <div className="text-cyan-400 text-[10px] uppercase tracking-[0.2em] mb-2 font-bold flex items-center justify-center gap-2">
+              <span className="text-cyan-300">❄</span> Cold Take
+            </div>
+            <div className="text-slate-200 text-[15px] italic font-light leading-relaxed">
+              "Your nemesis: that little voice saying 'just get out.'"
+            </div>
+          </div>
+        </div>
+
         {/* Music Pill */}
         <div className="flex items-center gap-3 glass-panel rounded-full p-2 pr-4 w-full border border-white/10 shadow-lg">
           <div className="shrink-0 flex items-center justify-center w-10 h-10 bg-[#1db954]/20 rounded-full border border-[#1db954]/30">
@@ -84,19 +97,6 @@ export function DeepGlow() {
             <button className="w-9 h-9 rounded-full flex items-center justify-center text-slate-300 hover:text-white transition-all">
               <SkipForward className="w-4 h-4 fill-current" />
             </button>
-          </div>
-        </div>
-
-        {/* Cold Take */}
-        <div className="glass-panel w-full px-6 py-5 rounded-3xl border border-cyan-500/20 text-center relative overflow-hidden animate-pulse-box-glow">
-          <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent pointer-events-none" />
-          <div className="relative z-10">
-            <div className="text-cyan-400 text-[10px] uppercase tracking-[0.2em] mb-2 font-bold flex items-center justify-center gap-2">
-              <span className="text-cyan-300">❄</span> Cold Take
-            </div>
-            <div className="text-slate-200 text-[15px] italic font-light leading-relaxed">
-              "Your nemesis: that little voice saying 'just get out.'"
-            </div>
           </div>
         </div>
 
