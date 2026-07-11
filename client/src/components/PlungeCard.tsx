@@ -53,12 +53,55 @@ async function dataUrlToFile(dataUrl: string, filename: string): Promise<File> {
   return new File([blob], filename, { type: blob.type || "image/jpeg" });
 }
 
+const SHARE_HOOKS = [
+  "Most people talk about discipline.\nI'm living it.",
+  "Your comfort zone ends here.\nMine did too — and I stayed.",
+  "The cold doesn't negotiate.\nNeither do I.",
+  "While most people were comfortable,\nI was in the ice.",
+  "Mind over every single thing.",
+  "The hardest part is showing up.\nDone.",
+  "What are you doing right now?",
+  "This is what growth feels like.",
+  "No shortcuts. Just cold water and willpower.",
+  "Every plunge is a choice.\nI keep choosing it.",
+];
+
+const SHARE_CTAS = [
+  "You in or you out?",
+  "Dare you.",
+  "Your move.",
+  "Can you top this?",
+  "Join me tomorrow.",
+  "Ice is waiting.",
+  "Welcome to the cold side.",
+  "Get uncomfortable.",
+  "Earn your streak.",
+  "No excuses.",
+  "Strong mind. Cold water.",
+  "Cold doesn't care.",
+  "One plunge at a time.",
+  "This is your sign.",
+  "Don't break the streak.",
+  "Bet you won't.",
+  "See you in the ice.",
+  "Freeze with me.",
+  "Your future self says thanks.",
+  "The ice waits for no one.",
+  "Still warm? Fix that.",
+  "Come get cold with me.",
+];
+
+function pickBySeed<T>(arr: T[], seed: number, offset = 0): T {
+  return arr[Math.abs(seed * 13 + offset * 7) % arr.length];
+}
+
 export function buildShareText({
   temperature,
   duration,
   streak,
   locationName,
   locationId,
+  seed,
 }: {
   username?: string;
   temperature: number;
@@ -66,16 +109,25 @@ export function buildShareText({
   streak?: number;
   locationName?: string | null;
   locationId?: string | null;
+  seed?: number;
 }): string {
-  const lines: string[] = [
-    `I just completed a ${temperature}°F plunge!`,
-    `⏱️ Duration: ${formatTime(duration)}`,
-  ];
-  if (streak && streak > 0) lines.push(`🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}`);
-  if (locationId === "home") lines.push(`📍 Home`);
-  else if (locationName) lines.push(`📍 ${locationName}`);
-  lines.push(`Tracked with ColdStreak`);
-  return lines.join("\n");
+  const durationStr = formatTime(duration);
+  const streakPart = streak && streak > 0 ? ` | ${streak}-day 🔥 streak` : "";
+  const locationPart =
+    locationId === "home" ? "\n📍 Home" : locationName ? `\n📍 ${locationName}` : "";
+
+  const s = seed ?? 0;
+  const hook = pickBySeed(SHARE_HOOKS, s, 0);
+  const cta = pickBySeed(SHARE_CTAS, s, 3);
+
+  return [
+    `❄️ Just survived ${temperature}°F for ${durationStr}${streakPart}${locationPart}`,
+    "",
+    hook,
+    "",
+    cta,
+    "ColdStreak",
+  ].join("\n");
 }
 
 function resolveLocationDisplay(locId: string | null | undefined, locName: string | null | undefined, communityLocs: UserLocation[], homeLabel?: string) {
@@ -205,15 +257,14 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
   };
 
   const handleShare = async () => {
-    const s = plunge.duration;
-    const m = Math.floor(s / 60);
-    const durationStr = `${m}:${String(s % 60).padStart(2, "0")}`;
-    const text = [
-      `I just completed a ${plunge.temperature}°F Plunge!`,
-      `⏱️ ${durationStr} | 🔥 ${streak}-day streak`,
-      "Think you can beat me?",
-      "ColdStreak",
-    ].join("\n");
+    const text = buildShareText({
+      temperature: plunge.temperature,
+      duration: plunge.duration,
+      streak,
+      locationName: plunge.locationName,
+      locationId: plunge.locationId,
+      seed: plunge.id,
+    });
 
     // Fetch Bitmoji/avatar as a blob to attach to the share
     let avatarBlob: Blob | null = null;
