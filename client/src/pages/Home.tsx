@@ -7380,7 +7380,7 @@ export default function Home() {
 
       {/* ─── ACTIVE TIMER OVERLAY ─── */}
       {isActive && screen === "timer" && (
-        <div className="fixed inset-0 z-[60] bg-[#020617] flex flex-col items-center justify-between overflow-hidden animate-in fade-in">
+        <div className="fixed inset-0 z-[60] bg-[#0c1a2e] flex flex-col items-center justify-between overflow-hidden animate-in fade-in">
           {/* Underwater background glows */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(6,182,212,0.2),transparent_60%)] pointer-events-none" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_100%,rgba(14,165,233,0.15),transparent_60%)] pointer-events-none" />
@@ -7405,8 +7405,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Center — giant timer */}
-          <div className="flex-1 flex flex-col items-center justify-center w-full z-10">
+          {/* Center — giant timer + Cold Take */}
+          <div className="flex-1 flex flex-col items-center justify-center w-full z-10 gap-4">
             <div
               className="font-mono font-bold text-white leading-none tracking-tighter animate-pulse-glow"
               style={{ fontSize: isLandscape ? "18vw" : "28vw" }}
@@ -7414,9 +7414,17 @@ export default function Home() {
             >
               {formatTime(displaySeconds)}
             </div>
+            {/* Cold Take sits right below timer — fixed position, no layout shift */}
+            <ColdTakeOverlay
+              isActive={isActive}
+              elapsedSeconds={displaySeconds}
+              tempF={temperature}
+              isFirstPlunge={plunges.length === 0}
+              streakDays={streak}
+            />
           </div>
 
-          {/* Bottom section */}
+          {/* Bottom section — stats, music, stop (never shifts) */}
           <div className="w-full flex flex-col items-center gap-5 pb-10 z-10 px-6">
             {/* Stats row */}
             <div className="flex items-center justify-between w-full px-1">
@@ -7445,15 +7453,6 @@ export default function Home() {
                 </>
               )}
             </div>
-
-            {/* Cold Take (appears 12s in, rotates every 45s) */}
-            <ColdTakeOverlay
-              isActive={isActive}
-              elapsedSeconds={displaySeconds}
-              tempF={temperature}
-              isFirstPlunge={plunges.length === 0}
-              streakDays={streak}
-            />
 
             {/* Music transport — pause/skip without leaving the plunge (Pro) */}
             {isPro && <MusicTransportMini />}
