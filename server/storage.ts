@@ -2,7 +2,7 @@ import { db } from "./db";
 import {
   plunges, leaderboardEntries, proUsers, promoCodes, userLocations, businessListings, users, badgeProfiles, pushSubscriptions,
   events, eventParticipants, eventCoordinators, eventBans, supportMessages, clientVisits, shareEvents,
-  verifiedBusinessSubs, reports, locationViews, locationClicks,
+  verifiedBusinessSubs, reports, locationViews, locationClicks, friendships,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
   type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile, type PushSubscription,
@@ -13,8 +13,29 @@ import {
   type BusinessHours,
   streakFreezes, type StreakFreeze,
   spotifyAccounts, type SpotifyAccount,
+  type Friendship,
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and, not, lt, gte, inArray, sum } from "drizzle-orm";
+
+export interface FriendWithStats {
+  friendshipId: number;
+  userId: number;
+  username: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  streak: number;
+  latestScore: number | null;
+  bestScore: number | null;
+}
+
+export interface PendingFriendRequest {
+  friendshipId: number;
+  requesterId: number;
+  requesterUsername: string | null;
+  requesterDisplayName: string | null;
+  requesterAvatarUrl: string | null;
+  createdAt: Date;
+}
 
 export interface IStorage {
   // Plunges
@@ -220,6 +241,14 @@ export interface IStorage {
   createReport(report: InsertReport): Promise<Report>;
   getReports(status?: "open" | "resolved" | "removed"): Promise<Report[]>;
   setReportStatus(id: number, status: "open" | "resolved" | "removed"): Promise<void>;
+  // Friends
+  sendFriendRequest(requesterId: number, addresseeId: number): Promise<{ ok: boolean; error?: string }>;
+  respondFriendRequest(friendshipId: number, addresseeId: number, status: "accepted" | "declined"): Promise<boolean>;
+  removeFriend(userId: number, friendId: number): Promise<void>;
+  getFriends(userId: number): Promise<FriendWithStats[]>;
+  getPendingFriendRequests(userId: number): Promise<PendingFriendRequest[]>;
+  getFriendship(userId1: number, userId2: number): Promise<import("@shared/schema").Friendship | null>;
+  searchUsers(query: string, excludeUserId: number): Promise<{ id: number; username: string | null; displayName: string | null; avatarUrl: string | null }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1639,6 +1668,174 @@ export class DatabaseStorage implements IStorage {
 
   async setReportStatus(id: number, status: "open" | "resolved" | "removed"): Promise<void> {
     await db.update(reports).set({ status }).where(eq(reports.id, id));
+  }
+
+  // ── Friendships ─────────────────────────────────────────────────────────────
+  async sendFriendRequest(requesterId: number, addresseeId: number): Promise<{ ok: boolean; error?: string }> {
+    if (requesterId === addresseeId) return { ok: false, error: "Cannot add yourself" };
+    // Check for existing relationship in either direction
+    const existing = await this.getFriendship(requesterId, addresseeId);
+    if (existing) {
+      if (existing.status === "accepted") return { ok: false, error: "Already friends" };
+      if (existing.status === "pending") return { ok: false, error: "Request already sent" };
+    }
+    try {
+      await db.insert(friendships).values({ requesterId, addresseeId, status: "pending" });
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "Could not send request" };
+    }
+  }
+
+  async respondFriendRequest(friendshipId: number, addresseeId: number, status: "accepted" | "declined"): Promise<boolean> {
+    const result = await db.update(friendships)
+      .set({ status })
+      .where(and(eq(friendships.id, friendshipId), eq(friendships.addresseeId, addresseeId), eq(friendships.status, "pending")))
+      .returning();
+    return result.length > 0;
+  }
+
+  async removeFriend(userId: number, friendId: number): Promise<void> {
+    await db.delete(friendships).where(
+      or(
+        and(eq(friendships.requesterId, userId), eq(friendships.addresseeId, friendId)),
+        and(eq(friendships.requesterId, friendId), eq(friendships.addresseeId, userId))
+      )
+    );
+  }
+
+  async getFriendship(userId1: number, userId2: number): Promise<Friendship | null> {
+    const [row] = await db.select().from(friendships).where(
+      or(
+        and(eq(friendships.requesterId, userId1), eq(friendships.addresseeId, userId2)),
+        and(eq(friendships.requesterId, userId2), eq(friendships.addresseeId, userId1))
+      )
+    ).limit(1);
+    return row ?? null;
+  }
+
+  async getPendingFriendRequests(userId: number): Promise<PendingFriendRequest[]> {
+    const rows = await db
+      .select({
+        friendshipId: friendships.id,
+        requesterId: friendships.requesterId,
+        requesterUsername: users.username,
+        requesterDisplayName: users.displayName,
+        createdAt: friendships.createdAt,
+      })
+      .from(friendships)
+      .innerJoin(users, eq(users.id, friendships.requesterId))
+      .where(and(eq(friendships.addresseeId, userId), eq(friendships.status, "pending")))
+      .orderBy(desc(friendships.createdAt));
+
+    // Pull avatar urls from badge_profiles
+    const requesterUsernames = rows.map(r => r.requesterUsername).filter(Boolean) as string[];
+    const avatarMap: Record<string, string | null> = {};
+    if (requesterUsernames.length > 0) {
+      const profiles = await db.select({ username: badgeProfiles.username, avatarUrl: badgeProfiles.avatarUrl })
+        .from(badgeProfiles).where(inArray(badgeProfiles.username, requesterUsernames));
+      for (const p of profiles) avatarMap[p.username] = p.avatarUrl ?? null;
+    }
+
+    return rows.map(r => ({
+      ...r,
+      requesterAvatarUrl: r.requesterUsername ? (avatarMap[r.requesterUsername] ?? null) : null,
+    }));
+  }
+
+  async getFriends(userId: number): Promise<FriendWithStats[]> {
+    // Get all accepted friendships — friend can be either requester or addressee
+    const accepted = await db.select().from(friendships)
+      .where(and(
+        or(eq(friendships.requesterId, userId), eq(friendships.addresseeId, userId)),
+        eq(friendships.status, "accepted")
+      ));
+
+    if (accepted.length === 0) return [];
+
+    const friendIds = accepted.map(f => f.requesterId === userId ? f.addresseeId : f.requesterId);
+    const friendshipMap: Record<number, number> = {};
+    for (const f of accepted) {
+      const fId = f.requesterId === userId ? f.addresseeId : f.requesterId;
+      friendshipMap[fId] = f.id;
+    }
+
+    // Get user rows
+    const friendUsers = await db.select({ id: users.id, username: users.username, displayName: users.displayName })
+      .from(users).where(inArray(users.id, friendIds));
+
+    // Get avatar urls from badge_profiles
+    const usernames = friendUsers.map(u => u.username).filter(Boolean) as string[];
+    const avatarMap: Record<string, string | null> = {};
+    if (usernames.length > 0) {
+      const profiles = await db.select({ username: badgeProfiles.username, avatarUrl: badgeProfiles.avatarUrl })
+        .from(badgeProfiles).where(inArray(badgeProfiles.username, usernames));
+      for (const p of profiles) avatarMap[p.username] = p.avatarUrl ?? null;
+    }
+
+    // Get plunges for each friend to compute streak, latest score, best score
+    const results: FriendWithStats[] = [];
+    for (const friend of friendUsers) {
+      const friendPlunges = await db.select({ score: plunges.score, createdAt: plunges.createdAt })
+        .from(plunges).where(eq(plunges.userId, friend.id)).orderBy(desc(plunges.createdAt));
+
+      const latestScore = friendPlunges.length > 0 ? Number(friendPlunges[0].score) : null;
+      const bestScore = friendPlunges.length > 0 ? Math.max(...friendPlunges.map(p => Number(p.score))) : null;
+
+      // Compute streak: consecutive days ending today or yesterday
+      const dateSet = new Set(friendPlunges.map(p => new Date(p.createdAt).toDateString()));
+      let streak = 0;
+      const check = new Date();
+      // If no plunge today, check if yesterday starts the streak
+      if (!dateSet.has(check.toDateString())) check.setDate(check.getDate() - 1);
+      while (dateSet.has(check.toDateString())) {
+        streak++;
+        check.setDate(check.getDate() - 1);
+      }
+
+      results.push({
+        friendshipId: friendshipMap[friend.id],
+        userId: friend.id,
+        username: friend.username,
+        displayName: friend.displayName,
+        avatarUrl: friend.username ? (avatarMap[friend.username] ?? null) : null,
+        streak,
+        latestScore,
+        bestScore,
+      });
+    }
+
+    // Sort by streak desc, then bestScore desc
+    results.sort((a, b) => b.streak - a.streak || (b.bestScore ?? 0) - (a.bestScore ?? 0));
+    return results;
+  }
+
+  async searchUsers(query: string, excludeUserId: number): Promise<{ id: number; username: string | null; displayName: string | null; avatarUrl: string | null }[]> {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    const rows = await db.select({ id: users.id, username: users.username, displayName: users.displayName })
+      .from(users)
+      .where(and(
+        not(eq(users.id, excludeUserId)),
+        eq(users.isDisabled, false),
+        sql`(lower(${users.username}) like ${q + '%'} or lower(${users.displayName}) like ${'%' + q + '%'})`
+      ))
+      .limit(10);
+
+    const usernames = rows.map(r => r.username).filter(Boolean) as string[];
+    const avatarMap: Record<string, string | null> = {};
+    if (usernames.length > 0) {
+      const profiles = await db.select({ username: badgeProfiles.username, avatarUrl: badgeProfiles.avatarUrl })
+        .from(badgeProfiles).where(inArray(badgeProfiles.username, usernames));
+      for (const p of profiles) avatarMap[p.username] = p.avatarUrl ?? null;
+    }
+
+    return rows.map(r => ({
+      id: r.id,
+      username: r.username,
+      displayName: r.displayName,
+      avatarUrl: r.username ? (avatarMap[r.username] ?? null) : null,
+    }));
   }
 
   // ── Client visits ──────────────────────────────────────────────────────────

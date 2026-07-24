@@ -1351,6 +1351,114 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     res.json({ success: true });
   });
 
+  // ── Friends ──────────────────────────────────────────────────────────────
+  // Search users by username prefix or display name
+  app.get("/api/users/search", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller) return res.status(401).json({ error: "Login required" });
+    const q = (req.query.q as string ?? "").trim();
+    if (q.length < 2) return res.json([]);
+    const results = await storage.searchUsers(q, caller.userId);
+    // Annotate with existing friendship status
+    const withStatus = await Promise.all(results.map(async (u) => {
+      const f = await storage.getFriendship(caller.userId, u.id);
+      return { ...u, friendshipStatus: f?.status ?? null };
+    }));
+    res.json(withStatus);
+  });
+
+  // Get accepted friends with leaderboard stats
+  app.get("/api/friends", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller) return res.status(401).json({ error: "Login required" });
+    const friends = await storage.getFriends(caller.userId);
+    res.json(friends);
+  });
+
+  // Get pending incoming friend requests
+  app.get("/api/friends/requests", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller) return res.status(401).json({ error: "Login required" });
+    const requests = await storage.getPendingFriendRequests(caller.userId);
+    res.json(requests);
+  });
+
+  // Send a friend request
+  app.post("/api/friends/request", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller) return res.status(401).json({ error: "Login required" });
+    const { addresseeId } = z.object({ addresseeId: z.number().int().positive() }).parse(req.body);
+    const result = await storage.sendFriendRequest(caller.userId, addresseeId);
+    if (!result.ok) return res.status(400).json({ error: result.error });
+    res.json({ success: true });
+  });
+
+  // Accept or decline a friend request
+  app.post("/api/friends/respond", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller) return res.status(401).json({ error: "Login required" });
+    const { friendshipId, status } = z.object({
+      friendshipId: z.number().int().positive(),
+      status: z.enum(["accepted", "declined"]),
+    }).parse(req.body);
+    const ok = await storage.respondFriendRequest(friendshipId, caller.userId, status);
+    if (!ok) return res.status(404).json({ error: "Request not found" });
+    res.json({ success: true });
+  });
+
+  // Remove a friend
+  app.delete("/api/friends/:userId", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller) return res.status(401).json({ error: "Login required" });
+    const friendId = Number(req.params.userId);
+    if (isNaN(friendId)) return res.status(400).json({ error: "Invalid user id" });
+    await storage.removeFriend(caller.userId, friendId);
+    res.json({ success: true });
+  });
+
+  // Challenge a friend — sends a push notification
+  app.post("/api/friends/challenge/:userId", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller) return res.status(401).json({ error: "Login required" });
+    const friendId = Number(req.params.userId);
+    if (isNaN(friendId)) return res.status(400).json({ error: "Invalid user id" });
+
+    // Verify they are actually friends
+    const friendship = await storage.getFriendship(caller.userId, friendId);
+    if (!friendship || friendship.status !== "accepted") {
+      return res.status(403).json({ error: "Not friends" });
+    }
+
+    const subs = await storage.getPushSubscriptionsByUser(friendId);
+    if (subs.length === 0) return res.json({ sent: false, reason: "No push subscription" });
+
+    // Get challenger's display name
+    const challenger = await storage.getUserById(caller.userId);
+    const name = challenger?.displayName || challenger?.username || "Someone";
+    const payload = JSON.stringify({
+      title: `❄️ ${name} challenged you!`,
+      body: "They just plunged. Can you handle the cold?",
+      url: "/",
+      tag: `challenge-${caller.userId}`,
+    });
+
+    let sent = 0;
+    for (const sub of subs) {
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          payload
+        );
+        sent++;
+      } catch (err: any) {
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          await storage.deletePushSubscription(sub.endpoint);
+        }
+      }
+    }
+    res.json({ sent: sent > 0 });
+  });
+
   // ── UGC Reports (Apple App Review Guideline 1.2) ────────────────────────
   app.post("/api/reports", async (req, res) => {
     try {

@@ -441,3 +441,14 @@ export const reports = pgTable("reports", {
 export const insertReportSchema = createInsertSchema(reports).omit({ id: true, createdAt: true, status: true });
 export type Report = typeof reports.$inferSelect;
 export type InsertReport = z.infer<typeof insertReportSchema>;
+
+// ── Friendships ────────────────────────────────────────────────────────────────
+export const friendships = pgTable("friendships", {
+  id: serial("id").primaryKey(),
+  requesterId: integer("requester_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  addresseeId: integer("addressee_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("pending"), // "pending" | "accepted" | "declined"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("friendships_pair_idx").on(t.requesterId, t.addresseeId)]);
+
+export type Friendship = typeof friendships.$inferSelect;

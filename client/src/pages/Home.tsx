@@ -342,6 +342,39 @@ export default function Home() {
     () => Number(localStorage.getItem("weeklyGoalMinutes") ?? 11)
   );
 
+  // Friends
+  interface FriendEntry { friendshipId: number; userId: number; username: string | null; displayName: string | null; avatarUrl: string | null; streak: number; latestScore: number | null; bestScore: number | null; }
+  interface FriendRequest { friendshipId: number; requesterId: number; requesterUsername: string | null; requesterDisplayName: string | null; requesterAvatarUrl: string | null; createdAt: string; }
+  interface UserResult { id: number; username: string | null; displayName: string | null; avatarUrl: string | null; friendshipStatus: string | null; }
+  const [friends, setFriends] = useState<FriendEntry[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
+  const [friendsView, setFriendsView] = useState<'leaderboard' | 'requests' | 'add'>('leaderboard');
+  const [friendSearch, setFriendSearch] = useState('');
+  const [friendSearchResults, setFriendSearchResults] = useState<UserResult[]>([]);
+  const [friendsSearchLoading, setFriendsSearchLoading] = useState(false);
+  const [challengingId, setChallengingId] = useState<number | null>(null);
+
+  const authFetch = (url: string, opts: RequestInit = {}) => {
+    const token = localStorage.getItem("coldstreak-auth-token") ?? "";
+    return fetch(url, { ...opts, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(opts.headers ?? {}) } });
+  };
+
+  const loadFriends = useCallback(async () => {
+    if (!auth.user) return;
+    setFriendsLoading(true);
+    try {
+      const [fr, pr] = await Promise.all([
+        authFetch("/api/friends").then(r => r.json()),
+        authFetch("/api/friends/requests").then(r => r.json()),
+      ]);
+      if (Array.isArray(fr)) setFriends(fr);
+      if (Array.isArray(pr)) setPendingRequests(pr);
+    } finally {
+      setFriendsLoading(false);
+    }
+  }, [auth.user]);
+
   // No auto-open login modal — users discover signup organically through
   // the nudge that fires after their first plunge.
 
@@ -613,6 +646,13 @@ export default function Home() {
   const { isPro, proEmail, proPlan, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo, clearPro, verifyProForEmail } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'user' | 'settings' | 'support'>('user');
+
+  // Load friends whenever the user tab becomes visible
+  useEffect(() => {
+    if (screen === "settings" && settingsTab === "user" && auth.user) {
+      loadFriends();
+    }
+  }, [screen, settingsTab, auth.user, loadFriends]);
 
   // Intro video — disabled by default for now while we sort out the iOS WebView
   // codec issue. Flip the comparisons back to `!== "false"` to re-enable.
@@ -4352,6 +4392,173 @@ export default function Home() {
                 <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full transition-all duration-700" style={{ width: `${weeklyPct}%` }} />
               </div>
             </div>
+
+            {/* ── Friends ── */}
+            {auth.user ? (
+              <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <label className="text-blue-400 text-xs uppercase tracking-wide flex items-center gap-1">
+                    <User className="w-3 h-3" /> Friends
+                  </label>
+                  {pendingRequests.length > 0 && (
+                    <span className="bg-cyan-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{pendingRequests.length}</span>
+                  )}
+                </div>
+
+                {/* Sub-tabs */}
+                <div className="flex gap-1 bg-blue-950/60 rounded-xl p-1">
+                  {(['leaderboard', 'requests', 'add'] as const).map((v) => (
+                    <button key={v} onClick={() => setFriendsView(v)}
+                      className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all capitalize relative ${friendsView === v ? 'bg-blue-700/80 text-white' : 'text-blue-400 hover:text-blue-200'}`}>
+                      {v === 'leaderboard' ? '🏆 Board' : v === 'requests' ? (
+                        <span>📨 Requests{pendingRequests.length > 0 && <span className="ml-1 bg-cyan-500 text-white text-[9px] rounded-full px-1">{pendingRequests.length}</span>}</span>
+                      ) : '➕ Add'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* ── Leaderboard view ── */}
+                {friendsView === 'leaderboard' && (
+                  <div className="space-y-2">
+                    {friendsLoading ? (
+                      <div className="text-blue-400 text-xs text-center py-4">Loading…</div>
+                    ) : friends.length === 0 ? (
+                      <div className="text-center py-6 space-y-2">
+                        <div className="text-2xl">🧊</div>
+                        <p className="text-blue-400 text-xs">No friends yet — add some to see the board!</p>
+                      </div>
+                    ) : friends.map((f, i) => (
+                      <div key={f.friendshipId} className="flex items-center gap-2 bg-blue-950/60 rounded-xl px-3 py-2.5 border border-blue-800/40">
+                        {/* Rank */}
+                        <span className="text-blue-500 text-xs font-bold w-4 shrink-0">{i + 1}</span>
+                        {/* Avatar */}
+                        {f.avatarUrl ? (
+                          <img src={f.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-blue-700/50" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-blue-800 flex items-center justify-center shrink-0 border border-blue-700/50">
+                            <User className="w-4 h-4 text-blue-400" />
+                          </div>
+                        )}
+                        {/* Name + stats */}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white text-xs font-semibold truncate">{f.displayName || f.username || 'Unknown'}</div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-orange-400 text-[10px]">🔥 {f.streak}d</span>
+                            {f.latestScore != null && <span className="text-cyan-300 text-[10px]">Latest: {f.latestScore.toFixed(1)}</span>}
+                            {f.bestScore != null && <span className="text-yellow-300 text-[10px]">Best: {f.bestScore.toFixed(1)}</span>}
+                          </div>
+                        </div>
+                        {/* Challenge button */}
+                        <button
+                          disabled={challengingId === f.userId}
+                          onClick={async () => {
+                            setChallengingId(f.userId);
+                            try {
+                              const r = await authFetch(`/api/friends/challenge/${f.userId}`, { method: 'POST' }).then(x => x.json());
+                              toast({ title: r.sent ? '❄️ Challenge sent!' : 'Could not send', description: r.sent ? `${f.displayName || f.username} was notified.` : 'They may not have notifications on.', variant: r.sent ? 'default' : 'destructive' });
+                            } finally { setChallengingId(null); }
+                          }}
+                          className="shrink-0 px-2 py-1 rounded-lg bg-cyan-600/30 border border-cyan-500/40 text-cyan-300 text-[10px] font-bold hover:bg-cyan-600/50 transition-all active:scale-95 disabled:opacity-40"
+                        >
+                          {challengingId === f.userId ? '…' : '⚡ Challenge'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── Requests view ── */}
+                {friendsView === 'requests' && (
+                  <div className="space-y-2">
+                    {pendingRequests.length === 0 ? (
+                      <p className="text-blue-400 text-xs text-center py-4">No pending requests</p>
+                    ) : pendingRequests.map(req => (
+                      <div key={req.friendshipId} className="flex items-center gap-2 bg-blue-950/60 rounded-xl px-3 py-2.5 border border-blue-800/40">
+                        {req.requesterAvatarUrl ? (
+                          <img src={req.requesterAvatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-blue-700/50" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-blue-800 flex items-center justify-center shrink-0">
+                            <User className="w-4 h-4 text-blue-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white text-xs font-semibold truncate">{req.requesterDisplayName || req.requesterUsername || 'Unknown'}</div>
+                          <div className="text-blue-500 text-[10px]">@{req.requesterUsername}</div>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <button onClick={async () => {
+                            await authFetch('/api/friends/respond', { method: 'POST', body: JSON.stringify({ friendshipId: req.friendshipId, status: 'accepted' }) });
+                            await loadFriends();
+                            setFriendsView('leaderboard');
+                          }} className="px-2 py-1 rounded-lg bg-cyan-600 text-white text-[10px] font-bold hover:bg-cyan-500 active:scale-95 transition-all">✓ Accept</button>
+                          <button onClick={async () => {
+                            await authFetch('/api/friends/respond', { method: 'POST', body: JSON.stringify({ friendshipId: req.friendshipId, status: 'declined' }) });
+                            await loadFriends();
+                          }} className="px-2 py-1 rounded-lg bg-blue-800/80 border border-blue-700 text-blue-400 text-[10px] font-bold hover:border-blue-500 active:scale-95 transition-all">✕</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── Add friends view ── */}
+                {friendsView === 'add' && (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      placeholder="Search by username…"
+                      value={friendSearch}
+                      onChange={async (e) => {
+                        const q = e.target.value;
+                        setFriendSearch(q);
+                        if (q.length < 2) { setFriendSearchResults([]); return; }
+                        setFriendsSearchLoading(true);
+                        try {
+                          const r = await authFetch(`/api/users/search?q=${encodeURIComponent(q)}`).then(x => x.json());
+                          if (Array.isArray(r)) setFriendSearchResults(r);
+                        } finally { setFriendsSearchLoading(false); }
+                      }}
+                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                    />
+                    {friendsSearchLoading && <div className="text-blue-400 text-xs text-center py-2">Searching…</div>}
+                    {friendSearchResults.map(u => (
+                      <div key={u.id} className="flex items-center gap-2 bg-blue-950/60 rounded-xl px-3 py-2.5 border border-blue-800/40">
+                        {u.avatarUrl ? (
+                          <img src={u.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover shrink-0 border border-blue-700/50" />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-blue-800 flex items-center justify-center shrink-0">
+                            <User className="w-3.5 h-3.5 text-blue-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white text-xs font-semibold truncate">{u.displayName || u.username}</div>
+                          <div className="text-blue-500 text-[10px]">@{u.username}</div>
+                        </div>
+                        {u.friendshipStatus === 'accepted' ? (
+                          <span className="text-cyan-400 text-[10px] font-bold">Friends ✓</span>
+                        ) : u.friendshipStatus === 'pending' ? (
+                          <span className="text-blue-400 text-[10px]">Pending…</span>
+                        ) : (
+                          <button onClick={async () => {
+                            await authFetch('/api/friends/request', { method: 'POST', body: JSON.stringify({ addresseeId: u.id }) });
+                            setFriendSearchResults(prev => prev.map(x => x.id === u.id ? { ...x, friendshipStatus: 'pending' } : x));
+                            toast({ title: 'Request sent! 🧊', description: `${u.displayName || u.username} will get a notification.` });
+                          }} className="shrink-0 px-2 py-1 rounded-lg bg-cyan-600 text-white text-[10px] font-bold hover:bg-cyan-500 active:scale-95 transition-all">+ Add</button>
+                        )}
+                      </div>
+                    ))}
+                    {friendSearch.length >= 2 && !friendsSearchLoading && friendSearchResults.length === 0 && (
+                      <p className="text-blue-500 text-xs text-center py-2">No users found</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 text-center space-y-2">
+                <p className="text-blue-400 text-xs font-semibold">Sign in to add friends &amp; see the board</p>
+              </div>
+            )}
 
             {/* Legal & Safety */}
             <button
