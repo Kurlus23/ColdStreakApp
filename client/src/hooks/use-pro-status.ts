@@ -44,14 +44,8 @@ function isPromoActiveForEmail(email: string | null): boolean {
 export function useProStatus() {
   const loggedInEmail = getLoggedInEmail();
 
-  const [isPro, setIsPro] = useState<boolean>(() => {
-    if (isPromoActiveForEmail(loggedInEmail)) return true;
-    const cached = localStorage.getItem(PRO_STATUS_KEY) === "true";
-    if (!cached) return false;
-    const proEmail = localStorage.getItem(PRO_EMAIL_KEY);
-    if (loggedInEmail && proEmail && loggedInEmail.toLowerCase() !== proEmail.toLowerCase()) return false;
-    return true;
-  });
+  // All features unlocked for all users
+  const [isPro, setIsPro] = useState<boolean>(true);
   const [proEmail, setProEmail] = useState<string | null>(
     () => localStorage.getItem(PRO_EMAIL_KEY)
   );
@@ -331,5 +325,5 @@ export function useProStatus() {
     }
   }, [markPro]);
 
-  return { isPro, proEmail, proPlan, promoExpiresAt, loading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, clearPro, redeemPromo, verifyProForEmail };
+  return { isPro: true, proEmail, proPlan, promoExpiresAt, loading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, clearPro, redeemPromo, verifyProForEmail };
 }
