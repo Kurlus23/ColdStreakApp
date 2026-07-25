@@ -374,6 +374,20 @@ export default function Home() {
     });
   }, [auth.user, authFetch, navigate]);
 
+  // Re-fetch friends list when the service worker resolves a friend request
+  // via notification action buttons (Accept / Decline) while the app is open.
+  useEffect(() => {
+    const handleSwMessage = (event: MessageEvent) => {
+      if (event.data?.type === "friend-request-resolved") {
+        loadFriends();
+      }
+    };
+    navigator.serviceWorker?.addEventListener("message", handleSwMessage);
+    return () => {
+      navigator.serviceWorker?.removeEventListener("message", handleSwMessage);
+    };
+  }, [loadFriends]);
+
   // No auto-open login modal — users discover signup organically through
   // the nudge that fires after their first plunge.
 

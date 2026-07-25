@@ -126,7 +126,18 @@ self.addEventListener("notificationclick", (e) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: actionToken, status }),
-      }).catch(() => {}) // best-effort; user can always act in-app
+      })
+        .then(() => {
+          // Tell any open app windows to refresh their friends list
+          return self.clients
+            .matchAll({ type: "window", includeUncontrolled: true })
+            .then((clientList) => {
+              for (const client of clientList) {
+                client.postMessage({ type: "friend-request-resolved" });
+              }
+            });
+        })
+        .catch(() => {}) // best-effort; user can always act in-app
     );
     return;
   }
