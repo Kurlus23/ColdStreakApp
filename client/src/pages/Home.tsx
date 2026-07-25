@@ -2903,7 +2903,7 @@ export default function Home() {
     : `${temperature}°F`;
 
   return (
-    <div className="relative overflow-hidden bg-blue-950" style={{ height: "100dvh" }}>
+    <div className="relative overflow-hidden bg-blue-950 h-full">
       {showOnboarding && (
         <Onboarding
           onComplete={() => setShowOnboarding(false)}

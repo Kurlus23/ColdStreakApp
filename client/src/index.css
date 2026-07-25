@@ -4,9 +4,18 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Prevent WebView elastic/bounce scroll on iOS and Android Capacitor */
+/* Prevent WebView elastic/bounce scroll on iOS and Android Capacitor.
+   #root is fixed to the viewport so the body has no overflowing content
+   to scroll, while still letting the native WKWebView scroll view stay
+   active (required for iOS contentInset:automatic / safe-area insets). */
 html, body {
   overscroll-behavior: none;
+}
+
+#root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
 }
 
 @layer base {
