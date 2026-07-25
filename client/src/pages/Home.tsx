@@ -4541,8 +4541,20 @@ export default function Home() {
                         if (q.length < 2) { setFriendSearchResults([]); return; }
                         setFriendsSearchLoading(true);
                         try {
-                          const r = await authFetch(`/api/users/search?q=${encodeURIComponent(q)}`).then(x => x.json());
+                          const res = await authFetch(`/api/users/search?q=${encodeURIComponent(q)}`);
+                          if (res.status === 401) {
+                            localStorage.removeItem("coldstreak-auth-token");
+                            navigate("/");
+                            return;
+                          }
+                          if (!res.ok) {
+                            toast({ title: "Search failed, please try again", variant: "destructive" });
+                            return;
+                          }
+                          const r = await res.json();
                           if (Array.isArray(r)) setFriendSearchResults(r);
+                        } catch {
+                          toast({ title: "Search failed, please try again", variant: "destructive" });
                         } finally { setFriendsSearchLoading(false); }
                       }}
                       className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
