@@ -34,6 +34,8 @@ export interface PendingFriendRequest {
   requesterUsername: string | null;
   requesterDisplayName: string | null;
   requesterAvatarUrl: string | null;
+  requesterStreak: number;
+  requesterPlungeCount: number;
   createdAt: Date;
 }
 
@@ -1728,19 +1730,55 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(friendships.addresseeId, userId), eq(friendships.status, "pending")))
       .orderBy(desc(friendships.createdAt));
 
-    // Pull avatar urls from badge_profiles
+    if (rows.length === 0) return [];
+
+    const requesterIds = rows.map(r => r.requesterId);
+
+    // Pull avatar urls from badge_profiles and plunge counts in parallel
     const requesterUsernames = rows.map(r => r.requesterUsername).filter(Boolean) as string[];
+    const [profileRows, plungeRows] = await Promise.all([
+      requesterUsernames.length > 0
+        ? db.select({ username: badgeProfiles.username, avatarUrl: badgeProfiles.avatarUrl })
+            .from(badgeProfiles).where(inArray(badgeProfiles.username, requesterUsernames))
+        : Promise.resolve([]),
+      db.select({ userId: plunges.userId, createdAt: plunges.createdAt })
+        .from(plunges).where(inArray(plunges.userId, requesterIds))
+        .orderBy(desc(plunges.createdAt)),
+    ]);
+
     const avatarMap: Record<string, string | null> = {};
-    if (requesterUsernames.length > 0) {
-      const profiles = await db.select({ username: badgeProfiles.username, avatarUrl: badgeProfiles.avatarUrl })
-        .from(badgeProfiles).where(inArray(badgeProfiles.username, requesterUsernames));
-      for (const p of profiles) avatarMap[p.username] = p.avatarUrl ?? null;
+    for (const p of profileRows) avatarMap[p.username] = p.avatarUrl ?? null;
+
+    // Group plunges by userId for stats computation
+    const plungesByUser: Record<number, Date[]> = {};
+    for (const p of plungeRows) {
+      if (!p.userId) continue;
+      if (!plungesByUser[p.userId]) plungesByUser[p.userId] = [];
+      plungesByUser[p.userId].push(new Date(p.createdAt));
     }
 
-    return rows.map(r => ({
-      ...r,
-      requesterAvatarUrl: r.requesterUsername ? (avatarMap[r.requesterUsername] ?? null) : null,
-    }));
+    function computeStreak(dates: Date[]): number {
+      if (!dates.length) return 0;
+      const dateSet = new Set(dates.map(d => d.toDateString()));
+      let streak = 0;
+      const check = new Date();
+      if (!dateSet.has(check.toDateString())) check.setDate(check.getDate() - 1);
+      while (dateSet.has(check.toDateString())) {
+        streak++;
+        check.setDate(check.getDate() - 1);
+      }
+      return streak;
+    }
+
+    return rows.map(r => {
+      const userPlunges = plungesByUser[r.requesterId] ?? [];
+      return {
+        ...r,
+        requesterAvatarUrl: r.requesterUsername ? (avatarMap[r.requesterUsername] ?? null) : null,
+        requesterPlungeCount: userPlunges.length,
+        requesterStreak: computeStreak(userPlunges),
+      };
+    });
   }
 
   async getFriends(userId: number): Promise<FriendWithStats[]> {

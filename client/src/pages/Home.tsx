@@ -345,7 +345,7 @@ export default function Home() {
 
   // Friends
   interface FriendEntry { friendshipId: number; userId: number; username: string | null; displayName: string | null; avatarUrl: string | null; streak: number; latestScore: number | null; bestScore: number | null; }
-  interface FriendRequest { friendshipId: number; requesterId: number; requesterUsername: string | null; requesterDisplayName: string | null; requesterAvatarUrl: string | null; createdAt: string; }
+  interface FriendRequest { friendshipId: number; requesterId: number; requesterUsername: string | null; requesterDisplayName: string | null; requesterAvatarUrl: string | null; requesterStreak: number; requesterPlungeCount: number; createdAt: string; }
   interface UserResult { id: number; username: string | null; displayName: string | null; avatarUrl: string | null; friendshipStatus: string | null; }
   const [friends, setFriends] = useState<FriendEntry[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
@@ -4506,7 +4506,15 @@ export default function Home() {
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="text-white text-xs font-semibold truncate">{req.requesterDisplayName || req.requesterUsername || 'Unknown'}</div>
-                          <div className="text-blue-500 text-[10px]">@{req.requesterUsername}</div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-blue-500 text-[10px]">@{req.requesterUsername}</span>
+                            {req.requesterStreak > 0 && (
+                              <span className="text-orange-400 text-[10px] font-semibold">🔥 {req.requesterStreak}d</span>
+                            )}
+                            {req.requesterPlungeCount > 0 && (
+                              <span className="text-cyan-400 text-[10px] font-semibold">❄️ {req.requesterPlungeCount}</span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex gap-1 shrink-0">
                           <button onClick={async (e) => {
