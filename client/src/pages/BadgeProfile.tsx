@@ -95,6 +95,7 @@ export default function BadgeProfile() {
     : null;
 
   const [showEdit, setShowEdit] = useState(false);
+  const [editDisplayName, setEditDisplayName] = useState("");
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
@@ -128,17 +129,33 @@ export default function BadgeProfile() {
 
   function openEdit() {
     if (!profile) return;
+    setEditDisplayName(localStorage.getItem("coldstreak-username") ?? "");
     setEditAvatarUrl(profile.avatarUrl ?? "");
     setEditBio(profile.bio ?? "");
     try { setEditLinks(JSON.parse(profile.socialLinks ?? "{}")); } catch { setEditLinks({}); }
     setShowEdit(true);
   }
 
-  function saveEdit() {
+  async function saveEdit() {
     const links: SocialLinks = {};
     for (const { key } of SOCIAL_META) {
       const val = (editLinks[key] ?? "").trim();
       if (val) links[key] = val;
+    }
+    // Save display name if changed
+    const currentDisplayName = localStorage.getItem("coldstreak-username") ?? "";
+    const newDisplayName = editDisplayName.trim();
+    if (newDisplayName && newDisplayName !== currentDisplayName) {
+      const token = getAuthToken();
+      if (token) {
+        await fetch("/api/auth/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ displayName: newDisplayName }),
+        }).then(r => r.json()).then(data => {
+          if (data.displayName) localStorage.setItem("coldstreak-username", data.displayName);
+        }).catch(() => {});
+      }
     }
     updateMeta.mutate({
       avatarUrl: editAvatarUrl.trim() || null,
@@ -258,7 +275,10 @@ export default function BadgeProfile() {
 
             {/* Info column */}
             <div className="flex-1 min-w-0">
-              <h1 data-testid="text-profile-username" className="text-white font-bold text-xl leading-tight mb-1 truncate">{profile.username}</h1>
+              <h1 data-testid="text-profile-username" className="text-white font-bold text-xl leading-tight mb-0.5 truncate">{profile.username}</h1>
+              {isOwner && localStorage.getItem("coldstreak-username") && localStorage.getItem("coldstreak-username") !== profile.username && (
+                <p className="text-blue-400 text-xs mb-1 truncate">{localStorage.getItem("coldstreak-username")}</p>
+              )}
 
               {profile.foundingPlunger && (
                 <div className="mb-1.5">
@@ -369,6 +389,20 @@ export default function BadgeProfile() {
         {isOwner && showEdit && (
           <div className="bg-blue-900/80 rounded-2xl border border-blue-700/50 px-4 py-4 space-y-4">
             <p className="text-white font-semibold text-sm">Edit Your Profile</p>
+
+            {/* Display Name */}
+            <div>
+              <label className="text-blue-300 text-xs font-semibold block mb-1">Display Name <span className="text-blue-500 font-normal">(shown on leaderboards)</span></label>
+              <input
+                data-testid="input-display-name"
+                type="text"
+                placeholder="Your display name…"
+                value={editDisplayName}
+                maxLength={24}
+                onChange={(e) => setEditDisplayName(e.target.value)}
+                className="w-full bg-blue-950/70 border border-blue-700 rounded-xl px-3 py-2 text-white text-xs placeholder:text-blue-600 focus:outline-none focus:border-cyan-500"
+              />
+            </div>
 
             {/* Avatar Upload */}
             <div>
