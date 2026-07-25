@@ -18,11 +18,11 @@ html, body {
   overflow: hidden;
 }
 
-/* --nav-bottom: height the bottom nav occupies.
-   Capacitor's contentInset:automatic already handles the iOS home-indicator
-   safe area at the native layer, so we only need the nav height here. */
+/* --nav-bottom: total space the bottom nav occupies (height + home-indicator gap).
+   The nav bar itself is lifted by env(safe-area-inset-bottom) so the app
+   background shows in the safe zone — no extra filled "bar" visible. */
 :root {
-  --nav-bottom: 5rem;
+  --nav-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
 }
 
 @layer base {
