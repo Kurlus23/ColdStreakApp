@@ -9,7 +9,7 @@ import Stripe from "stripe";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail, sendAdminSecurityAlert, sendSupportEmail, sendAdminReplyEmail, sendCoManagerInviteEmail, sendFriendInviteEmail } from "./email";
+import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail, sendAdminSecurityAlert, sendSupportEmail, sendAdminReplyEmail, sendCoManagerInviteEmail, sendFriendInviteEmail, sendBroadcastEmail } from "./email";
 import webpush from "web-push";
 
 webpush.setVapidDetails(
@@ -1757,6 +1757,42 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
     const report = await storage.getUserActivityReport();
     res.json(report);
+  });
+
+  // Admin: send a broadcast email to all (or a filtered subset of) users
+  app.post("/api/admin/broadcast-email", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const parsed = z.object({
+      subject: z.string().min(1).max(300),
+      body: z.string().min(1).max(100000),
+      audience: z.enum(["all", "verified", "pro", "free", "active-30"]),
+    }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0].message });
+    const { subject, body, audience } = parsed.data;
+
+    const report = await storage.getUserActivityReport();
+    const now = Date.now();
+    let targets = report;
+    if (audience === "verified")   targets = report.filter(u => u.emailVerified && !u.isAdmin);
+    else if (audience === "pro")   targets = report.filter(u => u.isPro && !u.isAdmin);
+    else if (audience === "free")  targets = report.filter(u => !u.isPro && !u.isAdmin && u.emailVerified);
+    else if (audience === "active-30") targets = report.filter(u => u.lastPlungeAt && new Date(u.lastPlungeAt).getTime() > now - 30 * 86400000 && !u.isAdmin);
+    else /* all */ targets = report.filter(u => !u.isAdmin);
+
+    let sent = 0, failed = 0;
+    for (let i = 0; i < targets.length; i++) {
+      try {
+        await sendBroadcastEmail(targets[i].email, subject, body);
+        sent++;
+      } catch (err) {
+        console.error(`[broadcast] failed for ${targets[i].email}:`, err);
+        failed++;
+      }
+      if ((i + 1) % 10 === 0) await new Promise(r => setTimeout(r, 250));
+    }
+    console.log(`[admin/broadcast] subject="${subject}" audience=${audience} sent=${sent} failed=${failed} total=${targets.length} by=${caller?.email}`);
+    res.json({ sent, failed, total: targets.length });
   });
 
   app.get("/api/admin/visits/recent", async (req, res) => {

@@ -38,6 +38,24 @@ async function sendEmail(to: string, subject: string, html: string): Promise<voi
   console.log("[email] Sent successfully to:", to, "subject:", subject);
 }
 
+export async function sendBroadcastEmail(to: string, subject: string, bodyText: string): Promise<void> {
+  // Convert newlines to <br> for HTML rendering, wrap in branded template
+  const bodyHtml = bodyText
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
+  await sendEmail(to, subject, `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">
+      <h1 style="color:#22d3ee;margin:0 0 24px;font-size:22px">🧊 ColdStreak</h1>
+      <div style="line-height:1.75;font-size:15px;color:#cbd5e1;">${bodyHtml}</div>
+      <hr style="border:none;border-top:1px solid #1e3a5f;margin:28px 0;" />
+      <p style="color:#475569;font-size:12px;margin:0;line-height:1.6;">
+        You received this because you have a ColdStreak account.<br>
+        — The ColdStreak Team 🥶
+      </p>
+    </div>
+  `);
+}
+
 export async function sendFriendInviteEmail(to: string, inviterName: string, appUrl: string): Promise<void> {
   await sendEmail(to, `${inviterName} wants to be your ColdStreak friend! 🧊`, `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">

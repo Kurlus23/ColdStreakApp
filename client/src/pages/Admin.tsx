@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { GripVertical, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
 
 // ─── Reorderable admin tiles ─────────────────────────────────────────────
-type TileId = "top-tools" | "visitors" | "user-activity" | "users" | "bottom-panels";
-const DEFAULT_TILE_ORDER: TileId[] = ["top-tools", "visitors", "user-activity", "users", "bottom-panels"];
+type TileId = "top-tools" | "visitors" | "user-activity" | "users" | "mass-email" | "bottom-panels";
+const DEFAULT_TILE_ORDER: TileId[] = ["top-tools", "visitors", "user-activity", "users", "mass-email", "bottom-panels"];
 const TILE_ORDER_KEY = "coldstreak-admin-tile-order-v1";
 
 function useTileOrder() {
@@ -327,6 +327,14 @@ export default function Admin() {
   const [confirmDeleteEvent, setConfirmDeleteEvent] = useState<number | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("issues-first");
   const [activitySort, setActivitySort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
+
+  // Mass email
+  const [massSubject, setMassSubject] = useState("");
+  const [massBody, setMassBody] = useState("");
+  const [massAudience, setMassAudience] = useState<"all" | "verified" | "pro" | "free" | "active-30">("verified");
+  const [massSending, setMassSending] = useState(false);
+  const [massResult, setMassResult] = useState<{ sent: number; failed: number; total: number } | null>(null);
+  const [massConfirmed, setMassConfirmed] = useState(false);
 
   // Email lookup
   const [lookupEmail, setLookupEmail] = useState("");
@@ -648,13 +656,14 @@ export default function Admin() {
     "visitors": "Visitors",
     "user-activity": "Activity",
     "users": "Users",
+    "mass-email": "Email",
     "bottom-panels": "Panels",
   };
 
   // Build the JSX for each tile up-front so we can render them in any order.
   const tiles: Record<TileId, ReactNode> = {} as Record<TileId, ReactNode>;
   tiles["top-tools"] = (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5 max-w-5xl">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
         {/* Customer Lookup */}
         <div className="bg-blue-900/60 rounded-xl p-4">
           <p className="text-sm font-semibold text-blue-200 mb-1">Customer Lookup</p>
@@ -815,7 +824,7 @@ export default function Admin() {
   );
 
   tiles["visitors"] = visitStats ? (
-        <div className="mb-6 max-w-5xl">
+        <div className="mb-6">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-base font-bold text-white">Real Visitors <span className="text-xs font-normal text-slate-400">(server-side, our own count)</span></h2>
           </div>
@@ -879,12 +888,13 @@ export default function Admin() {
       return 0;
     });
   })();
-  const activityTh = (key: string, label: string, opts?: { right?: boolean; title?: string }) => {
+  const activityTh = (key: string, label: string, opts?: { right?: boolean; title?: string; minWidth?: string }) => {
     const active = activitySort?.key === key;
     const arrow = active ? (activitySort!.dir === "desc" ? " ▼" : " ▲") : "";
     return (
       <th
         className={`${opts?.right ? "text-right" : "text-left"} px-3 py-2 cursor-pointer select-none hover:text-white whitespace-nowrap ${active ? "text-cyan-300" : ""}`}
+        style={opts?.minWidth ? { minWidth: opts.minWidth } : undefined}
         title={opts?.title ?? "Click to sort"}
         data-testid={`th-activity-${key}`}
         onClick={() =>
@@ -903,7 +913,7 @@ export default function Admin() {
   };
 
   tiles["user-activity"] = userActivity && sortedActivity ? (
-        <div className="mb-6 max-w-7xl">
+        <div className="mb-6">
           <h2 className="text-base font-bold text-white mb-2">
             User Activity <span className="text-xs font-normal text-slate-400">({userActivity.length} accounts)</span>
           </h2>
@@ -926,7 +936,7 @@ export default function Admin() {
                   {activityTh("lastShare", "Last Share")}
                   {activityTh("lastApi", "Last API Hit")}
                   {activityTh("platforms", "Platforms")}
-                  {activityTh("location", "Location")}
+                  {activityTh("location", "Location", { minWidth: "160px" })}
                 </tr>
               </thead>
               <tbody>
@@ -1045,7 +1055,7 @@ export default function Admin() {
   tiles["users"] = (
     <>
       {isLoading && <p className="text-blue-300 mb-4">Loading…</p>}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6 max-w-5xl">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
 
         {/* Pro Users */}
         {proUsers && (
@@ -1281,8 +1291,146 @@ export default function Admin() {
     </>
   );
 
+  tiles["mass-email"] = (
+    <div className="mb-6">
+      <h2 className="text-base font-bold text-white mb-3">📧 Mass Email</h2>
+      <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 p-4 space-y-4 max-w-2xl">
+        <p className="text-slate-400 text-xs">Send an email blast to ColdStreak users. Emails go out via Resend with automatic rate-limiting (250 ms pause per 10 sends).</p>
+
+        {/* Audience */}
+        <div>
+          <label className="text-slate-300 text-xs font-semibold block mb-1">Audience</label>
+          <select
+            data-testid="select-mass-audience"
+            value={massAudience}
+            onChange={(e) => setMassAudience(e.target.value as typeof massAudience)}
+            className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-400"
+          >
+            <option value="verified">Verified users only</option>
+            <option value="all">All users (including unverified)</option>
+            <option value="pro">Pro subscribers only</option>
+            <option value="free">Free users (verified, non-pro)</option>
+            <option value="active-30">Active in last 30 days</option>
+          </select>
+          {userActivity && (
+            <p className="mt-1 text-xs text-slate-500">
+              ~{(() => {
+                const cutoff = Date.now() - 30 * 86400000;
+                if (massAudience === "all") return userActivity.length;
+                if (massAudience === "verified") return userActivity.filter(u => u.emailVerified && !u.isAdmin).length;
+                if (massAudience === "pro") return userActivity.filter(u => u.isPro && !u.isAdmin).length;
+                if (massAudience === "free") return userActivity.filter(u => !u.isPro && !u.isAdmin && u.emailVerified).length;
+                if (massAudience === "active-30") return userActivity.filter(u => u.lastPlungeAt && new Date(u.lastPlungeAt).getTime() > cutoff && !u.isAdmin).length;
+                return 0;
+              })()} recipients estimated
+            </p>
+          )}
+        </div>
+
+        {/* Subject */}
+        <div>
+          <label className="text-slate-300 text-xs font-semibold block mb-1">Subject</label>
+          <input
+            data-testid="input-mass-subject"
+            type="text"
+            value={massSubject}
+            onChange={(e) => setMassSubject(e.target.value)}
+            placeholder="e.g. Important ColdStreak update"
+            className="w-full bg-slate-700 border border-slate-600 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-slate-500"
+          />
+        </div>
+
+        {/* Body */}
+        <div>
+          <label className="text-slate-300 text-xs font-semibold block mb-1">
+            Message Body <span className="text-slate-500 font-normal">(plain text — line breaks preserved)</span>
+          </label>
+          <textarea
+            data-testid="input-mass-body"
+            value={massBody}
+            onChange={(e) => setMassBody(e.target.value)}
+            rows={10}
+            placeholder={"Hi there,\n\nWe wanted to let you know about some exciting changes coming to ColdStreak...\n\nStay cold,\nKevin"}
+            className="w-full bg-slate-700 border border-slate-600 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-400 placeholder-slate-500 resize-y"
+          />
+          <p className="mt-1 text-xs text-slate-500">{massBody.length} chars</p>
+        </div>
+
+        {/* Result banner */}
+        {massResult && (
+          <div className="bg-green-900/30 border border-green-700/50 rounded-lg px-4 py-2.5 text-sm text-green-300 flex items-center gap-2">
+            <span>✓</span>
+            <span>Sent <strong>{massResult.sent}</strong> of <strong>{massResult.total}</strong> — <strong>{massResult.failed}</strong> failed</span>
+          </div>
+        )}
+
+        {/* Confirm / Send */}
+        {!massConfirmed ? (
+          <Button
+            data-testid="button-mass-review"
+            disabled={!massSubject.trim() || !massBody.trim()}
+            onClick={() => { setMassConfirmed(true); setMassResult(null); }}
+            className="bg-orange-600 hover:bg-orange-500 text-white"
+          >
+            Review & Prepare Send
+          </Button>
+        ) : (
+          <div className="bg-red-950/50 border border-red-700/60 rounded-xl p-4 space-y-3">
+            <p className="text-red-300 text-sm font-semibold">⚠️ This will send a real email to users. Double-check everything below.</p>
+            <div className="text-xs text-slate-300 space-y-1">
+              <p><span className="text-slate-500">Audience:</span> <span className="font-semibold text-white">{massAudience}</span></p>
+              <p><span className="text-slate-500">Subject:</span> <span className="font-mono text-white">{massSubject}</span></p>
+              <p><span className="text-slate-500">Body preview:</span> <span className="text-slate-300">{massBody.slice(0, 120)}{massBody.length > 120 ? "…" : ""}</span></p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                data-testid="button-mass-send"
+                disabled={massSending}
+                onClick={async () => {
+                  setMassSending(true);
+                  setMassResult(null);
+                  try {
+                    const res = await fetch("/api/admin/broadcast-email", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}`,
+                      },
+                      body: JSON.stringify({ subject: massSubject, body: massBody, audience: massAudience }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
+                    setMassResult(data);
+                    setMassConfirmed(false);
+                    setMassSubject("");
+                    setMassBody("");
+                    toast({ title: `Email blast sent`, description: `${data.sent} delivered, ${data.failed} failed.` });
+                  } catch (err: any) {
+                    toast({ title: "Send failed", description: err.message, variant: "destructive" });
+                  } finally {
+                    setMassSending(false);
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-500 text-white"
+              >
+                {massSending ? "Sending…" : "✉️ Confirm & Send Now"}
+              </Button>
+              <Button
+                variant="outline"
+                className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                onClick={() => setMassConfirmed(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   tiles["bottom-panels"] = (
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 max-w-5xl">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
         {/* Left column: Inbox + Business Locations */}
         <div className="space-y-4">
