@@ -4494,7 +4494,11 @@ export default function Home() {
                     {pendingRequests.length === 0 ? (
                       <p className="text-blue-400 text-xs text-center py-4">No pending requests</p>
                     ) : pendingRequests.map(req => (
-                      <div key={req.friendshipId} className="flex items-center gap-2 bg-blue-950/60 rounded-xl px-3 py-2.5 border border-blue-800/40">
+                      <div
+                        key={req.friendshipId}
+                        className="flex items-center gap-2 bg-blue-950/60 rounded-xl px-3 py-2.5 border border-blue-800/40 cursor-pointer hover:bg-blue-900/60 transition-colors active:scale-[0.98]"
+                        onClick={() => { if (req.requesterUsername) navigate(`/profile/${encodeURIComponent(req.requesterUsername)}`); }}
+                      >
                         {req.requesterAvatarUrl ? (
                           <img src={req.requesterAvatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-blue-700/50" />
                         ) : (
@@ -4507,12 +4511,14 @@ export default function Home() {
                           <div className="text-blue-500 text-[10px]">@{req.requesterUsername}</div>
                         </div>
                         <div className="flex gap-1 shrink-0">
-                          <button onClick={async () => {
+                          <button onClick={async (e) => {
+                            e.stopPropagation();
                             await authFetch('/api/friends/respond', { method: 'POST', body: JSON.stringify({ friendshipId: req.friendshipId, status: 'accepted' }) });
                             await loadFriends();
                             setFriendsView('leaderboard');
                           }} className="px-2 py-1 rounded-lg bg-cyan-600 text-white text-[10px] font-bold hover:bg-cyan-500 active:scale-95 transition-all">✓ Accept</button>
-                          <button onClick={async () => {
+                          <button onClick={async (e) => {
+                            e.stopPropagation();
                             await authFetch('/api/friends/respond', { method: 'POST', body: JSON.stringify({ friendshipId: req.friendshipId, status: 'declined' }) });
                             await loadFriends();
                           }} className="px-2 py-1 rounded-lg bg-blue-800/80 border border-blue-700 text-blue-400 text-[10px] font-bold hover:border-blue-500 active:scale-95 transition-all">✕</button>
