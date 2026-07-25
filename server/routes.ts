@@ -1478,7 +1478,12 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
       }
 
       const ok = await storage.respondFriendRequest(payload.friendshipId, payload.addresseeId, status);
-      if (!ok) return res.status(404).json({ error: "Request not found or already handled" });
+      if (!ok) {
+        return res.status(409).json({
+          error: "This friend request has already been responded to.",
+          alreadyHandled: true,
+        });
+      }
       res.json({ success: true });
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ error: err.errors[0].message });

@@ -127,17 +127,32 @@ self.addEventListener("notificationclick", (e) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: actionToken, status }),
       })
-        .then(() => {
-          // Tell any open app windows to refresh their friends list
-          return self.clients
-            .matchAll({ type: "window", includeUncontrolled: true })
-            .then((clientList) => {
-              for (const client of clientList) {
-                client.postMessage({ type: "friend-request-resolved" });
-              }
-            });
+        .then(async (response) => {
+          const broadcastToClients = (msg) =>
+            self.clients
+              .matchAll({ type: "window", includeUncontrolled: true })
+              .then((clientList) => {
+                for (const client of clientList) client.postMessage(msg);
+              });
+
+          if (response.ok) {
+            // Tell any open app windows to refresh their friends list
+            return broadcastToClients({ type: "friend-request-resolved" });
+          }
+
+          // The request was already handled (duplicate tap or stale notification)
+          let body = {};
+          try { body = await response.json(); } catch {}
+          const alreadyHandled = body.alreadyHandled === true || response.status === 409;
+          return broadcastToClients({
+            type: "friend-action-failed",
+            alreadyHandled,
+            message: alreadyHandled
+              ? "This request was already responded to."
+              : (body.error || "Something went wrong. Please try again in the app."),
+          });
         })
-        .catch(() => {}) // best-effort; user can always act in-app
+        .catch(() => {}) // network failure — user can always act in-app
     );
     return;
   }
