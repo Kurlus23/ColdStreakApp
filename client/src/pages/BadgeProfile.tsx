@@ -117,7 +117,6 @@ export default function BadgeProfile() {
     : null;
 
   const [showEdit, setShowEdit] = useState(false);
-  const [editDisplayName, setEditDisplayName] = useState("");
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
@@ -207,7 +206,6 @@ export default function BadgeProfile() {
 
   function openEdit() {
     if (!profile) return;
-    setEditDisplayName(localStorage.getItem("coldstreak-username") ?? "");
     setEditAvatarUrl(profile.avatarUrl ?? "");
     setEditBio(profile.bio ?? "");
     setEditUsername(username ?? "");
@@ -235,20 +233,6 @@ export default function BadgeProfile() {
         body: JSON.stringify({ username: newUsername }),
       }).then(r => r.json()).catch(() => null);
       if (data?.username) navigateToUsername = data.username;
-    }
-    // Save display name if changed
-    const currentDisplayName = localStorage.getItem("coldstreak-username") ?? "";
-    const newDisplayName = editDisplayName.trim();
-    if (newDisplayName && newDisplayName !== currentDisplayName) {
-      if (token) {
-        await fetch("/api/auth/profile", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ displayName: newDisplayName }),
-        }).then(r => r.json()).then(data => {
-          if (data.displayName) localStorage.setItem("coldstreak-username", data.displayName);
-        }).catch(() => {});
-      }
     }
     updateMeta.mutate({
       avatarUrl: editAvatarUrl.trim() || null,

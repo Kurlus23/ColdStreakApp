@@ -5526,26 +5526,6 @@ export default function Home() {
                     {accountNameStatus === "idle" && <p className="text-blue-500 text-xs mt-1">Your unique login handle.</p>}
                   </div>
 
-                  {/* Display name */}
-                  <div>
-                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Display Name</label>
-                    <input
-                      data-testid="input-account-displayname"
-                      type="text"
-                      placeholder="Enter your display name…"
-                      value={username}
-                      maxLength={24}
-                      onChange={(e) => { setUsername(e.target.value); localStorage.setItem("coldstreak-username", e.target.value); }}
-                      onBlur={(e) => {
-                        const token = localStorage.getItem("coldstreak-auth-token");
-                        if (!token || !e.target.value.trim()) return;
-                        fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ displayName: e.target.value.trim() }) }).catch(() => {});
-                      }}
-                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-                    />
-                    <p className="text-blue-500 text-xs mt-1">Shown on leaderboards.</p>
-                  </div>
-
                   {/* Body weight */}
                   <div>
                     <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Body Weight</label>
