@@ -4,25 +4,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Prevent WebView elastic/bounce scroll on iOS and Android Capacitor.
-   #root is clamped to the safe area so every absolute child lands correctly
-   without needing env() values in individual components. */
 html, body {
   overscroll-behavior: none;
-}
-
-#root {
-  position: fixed;
-  top: env(safe-area-inset-top, 0px);
-  bottom: env(safe-area-inset-bottom, 0px);
-  left: env(safe-area-inset-left, 0px);
-  right: env(safe-area-inset-right, 0px);
-  overflow: hidden;
-}
-
-/* Nav height only — safe-area already baked into #root bounds. */
-:root {
-  --nav-bottom: 5rem;
 }
 
 @layer base {

@@ -7,3 +7,4 @@
 - [Post-plunge photo removed](post-plunge-photo-removed.md) — photo capture UI was deliberately removed from the plunge-complete sheet; don't treat as regression or re-add unasked.
 - [Mockup sandbox registry restart](mockup-sandbox-registry-restart.md) — new mockup files need a preview-server workflow restart; screenshot previews via external_url only.
 - [Mockup sandbox gotchas](mockup-sandbox-gotchas.md) — only import packages in the sandbox package.json (react-icons breaks React); cache-bust repeat screenshots.
+- [iOS bounce/scroll + home-indicator fix](ios-bounce-scroll-fix.md) — correct fix needs contentInset:"never" + #root clamped by env(); all CSS-only approaches fail with contentInset:"automatic".

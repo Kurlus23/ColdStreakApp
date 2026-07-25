@@ -19,7 +19,7 @@ const config: CapacitorConfig = {
     },
   },
   ios: {
-    contentInset: "never",
+    contentInset: "automatic",
     backgroundColor: "#0f1f3d",
     minVersion: "15.0",
   },
