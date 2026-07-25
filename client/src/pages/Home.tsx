@@ -354,7 +354,8 @@ export default function Home() {
   const [friends, setFriends] = useState<FriendEntry[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
-  const [friendsView, setFriendsView] = useState<'leaderboard' | 'requests' | 'add'>('leaderboard');
+  const [friendsView, setFriendsView] = useState<'friends' | 'add'>('friends');
+  const [friendsSort, setFriendsSort] = useState<'streak' | 'score'>('streak');
   const [friendSearch, setFriendSearch] = useState('');
   const [friendSearchResults, setFriendSearchResults] = useState<UserResult[]>([]);
   const [friendsSearchLoading, setFriendsSearchLoading] = useState(false);
@@ -4987,27 +4988,26 @@ export default function Home() {
 
             {auth.user && (<>
 
-              {/* Sub-tabs */}
+              {/* Sub-tabs: Friends | Add */}
               <div className="flex px-4 pb-3 gap-1.5 shrink-0">
-                {(['leaderboard', 'requests', 'add'] as const).map((v) => (
-                  <button key={v} onClick={() => setFriendsView(v)}
-                    className={`flex-1 py-2 rounded-xl text-[11px] font-bold transition-all border ${friendsView === v ? 'bg-cyan-500/20 border-cyan-500/50 text-white' : 'text-blue-400 hover:text-blue-200 border-transparent'}`}>
-                    {v === 'leaderboard' ? '🏆 Leaderboard'
-                    : v === 'requests' ? (
-                      <span className="flex items-center justify-center gap-1">
-                        👥 Requests
-                        {pendingRequests.length > 0 && (
-                          <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">{pendingRequests.length}</span>
-                        )}
-                      </span>
-                    ) : '➕ Add'}
-                  </button>
-                ))}
+                <button onClick={() => setFriendsView('friends')}
+                  className={`flex-1 py-2 rounded-xl text-[11px] font-bold transition-all border ${friendsView === 'friends' ? 'bg-cyan-500/20 border-cyan-500/50 text-white' : 'text-blue-400 hover:text-blue-200 border-transparent'}`}>
+                  👥 Friends
+                </button>
+                <button onClick={() => setFriendsView('add')}
+                  className={`flex-1 py-2 rounded-xl text-[11px] font-bold transition-all border ${friendsView === 'add' ? 'bg-cyan-500/20 border-cyan-500/50 text-white' : 'text-blue-400 hover:text-blue-200 border-transparent'}`}>
+                  <span className="flex items-center justify-center gap-1">
+                    ➕ Add
+                    {pendingRequests.length > 0 && (
+                      <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">{pendingRequests.length}</span>
+                    )}
+                  </span>
+                </button>
               </div>
 
-              {/* ── Leaderboard tab ── */}
-              {friendsView === 'leaderboard' && (
-                <div className="flex-1 px-4 pb-4 space-y-2 overflow-y-auto">
+              {/* ── Friends tab ── */}
+              {friendsView === 'friends' && (
+                <div className="flex-1 px-4 pb-4 space-y-2 overflow-y-auto overscroll-none">
                   {friendsLoading ? (
                     <div className="flex items-center justify-center py-10">
                       <span className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
@@ -5016,124 +5016,132 @@ export default function Home() {
                     <div className="flex flex-col items-center justify-center gap-3 py-10">
                       <span className="text-4xl">🧊</span>
                       <p className="text-white font-semibold text-sm">No friends yet</p>
-                      <p className="text-blue-400 text-xs text-center">Add friends to see the leaderboard and compete!</p>
+                      <p className="text-blue-400 text-xs text-center leading-relaxed">Add friends to compare streaks and scores.</p>
                       <button
                         onClick={() => setFriendsView('add')}
                         className="px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold hover:bg-cyan-500/30 transition-colors active:scale-95"
                       >➕ Add Friends</button>
                     </div>
-                  ) : (
-                    friends.map((f, i) => (
-                      <div key={f.friendshipId} className="flex items-center gap-3 bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40 active:scale-[0.99] transition-transform">
-                        {/* Rank */}
-                        <span className={`font-bold text-sm w-5 shrink-0 text-center ${i === 0 ? "text-yellow-400" : i === 1 ? "text-slate-300" : i === 2 ? "text-amber-600" : "text-blue-600"}`}>{i + 1}</span>
-                        {/* Avatar */}
-                        {f.avatarUrl ? (
-                          <img src={f.avatarUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 border border-blue-700/50" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-xl bg-blue-800/80 border border-blue-700/50 flex items-center justify-center shrink-0">
-                            <User className="w-4 h-4 text-blue-500" />
-                          </div>
-                        )}
-                        {/* Name + stats */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-semibold truncate">{f.displayName || f.username || "Friend"}</p>
-                          <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                            {f.streak > 0 && <span className="text-orange-400 text-[11px] font-bold">🔥 {f.streak}</span>}
-                            {f.latestScore != null && <span className="text-blue-400 text-[11px]">⚡ {f.latestScore.toFixed(1)}</span>}
-                            {f.bestScore != null && <span className="text-cyan-400/70 text-[10px]">best {f.bestScore.toFixed(1)}</span>}
-                          </div>
-                        </div>
-                        {/* Challenge */}
-                        <button
-                          data-testid={`button-challenge-${f.userId}`}
-                          onClick={async () => {
-                            if (challengingId === f.userId) return;
-                            setChallengingId(f.userId);
-                            await sendFriendChallengeImpl(f.userId, f.displayName || f.username || "Friend", {
-                              authFetch, navigate, toast,
-                              clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
-                            });
-                            setChallengingId(null);
-                          }}
-                          disabled={challengingId === f.userId}
-                          className="shrink-0 px-2.5 py-1.5 rounded-xl bg-orange-500/20 border border-orange-500/40 text-orange-300 text-[10px] font-bold hover:bg-orange-500/30 transition-colors active:scale-95 disabled:opacity-40"
-                        >{challengingId === f.userId ? "…" : "⚡ Challenge"}</button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-
-              {/* ── Requests tab ── */}
-              {friendsView === 'requests' && (
-                <div className="flex-1 px-4 pb-4 space-y-3 overflow-y-auto">
-                  {pendingRequests.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center gap-3 py-10">
-                      <span className="text-4xl">📭</span>
-                      <p className="text-white font-semibold text-sm">No pending requests</p>
-                      <p className="text-blue-400 text-xs text-center">Friend requests you receive will appear here.</p>
+                  ) : (<>
+                    {/* Sort toggle */}
+                    <div className="flex gap-1 bg-blue-900/40 rounded-xl p-1 mb-1 shrink-0">
+                      <button
+                        onClick={() => setFriendsSort('streak')}
+                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${friendsSort === 'streak' ? 'bg-blue-800 text-white' : 'text-blue-500 hover:text-blue-300'}`}
+                      >🔥 Streak</button>
+                      <button
+                        onClick={() => setFriendsSort('score')}
+                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${friendsSort === 'score' ? 'bg-blue-800 text-white' : 'text-blue-500 hover:text-blue-300'}`}
+                      >⚡ Best Score</button>
                     </div>
-                  ) : (
-                    pendingRequests.map((req) => (
-                      <div key={req.friendshipId} className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
-                        <div className="flex items-center gap-3">
-                          {req.requesterAvatarUrl ? (
-                            <img src={req.requesterAvatarUrl} alt="" className="w-10 h-10 rounded-xl object-cover border border-blue-700/50 shrink-0" />
+                    {[...friends]
+                      .sort((a, b) => friendsSort === 'streak'
+                        ? (b.streak - a.streak) || ((b.bestScore ?? 0) - (a.bestScore ?? 0))
+                        : ((b.bestScore ?? 0) - (a.bestScore ?? 0)) || (b.streak - a.streak)
+                      )
+                      .map((f) => (
+                        <div key={f.friendshipId} className="flex items-center gap-3 bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40">
+                          {/* Avatar */}
+                          {f.avatarUrl ? (
+                            <img src={f.avatarUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 border border-blue-700/50" />
                           ) : (
                             <div className="w-10 h-10 rounded-xl bg-blue-800/80 border border-blue-700/50 flex items-center justify-center shrink-0">
-                              <User className="w-5 h-5 text-blue-500" />
+                              <User className="w-4 h-4 text-blue-500" />
                             </div>
                           )}
+                          {/* Name + stats */}
                           <div className="flex-1 min-w-0">
-                            <p className="text-white font-semibold text-sm truncate">{req.requesterDisplayName || req.requesterUsername || "Someone"}</p>
-                            <div className="flex items-center gap-3 mt-0.5">
-                              {req.requesterStreak > 0 && <span className="text-orange-400 text-[11px]">🔥 {req.requesterStreak} streak</span>}
-                              <span className="text-blue-400 text-[11px]">{req.requesterPlungeCount} plunge{req.requesterPlungeCount !== 1 ? "s" : ""}</span>
+                            <p className="text-white text-sm font-semibold truncate">{f.displayName || f.username || "Friend"}</p>
+                            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                              {f.streak > 0
+                                ? <span className="text-orange-400 text-[11px] font-bold">🔥 {f.streak} streak</span>
+                                : <span className="text-blue-700 text-[11px]">No streak</span>}
+                              {f.bestScore != null && <span className="text-cyan-400/80 text-[11px]">⚡ {f.bestScore.toFixed(1)} best</span>}
                             </div>
                           </div>
-                        </div>
-                        <div className="flex gap-2">
+                          {/* Challenge */}
                           <button
-                            data-testid={`button-accept-${req.friendshipId}`}
-                            onClick={async () => await respondFriendRequestImpl(req.friendshipId, 'accepted', {
-                              authFetch, navigate, toast,
-                              onSuccess: async () => { await loadFriends(); setFriendsView('leaderboard'); },
-                              clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
-                            })}
-                            className="flex-1 py-2 rounded-xl bg-green-700/50 border border-green-600/50 text-green-200 text-xs font-bold hover:bg-green-700/70 transition-colors active:scale-[0.98]"
-                          >✓ Accept</button>
-                          <button
-                            data-testid={`button-decline-${req.friendshipId}`}
-                            onClick={async () => await respondFriendRequestImpl(req.friendshipId, 'declined', {
-                              authFetch, navigate, toast,
-                              onSuccess: async () => { await loadFriends(); },
-                              clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
-                            })}
-                            className="flex-1 py-2 rounded-xl bg-blue-900/50 border border-blue-700/40 text-blue-300 text-xs font-bold hover:bg-red-900/30 hover:border-red-700/40 hover:text-red-300 transition-colors active:scale-[0.98]"
-                          >✕ Decline</button>
+                            data-testid={`button-challenge-${f.userId}`}
+                            onClick={async () => {
+                              if (challengingId === f.userId) return;
+                              setChallengingId(f.userId);
+                              await sendFriendChallengeImpl(f.userId, f.displayName || f.username || "Friend", {
+                                authFetch, navigate, toast,
+                                clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                              });
+                              setChallengingId(null);
+                            }}
+                            disabled={challengingId === f.userId}
+                            className="shrink-0 px-2.5 py-1.5 rounded-xl bg-orange-500/20 border border-orange-500/40 text-orange-300 text-[10px] font-bold hover:bg-orange-500/30 transition-colors active:scale-95 disabled:opacity-40"
+                          >{challengingId === f.userId ? "…" : "⚡ Challenge"}</button>
                         </div>
-                      </div>
-                    ))
-                  )}
+                      ))
+                    }
+                  </>)}
                 </div>
               )}
 
-              {/* ── Add tab ── */}
+              {/* ── Add tab (requests + search combined) ── */}
               {friendsView === 'add' && (
-                <div className="flex-1 px-4 pb-4 space-y-3 overflow-y-auto">
+                <div className="flex-1 px-4 pb-4 space-y-3 overflow-y-auto overscroll-none">
+
+                  {/* Pending requests section */}
+                  {pendingRequests.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-blue-400 text-[11px] font-semibold uppercase tracking-wider px-0.5">
+                        Incoming Requests · {pendingRequests.length}
+                      </p>
+                      {pendingRequests.map((req) => (
+                        <div key={req.friendshipId} className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
+                          <div className="flex items-center gap-3">
+                            {req.requesterAvatarUrl ? (
+                              <img src={req.requesterAvatarUrl} alt="" className="w-10 h-10 rounded-xl object-cover border border-blue-700/50 shrink-0" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-xl bg-blue-800/80 border border-blue-700/50 flex items-center justify-center shrink-0">
+                                <User className="w-5 h-5 text-blue-500" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white font-semibold text-sm truncate">{req.requesterDisplayName || req.requesterUsername || "Someone"}</p>
+                              <div className="flex items-center gap-3 mt-0.5">
+                                {req.requesterStreak > 0 && <span className="text-orange-400 text-[11px]">🔥 {req.requesterStreak} streak</span>}
+                                <span className="text-blue-400 text-[11px]">{req.requesterPlungeCount} plunge{req.requesterPlungeCount !== 1 ? "s" : ""}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              data-testid={`button-accept-${req.friendshipId}`}
+                              onClick={async () => await respondFriendRequestImpl(req.friendshipId, 'accepted', {
+                                authFetch, navigate, toast,
+                                onSuccess: async () => { await loadFriends(); setFriendsView('friends'); },
+                                clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                              })}
+                              className="flex-1 py-2 rounded-xl bg-green-700/50 border border-green-600/50 text-green-200 text-xs font-bold hover:bg-green-700/70 transition-colors active:scale-[0.98]"
+                            >✓ Accept</button>
+                            <button
+                              data-testid={`button-decline-${req.friendshipId}`}
+                              onClick={async () => await respondFriendRequestImpl(req.friendshipId, 'declined', {
+                                authFetch, navigate, toast,
+                                onSuccess: async () => { await loadFriends(); },
+                                clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                              })}
+                              className="flex-1 py-2 rounded-xl bg-blue-900/50 border border-blue-700/40 text-blue-300 text-xs font-bold hover:bg-red-900/30 hover:border-red-700/40 hover:text-red-300 transition-colors active:scale-[0.98]"
+                            >✕ Decline</button>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="border-t border-blue-800/60 pt-1" />
+                    </div>
+                  )}
+
                   {/* Username tip */}
                   <div className="bg-cyan-900/30 border border-cyan-700/40 rounded-xl px-3 py-2.5">
                     <p className="text-cyan-300 text-xs leading-relaxed">
-                      🔍 Friends search by your <span className="font-semibold text-white">@username</span>.{" "}
+                      🔍 Search by <span className="font-semibold text-white">@username</span>.{" "}
                       {auth.user?.username
-                        ? <>Your username: <span className="font-bold text-white">@{auth.user.username}</span></>
-                        : <>No username set?{" "}
-                            <button
-                              onClick={() => { setScreen("achievements"); }}
-                              className="underline text-cyan-200 hover:text-white transition-colors"
-                            >Set one on your profile</button>
-                          </>
+                        ? <>Yours: <span className="font-bold text-white">@{auth.user.username}</span></>
+                        : <><button onClick={() => { setScreen("achievements"); }} className="underline text-cyan-200 hover:text-white transition-colors">Set a username</button> so friends can find you.</>
                       }
                     </p>
                   </div>
@@ -5222,8 +5230,8 @@ export default function Home() {
                     </div>
                   )}
 
-                  {/* Empty prompt */}
-                  {friendSearch.length < 2 && !friendsSearchLoading && friendSearchResults.length === 0 && (
+                  {/* Empty search prompt */}
+                  {friendSearch.length < 2 && !friendsSearchLoading && friendSearchResults.length === 0 && pendingRequests.length === 0 && (
                     <p className="text-blue-600 text-xs text-center py-4">Type at least 2 characters to search</p>
                   )}
                 </div>
