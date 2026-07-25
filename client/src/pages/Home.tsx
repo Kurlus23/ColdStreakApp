@@ -357,6 +357,13 @@ export default function Home() {
   const [friendSearchResults, setFriendSearchResults] = useState<UserResult[]>([]);
   const [friendsSearchLoading, setFriendsSearchLoading] = useState(false);
   const [challengingId, setChallengingId] = useState<number | null>(null);
+  // Badge shown on the Settings nav when a friend request resolves while the
+  // user is on a different screen. Cleared when they navigate to the Friends
+  // section (Settings → User tab) and the list re-fetches.
+  const [friendsBadge, setFriendsBadge] = useState(false);
+  // Ref so the service-worker message handler can read the current screen
+  // without being stale — avoids showing a badge when already on friends.
+  const isOnFriendsScreenRef = useRef(false);
 
   const authFetch = useCallback((url: string, opts: RequestInit = {}) => {
     const token = localStorage.getItem("coldstreak-auth-token") ?? "";
@@ -378,10 +385,15 @@ export default function Home() {
 
   // Re-fetch friends list when the service worker resolves a friend request
   // via notification action buttons (Accept / Decline) while the app is open.
+  // Also shows a badge on the Settings nav when the user isn't already on the
+  // Friends screen so they know something changed.
   useEffect(() => {
     const handleSwMessage = (event: MessageEvent) => {
       if (event.data?.type === "friend-request-resolved") {
         loadFriends();
+        if (!isOnFriendsScreenRef.current) {
+          setFriendsBadge(true);
+        }
       }
     };
     navigator.serviceWorker?.addEventListener("message", handleSwMessage);
@@ -662,12 +674,21 @@ export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'user' | 'settings' | 'support'>('user');
 
-  // Load friends whenever the user tab becomes visible
+  // Load friends whenever the user tab becomes visible and clear the badge —
+  // the user has now seen the updated list.
   useEffect(() => {
     if (screen === "settings" && settingsTab === "user" && auth.user) {
       loadFriends();
+      setFriendsBadge(false);
     }
   }, [screen, settingsTab, auth.user, loadFriends]);
+
+  // Keep isOnFriendsScreenRef in sync so the SW message handler (registered
+  // earlier) can read the current screen without a stale closure. Declared
+  // here — after settingsTab — to avoid a temporal dead zone during render.
+  useEffect(() => {
+    isOnFriendsScreenRef.current = screen === "settings" && settingsTab === "user";
+  }, [screen, settingsTab]);
 
   // Intro video — disabled by default for now while we sort out the iOS WebView
   // codec issue. Flip the comparisons back to `!== "false"` to re-enable.
@@ -7784,7 +7805,12 @@ export default function Home() {
             onClick={() => navTo("settings")}
             className={`flex-1 flex flex-col items-center gap-1 transition-colors ${screen === "settings" ? "text-white" : "text-blue-500 hover:text-blue-300"}`}
           >
-            <Settings className="w-5 h-5" />
+            <div className="relative">
+              <Settings className="w-5 h-5" />
+              {friendsBadge && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-blue-950" />
+              )}
+            </div>
             <span className="text-[10px] font-semibold">Settings</span>
           </button>
         </div>
