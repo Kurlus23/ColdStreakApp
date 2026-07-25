@@ -683,7 +683,7 @@ export default function Home() {
   // Pro status
   const { isPro, proEmail, proPlan, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo, clearPro, verifyProForEmail } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<'user' | 'settings' | 'support'>('user');
+  const [settingsTab, setSettingsTab] = useState<'legal' | 'settings' | 'support'>('support');
 
   // Load friends whenever the Friends screen becomes visible and clear the badge —
   // the user has now seen the updated list.
@@ -1209,7 +1209,7 @@ export default function Home() {
       setHrScanActive(false);
       setHrScanDevices([]);
     }
-    if (next !== "settings") setSettingsTab('user');
+    if (next !== "settings") setSettingsTab('support');
     setScreen(next);
     localStorage.setItem("defaultScreen", next);
   };
@@ -4009,243 +4009,26 @@ export default function Home() {
               >✕</button>
             </div>
 
-            {/* User / Settings / Support sub-tabs */}
+            {/* Support / Device / Legal sub-tabs */}
             <div className="flex gap-1 bg-blue-900/40 rounded-2xl p-1 border border-blue-800/40">
               <button
-                data-testid="tab-settings-user"
-                onClick={() => setSettingsTab('user')}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${settingsTab === 'user' ? 'bg-blue-800/80 text-white' : 'text-blue-400 hover:text-blue-200'}`}
-              >👤 User</button>
+                data-testid="tab-settings-support"
+                onClick={() => { setSettingsTab('support'); setSupportEmail(proEmail || ''); setSupportMessage(''); setSupportCategory('bug'); }}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${settingsTab === 'support' ? 'bg-cyan-600/20 border border-cyan-500/50 text-cyan-300' : 'text-blue-400 hover:text-blue-200'}`}
+              >💬 Support</button>
               <button
                 data-testid="tab-settings-main"
                 onClick={() => setSettingsTab('settings')}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${settingsTab === 'settings' ? 'bg-blue-800/80 text-white' : 'text-blue-400 hover:text-blue-200'}`}
               >⚙ Device</button>
               <button
-                data-testid="tab-settings-support"
-                onClick={() => { setSettingsTab('support'); setSupportEmail(proEmail || ''); setSupportMessage(''); setSupportCategory('bug'); }}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${settingsTab === 'support' ? 'bg-cyan-600/20 border border-cyan-500/50 text-cyan-300' : 'text-blue-400 hover:text-blue-200'}`}
-              >💬 Support</button>
+                data-testid="tab-settings-legal"
+                onClick={() => setSettingsTab('legal')}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${settingsTab === 'legal' ? 'bg-blue-800/80 text-white' : 'text-blue-400 hover:text-blue-200'}`}
+              >📄 Legal</button>
             </div>
 
-            {settingsTab === 'user' && (<>
-
-            {/* Account */}
-            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
-              <label className="text-blue-400 text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
-                <User className="w-3 h-3" /> Account
-              </label>
-                    {auth.user ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 bg-blue-800/40 rounded-xl px-3 py-2.5 border border-blue-700/30">
-                          {auth.user.emailVerified
-                            ? <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                            : <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
-                          <span className="text-cyan-300 text-xs truncate flex-1">{auth.user.email}</span>
-                        </div>
-                        {!auth.user.emailVerified && (
-                          <div className="bg-amber-900/30 border border-amber-600/30 rounded-xl px-3 py-2.5 space-y-2">
-                            <p className="text-amber-300 text-xs">Check your inbox — and your <span className="font-semibold">junk/spam</span> folder — to verify your email address.</p>
-                            {resendSent ? (
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-green-400 text-xs flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3" /> Verification email sent
-                                </p>
-                                <button
-                                  data-testid="button-resend-verification-again"
-                                  onClick={async () => {
-                                    setResendSent(false);
-                                    await auth.resendVerification();
-                                    setResendSent(true);
-                                  }}
-                                  className="text-amber-400 text-xs underline hover:text-amber-300 transition-colors"
-                                >
-                                  Send again
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                data-testid="button-resend-verification"
-                                onClick={async (e) => {
-                                  const btn = e.currentTarget;
-                                  btn.disabled = true;
-                                  btn.textContent = "Sending…";
-                                  await auth.resendVerification();
-                                  setResendSent(true);
-                                }}
-                                className="text-amber-400 text-xs underline hover:text-amber-300 transition-colors disabled:opacity-50"
-                              >
-                                Resend verification email
-                              </button>
-                            )}
-                          </div>
-                        )}
-                        {!syncDone ? (
-                          <button
-                            data-testid="button-sync-data"
-                            onClick={handleSync}
-                            disabled={auth.loading}
-                            className="w-full py-2.5 rounded-xl bg-blue-700/60 hover:bg-blue-700 border border-blue-600 text-blue-100 text-xs font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-                          >
-                            <Upload className="w-3.5 h-3.5" />
-                            {auth.loading ? "Syncing…" : "Sync local data to account"}
-                          </button>
-                        ) : (
-                          <p className="text-green-400 text-xs flex items-center gap-1.5 px-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Local data synced to your account
-                          </p>
-                        )}
-                        {myBizListings.length > 0 && (
-                          <a
-                            href="/business"
-                            data-testid="link-business-dashboard"
-                            className="w-full py-2 rounded-xl bg-yellow-500/10 border border-yellow-600/40 text-yellow-300 text-xs font-bold text-center hover:bg-yellow-500/20 transition-colors flex items-center justify-center gap-1.5"
-                          >
-                            🏢 Business Dashboard ({myBizListings.length})
-                          </a>
-                        )}
-                        <button
-                          data-testid="button-account-signout"
-                          onClick={handleLogout}
-                          className="w-full py-2 rounded-xl bg-transparent border border-blue-700/50 text-blue-400 text-xs font-semibold hover:border-red-500/50 hover:text-red-400 transition-colors"
-                        >
-                          Sign out
-                        </button>
-                        <button
-                          data-testid="button-delete-account"
-                          onClick={() => setShowDeleteAccountConfirm(true)}
-                          className="w-full py-2 rounded-xl bg-transparent border border-red-800/40 text-red-500/70 text-xs font-semibold hover:border-red-500 hover:text-red-400 transition-colors"
-                        >
-                          Delete Account
-                        </button>
-                      </div>
-                    ) : forgotMode ? (
-                      <div className="space-y-2">
-                        {forgotSent ? (
-                          <div className="bg-green-900/30 border border-green-600/30 rounded-xl px-4 py-3 text-center">
-                            <p className="text-green-300 text-sm font-semibold mb-1">Check your inbox</p>
-                            <p className="text-green-400/80 text-xs">A reset link was sent to {authEmail}</p>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="text-blue-300 text-xs px-1">Enter your account email and we'll send a reset link.</p>
-                            <input
-                              data-testid="input-forgot-email"
-                              type="email"
-                              placeholder="Your account email"
-                              value={authEmail}
-                              onChange={(e) => setAuthEmail(e.target.value)}
-                              className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-                            />
-                            <button
-                              data-testid="button-forgot-submit"
-                              onClick={handleForgotPassword}
-                              disabled={auth.loading || !authEmail}
-                              className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-blue-950 text-sm font-bold transition-colors disabled:opacity-50"
-                            >
-                              {auth.loading ? "Sending…" : "Send Reset Link"}
-                            </button>
-                          </>
-                        )}
-                        <button
-                          onClick={() => { setForgotMode(false); setForgotSent(false); auth.clearError(); }}
-                          className="w-full py-1.5 text-blue-400 text-xs hover:text-blue-300 transition-colors"
-                        >
-                          ← Back to sign in
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="flex rounded-xl overflow-hidden border border-blue-700/50">
-                          <button
-                            data-testid="button-auth-mode-login"
-                            onClick={() => { setAuthMode("login"); auth.clearError(); }}
-                            className={`flex-1 py-2 text-xs font-semibold transition-colors ${authMode === "login" ? "bg-cyan-500 text-blue-950" : "bg-blue-800/60 text-blue-300 hover:bg-blue-700/60"}`}
-                          >Sign In</button>
-                          <button
-                            data-testid="button-auth-mode-register"
-                            onClick={() => { setAuthMode("register"); auth.clearError(); }}
-                            className={`flex-1 py-2 text-xs font-semibold transition-colors ${authMode === "register" ? "bg-cyan-500 text-blue-950" : "bg-blue-800/60 text-blue-300 hover:bg-blue-700/60"}`}
-                          >Create Account</button>
-                        </div>
-                        <input
-                          data-testid="input-auth-email"
-                          type={authMode === "register" ? "email" : "text"}
-                          placeholder={authMode === "register" ? "Email" : "Username"}
-                          autoCapitalize="none"
-                          autoCorrect="off"
-                          value={authEmail}
-                          onChange={(e) => {
-                            setAuthEmail(e.target.value);
-                            if (rememberEmail) localStorage.setItem("coldstreak-saved-email", e.target.value);
-                          }}
-                          className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-                        />
-                        <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
-                          <input
-                            data-testid="checkbox-remember-email"
-                            type="checkbox"
-                            checked={rememberEmail}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              setRememberEmail(checked);
-                              localStorage.setItem("coldstreak-remember-email", String(checked));
-                              if (checked) {
-                                localStorage.setItem("coldstreak-saved-email", authEmail);
-                              } else {
-                                localStorage.removeItem("coldstreak-saved-email");
-                              }
-                            }}
-                            className="w-3.5 h-3.5 accent-cyan-400"
-                          />
-                          <span className="text-blue-400 text-xs">Remember me</span>
-                        </label>
-                        <div className="space-y-1">
-                          <div className="relative">
-                            <input
-                              data-testid="input-auth-password"
-                              type={showPassword ? "text" : "password"}
-                              placeholder={authMode === "register" ? "Password (min 6 chars)" : "Password"}
-                              value={authPassword}
-                              onChange={(e) => setAuthPassword(e.target.value)}
-                              onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
-                              className="w-full bg-blue-800/80 border border-blue-600 rounded-xl pl-3 pr-11 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-                            />
-                            <button
-                              type="button"
-                              data-testid="button-toggle-password"
-                              onClick={() => setShowPassword((v) => !v)}
-                              aria-label={showPassword ? "Hide password" : "Show password"}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg text-blue-300 hover:text-white hover:bg-blue-700/50 transition-colors"
-                            >
-                              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                          </div>
-                          {authMode === "login" && (
-                            <button
-                              data-testid="button-forgot-password"
-                              onClick={() => { setForgotMode(true); setForgotSent(false); auth.clearError(); }}
-                              className="text-blue-500 text-xs hover:text-cyan-400 transition-colors px-1"
-                            >
-                              Forgot password?
-                            </button>
-                          )}
-                        </div>
-                        {auth.error && (
-                          <p className="text-red-400 text-xs px-1">{auth.error}</p>
-                        )}
-                        <button
-                          data-testid="button-auth-submit"
-                          onClick={handleAuthSubmit}
-                          disabled={auth.loading || !authEmail || !authPassword}
-                          className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-blue-950 text-sm font-bold transition-colors disabled:opacity-50"
-                        >
-                          {auth.loading ? "Please wait…" : authMode === "login" ? "Sign In" : "Create Account"}
-                        </button>
-                        <p className="text-blue-500 text-xs text-center">Your plunges sync across all your devices</p>
-                      </div>
-                    )}
-            </div>
+            {settingsTab === 'legal' && (<>
 
             {/* Legal & Safety */}
             <button
@@ -5073,7 +4856,7 @@ export default function Home() {
                       });
                       toast({ title: "Message sent!", description: "We'll get back to you as soon as possible." });
                       setSupportMessage("");
-                      setSettingsTab('user');
+                      setSettingsTab('support');
                     } catch {
                       toast({ title: "Could not send message", description: "Please try again or email coldstreakapp17@gmail.com", variant: "destructive" });
                     } finally {
@@ -5394,7 +5177,7 @@ export default function Home() {
                           ) : (
                             <button
                               data-testid={`button-add-friend-${u.id}`}
-                              onClick={async () => await sendFriendRequestImpl(u.id, { authFetch, navigate, toast, loadFriends, clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token") })}
+                              onClick={async () => await sendFriendRequestImpl(u.id, u.displayName || u.username || "Friend", { authFetch, navigate, toast, onSuccess: () => loadFriends(), clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token") })}
                               className="shrink-0 px-2.5 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-[10px] font-bold hover:bg-cyan-500/30 transition-colors active:scale-95"
                             >+ Add</button>
                           )}
@@ -5488,81 +5271,6 @@ export default function Home() {
           <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
             <div className="space-y-3 min-w-0">
 
-              {/* Account */}
-              {auth.user ? (
-                <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl px-5 py-5 border border-blue-800/50 space-y-4" data-testid="card-account">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-white font-bold text-lg flex items-center gap-2"><User className="w-5 h-5 text-cyan-400" /> Account</h2>
-                    {isPro ? (
-                      <span data-testid="status-pro" className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/40">Pro</span>
-                    ) : (
-                      <span data-testid="status-pro" className="text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-blue-800/60 text-blue-300 border border-blue-700/50">Free</span>
-                    )}
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Email</label>
-                    <div data-testid="text-account-email" className="text-white text-sm bg-blue-900/50 border border-blue-700/40 rounded-xl px-3 py-2.5 truncate">{auth.user.email}</div>
-                  </div>
-
-                  {/* Username */}
-                  <div>
-                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Username</label>
-                    <input
-                      data-testid="input-account-username"
-                      type="text"
-                      placeholder="username"
-                      value={accountNameDraft}
-                      maxLength={20}
-                      onChange={(e) => { setAccountNameDraft(e.target.value); if (accountNameStatus !== "idle") setAccountNameStatus("idle"); }}
-                      onBlur={(e) => saveAccountUsername(e.target.value)}
-                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-                    />
-                    {accountNameStatus === "taken" && <p data-testid="text-username-status" className="text-red-400 text-xs mt-1">That username is taken.</p>}
-                    {accountNameStatus === "invalid" && <p data-testid="text-username-status" className="text-red-400 text-xs mt-1">Use 3–20 letters, numbers, or underscores.</p>}
-                    {accountNameStatus === "saving" && <p data-testid="text-username-status" className="text-blue-400 text-xs mt-1">Saving…</p>}
-                    {accountNameStatus === "saved" && <p data-testid="text-username-status" className="text-green-400 text-xs mt-1">Saved.</p>}
-                    {accountNameStatus === "idle" && <p className="text-blue-500 text-xs mt-1">Your unique login handle.</p>}
-                  </div>
-
-                  {/* Body weight */}
-                  <div>
-                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Body Weight</label>
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const saveWeight = (val: number) => {
-                          const clamped = Math.min(400, Math.max(80, val));
-                          setBodyWeightLbs(clamped);
-                          localStorage.setItem("coldstreak-body-weight", String(clamped));
-                          const token = localStorage.getItem("coldstreak-auth-token");
-                          if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: clamped }) }).catch(() => {});
-                        };
-                        return (<>
-                          <button data-testid="button-account-weight-decrease" onClick={() => saveWeight(bodyWeightLbs - 1)}
-                            className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
-                          >−</button>
-                          <div data-testid="text-account-weight"
-                            className="w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none"
-                          >{bodyWeightLbs}</div>
-                          <button data-testid="button-account-weight-increase" onClick={() => saveWeight(bodyWeightLbs + 1)}
-                            className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
-                          >+</button>
-                          <span className="text-blue-500 text-xs">lbs ({Math.round(bodyWeightLbs / 2.205)} kg)</span>
-                        </>);
-                      })()}
-                    </div>
-                    <p className="text-blue-500 text-xs mt-1">Only used to estimate calories burned.</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl px-5 py-5 border border-blue-800/50 text-center" data-testid="card-account-signedout">
-                  <User className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                  <p className="text-white text-sm font-semibold mb-1">You're not signed in</p>
-                  <p className="text-blue-400 text-xs">Create an account from Settings to save your progress and edit your profile.</p>
-                </div>
-              )}
-
               {/* Header */}
               <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl px-5 pt-5 pb-4 border border-blue-800/50">
                 <div className="flex items-center justify-between mb-3">
@@ -5648,6 +5356,268 @@ export default function Home() {
                   </div>
                 )}
               </div>
+
+              {/* Account */}
+              {auth.user ? (
+                <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl px-5 py-5 border border-blue-800/50 space-y-4" data-testid="card-account">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-white font-bold text-lg flex items-center gap-2"><User className="w-5 h-5 text-cyan-400" /> Account</h2>
+                    {isPro ? (
+                      <span data-testid="status-pro" className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/40">Pro</span>
+                    ) : (
+                      <span data-testid="status-pro" className="text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-blue-800/60 text-blue-300 border border-blue-700/50">Free</span>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Email</label>
+                    <div data-testid="text-account-email" className="text-white text-sm bg-blue-900/50 border border-blue-700/40 rounded-xl px-3 py-2.5 truncate flex items-center gap-2">
+                      {auth.user.emailVerified
+                        ? <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                        : <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                      <span className="truncate">{auth.user.email}</span>
+                    </div>
+                  </div>
+
+                  {/* Email verification banner */}
+                  {!auth.user.emailVerified && (
+                    <div className="bg-amber-900/30 border border-amber-600/30 rounded-xl px-3 py-2.5 space-y-2">
+                      <p className="text-amber-300 text-xs">Check your inbox — and your <span className="font-semibold">junk/spam</span> folder — to verify your email address.</p>
+                      {resendSent ? (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-green-400 text-xs flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Verification email sent
+                          </p>
+                          <button
+                            data-testid="button-resend-verification-again"
+                            onClick={async () => { setResendSent(false); await auth.resendVerification(); setResendSent(true); }}
+                            className="text-amber-400 text-xs underline hover:text-amber-300 transition-colors"
+                          >Send again</button>
+                        </div>
+                      ) : (
+                        <button
+                          data-testid="button-resend-verification"
+                          onClick={async (e) => { const btn = e.currentTarget; btn.disabled = true; btn.textContent = "Sending…"; await auth.resendVerification(); setResendSent(true); }}
+                          className="text-amber-400 text-xs underline hover:text-amber-300 transition-colors disabled:opacity-50"
+                        >Resend verification email</button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Username */}
+                  <div>
+                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Username</label>
+                    <input
+                      data-testid="input-account-username"
+                      type="text"
+                      placeholder="username"
+                      value={accountNameDraft}
+                      maxLength={20}
+                      onChange={(e) => { setAccountNameDraft(e.target.value); if (accountNameStatus !== "idle") setAccountNameStatus("idle"); }}
+                      onBlur={(e) => saveAccountUsername(e.target.value)}
+                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                    />
+                    {accountNameStatus === "taken" && <p data-testid="text-username-status" className="text-red-400 text-xs mt-1">That username is taken.</p>}
+                    {accountNameStatus === "invalid" && <p data-testid="text-username-status" className="text-red-400 text-xs mt-1">Use 3–20 letters, numbers, or underscores.</p>}
+                    {accountNameStatus === "saving" && <p data-testid="text-username-status" className="text-blue-400 text-xs mt-1">Saving…</p>}
+                    {accountNameStatus === "saved" && <p data-testid="text-username-status" className="text-green-400 text-xs mt-1">Saved.</p>}
+                    {accountNameStatus === "idle" && <p className="text-blue-500 text-xs mt-1">Your unique login handle.</p>}
+                  </div>
+
+                  {/* Body weight */}
+                  <div>
+                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Body Weight</label>
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const saveWeight = (val: number) => {
+                          const clamped = Math.min(400, Math.max(80, val));
+                          setBodyWeightLbs(clamped);
+                          localStorage.setItem("coldstreak-body-weight", String(clamped));
+                          const token = localStorage.getItem("coldstreak-auth-token");
+                          if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: clamped }) }).catch(() => {});
+                        };
+                        return (<>
+                          <button data-testid="button-account-weight-decrease" onClick={() => saveWeight(bodyWeightLbs - 1)}
+                            className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
+                          >−</button>
+                          <div data-testid="text-account-weight"
+                            className="w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none"
+                          >{bodyWeightLbs}</div>
+                          <button data-testid="button-account-weight-increase" onClick={() => saveWeight(bodyWeightLbs + 1)}
+                            className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
+                          >+</button>
+                          <span className="text-blue-500 text-xs">lbs ({Math.round(bodyWeightLbs / 2.205)} kg)</span>
+                        </>);
+                      })()}
+                    </div>
+                    <p className="text-blue-500 text-xs mt-1">Only used to estimate calories burned.</p>
+                  </div>
+
+                  {/* Sync */}
+                  {!syncDone ? (
+                    <button
+                      data-testid="button-sync-data"
+                      onClick={handleSync}
+                      disabled={auth.loading}
+                      className="w-full py-2.5 rounded-xl bg-blue-700/60 hover:bg-blue-700 border border-blue-600 text-blue-100 text-xs font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      {auth.loading ? "Syncing…" : "Sync local data to account"}
+                    </button>
+                  ) : (
+                    <p className="text-green-400 text-xs flex items-center gap-1.5 px-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Local data synced to your account
+                    </p>
+                  )}
+
+                  {/* Business dashboard */}
+                  {myBizListings.length > 0 && (
+                    <a
+                      href="/business"
+                      data-testid="link-business-dashboard"
+                      className="w-full py-2 rounded-xl bg-yellow-500/10 border border-yellow-600/40 text-yellow-300 text-xs font-bold text-center hover:bg-yellow-500/20 transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      🏢 Business Dashboard ({myBizListings.length})
+                    </a>
+                  )}
+
+                  {/* Sign out / Delete */}
+                  <button
+                    data-testid="button-account-signout"
+                    onClick={handleLogout}
+                    className="w-full py-2 rounded-xl bg-transparent border border-blue-700/50 text-blue-400 text-xs font-semibold hover:border-red-500/50 hover:text-red-400 transition-colors"
+                  >Sign out</button>
+                  <button
+                    data-testid="button-delete-account"
+                    onClick={() => setShowDeleteAccountConfirm(true)}
+                    className="w-full py-2 rounded-xl bg-transparent border border-red-800/40 text-red-500/70 text-xs font-semibold hover:border-red-500 hover:text-red-400 transition-colors"
+                  >Delete Account</button>
+                </div>
+              ) : forgotMode ? (
+                <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl px-5 py-5 border border-blue-800/50" data-testid="card-account-signedout">
+                  <h2 className="text-white font-bold text-lg flex items-center gap-2 mb-4"><User className="w-5 h-5 text-cyan-400" /> Account</h2>
+                  <div className="space-y-2">
+                    {forgotSent ? (
+                      <div className="bg-green-900/30 border border-green-600/30 rounded-xl px-4 py-3 text-center">
+                        <p className="text-green-300 text-sm font-semibold mb-1">Check your inbox</p>
+                        <p className="text-green-400/80 text-xs">A reset link was sent to {authEmail}</p>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-blue-300 text-xs px-1">Enter your account email and we'll send a reset link.</p>
+                        <input
+                          data-testid="input-forgot-email"
+                          type="email"
+                          placeholder="Your account email"
+                          value={authEmail}
+                          onChange={(e) => setAuthEmail(e.target.value)}
+                          className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                        />
+                        <button
+                          data-testid="button-forgot-submit"
+                          onClick={handleForgotPassword}
+                          disabled={auth.loading || !authEmail}
+                          className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-blue-950 text-sm font-bold transition-colors disabled:opacity-50"
+                        >{auth.loading ? "Sending…" : "Send Reset Link"}</button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => { setForgotMode(false); setForgotSent(false); auth.clearError(); }}
+                      className="w-full py-1.5 text-blue-400 text-xs hover:text-blue-300 transition-colors"
+                    >← Back to sign in</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl px-5 py-5 border border-blue-800/50" data-testid="card-account-signedout">
+                  <h2 className="text-white font-bold text-lg flex items-center gap-2 mb-4"><User className="w-5 h-5 text-cyan-400" /> Account</h2>
+                  <div className="space-y-2">
+                    <div className="flex rounded-xl overflow-hidden border border-blue-700/50">
+                      <button
+                        data-testid="button-auth-mode-login"
+                        onClick={() => { setAuthMode("login"); auth.clearError(); }}
+                        className={`flex-1 py-2 text-xs font-semibold transition-colors ${authMode === "login" ? "bg-cyan-500 text-blue-950" : "bg-blue-800/60 text-blue-300 hover:bg-blue-700/60"}`}
+                      >Sign In</button>
+                      <button
+                        data-testid="button-auth-mode-register"
+                        onClick={() => { setAuthMode("register"); auth.clearError(); }}
+                        className={`flex-1 py-2 text-xs font-semibold transition-colors ${authMode === "register" ? "bg-cyan-500 text-blue-950" : "bg-blue-800/60 text-blue-300 hover:bg-blue-700/60"}`}
+                      >Create Account</button>
+                    </div>
+                    <input
+                      data-testid="input-auth-email"
+                      type={authMode === "register" ? "email" : "text"}
+                      placeholder={authMode === "register" ? "Email" : "Username"}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      value={authEmail}
+                      onChange={(e) => {
+                        setAuthEmail(e.target.value);
+                        if (rememberEmail) localStorage.setItem("coldstreak-saved-email", e.target.value);
+                      }}
+                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                    />
+                    <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
+                      <input
+                        data-testid="checkbox-remember-email"
+                        type="checkbox"
+                        checked={rememberEmail}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setRememberEmail(checked);
+                          localStorage.setItem("coldstreak-remember-email", String(checked));
+                          if (checked) {
+                            localStorage.setItem("coldstreak-saved-email", authEmail);
+                          } else {
+                            localStorage.removeItem("coldstreak-saved-email");
+                          }
+                        }}
+                        className="w-3.5 h-3.5 accent-cyan-400"
+                      />
+                      <span className="text-blue-400 text-xs">Remember me</span>
+                    </label>
+                    <div className="space-y-1">
+                      <div className="relative">
+                        <input
+                          data-testid="input-auth-password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder={authMode === "register" ? "Password (min 6 chars)" : "Password"}
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
+                          className="w-full bg-blue-800/80 border border-blue-600 rounded-xl pl-3 pr-11 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                        />
+                        <button
+                          type="button"
+                          data-testid="button-toggle-password"
+                          onClick={() => setShowPassword((v) => !v)}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg text-blue-300 hover:text-white hover:bg-blue-700/50 transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      {authMode === "login" && (
+                        <button
+                          data-testid="button-forgot-password"
+                          onClick={() => { setForgotMode(true); setForgotSent(false); auth.clearError(); }}
+                          className="text-blue-500 text-xs hover:text-cyan-400 transition-colors px-1"
+                        >Forgot password?</button>
+                      )}
+                    </div>
+                    {auth.error && (
+                      <p className="text-red-400 text-xs px-1">{auth.error}</p>
+                    )}
+                    <button
+                      data-testid="button-auth-submit"
+                      onClick={handleAuthSubmit}
+                      disabled={auth.loading || !authEmail || !authPassword}
+                      className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-blue-950 text-sm font-bold transition-colors disabled:opacity-50"
+                    >{auth.loading ? "Please wait…" : authMode === "login" ? "Sign In" : "Create Account"}</button>
+                    <p className="text-blue-500 text-xs text-center">Your plunges sync across all your devices</p>
+                  </div>
+                </div>
+              )}
 
               {/* Founding Plunger */}
               {isFoundingPlunger && (

@@ -19,6 +19,8 @@ export interface FriendRequest {
   requesterUsername: string | null;
   requesterDisplayName: string | null;
   requesterAvatarUrl: string | null;
+  requesterStreak: number;
+  requesterPlungeCount: number;
   createdAt: string;
 }
 
