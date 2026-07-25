@@ -55,6 +55,7 @@ import { MoodCheckIn } from "@/components/MoodCheckIn";
 import { loadFriends as loadFriendsImpl } from "@/lib/loadFriends";
 import { searchFriends as searchFriendsImpl } from "@/lib/searchFriends";
 import { sendFriendRequest as sendFriendRequestImpl } from "@/lib/sendFriendRequest";
+import { respondFriendRequest as respondFriendRequestImpl } from "@/lib/respondFriendRequest";
 
 // Pick a fresh cold take the user hasn't unlocked yet and persist it to the
 // unlocked collection. Falls back to a repeat only if the pool is exhausted.
@@ -4549,14 +4550,28 @@ export default function Home() {
                         <div className="flex gap-1 shrink-0">
                           <button onClick={async (e) => {
                             e.stopPropagation();
-                            await authFetch('/api/friends/respond', { method: 'POST', body: JSON.stringify({ friendshipId: req.friendshipId, status: 'accepted' }) });
-                            await loadFriends();
-                            setFriendsView('leaderboard');
+                            await respondFriendRequestImpl(req.friendshipId, 'accepted', {
+                              authFetch,
+                              navigate,
+                              toast,
+                              onSuccess: async () => {
+                                await loadFriends();
+                                setFriendsView('leaderboard');
+                              },
+                              clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                            });
                           }} className="px-2 py-1 rounded-lg bg-cyan-600 text-white text-[10px] font-bold hover:bg-cyan-500 active:scale-95 transition-all">✓ Accept</button>
                           <button onClick={async (e) => {
                             e.stopPropagation();
-                            await authFetch('/api/friends/respond', { method: 'POST', body: JSON.stringify({ friendshipId: req.friendshipId, status: 'declined' }) });
-                            await loadFriends();
+                            await respondFriendRequestImpl(req.friendshipId, 'declined', {
+                              authFetch,
+                              navigate,
+                              toast,
+                              onSuccess: async () => {
+                                await loadFriends();
+                              },
+                              clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                            });
                           }} className="px-2 py-1 rounded-lg bg-blue-800/80 border border-blue-700 text-blue-400 text-[10px] font-bold hover:border-blue-500 active:scale-95 transition-all">✕</button>
                         </div>
                       </div>
