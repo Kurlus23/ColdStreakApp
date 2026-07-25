@@ -5012,72 +5012,104 @@ export default function Home() {
                     <div className="flex items-center justify-center py-10">
                       <span className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
                     </div>
-                  ) : friends.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center gap-3 py-10">
-                      <span className="text-4xl">🧊</span>
-                      <p className="text-white font-semibold text-sm">No friends yet</p>
-                      <p className="text-blue-400 text-xs text-center leading-relaxed">Add friends to compare streaks and scores.</p>
-                      <button
-                        onClick={() => setFriendsView('add')}
-                        className="px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold hover:bg-cyan-500/30 transition-colors active:scale-95"
-                      >➕ Add Friends</button>
-                    </div>
-                  ) : (<>
-                    {/* Sort toggle */}
-                    <div className="flex gap-1 bg-blue-900/40 rounded-xl p-1 mb-1 shrink-0">
-                      <button
-                        onClick={() => setFriendsSort('streak')}
-                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${friendsSort === 'streak' ? 'bg-blue-800 text-white' : 'text-blue-500 hover:text-blue-300'}`}
-                      >🔥 Streak</button>
-                      <button
-                        onClick={() => setFriendsSort('score')}
-                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${friendsSort === 'score' ? 'bg-blue-800 text-white' : 'text-blue-500 hover:text-blue-300'}`}
-                      >⚡ Best Score</button>
-                    </div>
-                    {[...friends]
-                      .sort((a, b) => friendsSort === 'streak'
+                  ) : (() => {
+                    // Build "me" entry from local state so it sorts alongside friends
+                    const myBestScore = plunges.length > 0
+                      ? (() => { const s = Math.max(...plunges.map(p => parseFloat(String(p.score)) || 0)); return s > 0 ? s : null; })()
+                      : null;
+                    const meEntry = {
+                      friendshipId: -1,
+                      userId: auth.user?.id ?? -1,
+                      username: auth.user?.username ?? null,
+                      displayName: auth.user?.username ?? null,
+                      avatarUrl: ownAvatarUrl,
+                      streak,
+                      latestScore: plunges.length > 0 ? parseFloat(String(plunges[0].score)) || null : null,
+                      bestScore: myBestScore,
+                    };
+                    const sorted = [meEntry, ...friends].sort((a, b) =>
+                      friendsSort === 'streak'
                         ? (b.streak - a.streak) || ((b.bestScore ?? 0) - (a.bestScore ?? 0))
                         : ((b.bestScore ?? 0) - (a.bestScore ?? 0)) || (b.streak - a.streak)
-                      )
-                      .map((f) => (
-                        <div key={f.friendshipId} className="flex items-center gap-3 bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40">
-                          {/* Avatar */}
-                          {f.avatarUrl ? (
-                            <img src={f.avatarUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 border border-blue-700/50" />
-                          ) : (
-                            <div className="w-10 h-10 rounded-xl bg-blue-800/80 border border-blue-700/50 flex items-center justify-center shrink-0">
-                              <User className="w-4 h-4 text-blue-500" />
+                    );
+                    return (<>
+                      {/* Sort toggle */}
+                      <div className="flex gap-1 bg-blue-900/40 rounded-xl p-1 mb-1">
+                        <button
+                          onClick={() => setFriendsSort('streak')}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${friendsSort === 'streak' ? 'bg-blue-800 text-white' : 'text-blue-500 hover:text-blue-300'}`}
+                        >🔥 Streak</button>
+                        <button
+                          onClick={() => setFriendsSort('score')}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${friendsSort === 'score' ? 'bg-blue-800 text-white' : 'text-blue-500 hover:text-blue-300'}`}
+                        >⚡ Best Score</button>
+                      </div>
+
+                      {sorted.map((f) => {
+                        const isMe = f.friendshipId === -1;
+                        return (
+                          <div
+                            key={f.friendshipId}
+                            className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${
+                              isMe
+                                ? 'bg-cyan-900/40 border-cyan-700/50'
+                                : 'bg-blue-900/60 border-blue-700/40'
+                            }`}
+                          >
+                            {/* Avatar */}
+                            {f.avatarUrl ? (
+                              <img src={f.avatarUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 border border-blue-700/50" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-xl bg-blue-800/80 border border-blue-700/50 flex items-center justify-center shrink-0">
+                                <User className="w-4 h-4 text-blue-500" />
+                              </div>
+                            )}
+                            {/* Name + stats */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-white text-sm font-semibold truncate">{f.displayName || f.username || "Friend"}</p>
+                                {isMe && <span className="shrink-0 text-[9px] font-bold bg-cyan-500/30 text-cyan-300 rounded-full px-1.5 py-0.5 leading-none">you</span>}
+                              </div>
+                              <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                                {f.streak > 0
+                                  ? <span className="text-orange-400 text-[11px] font-bold">🔥 {f.streak} streak</span>
+                                  : <span className="text-blue-700 text-[11px]">No streak</span>}
+                                {f.bestScore != null && <span className="text-cyan-400/80 text-[11px]">⚡ {f.bestScore.toFixed(1)} best</span>}
+                              </div>
                             </div>
-                          )}
-                          {/* Name + stats */}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-white text-sm font-semibold truncate">{f.displayName || f.username || "Friend"}</p>
-                            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                              {f.streak > 0
-                                ? <span className="text-orange-400 text-[11px] font-bold">🔥 {f.streak} streak</span>
-                                : <span className="text-blue-700 text-[11px]">No streak</span>}
-                              {f.bestScore != null && <span className="text-cyan-400/80 text-[11px]">⚡ {f.bestScore.toFixed(1)} best</span>}
-                            </div>
+                            {/* Challenge button — only for friends, not yourself */}
+                            {!isMe && (
+                              <button
+                                data-testid={`button-challenge-${f.userId}`}
+                                onClick={async () => {
+                                  if (challengingId === f.userId) return;
+                                  setChallengingId(f.userId);
+                                  await sendFriendChallengeImpl(f.userId, f.displayName || f.username || "Friend", {
+                                    authFetch, navigate, toast,
+                                    clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                                  });
+                                  setChallengingId(null);
+                                }}
+                                disabled={challengingId === f.userId}
+                                className="shrink-0 px-2.5 py-1.5 rounded-xl bg-orange-500/20 border border-orange-500/40 text-orange-300 text-[10px] font-bold hover:bg-orange-500/30 transition-colors active:scale-95 disabled:opacity-40"
+                              >{challengingId === f.userId ? "…" : "⚡ Challenge"}</button>
+                            )}
                           </div>
-                          {/* Challenge */}
+                        );
+                      })}
+
+                      {/* No friends nudge — shown below your own entry */}
+                      {friends.length === 0 && (
+                        <div className="flex flex-col items-center gap-2 pt-3 pb-1">
+                          <p className="text-blue-500 text-xs text-center">No friends added yet.</p>
                           <button
-                            data-testid={`button-challenge-${f.userId}`}
-                            onClick={async () => {
-                              if (challengingId === f.userId) return;
-                              setChallengingId(f.userId);
-                              await sendFriendChallengeImpl(f.userId, f.displayName || f.username || "Friend", {
-                                authFetch, navigate, toast,
-                                clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
-                              });
-                              setChallengingId(null);
-                            }}
-                            disabled={challengingId === f.userId}
-                            className="shrink-0 px-2.5 py-1.5 rounded-xl bg-orange-500/20 border border-orange-500/40 text-orange-300 text-[10px] font-bold hover:bg-orange-500/30 transition-colors active:scale-95 disabled:opacity-40"
-                          >{challengingId === f.userId ? "…" : "⚡ Challenge"}</button>
+                            onClick={() => setFriendsView('add')}
+                            className="px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold hover:bg-cyan-500/30 transition-colors active:scale-95"
+                          >➕ Add Friends</button>
                         </div>
-                      ))
-                    }
-                  </>)}
+                      )}
+                    </>);
+                  })()}
                 </div>
               )}
 
