@@ -1399,6 +1399,31 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
         const requester = await storage.getUserById(caller.userId);
         const name = requester?.displayName || requester?.username || "Someone";
 
+        // Compute requester stats for the notification body
+        const requesterPlunges = await storage.getPlunges(undefined, caller.userId);
+        const plungeCount = requesterPlunges.length;
+        let streak = 0;
+        if (plungeCount > 0) {
+          const dayMs = 86400000;
+          const todayUtc = Math.floor(Date.now() / dayMs);
+          const days = requesterPlunges
+            .map((p) => Math.floor(new Date(p.createdAt).getTime() / dayMs))
+            .filter((d, i, a) => a.indexOf(d) === i)
+            .sort((a, b) => b - a);
+          if (days[0] === todayUtc || days[0] === todayUtc - 1) {
+            streak = 1;
+            for (let i = 1; i < days.length; i++) {
+              if (days[i - 1] - days[i] === 1) streak++;
+              else break;
+            }
+          }
+        }
+        const statLine = streak > 0
+          ? `🔥 ${streak}d streak · `
+          : plungeCount > 0
+          ? `🧊 ${plungeCount} plunge${plungeCount === 1 ? "" : "s"} · `
+          : "";
+
         // Build a short-lived signed token so the service worker can act without a user JWT.
         // The push payload is ECDH-encrypted in transit, so embedding this token is safe.
         const actionToken = result.friendshipId
@@ -1412,8 +1437,8 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
         const payload = JSON.stringify({
           title: `👋 ${name} sent you a friend request`,
           body: actionToken
-            ? "Tap Accept or Decline, or open the app."
-            : "Open Cold Streak to accept or decline.",
+            ? `${statLine}Tap Accept or Decline, or open the app.`
+            : `${statLine}Open Cold Streak to accept or decline.`,
           url: "/friends",
           tag: `friend-request-${caller.userId}`,
           actions: actionToken
