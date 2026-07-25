@@ -7,9 +7,6 @@
 /* Prevent WebView elastic/bounce scroll on iOS and Android Capacitor */
 html, body {
   overscroll-behavior: none;
-  overflow: hidden;
-  height: 100%;
-  width: 100%;
 }
 
 @layer base {
