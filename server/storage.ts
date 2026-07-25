@@ -24,6 +24,7 @@ export interface FriendWithStats {
   displayName: string | null;
   avatarUrl: string | null;
   streak: number;
+  plungedToday: boolean;
   latestScore: number | null;
   bestScore: number | null;
 }
@@ -1821,7 +1822,9 @@ export class DatabaseStorage implements IStorage {
       const bestScore = friendPlunges.length > 0 ? Math.max(...friendPlunges.map(p => Number(p.score))) : null;
 
       // Compute streak: consecutive days ending today or yesterday
+      const today = new Date().toDateString();
       const dateSet = new Set(friendPlunges.map(p => new Date(p.createdAt).toDateString()));
+      const plungedToday = dateSet.has(today);
       let streak = 0;
       const check = new Date();
       // If no plunge today, check if yesterday starts the streak
@@ -1838,6 +1841,7 @@ export class DatabaseStorage implements IStorage {
         displayName: friend.displayName,
         avatarUrl: friend.username ? (avatarMap[friend.username] ?? null) : null,
         streak,
+        plungedToday,
         latestScore,
         bestScore,
       });

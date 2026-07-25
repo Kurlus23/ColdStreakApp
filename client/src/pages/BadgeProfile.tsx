@@ -40,7 +40,7 @@ interface SocialLinks {
   youtube?: string;
 }
 
-interface FriendEntry { friendshipId: number; userId: number; username: string | null; displayName: string | null; avatarUrl: string | null; streak: number; latestScore: number | null; bestScore: number | null; }
+interface FriendEntry { friendshipId: number; userId: number; username: string | null; displayName: string | null; avatarUrl: string | null; streak: number; plungedToday: boolean; latestScore: number | null; bestScore: number | null; }
 interface FriendRequest { friendshipId: number; requesterId: number; requesterUsername: string | null; requesterDisplayName: string | null; requesterAvatarUrl: string | null; requesterStreak: number; requesterPlungeCount: number; createdAt: string; }
 interface UserResult { id: number; username: string; displayName: string | null; avatarUrl: string | null; friendshipStatus: 'none' | 'pending' | 'accepted' | 'declined'; }
 interface PlungeRecord { id: number; duration: number; temperature: number; calories: number | null; createdAt: string; }

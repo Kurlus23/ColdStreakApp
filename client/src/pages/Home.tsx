@@ -348,14 +348,14 @@ export default function Home() {
   );
 
   // Friends
-  interface FriendEntry { friendshipId: number; userId: number; username: string | null; displayName: string | null; avatarUrl: string | null; streak: number; latestScore: number | null; bestScore: number | null; }
+  interface FriendEntry { friendshipId: number; userId: number; username: string | null; displayName: string | null; avatarUrl: string | null; streak: number; plungedToday: boolean; latestScore: number | null; bestScore: number | null; }
   interface FriendRequest { friendshipId: number; requesterId: number; requesterUsername: string | null; requesterDisplayName: string | null; requesterAvatarUrl: string | null; requesterStreak: number; requesterPlungeCount: number; createdAt: string; }
   interface UserResult { id: number; username: string | null; displayName: string | null; avatarUrl: string | null; friendshipStatus: string | null; }
   const [friends, setFriends] = useState<FriendEntry[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [friendsView, setFriendsView] = useState<'friends' | 'add'>('friends');
-  const [friendsSort, setFriendsSort] = useState<'streak' | 'score'>('streak');
+  const [friendsSort, setFriendsSort] = useState<'daily' | 'score'>('daily');
   const [friendSearch, setFriendSearch] = useState('');
   const [friendSearchResults, setFriendSearchResults] = useState<UserResult[]>([]);
   const [friendsSearchLoading, setFriendsSearchLoading] = useState(false);
@@ -5014,6 +5014,8 @@ export default function Home() {
                     </div>
                   ) : (() => {
                     // Build "me" entry from local state so it sorts alongside friends
+                    const todayStr = new Date().toDateString();
+                    const myPlungedToday = plunges.some(p => new Date(p.createdAt).toDateString() === todayStr);
                     const myBestScore = plunges.length > 0
                       ? (() => { const s = Math.max(...plunges.map(p => parseFloat(String(p.score)) || 0)); return s > 0 ? s : null; })()
                       : null;
@@ -5024,21 +5026,22 @@ export default function Home() {
                       displayName: auth.user?.username ?? null,
                       avatarUrl: ownAvatarUrl,
                       streak,
+                      plungedToday: myPlungedToday,
                       latestScore: plunges.length > 0 ? parseFloat(String(plunges[0].score)) || null : null,
                       bestScore: myBestScore,
                     };
                     const sorted = [meEntry, ...friends].sort((a, b) =>
-                      friendsSort === 'streak'
-                        ? (b.streak - a.streak) || ((b.bestScore ?? 0) - (a.bestScore ?? 0))
+                      friendsSort === 'daily'
+                        ? (Number(b.plungedToday) - Number(a.plungedToday)) || (b.streak - a.streak)
                         : ((b.bestScore ?? 0) - (a.bestScore ?? 0)) || (b.streak - a.streak)
                     );
                     return (<>
                       {/* Sort toggle */}
                       <div className="flex gap-1 bg-blue-900/40 rounded-xl p-1 mb-1">
                         <button
-                          onClick={() => setFriendsSort('streak')}
-                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${friendsSort === 'streak' ? 'bg-blue-800 text-white' : 'text-blue-500 hover:text-blue-300'}`}
-                        >🔥 Streak</button>
+                          onClick={() => setFriendsSort('daily')}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${friendsSort === 'daily' ? 'bg-blue-800 text-white' : 'text-blue-500 hover:text-blue-300'}`}
+                        >📅 Daily</button>
                         <button
                           onClick={() => setFriendsSort('score')}
                           className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${friendsSort === 'score' ? 'bg-blue-800 text-white' : 'text-blue-500 hover:text-blue-300'}`}
@@ -5071,10 +5074,16 @@ export default function Home() {
                                 {isMe && <span className="shrink-0 text-[9px] font-bold bg-cyan-500/30 text-cyan-300 rounded-full px-1.5 py-0.5 leading-none">you</span>}
                               </div>
                               <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                                {f.streak > 0
-                                  ? <span className="text-orange-400 text-[11px] font-bold">🔥 {f.streak} streak</span>
-                                  : <span className="text-blue-700 text-[11px]">No streak</span>}
-                                {f.bestScore != null && <span className="text-cyan-400/80 text-[11px]">⚡ {f.bestScore.toFixed(1)} best</span>}
+                                {/* Today status */}
+                                {f.plungedToday
+                                  ? <span className="text-green-400 text-[11px] font-bold">✓ Plunged today</span>
+                                  : <span className="text-blue-600 text-[11px]">– Not yet today</span>}
+                                {/* Streak as secondary */}
+                                {f.streak > 0 && <span className="text-orange-400 text-[11px]">🔥 {f.streak}</span>}
+                                {/* Best score when on score tab */}
+                                {friendsSort === 'score' && f.bestScore != null && (
+                                  <span className="text-cyan-400/80 text-[11px]">⚡ {f.bestScore.toFixed(1)}</span>
+                                )}
                               </div>
                             </div>
                             {/* Challenge button — only for friends, not yourself */}

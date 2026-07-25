@@ -9,6 +9,7 @@ export interface FriendEntry {
   displayName: string | null;
   avatarUrl: string | null;
   streak: number;
+  plungedToday: boolean;
   latestScore: number | null;
   bestScore: number | null;
 }
