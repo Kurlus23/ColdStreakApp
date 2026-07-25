@@ -1101,6 +1101,8 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const [difficultyFilter, setDifficultyFilter] = useState<Difficulty | "All">("All");
   const [showDifficultyInfo, setShowDifficultyInfo] = useState(false);
   const [searchText, setSearchText] = useState("");
+  // Home-state filter — pre-loaded from GPS-detected state, cleared by user
+  const [homeStateFilter, setHomeStateFilter] = useState<string>(() => localStorage.getItem("coldstreak-home-state") || "");
   const [zipGeoPos, setZipGeoPos] = useState<GeoPos | null>(null);
   const [zipLabel, setZipLabel] = useState<string | null>(null);
   const [zipLoading, setZipLoading] = useState(false);
@@ -1245,6 +1247,17 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
       setGeoPos({ lat, lng });
       setGeoLoading(false);
       toast({ title: "Location found", description: `Sorting by distance within ${miles} miles.` });
+      // Background reverse geocode to persist home state for next Explore visit
+      fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=5`,
+        { headers: { "Accept-Language": "en" } }
+      ).then(r => r.json()).then(data => {
+        const state = data?.address?.state ?? data?.address?.county ?? "";
+        if (state) {
+          localStorage.setItem("coldstreak-home-state", state);
+          setHomeStateFilter(prev => prev || state);
+        }
+      }).catch(() => {});
     } catch {
       setGeoLoading(false);
       toast({ title: "Location denied", description: "Please allow location access in your device settings.", variant: "destructive" });
@@ -1593,9 +1606,11 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
 
   // ── Filter helpers ──
   function matchesText(tokens: (string | undefined | null)[]): boolean {
-    if (!searchText.trim()) return true;
-    if (zipGeoPos) return true; // geographic mode — show all, sorted/filtered by distance
-    const q = searchText.toLowerCase();
+    const hasText = !!searchText.trim();
+    const hasState = !!homeStateFilter && !hasText;
+    if (!hasText && !hasState) return true;
+    if (zipGeoPos && hasText) return true; // geographic mode — show all, sorted/filtered by distance
+    const q = hasText ? searchText.toLowerCase() : homeStateFilter.toLowerCase();
     return tokens.some((t) => t?.toLowerCase().includes(q));
   }
 
@@ -1869,6 +1884,19 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
           <div className="text-[11px] text-cyan-300 flex items-center gap-1 px-1">
             <MapPin className="w-3 h-3 shrink-0" />
             Searching near <span className="font-semibold">{zipLabel}</span>
+          </div>
+        )}
+        {homeStateFilter && !searchText.trim() && (
+          <div className="flex items-center gap-1.5 px-1">
+            <span className="text-[11px] text-blue-400">Showing:</span>
+            <span className="inline-flex items-center gap-1 bg-cyan-600/20 border border-cyan-500/40 text-cyan-300 text-[11px] font-semibold rounded-full px-2 py-0.5">
+              📍 {homeStateFilter}
+              <button
+                onClick={() => { setHomeStateFilter(""); localStorage.removeItem("coldstreak-home-state"); }}
+                className="ml-0.5 hover:text-white transition-colors"
+                aria-label="Clear state filter"
+              >×</button>
+            </span>
           </div>
         )}
         {/^\d{5}$/.test(searchText.trim()) && !zipLoading && !zipGeoPos && zipLabel === "Unknown zip code" && (

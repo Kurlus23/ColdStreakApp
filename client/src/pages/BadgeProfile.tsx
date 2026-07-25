@@ -1,12 +1,21 @@
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TEMP_TIERS, DAYS_TIERS, STATE_EMOJI, usePassportBadges, computeStateBadges } from "@/lib/passport";
-import { X, Pencil, Share2, ChevronDown, ChevronUp, Check, Upload, Loader2 } from "lucide-react";
+import { X, Pencil, Share2, ChevronDown, ChevronUp, Check, Upload, Loader2, Flame, Target, User } from "lucide-react";
 import { SiInstagram, SiSnapchat, SiFacebook, SiTiktok, SiX, SiYoutube } from "react-icons/si";
 import { getAuthToken } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { shareContent } from "@/lib/share";
+import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
+import { isHealthKitPossible, connectHealthKit, fetchLatestBodyWeightLbs } from "@/lib/healthKit";
+import { Capacitor } from "@capacitor/core";
+import { loadFriends as loadFriendsImpl } from "@/lib/loadFriends";
+import { searchFriends as searchFriendsImpl } from "@/lib/searchFriends";
+import { sendFriendRequest as sendFriendRequestImpl } from "@/lib/sendFriendRequest";
+import { respondFriendRequest as respondFriendRequestImpl } from "@/lib/respondFriendRequest";
+import { sendFriendChallenge as sendFriendChallengeImpl } from "@/lib/sendFriendChallenge";
 
 interface BadgeProfile {
   username: string;
@@ -31,6 +40,11 @@ interface SocialLinks {
   youtube?: string;
 }
 
+interface FriendEntry { friendshipId: number; userId: number; username: string | null; displayName: string | null; avatarUrl: string | null; streak: number; latestScore: number | null; bestScore: number | null; }
+interface FriendRequest { friendshipId: number; requesterId: number; requesterUsername: string | null; requesterDisplayName: string | null; requesterAvatarUrl: string | null; requesterStreak: number; requesterPlungeCount: number; createdAt: string; }
+interface UserResult { id: number; username: string; displayName: string | null; avatarUrl: string | null; friendshipStatus: 'none' | 'pending' | 'accepted' | 'declined'; }
+interface PlungeRecord { id: number; duration: number; temperature: number; calories: number | null; createdAt: string; }
+
 const SOCIAL_META: { key: keyof SocialLinks; label: string; Icon: React.ElementType; color: string; placeholder: string; prefix: string }[] = [
   { key: "instagram", label: "Instagram", Icon: SiInstagram, color: "text-pink-400", placeholder: "yourhandle", prefix: "https://instagram.com/" },
   { key: "snapchat", label: "Snapchat", Icon: SiSnapchat, color: "text-yellow-300", placeholder: "yourhandle", prefix: "https://snapchat.com/add/" },
@@ -39,6 +53,14 @@ const SOCIAL_META: { key: keyof SocialLinks; label: string; Icon: React.ElementT
   { key: "twitter", label: "X / Twitter", Icon: SiX, color: "text-white", placeholder: "yourhandle", prefix: "https://x.com/" },
   { key: "youtube", label: "YouTube", Icon: SiYoutube, color: "text-red-400", placeholder: "yourhandle", prefix: "https://youtube.com/@" },
 ];
+
+function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
+  const durationMin = durationSeconds / 60;
+  const tempC = (tempF - 32) * 5 / 9;
+  const deltaT = Math.max(0, 37 - tempC);
+  const weightKg = weightLbs / 2.205;
+  return Math.max(0, durationMin * deltaT * weightKg * 0.0077);
+}
 
 function computeEarnedTempTiers(coldestTemp: number | null): Set<string> {
   if (coldestTemp === null) return new Set();
@@ -102,6 +124,11 @@ export default function BadgeProfile() {
   const [editBio, setEditBio] = useState("");
   const [editLinks, setEditLinks] = useState<SocialLinks>({});
   const [saved, setSaved] = useState(false);
+  const [editUsername, setEditUsername] = useState("");
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState<null | "ok" | "taken" | "invalid">(null);
+  const [usernameStatusMsg, setUsernameStatusMsg] = useState("");
+  const usernameCheckRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: profile, isLoading, isError } = useQuery<BadgeProfile>({
     queryKey: ["/api/badge-profile", username],
@@ -116,6 +143,57 @@ export default function BadgeProfile() {
 
   // Must be called unconditionally before any early returns
   const { badges: localBadges } = usePassportBadges();
+  const { toast } = useToast();
+
+  // ── Owner-only state (hooks must be unconditional) ────────────────────────
+  const [bodyWeightLbs, setBodyWeightLbs] = useState(() => Number(localStorage.getItem("coldstreak-body-weight") || 150));
+  const weightHoldRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const weightHoldCountRef = useRef(0);
+  const weightPullInFlightRef = useRef(false);
+  const [weeklyGoalMinutes, setWeeklyGoalMinutes] = useState(() => Number(localStorage.getItem("weeklyGoalMinutes") || 30));
+  const [ownerPlunges, setOwnerPlunges] = useState<PlungeRecord[]>([]);
+  const [friends, setFriends] = useState<FriendEntry[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
+  const [friendsView, setFriendsView] = useState<'leaderboard' | 'requests' | 'add'>('leaderboard');
+  const [friendSearch, setFriendSearch] = useState('');
+  const [friendSearchResults, setFriendSearchResults] = useState<UserResult[]>([]);
+  const [friendsSearchLoading, setFriendsSearchLoading] = useState(false);
+  const [challengingId, setChallengingId] = useState<number | null>(null);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteSending, setInviteSending] = useState(false);
+
+  const authFetch = useCallback((url: string, opts: RequestInit = {}) => {
+    const token = getAuthToken() ?? "";
+    return fetch(url, { ...opts, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(opts.headers ?? {}) } });
+  }, []);
+
+  // Compute ownership before early returns so we can use it in useEffect
+  const isOwnerEarly = !!myUsername && !!username && myUsername.toLowerCase() === username.toLowerCase();
+
+  const loadFriends = useCallback(async () => {
+    if (!getAuthToken()) return;
+    await loadFriendsImpl({
+      authFetch,
+      navigate,
+      toast,
+      setFriendsLoading,
+      setFriends,
+      setPendingRequests,
+      clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+    });
+  }, [authFetch, navigate, toast]);
+
+  useEffect(() => {
+    if (!isOwnerEarly) return;
+    // Load plunges for calorie + weekly stats
+    fetch("/api/plunges", { headers: { Authorization: `Bearer ${getAuthToken() ?? ""}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(setOwnerPlunges)
+      .catch(() => {});
+    // Load friends
+    loadFriends();
+  }, [isOwnerEarly, loadFriends]);
 
   const updateMeta = useMutation({
     mutationFn: (body: { avatarUrl?: string | null; bio: string; socialLinks: string }) =>
@@ -132,6 +210,9 @@ export default function BadgeProfile() {
     setEditDisplayName(localStorage.getItem("coldstreak-username") ?? "");
     setEditAvatarUrl(profile.avatarUrl ?? "");
     setEditBio(profile.bio ?? "");
+    setEditUsername(username ?? "");
+    setUsernameStatus(null);
+    setUsernameStatusMsg("");
     try { setEditLinks(JSON.parse(profile.socialLinks ?? "{}")); } catch { setEditLinks({}); }
     setShowEdit(true);
   }
@@ -142,11 +223,23 @@ export default function BadgeProfile() {
       const val = (editLinks[key] ?? "").trim();
       if (val) links[key] = val;
     }
+    const token = getAuthToken();
+    // Save username if changed and available
+    const newUsername = editUsername.trim();
+    const currentUsername = username ?? "";
+    let navigateToUsername: string | null = null;
+    if (token && newUsername && newUsername.toLowerCase() !== currentUsername.toLowerCase() && usernameStatus === "ok") {
+      const data = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ username: newUsername }),
+      }).then(r => r.json()).catch(() => null);
+      if (data?.username) navigateToUsername = data.username;
+    }
     // Save display name if changed
     const currentDisplayName = localStorage.getItem("coldstreak-username") ?? "";
     const newDisplayName = editDisplayName.trim();
     if (newDisplayName && newDisplayName !== currentDisplayName) {
-      const token = getAuthToken();
       if (token) {
         await fetch("/api/auth/profile", {
           method: "PATCH",
@@ -162,6 +255,9 @@ export default function BadgeProfile() {
       bio: editBio.trim(),
       socialLinks: JSON.stringify(links),
     });
+    if (navigateToUsername) {
+      setTimeout(() => navigate(`/profile/${navigateToUsername}`), 1600);
+    }
   }
 
   if (isLoading) {
@@ -276,9 +372,6 @@ export default function BadgeProfile() {
             {/* Info column */}
             <div className="flex-1 min-w-0">
               <h1 data-testid="text-profile-username" className="text-white font-bold text-xl leading-tight mb-0.5 truncate">{profile.username}</h1>
-              {isOwner && localStorage.getItem("coldstreak-username") && localStorage.getItem("coldstreak-username") !== profile.username && (
-                <p className="text-blue-400 text-xs mb-1 truncate">{localStorage.getItem("coldstreak-username")}</p>
-              )}
 
               {profile.foundingPlunger && (
                 <div className="mb-1.5">
@@ -390,20 +483,6 @@ export default function BadgeProfile() {
           <div className="bg-blue-900/80 rounded-2xl border border-blue-700/50 px-4 py-4 space-y-4">
             <p className="text-white font-semibold text-sm">Edit Your Profile</p>
 
-            {/* Display Name */}
-            <div>
-              <label className="text-blue-300 text-xs font-semibold block mb-1">Display Name <span className="text-blue-500 font-normal">(shown on leaderboards)</span></label>
-              <input
-                data-testid="input-display-name"
-                type="text"
-                placeholder="Your display name…"
-                value={editDisplayName}
-                maxLength={24}
-                onChange={(e) => setEditDisplayName(e.target.value)}
-                className="w-full bg-blue-950/70 border border-blue-700 rounded-xl px-3 py-2 text-white text-xs placeholder:text-blue-600 focus:outline-none focus:border-cyan-500"
-              />
-            </div>
-
             {/* Avatar Upload */}
             <div>
               <label className="text-blue-300 text-xs font-semibold block mb-1">Profile Photo</label>
@@ -490,6 +569,66 @@ export default function BadgeProfile() {
               </p>
             </div>
 
+            {/* Username */}
+            <div>
+              <label className="text-blue-300 text-xs font-semibold block mb-1">
+                Username <span className="text-blue-500 font-normal">(how friends find you)</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 text-sm select-none">@</span>
+                <input
+                  data-testid="input-edit-username"
+                  type="text"
+                  value={editUsername}
+                  placeholder="yourhandle"
+                  maxLength={30}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^a-zA-Z0-9_]/g, "");
+                    setEditUsername(val);
+                    setUsernameStatus(null);
+                    setUsernameStatusMsg("");
+                    if (usernameCheckRef.current) clearTimeout(usernameCheckRef.current);
+                    if (!val || val.toLowerCase() === (username ?? "").toLowerCase()) {
+                      setUsernameStatus(val ? "ok" : null);
+                      setUsernameStatusMsg("");
+                      setUsernameChecking(false);
+                      return;
+                    }
+                    setUsernameChecking(true);
+                    usernameCheckRef.current = setTimeout(async () => {
+                      const r = await fetch(`/api/auth/check-username?username=${encodeURIComponent(val)}`);
+                      const data = await r.json();
+                      setUsernameChecking(false);
+                      if (data.available) {
+                        setUsernameStatus("ok");
+                        setUsernameStatusMsg("Available!");
+                      } else {
+                        setUsernameStatus(data.reason?.toLowerCase().includes("taken") ? "taken" : "invalid");
+                        setUsernameStatusMsg(data.reason ?? "Not available");
+                      }
+                    }, 500);
+                  }}
+                  className="w-full bg-blue-950/70 border border-blue-700 rounded-xl pl-7 pr-8 py-2 text-white text-xs placeholder:text-blue-600 focus:outline-none focus:border-cyan-500"
+                />
+                {usernameChecking && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                )}
+                {!usernameChecking && usernameStatus === "ok" && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-400 text-xs">✓</span>
+                )}
+                {!usernameChecking && (usernameStatus === "taken" || usernameStatus === "invalid") && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400 text-xs">✗</span>
+                )}
+              </div>
+              {usernameStatus === "ok" && usernameStatusMsg && (
+                <p className="mt-1 text-[10px] text-green-400">{usernameStatusMsg}</p>
+              )}
+              {(usernameStatus === "taken" || usernameStatus === "invalid") && (
+                <p className="mt-1 text-[10px] text-red-400">{usernameStatusMsg}</p>
+              )}
+              <p className="mt-1 text-[10px] text-blue-500">Letters, numbers, underscores only. Friends search by this.</p>
+            </div>
+
             {/* Bio */}
             <div>
               <label className="text-blue-300 text-xs font-semibold block mb-1">Bio <span className="text-blue-500">({editBio.length}/200)</span></label>
@@ -541,6 +680,321 @@ export default function BadgeProfile() {
             </button>
           </div>
         )}
+
+        {/* ── Owner-only: Body Weight + Calories ── */}
+        {isOwner && (() => {
+          const now = new Date();
+          const todayKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+          const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+          const todayPlunges = ownerPlunges.filter(p => { const d = new Date(p.createdAt); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` === todayKey; });
+          const thisWeek = ownerPlunges.filter(p => new Date(p.createdAt).getTime() >= weekAgo);
+          const todayCalories = todayPlunges.reduce((s, p) => s + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs))), 0);
+          const weeklyCalories = thisWeek.reduce((s, p) => s + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs))), 0);
+          const allTimeCalories = ownerPlunges.reduce((s, p) => s + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs))), 0);
+          const weeklyMinutes = thisWeek.reduce((s, p) => s + p.duration, 0) / 60;
+          const weeklyPct = Math.min(100, (weeklyMinutes / weeklyGoalMinutes) * 100);
+
+          const saveWeightToServer = (val: number) => {
+            const token = getAuthToken();
+            if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: val }) }).catch(() => {});
+          };
+          const stopHold = () => {
+            if (weightHoldRef.current) { clearTimeout(weightHoldRef.current); weightHoldRef.current = null; }
+            weightHoldCountRef.current = 0;
+            const stored = Number(localStorage.getItem("coldstreak-body-weight"));
+            if (stored) saveWeightToServer(stored);
+          };
+          const startHold = (dir: 1 | -1) => {
+            const tick = () => {
+              weightHoldCountRef.current += 1;
+              const fast = weightHoldCountRef.current > 20;
+              const step = fast ? 5 : 1;
+              const delay = fast ? 60 : 120;
+              setBodyWeightLbs(prev => {
+                const val = Math.min(400, Math.max(80, prev + dir * step));
+                localStorage.setItem("coldstreak-body-weight", String(val));
+                return val;
+              });
+              weightHoldRef.current = setTimeout(tick, delay);
+            };
+            weightHoldRef.current = setTimeout(tick, 350);
+          };
+          const pressProps = (dir: 1 | -1) => ({
+            onMouseDown: (e: React.MouseEvent) => { e.preventDefault(); startHold(dir); },
+            onMouseUp: stopHold, onMouseLeave: stopHold,
+            onTouchStart: (e: React.TouchEvent) => { e.preventDefault(); startHold(dir); },
+            onTouchEnd: stopHold,
+            onClick: () => {
+              if (weightHoldCountRef.current > 0) return;
+              setBodyWeightLbs(prev => {
+                const val = Math.min(400, Math.max(80, prev + dir));
+                localStorage.setItem("coldstreak-body-weight", String(val));
+                saveWeightToServer(val);
+                return val;
+              });
+            },
+          });
+
+          return (<>
+            {/* Body Weight + Calories */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+              <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                <Flame className="w-3 h-3 text-orange-400" /> Body Weight
+              </label>
+              <div className="flex items-center gap-2">
+                <button {...pressProps(-1)} className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none">−</button>
+                <div className="w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none">{bodyWeightLbs}</div>
+                <button {...pressProps(1)} className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none">+</button>
+                <span className="text-blue-500 text-xs">lbs ({Math.round(bodyWeightLbs / 2.205)} kg)</span>
+              </div>
+              {isHealthKitPossible() && (
+                <button
+                  onClick={async () => {
+                    if (weightPullInFlightRef.current) return;
+                    weightPullInFlightRef.current = true;
+                    try {
+                      const r = await connectHealthKit();
+                      if (r !== "connected") { toast({ title: "Apple Health not connected", description: "Go to Settings → Health → ColdStreak to grant Body Mass access.", variant: "destructive" }); return; }
+                      const res = await fetchLatestBodyWeightLbs();
+                      if (!res || res.lbs < 60 || res.lbs > 500) { toast({ title: "No weight found in Apple Health", description: "Log your weight in the Health app first." }); return; }
+                      const lbs = Math.round(res.lbs);
+                      setBodyWeightLbs(lbs);
+                      localStorage.setItem("coldstreak-body-weight", String(lbs));
+                      saveWeightToServer(lbs);
+                      toast({ title: `Updated to ${lbs} lbs`, description: "Pulled from Apple Health." });
+                    } finally { weightPullInFlightRef.current = false; }
+                  }}
+                  className="mt-2 text-xs text-cyan-400 hover:text-cyan-300 underline-offset-2 hover:underline active:scale-95"
+                >📥 Pull from Apple Health</button>
+              )}
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center border-t border-blue-800/60 pt-3">
+                <div>
+                  <div className="text-orange-300 font-bold text-base leading-none">{Math.round(todayCalories) || "—"}</div>
+                  <div className="text-blue-500 text-[10px] mt-0.5">kcal today</div>
+                </div>
+                <div className="border-x border-blue-800/60">
+                  <div className="text-orange-300 font-bold text-base leading-none">{Math.round(weeklyCalories) || "—"}</div>
+                  <div className="text-blue-500 text-[10px] mt-0.5">kcal this week</div>
+                </div>
+                <div>
+                  <div className="text-orange-300 font-bold text-base leading-none">{Math.round(allTimeCalories) || "—"}</div>
+                  <div className="text-blue-500 text-[10px] mt-0.5">kcal all time</div>
+                </div>
+              </div>
+              <p className="text-blue-600 text-[10px] mt-2">Est. via thermogenesis — cold forces your body to generate heat.</p>
+            </div>
+
+            {/* Weekly Goal */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+              <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                <Target className="w-3 h-3" /> Weekly Goal
+              </label>
+              <div className="flex items-center gap-3">
+                <select
+                  value={weeklyGoalMinutes}
+                  onChange={(e) => { const val = Number(e.target.value); setWeeklyGoalMinutes(val); localStorage.setItem("weeklyGoalMinutes", String(val)); }}
+                  className="bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm font-semibold appearance-none focus:outline-none focus:border-cyan-400"
+                >
+                  {Array.from({ length: 110 }, (_, i) => i + 11).map((m) => (
+                    <option key={m} value={m}>{m} min / week</option>
+                  ))}
+                </select>
+                <span className="text-blue-400 text-xs">{weeklyMinutes.toFixed(1)} min done</span>
+              </div>
+              <div className="mt-2 h-2 bg-blue-800 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full transition-all duration-700" style={{ width: `${weeklyPct}%` }} />
+              </div>
+            </div>
+
+            {/* Friends */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-blue-400 text-xs uppercase tracking-wide flex items-center gap-1">
+                  <User className="w-3 h-3" /> Friends
+                </label>
+                {pendingRequests.length > 0 && (
+                  <span className="bg-cyan-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{pendingRequests.length}</span>
+                )}
+              </div>
+              <div className="flex gap-1 bg-blue-950/60 rounded-xl p-1">
+                {(['leaderboard', 'requests', 'add'] as const).map((v) => (
+                  <button key={v} onClick={() => setFriendsView(v)}
+                    className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all ${friendsView === v ? 'bg-blue-700/80 text-white' : 'text-blue-400 hover:text-blue-200'}`}>
+                    {v === 'leaderboard' ? '🏆 Board' : v === 'requests' ? (
+                      <span>📨 Requests{pendingRequests.length > 0 && <span className="ml-1 bg-cyan-500 text-white text-[9px] rounded-full px-1">{pendingRequests.length}</span>}</span>
+                    ) : '➕ Add'}
+                  </button>
+                ))}
+              </div>
+              {friendsView === 'leaderboard' && (
+                <div className="space-y-2">
+                  {friendsLoading ? (
+                    <div className="text-blue-400 text-xs text-center py-4">Loading…</div>
+                  ) : friends.length === 0 ? (
+                    <div className="text-center py-6 space-y-2">
+                      <div className="text-2xl">🧊</div>
+                      <p className="text-blue-400 text-xs">No friends yet — add some to see the board!</p>
+                    </div>
+                  ) : friends.map((f, i) => (
+                    <div key={f.friendshipId} className="flex items-center gap-2 bg-blue-950/60 rounded-xl px-3 py-2.5 border border-blue-800/40 cursor-pointer hover:bg-blue-900/60 transition-colors active:scale-[0.98]"
+                      onClick={() => { if (f.username) navigate(`/profile/${encodeURIComponent(f.username)}`); }}>
+                      <span className="text-blue-500 text-xs font-bold w-4 shrink-0">{i + 1}</span>
+                      {f.avatarUrl ? (
+                        <img src={f.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-blue-700/50" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-blue-800 flex items-center justify-center shrink-0 border border-blue-700/50"><User className="w-4 h-4 text-blue-400" /></div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white text-xs font-semibold truncate">{f.displayName || f.username || 'Unknown'}</div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-orange-400 text-[10px]">🔥 {f.streak}d</span>
+                          {f.latestScore != null && <span className="text-cyan-300 text-[10px]">Latest: {f.latestScore.toFixed(1)}</span>}
+                        </div>
+                      </div>
+                      <button disabled={challengingId === f.userId}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          setChallengingId(f.userId);
+                          await sendFriendChallengeImpl(f.userId, f.displayName || f.username || "Friend", {
+                            authFetch, navigate, toast,
+                            onSettled: () => setChallengingId(null),
+                            clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                          });
+                        }}
+                        className="shrink-0 px-2 py-1 rounded-lg bg-cyan-600/30 border border-cyan-500/40 text-cyan-300 text-[10px] font-bold hover:bg-cyan-600/50 transition-all active:scale-95 disabled:opacity-40"
+                      >{challengingId === f.userId ? '…' : '⚡'}</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {friendsView === 'requests' && (
+                <div className="space-y-2">
+                  {pendingRequests.length === 0 ? (
+                    <p className="text-blue-400 text-xs text-center py-4">No pending requests</p>
+                  ) : pendingRequests.map(req => (
+                    <div key={req.friendshipId} className="flex items-center gap-2 bg-blue-950/60 rounded-xl px-3 py-2.5 border border-blue-800/40 cursor-pointer hover:bg-blue-900/60 active:scale-[0.98]"
+                      onClick={() => { if (req.requesterUsername) navigate(`/profile/${encodeURIComponent(req.requesterUsername)}`); }}>
+                      {req.requesterAvatarUrl ? (
+                        <img src={req.requesterAvatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-blue-700/50" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-blue-800 flex items-center justify-center shrink-0"><User className="w-4 h-4 text-blue-400" /></div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white text-xs font-semibold truncate">{req.requesterDisplayName || req.requesterUsername || 'Unknown'}</div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-blue-500 text-[10px]">@{req.requesterUsername}</span>
+                          {req.requesterStreak > 0 && <span className="text-orange-400 text-[10px] font-semibold">🔥 {req.requesterStreak}d</span>}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <button onClick={async (e) => { e.stopPropagation(); await respondFriendRequestImpl(req.friendshipId, 'accepted', { authFetch, navigate, toast, onSuccess: async () => { await loadFriends(); setFriendsView('leaderboard'); }, clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token") }); }}
+                          className="px-2 py-1 rounded-lg bg-cyan-600 text-white text-[10px] font-bold hover:bg-cyan-500 active:scale-95">✓</button>
+                        <button onClick={async (e) => { e.stopPropagation(); await respondFriendRequestImpl(req.friendshipId, 'declined', { authFetch, navigate, toast, onSuccess: async () => { await loadFriends(); }, clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token") }); }}
+                          className="px-2 py-1 rounded-lg bg-blue-800/80 border border-blue-700 text-blue-400 text-[10px] font-bold hover:border-blue-500 active:scale-95">✕</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {friendsView === 'add' && (
+                <div className="space-y-2">
+                  {/* Username tip */}
+                  <div className="flex items-start gap-2 bg-cyan-900/20 border border-cyan-700/30 rounded-xl px-3 py-2">
+                    <span className="text-cyan-400 text-sm shrink-0">💡</span>
+                    <p className="text-cyan-300/80 text-[11px] leading-snug">
+                      Friends search by your <span className="font-semibold text-cyan-200">@username</span>. No username yet?{" "}
+                      <button onClick={() => { setFriendsView('leaderboard'); setTimeout(openEdit, 100); }} className="underline text-cyan-300 hover:text-white transition-colors">Edit your profile</button> to set one.
+                    </p>
+                  </div>
+
+                  <input type="text" placeholder="Search by username…" value={friendSearch}
+                    onChange={async (e) => {
+                      const q = e.target.value; setFriendSearch(q);
+                      if (q.length < 2) { setFriendSearchResults([]); return; }
+                      await searchFriendsImpl(q, { authFetch, navigate, toast, setFriendsSearchLoading, setFriendSearchResults, clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token") });
+                    }}
+                    className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                  />
+                  {friendsSearchLoading && <div className="text-blue-400 text-xs text-center py-2">Searching…</div>}
+                  {friendSearchResults.map(u => (
+                    <div key={u.id} className="flex items-center gap-2 bg-blue-950/60 rounded-xl px-3 py-2.5 border border-blue-800/40">
+                      {u.avatarUrl ? (
+                        <img src={u.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover shrink-0 border border-blue-700/50" />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-blue-800 flex items-center justify-center shrink-0"><User className="w-3.5 h-3.5 text-blue-400" /></div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white text-xs font-semibold truncate">{u.displayName || u.username}</div>
+                        <div className="text-blue-500 text-[10px]">@{u.username}</div>
+                      </div>
+                      {u.friendshipStatus === 'accepted' ? (
+                        <span className="text-cyan-400 text-[10px] font-bold">Friends ✓</span>
+                      ) : u.friendshipStatus === 'pending' ? (
+                        <span className="text-blue-400 text-[10px]">Pending…</span>
+                      ) : (
+                        <button onClick={async () => { await sendFriendRequestImpl(u.id, u.displayName || u.username || "them", { authFetch, navigate, toast, onSuccess: (id) => setFriendSearchResults(prev => prev.map(x => x.id === id ? { ...x, friendshipStatus: 'pending' } : x)), clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token") }); }}
+                          className="shrink-0 px-2 py-1 rounded-lg bg-cyan-600 text-white text-[10px] font-bold hover:bg-cyan-500 active:scale-95">+ Add</button>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* No results — offer email invite */}
+                  {friendSearch.length >= 2 && !friendsSearchLoading && friendSearchResults.length === 0 && (
+                    <div className="space-y-2 pt-1">
+                      <p className="text-blue-400 text-xs text-center">
+                        No username found for <span className="text-white font-semibold">"{friendSearch}"</span>.
+                      </p>
+                      <div className="bg-blue-900/50 border border-blue-700/40 rounded-xl p-3 space-y-2">
+                        <p className="text-blue-300 text-[11px] font-semibold">They haven't set a username yet?</p>
+                        <p className="text-blue-400/80 text-[11px] leading-snug">Send them an email invite — once they join and set a username, you can add them as a friend.</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="email"
+                            placeholder="their@email.com"
+                            value={inviteEmail}
+                            onChange={e => setInviteEmail(e.target.value)}
+                            className="flex-1 bg-blue-800/80 border border-blue-600 rounded-lg px-3 py-1.5 text-white text-xs placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                          />
+                          <button
+                            disabled={inviteSending || !inviteEmail.includes('@')}
+                            onClick={async () => {
+                              setInviteSending(true);
+                              try {
+                                const r = await authFetch('/api/friends/invite-by-email', {
+                                  method: 'POST',
+                                  body: JSON.stringify({ email: inviteEmail }),
+                                });
+                                const data = await r.json();
+                                if (data.status === 'request_sent') {
+                                  toast({ title: "Friend request sent!", description: `They have an account — request sent to ${data.username ? '@' + data.username : 'them'}.` });
+                                  setFriendSearch(''); setInviteEmail(''); setFriendSearchResults([]);
+                                } else if (data.status === 'already_friends') {
+                                  toast({ title: "Already friends!", description: "You're already connected with that person." });
+                                } else if (data.status === 'request_pending') {
+                                  toast({ title: "Already pending", description: "You already have a pending request with them." });
+                                } else {
+                                  toast({ title: "Invite sent! 📧", description: `We emailed ${inviteEmail} an invite to join ColdStreak.` });
+                                  setInviteEmail('');
+                                }
+                              } catch {
+                                toast({ title: "Couldn't send", description: "Check the email and try again.", variant: "destructive" });
+                              } finally {
+                                setInviteSending(false);
+                              }
+                            }}
+                            className="shrink-0 px-3 py-1.5 rounded-lg bg-cyan-600 text-white text-xs font-bold hover:bg-cyan-500 active:scale-95 disabled:opacity-40 transition-all"
+                          >
+                            {inviteSending ? '…' : 'Invite'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </>);
+        })()}
 
         {/* Temperature Tiers */}
         {totalEarnedTemp > 0 && (

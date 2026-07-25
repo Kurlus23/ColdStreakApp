@@ -2598,6 +2598,7 @@ export default function Home() {
                 const addr = data.address ?? {};
                 const city = addr.city ?? addr.town ?? addr.village ?? addr.hamlet ?? "";
                 const state = addr.state ?? addr.county ?? "";
+                if (state) localStorage.setItem("coldstreak-home-state", state);
                 const name = [city, state].filter(Boolean).join(", ");
                 if (name) {
                   setGpsLocationName(name);
@@ -4027,612 +4028,6 @@ export default function Home() {
 
             {settingsTab === 'user' && (<>
 
-            {/* ColdStreak Pro */}
-            {isPro ? (
-              <div className="bg-gradient-to-r from-cyan-900/60 to-blue-900/60 rounded-2xl p-4 border border-cyan-600/50 space-y-3">
-                <div className="flex items-center gap-2 text-white font-bold">
-                  <Crown className="w-4 h-4 text-yellow-400" />
-                  <span>ColdStreak Pro</span>
-                  {proPlan === "lifetime" && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-yellow-500/30 to-amber-500/30 border border-yellow-400/50 text-yellow-300 tracking-wide uppercase">Lifetime</span>
-                  )}
-                  {proPlan === "monthly" && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 tracking-wide uppercase">Monthly</span>
-                  )}
-                  {proPlan === "annual" && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/40 text-blue-300 tracking-wide uppercase">Annual</span>
-                  )}
-                  <CheckCircle2 className="w-4 h-4 text-green-400 ml-auto" />
-                </div>
-                <div className="text-cyan-300 text-xs">Active · {proEmail}</div>
-                <div className="text-blue-400 text-xs">Unlimited history · Chill Places · Advanced stats</div>
-                {(proPlan === "monthly" || proPlan === "annual") && (
-                  <div className="space-y-2">
-                    <button
-                      data-testid="button-upgrade-to-lifetime"
-                      onClick={() => setShowUpgradeModal(true)}
-                      className="w-full py-2 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
-                    >
-                      <Crown className="w-3.5 h-3.5" /> Upgrade to Lifetime — ${lifetimePrice.toFixed(2)}
-                    </button>
-                    {Capacitor.getPlatform() === "ios" ? (
-                      <button
-                        data-testid="button-manage-subscription-ios"
-                        onClick={() => {
-                          // Apple Guideline 3.1.3(b): subscription management on iOS
-                          // must go through the App Store, not a web billing portal.
-                          window.location.href = "itms-apps://apps.apple.com/account/subscriptions";
-                        }}
-                        className="w-full py-2 rounded-xl border border-blue-600/50 text-blue-400 text-xs font-semibold transition-all active:scale-[0.98] hover:border-blue-400 flex items-center justify-center gap-1.5"
-                      >
-                        Manage Subscription in App Store
-                      </button>
-                    ) : Capacitor.getPlatform() === "android" ? (
-                      <button
-                        data-testid="button-manage-subscription-android"
-                        onClick={() => {
-                          // Google Play policy mirrors Apple's: Pro subs purchased
-                          // through Play Billing must be managed via the Play Store
-                          // subscription center, not a web billing portal. Deep-link
-                          // straight there. (https://play.google.com/store/account/subscriptions
-                          // also resolves inside the Play Store app on Android.)
-                          window.location.href = "https://play.google.com/store/account/subscriptions";
-                        }}
-                        className="w-full py-2 rounded-xl border border-blue-600/50 text-blue-400 text-xs font-semibold transition-all active:scale-[0.98] hover:border-blue-400 flex items-center justify-center gap-1.5"
-                      >
-                        Manage Subscription in Play Store
-                      </button>
-                    ) : (
-                      <button
-                        data-testid="button-manage-subscription"
-                        onClick={async () => {
-                          try {
-                            const token = localStorage.getItem("coldstreak-auth-token");
-                            const res = await fetch("/api/stripe/portal", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                              body: JSON.stringify({ returnUrl: window.location.origin + "/" }),
-                            });
-                            const data = await res.json();
-                            if (data.url) window.open(data.url, "_blank");
-                            else toast({ title: "Unable to open portal", description: data.message ?? "Please try again.", variant: "destructive" });
-                          } catch {
-                            toast({ title: "Network error", description: "Please check your connection.", variant: "destructive" });
-                          }
-                        }}
-                        className="w-full py-2 rounded-xl border border-blue-600/50 text-blue-400 text-xs font-semibold transition-all active:scale-[0.98] hover:border-blue-400 flex items-center justify-center gap-1.5"
-                      >
-                        Manage / Cancel Subscription
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="bg-gradient-to-r from-cyan-900/60 to-blue-900/60 rounded-2xl p-4 border border-cyan-700/50 space-y-3">
-                <div className="flex items-center gap-2 text-white font-bold">
-                  <Crown className="w-4 h-4 text-yellow-400" /> ColdStreak Pro
-                  <span className="ml-auto text-yellow-400 text-sm font-bold">from $3.99</span>
-                </div>
-                <ul className="space-y-1 text-blue-300 text-xs">
-                  {["Unlimited plunge history", "Music integration (Spotify + Apple Music)", "Bluetooth thermometer & heart rate", "Chill Places + leaderboards", "Advanced stats & personal bests", "CSV / Apple Health export", "No ads"].map((f) => (
-                    <li key={f} className="flex items-center gap-1.5"><Sparkles className="w-3 h-3 text-cyan-400 shrink-0" />{f}</li>
-                  ))}
-                </ul>
-                <button
-                  data-testid="button-upgrade-settings"
-                  onClick={() => setShowUpgradeModal(true)}
-                  className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white font-bold text-sm transition-all active:scale-[0.98]"
-                >
-                  Upgrade to Pro — from $3.99/mo
-                </button>
-                {!showSettingsRestore ? (
-                  <button
-                    data-testid="button-restore-purchase"
-                    onClick={() => setShowSettingsRestore(true)}
-                    className="w-full py-2 rounded-xl border border-blue-600/50 text-blue-400 text-xs font-semibold transition-all active:scale-[0.98] hover:border-blue-400 flex items-center justify-center gap-1.5"
-                  >
-                    <RestoreIcon className="w-3 h-3" /> Restore Purchase
-                  </button>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-blue-400 text-xs text-center">Enter the email you used at checkout:</p>
-                    <div className="flex gap-2">
-                      <input
-                        data-testid="input-settings-restore-email"
-                        type="email"
-                        autoFocus
-                        placeholder="your@email.com"
-                        value={settingsRestoreEmail}
-                        onChange={(e) => setSettingsRestoreEmail(e.target.value)}
-                        className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-                      />
-                      <button
-                        data-testid="button-settings-restore-submit"
-                        disabled={restoreLoading || !settingsRestoreEmail.trim()}
-                        onClick={async () => {
-                          setRestoreLoading(true);
-                          const ok = await restorePurchase(settingsRestoreEmail.trim());
-                          setRestoreLoading(false);
-                          if (ok.success) {
-                            setShowSettingsRestore(false);
-                            setSettingsRestoreEmail("");
-                            toast({ title: "✅ Pro restored!", description: "Welcome back to ColdStreak Pro." });
-                          } else {
-                            toast({ title: "Not found", description: "No Pro purchase found for that email.", variant: "destructive" });
-                          }
-                        }}
-                        className="px-3 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold disabled:opacity-40 transition-all"
-                      >
-                        {restoreLoading ? "…" : "Go"}
-                      </button>
-                      <button
-                        data-testid="button-settings-restore-cancel"
-                        onClick={() => { setShowSettingsRestore(false); setSettingsRestoreEmail(""); }}
-                        className="px-3 py-2 rounded-xl border border-blue-700 text-blue-400 text-xs font-semibold hover:border-blue-500 transition-all"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Promo code — hidden on iOS (Apple guideline 3.1.1) */}
-                {Capacitor.getPlatform() !== 'ios' && <div className="border-t border-blue-700/30 pt-3">
-                  <button
-                    data-testid="button-toggle-promo"
-                    onClick={() => setPromoCode("")}
-                    className="w-full text-left text-blue-400 text-xs font-semibold hover:text-cyan-300 transition-colors flex items-center gap-1.5"
-                  >
-                    <Sparkles className="w-3 h-3" /> Have a promo code?
-                  </button>
-                  <div className="flex gap-2 mt-2">
-                    <input
-                      data-testid="input-promo-code"
-                      type="text"
-                      placeholder="Enter code"
-                      value={promoCode}
-                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                      className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400 uppercase tracking-widest"
-                    />
-                    <button
-                      data-testid="button-redeem-promo"
-                      disabled={promoLoading || !promoCode.trim()}
-                      onClick={async () => {
-                        setPromoLoading(true);
-                        const result = await redeemPromo(promoCode.trim());
-                        setPromoLoading(false);
-                        if (result.success) {
-                          toast({ title: `Pro activated for ${result.durationDays} days! ❄️`, description: "Enjoy all Pro features." });
-                          setPromoCode("");
-                        } else {
-                          toast({ title: "Invalid code", description: result.error, variant: "destructive" });
-                        }
-                      }}
-                      className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white text-sm font-bold transition-all active:scale-95"
-                    >
-                      {promoLoading ? "…" : "Redeem"}
-                    </button>
-                  </div>
-                </div>}
-              </div>
-            )}
-
-            {/* Body Weight & Calories */}
-            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
-              <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
-                <Flame className="w-3 h-3 text-orange-400" /> Body Weight
-              </label>
-              <div className="flex items-center gap-2">
-                {(() => {
-                  const saveWeightToServer = (val: number) => {
-                    const token = localStorage.getItem("coldstreak-auth-token");
-                    if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: val }) }).catch(() => {});
-                  };
-                  const stopHold = () => {
-                    if (weightHoldRef.current) { clearTimeout(weightHoldRef.current); weightHoldRef.current = null; }
-                    weightHoldCountRef.current = 0;
-                    const stored = Number(localStorage.getItem("coldstreak-body-weight"));
-                    if (stored) saveWeightToServer(stored);
-                  };
-                  const startHold = (dir: 1 | -1) => {
-                    const tick = () => {
-                      weightHoldCountRef.current += 1;
-                      const fast = weightHoldCountRef.current > 20;
-                      const step = fast ? 5 : 1;
-                      const delay = fast ? 60 : 120;
-                      setBodyWeightLbs(prev => {
-                        const val = Math.min(400, Math.max(80, prev + dir * step));
-                        localStorage.setItem("coldstreak-body-weight", String(val));
-                        return val;
-                      });
-                      weightHoldRef.current = setTimeout(tick, delay);
-                    };
-                    weightHoldRef.current = setTimeout(tick, 350);
-                  };
-                  const pressProps = (dir: 1 | -1) => ({
-                    onMouseDown: (e: React.MouseEvent) => { e.preventDefault(); startHold(dir); },
-                    onMouseUp: stopHold,
-                    onMouseLeave: stopHold,
-                    onTouchStart: (e: React.TouchEvent) => { e.preventDefault(); startHold(dir); },
-                    onTouchEnd: stopHold,
-                    onClick: () => {
-                      if (weightHoldCountRef.current > 0) return;
-                      setBodyWeightLbs(prev => {
-                        const val = Math.min(400, Math.max(80, prev + dir));
-                        localStorage.setItem("coldstreak-body-weight", String(val));
-                        saveWeightToServer(val);
-                        return val;
-                      });
-                    },
-                  });
-                  return (<>
-                    <button data-testid="button-weight-decrease" {...pressProps(-1)}
-                      className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
-                    >−</button>
-                    <div data-testid="input-body-weight"
-                      className="w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none pointer-events-none"
-                    >{bodyWeightLbs}</div>
-                    <button data-testid="button-weight-increase" {...pressProps(1)}
-                      className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
-                    >+</button>
-                  </>);
-                })()}
-                <span className="text-blue-500 text-xs">lbs ({Math.round(bodyWeightLbs / 2.205)} kg)</span>
-              </div>
-              {isHealthKitPossible() && (
-                <button
-                  data-testid="button-pull-weight-healthkit"
-                  onClick={async () => {
-                    if (weightPullInFlightRef.current) return;
-                    weightPullInFlightRef.current = true;
-                    try {
-                      const openIosSettings = () => {
-                        try { window.location.href = "app-settings:"; } catch (err) { console.warn("[health] open settings failed:", err); }
-                      };
-                      const result = await connectHealthKit();
-                      if (result === "no-plugin") {
-                        toast({
-                          title: "Update needed",
-                          description: "This app version doesn't include Apple Health support yet. Install the latest TestFlight/App Store build, then try again.",
-                          variant: "destructive",
-                        });
-                        return;
-                      }
-                      if (result === "unavailable") {
-                        toast({
-                          title: "Apple Health unavailable",
-                          description: "This device doesn't have Apple Health data available.",
-                          variant: "destructive",
-                        });
-                        return;
-                      }
-                      if (result !== "connected") {
-                        toast({
-                          title: "Apple Health not connected",
-                          description: "Tap Open Settings, then go to Health → Data Access & Devices → ColdStreak and turn on Body Mass.",
-                          variant: "destructive",
-                          action: <ToastAction altText="Open Settings" onClick={openIosSettings}>Open Settings</ToastAction>,
-                        });
-                        return;
-                      }
-                      const res = await fetchLatestBodyWeightLbs();
-                      if (!res || res.lbs < 60 || res.lbs > 500) {
-                        toast({
-                          title: "No weight found in Apple Health",
-                          description: "Either no weight is logged, or Body Mass access is off. Check Settings → Health → ColdStreak, then log your weight in the Apple Health app.",
-                          action: <ToastAction altText="Open Settings" onClick={openIosSettings}>Open Settings</ToastAction>,
-                        });
-                        return;
-                      }
-                      const lbs = Math.round(res.lbs);
-                      setBodyWeightLbs(lbs);
-                      localStorage.setItem("coldstreak-body-weight", String(lbs));
-                      const token = localStorage.getItem("coldstreak-auth-token");
-                      if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: lbs }) }).catch(() => {});
-                      const ageDays = Math.floor((Date.now() - res.recordedAt) / 86400000);
-                      toast({ title: `Updated to ${lbs} lbs`, description: ageDays === 0 ? "Pulled from Apple Health (today)." : `Pulled from Apple Health (${ageDays}d ago).` });
-                    } finally {
-                      weightPullInFlightRef.current = false;
-                    }
-                  }}
-                  className="mt-2 text-xs text-cyan-400 hover:text-cyan-300 underline-offset-2 hover:underline active:scale-95"
-                >
-                  📥 Pull from Apple Health
-                </button>
-              )}
-              {/* Compact calorie summary */}
-              <div className="mt-3 grid grid-cols-3 gap-2 text-center border-t border-blue-800/60 pt-3">
-                <div>
-                  <div className="text-orange-300 font-bold text-base leading-none">{Math.round(todayCalories) || "—"}</div>
-                  <div className="text-blue-500 text-[10px] mt-0.5">kcal today</div>
-                </div>
-                <div className="border-x border-blue-800/60">
-                  <div className="text-orange-300 font-bold text-base leading-none">{Math.round(weeklyCalories) || "—"}</div>
-                  <div className="text-blue-500 text-[10px] mt-0.5">kcal this week</div>
-                </div>
-                <div>
-                  <div className="text-orange-300 font-bold text-base leading-none">{Math.round(allTimeCalories) || "—"}</div>
-                  <div className="text-blue-500 text-[10px] mt-0.5">kcal all time</div>
-                </div>
-              </div>
-              <p className="text-blue-600 text-[10px] mt-2">Est. via thermogenesis model — cold forces your body to generate heat.</p>
-            </div>
-
-            {/* Weekly Goal */}
-            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
-              <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
-                <Target className="w-3 h-3" /> Weekly Goal
-              </label>
-              <div className="flex items-center gap-3">
-                <select
-                  data-testid="select-weekly-goal"
-                  value={weeklyGoalMinutes}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    setWeeklyGoalMinutes(val);
-                    localStorage.setItem("weeklyGoalMinutes", String(val));
-                  }}
-                  className="bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm font-semibold appearance-none focus:outline-none focus:border-cyan-400"
-                >
-                  {Array.from({ length: 110 }, (_, i) => i + 11).map((m) => (
-                    <option key={m} value={m}>{m} min / week</option>
-                  ))}
-                </select>
-                <span className="text-blue-400 text-xs">{weeklyMinutes.toFixed(1)} min done</span>
-              </div>
-              <div className="mt-2 h-2 bg-blue-800 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full transition-all duration-700" style={{ width: `${weeklyPct}%` }} />
-              </div>
-            </div>
-
-            {/* ── Friends ── */}
-            {auth.user ? (
-              <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <label className="text-blue-400 text-xs uppercase tracking-wide flex items-center gap-1">
-                    <User className="w-3 h-3" /> Friends
-                  </label>
-                  {pendingRequests.length > 0 && (
-                    <span className="bg-cyan-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{pendingRequests.length}</span>
-                  )}
-                </div>
-
-                {/* Sub-tabs */}
-                <div className="flex gap-1 bg-blue-950/60 rounded-xl p-1">
-                  {(['leaderboard', 'requests', 'add'] as const).map((v) => (
-                    <button key={v} onClick={() => setFriendsView(v)}
-                      className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all capitalize relative ${friendsView === v ? 'bg-blue-700/80 text-white' : 'text-blue-400 hover:text-blue-200'}`}>
-                      {v === 'leaderboard' ? '🏆 Board' : v === 'requests' ? (
-                        <span>📨 Requests{pendingRequests.length > 0 && <span className="ml-1 bg-cyan-500 text-white text-[9px] rounded-full px-1">{pendingRequests.length}</span>}</span>
-                      ) : '➕ Add'}
-                    </button>
-                  ))}
-                </div>
-
-                {/* ── Leaderboard view ── */}
-                {friendsView === 'leaderboard' && (
-                  <div className="space-y-2">
-                    {friendsLoading ? (
-                      <div className="text-blue-400 text-xs text-center py-4">Loading…</div>
-                    ) : friends.length === 0 ? (
-                      <div className="text-center py-6 space-y-2">
-                        <div className="text-2xl">🧊</div>
-                        <p className="text-blue-400 text-xs">No friends yet — add some to see the board!</p>
-                      </div>
-                    ) : friends.map((f, i) => (
-                      <div
-                        key={f.friendshipId}
-                        className="flex items-center gap-2 bg-blue-950/60 rounded-xl px-3 py-2.5 border border-blue-800/40 cursor-pointer hover:bg-blue-900/60 transition-colors active:scale-[0.98]"
-                        onClick={() => { if (f.username) navigate(`/profile/${encodeURIComponent(f.username)}`); }}
-                      >
-                        {/* Rank */}
-                        <span className="text-blue-500 text-xs font-bold w-4 shrink-0">{i + 1}</span>
-                        {/* Avatar */}
-                        {f.avatarUrl ? (
-                          <img src={f.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-blue-700/50" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-blue-800 flex items-center justify-center shrink-0 border border-blue-700/50">
-                            <User className="w-4 h-4 text-blue-400" />
-                          </div>
-                        )}
-                        {/* Name + stats */}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-white text-xs font-semibold truncate">{f.displayName || f.username || 'Unknown'}</div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-orange-400 text-[10px]">🔥 {f.streak}d</span>
-                            {f.latestScore != null && <span className="text-cyan-300 text-[10px]">Latest: {f.latestScore.toFixed(1)}</span>}
-                            {f.bestScore != null && <span className="text-yellow-300 text-[10px]">Best: {f.bestScore.toFixed(1)}</span>}
-                          </div>
-                        </div>
-                        {/* Challenge button */}
-                        <button
-                          disabled={challengingId === f.userId}
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            setChallengingId(f.userId);
-                            await sendFriendChallengeImpl(f.userId, f.displayName || f.username || "Friend", {
-                              authFetch,
-                              navigate,
-                              toast,
-                              onSettled: () => setChallengingId(null),
-                              clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
-                            });
-                          }}
-                          className="shrink-0 px-2 py-1 rounded-lg bg-cyan-600/30 border border-cyan-500/40 text-cyan-300 text-[10px] font-bold hover:bg-cyan-600/50 transition-all active:scale-95 disabled:opacity-40"
-                        >
-                          {challengingId === f.userId ? '…' : '⚡ Challenge'}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* ── Requests view ── */}
-                {friendsView === 'requests' && (
-                  <div className="space-y-2">
-                    {pendingRequests.length === 0 ? (
-                      <p className="text-blue-400 text-xs text-center py-4">No pending requests</p>
-                    ) : pendingRequests.map(req => (
-                      <div
-                        key={req.friendshipId}
-                        className="flex items-center gap-2 bg-blue-950/60 rounded-xl px-3 py-2.5 border border-blue-800/40 cursor-pointer hover:bg-blue-900/60 transition-colors active:scale-[0.98]"
-                        onClick={() => { if (req.requesterUsername) navigate(`/profile/${encodeURIComponent(req.requesterUsername)}`); }}
-                      >
-                        {req.requesterAvatarUrl ? (
-                          <img src={req.requesterAvatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-blue-700/50" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-blue-800 flex items-center justify-center shrink-0">
-                            <User className="w-4 h-4 text-blue-400" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-white text-xs font-semibold truncate">{req.requesterDisplayName || req.requesterUsername || 'Unknown'}</div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-blue-500 text-[10px]">@{req.requesterUsername}</span>
-                            {req.requesterStreak > 0 && (
-                              <span className="text-orange-400 text-[10px] font-semibold">🔥 {req.requesterStreak}d</span>
-                            )}
-                            {req.requesterPlungeCount > 0 && (
-                              <span className="text-cyan-400 text-[10px] font-semibold">❄️ {req.requesterPlungeCount}</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-1 shrink-0">
-                          <button onClick={async (e) => {
-                            e.stopPropagation();
-                            await respondFriendRequestImpl(req.friendshipId, 'accepted', {
-                              authFetch,
-                              navigate,
-                              toast,
-                              onSuccess: async () => {
-                                await loadFriends();
-                                setFriendsView('leaderboard');
-                              },
-                              clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
-                            });
-                          }} className="px-2 py-1 rounded-lg bg-cyan-600 text-white text-[10px] font-bold hover:bg-cyan-500 active:scale-95 transition-all">✓ Accept</button>
-                          <button onClick={async (e) => {
-                            e.stopPropagation();
-                            await respondFriendRequestImpl(req.friendshipId, 'declined', {
-                              authFetch,
-                              navigate,
-                              toast,
-                              onSuccess: async () => {
-                                await loadFriends();
-                              },
-                              clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
-                            });
-                          }} className="px-2 py-1 rounded-lg bg-blue-800/80 border border-blue-700 text-blue-400 text-[10px] font-bold hover:border-blue-500 active:scale-95 transition-all">✕</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* ── Add friends view ── */}
-                {friendsView === 'add' && (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      placeholder="Search by username…"
-                      value={friendSearch}
-                      onChange={async (e) => {
-                        const q = e.target.value;
-                        setFriendSearch(q);
-                        if (q.length < 2) { setFriendSearchResults([]); return; }
-                        await searchFriendsImpl(q, {
-                          authFetch,
-                          navigate,
-                          toast,
-                          setFriendsSearchLoading,
-                          setFriendSearchResults,
-                          clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
-                        });
-                      }}
-                      className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-                    />
-                    {friendsSearchLoading && <div className="text-blue-400 text-xs text-center py-2">Searching…</div>}
-                    {friendSearchResults.map(u => (
-                      <div key={u.id} className="flex items-center gap-2 bg-blue-950/60 rounded-xl px-3 py-2.5 border border-blue-800/40">
-                        {u.avatarUrl ? (
-                          <img src={u.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover shrink-0 border border-blue-700/50" />
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-blue-800 flex items-center justify-center shrink-0">
-                            <User className="w-3.5 h-3.5 text-blue-400" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-white text-xs font-semibold truncate">{u.displayName || u.username}</div>
-                          <div className="text-blue-500 text-[10px]">@{u.username}</div>
-                        </div>
-                        {u.friendshipStatus === 'accepted' ? (
-                          <span className="text-cyan-400 text-[10px] font-bold">Friends ✓</span>
-                        ) : u.friendshipStatus === 'pending' ? (
-                          <span className="text-blue-400 text-[10px]">Pending…</span>
-                        ) : (
-                          <button onClick={async () => {
-                            await sendFriendRequestImpl(u.id, u.displayName || u.username || "them", {
-                              authFetch,
-                              navigate,
-                              toast,
-                              onSuccess: (id) => setFriendSearchResults(prev => prev.map(x => x.id === id ? { ...x, friendshipStatus: 'pending' } : x)),
-                              clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
-                            });
-                          }} className="shrink-0 px-2 py-1 rounded-lg bg-cyan-600 text-white text-[10px] font-bold hover:bg-cyan-500 active:scale-95 transition-all">+ Add</button>
-                        )}
-                      </div>
-                    ))}
-                    {friendSearch.length >= 2 && !friendsSearchLoading && friendSearchResults.length === 0 && (
-                      <p className="text-blue-500 text-xs text-center py-2">No users found</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 text-center space-y-2">
-                <p className="text-blue-400 text-xs font-semibold">Sign in to add friends &amp; see the board</p>
-              </div>
-            )}
-
-            {/* Legal & Safety */}
-            <button
-              data-testid="button-nav-legal"
-              onClick={() => navTo("legal")}
-              className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40 hover:border-cyan-500/50 transition-all active:scale-[0.99]"
-            >
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-cyan-400" />
-                <span className="text-white font-semibold text-sm">Legal &amp; Safety</span>
-              </div>
-              <span className="text-blue-400 text-xs">›</span>
-            </button>
-
-            </>)}
-
-            {settingsTab === 'settings' && (<>
-
-            {/* Intro Video Toggle — shown after user has seen it once */}
-            {introSeen && (
-              <div className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40">
-                <div className="flex items-center gap-2">
-                  <Play className="w-4 h-4 text-cyan-400" />
-                  <div>
-                    <span className="text-white font-semibold text-sm">Intro Video</span>
-                    <p className="text-blue-400 text-xs">Play on every launch</p>
-                  </div>
-                </div>
-                <button
-                  data-testid="button-toggle-intro"
-                  onClick={() => toggleIntro(!introToggle)}
-                  className={`relative w-11 h-6 rounded-full transition-colors ${introToggle ? "bg-cyan-500" : "bg-blue-800/80"}`}
-                >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${introToggle ? "translate-x-5" : "translate-x-0"}`} />
-                </button>
-              </div>
-            )}
-
             {/* Account */}
             <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
               <label className="text-blue-400 text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
@@ -4850,25 +4245,42 @@ export default function Home() {
                     )}
             </div>
 
-            {/* Home Label */}
-            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
-              <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
-                🏠 Home Location Label
-              </label>
-              <input
-                data-testid="input-home-label"
-                type="text"
-                placeholder="e.g. Ice Barrel, Garage Tub, Bathtub…"
-                value={homeLabel}
-                maxLength={40}
-                onChange={(e) => {
-                  setHomeLabel(e.target.value || "Home");
-                  localStorage.setItem("coldstreak-home-label", e.target.value || "Home");
-                }}
-                className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-              />
-              <p className="text-blue-500 text-xs mt-1">Private — shares always show "Home".</p>
-            </div>
+            {/* Legal & Safety */}
+            <button
+              data-testid="button-nav-legal"
+              onClick={() => navTo("legal")}
+              className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40 hover:border-cyan-500/50 transition-all active:scale-[0.99]"
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-cyan-400" />
+                <span className="text-white font-semibold text-sm">Legal &amp; Safety</span>
+              </div>
+              <span className="text-blue-400 text-xs">›</span>
+            </button>
+
+            </>)}
+
+            {settingsTab === 'settings' && (<>
+
+            {/* Intro Video Toggle — shown after user has seen it once */}
+            {introSeen && (
+              <div className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40">
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-cyan-400" />
+                  <div>
+                    <span className="text-white font-semibold text-sm">Intro Video</span>
+                    <p className="text-blue-400 text-xs">Play on every launch</p>
+                  </div>
+                </div>
+                <button
+                  data-testid="button-toggle-intro"
+                  onClick={() => toggleIntro(!introToggle)}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${introToggle ? "bg-cyan-500" : "bg-blue-800/80"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${introToggle ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
+            )}
 
             {/* Streak Reminders */}
             {notifPermission !== "unsupported" && (
@@ -5027,6 +4439,563 @@ export default function Home() {
               )}
             </div>
 
+
+            {/* ── Bluetooth Devices ── */}
+            <div className="flex items-center gap-2 pt-1">
+              <Bluetooth className="w-4 h-4 text-cyan-400" />
+              <span className="text-white font-bold text-sm">Bluetooth Devices</span>
+              {btConnected && <span className="ml-auto flex items-center gap-1 text-[10px] text-green-400"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />Thermo connected</span>}
+              {hrConnected && <span className="flex items-center gap-1 text-[10px] text-red-400"><span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />HR connected</span>}
+            </div>
+
+            {/* Warning when BLE plugin is missing from this build */}
+            {!bleAvailable && Capacitor.isNativePlatform() && (
+              <div className="bg-red-900/30 border border-red-700/50 rounded-2xl px-4 py-3 flex gap-3 items-start">
+                <span className="text-red-400 text-lg shrink-0">⚠️</span>
+                <div>
+                  <p className="text-red-300 text-sm font-semibold">Rebuild required</p>
+                  <p className="text-red-400/80 text-xs leading-relaxed mt-0.5">
+                    The Bluetooth plugin wasn't included in this build. Run <span className="font-mono">npx cap sync android</span> then rebuild and reinstall the APK.
+                  </p>
+                </div>
+              </div>
+            )}
+            {/* Mobile-browser warning — BLE only works in native Capacitor app */}
+            {!bleAvailable && !Capacitor.isNativePlatform() && (
+              <div className="bg-yellow-900/30 border border-yellow-700/50 rounded-2xl px-4 py-3 flex gap-3 items-start">
+                <span className="text-yellow-400 text-lg shrink-0">⚠️</span>
+                <div>
+                  <p className="text-yellow-300 text-sm font-semibold">Native app required</p>
+                  <p className="text-yellow-400/80 text-xs leading-relaxed mt-0.5">
+                    Bluetooth sensor pairing is only available in the ColdStreak Android or iOS app. This browser does not support BLE device connections.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Thermometer */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
+              <div className="flex items-center gap-2">
+                <Snowflake className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span className="text-white font-semibold text-sm">Water Thermometer</span>
+                {btConnected && <span className="ml-auto flex items-center gap-1 text-[10px] text-green-400"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />Connected</span>}
+              </div>
+              <p className="text-blue-400/80 text-xs leading-relaxed">
+                Connect a BLE thermometer to automatically read your water temperature during a plunge.
+              </p>
+              <p className="text-blue-400/60 text-[11px] leading-relaxed -mt-1">
+                <span className="text-cyan-300/80 font-semibold">Currently supported:</span> Inkbird IBS-TH2 Plus (waterproof external probe). Support for other models is on the roadmap.
+              </p>
+              {btConnected ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 bg-green-900/30 border border-green-700/40 rounded-xl px-3 py-2">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shrink-0" />
+                    <span className="text-green-300 text-sm font-medium flex-1 truncate">{btDeviceName || "Thermometer"}</span>
+                    <span className="text-green-400/70 text-xs font-bold">{btConnected ? `${temperature}°${useCelsius ? "C" : "F"}` : "—"}</span>
+                  </div>
+                  {/* Calibration offset — only visible when connected */}
+                  <div className="flex items-center gap-2 pt-1 border-t border-blue-700/30">
+                    <span className="text-blue-400/70 text-xs flex-1">Calibration offset</span>
+                    <button
+                      data-testid="button-temp-offset-down"
+                      onClick={() => setBtTempOffset(v => Math.max(-20, +(v - 1).toFixed(0)))}
+                      className="w-7 h-7 rounded-lg bg-blue-800/60 text-white text-base font-bold flex items-center justify-center hover:bg-blue-700/60 transition-colors"
+                    >−</button>
+                    <span data-testid="text-temp-offset" className="text-white text-xs font-bold w-10 text-center">
+                      {btTempOffset > 0 ? `+${btTempOffset}` : btTempOffset}°{useCelsius ? "C" : "F"}
+                    </span>
+                    <button
+                      data-testid="button-temp-offset-up"
+                      onClick={() => setBtTempOffset(v => Math.min(20, +(v + 1).toFixed(0)))}
+                      className="w-7 h-7 rounded-lg bg-blue-800/60 text-white text-base font-bold flex items-center justify-center hover:bg-blue-700/60 transition-colors"
+                    >+</button>
+                    {btTempOffset !== 0 && (
+                      <button
+                        data-testid="button-temp-offset-reset"
+                        onClick={() => setBtTempOffset(0)}
+                        className="text-blue-400/60 text-[10px] hover:text-blue-300 transition-colors"
+                      >reset</button>
+                    )}
+                  </div>
+                  <button
+                    data-testid="button-bt-disconnect-devices"
+                    onClick={disconnectThermometer}
+                    className="w-full py-2 rounded-xl bg-red-900/30 border border-red-700/40 text-red-300 text-sm font-semibold hover:bg-red-900/50 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <BluetoothOff className="w-4 h-4" /> Disconnect
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {/* Timed-out notice — shown after 3 failed auto-reconnect attempts */}
+                  {btThermoTimedOut && (
+                    <div className="flex items-center gap-2 bg-yellow-900/20 border border-yellow-700/30 rounded-xl px-3 py-2">
+                      <span className="text-yellow-400 text-sm">⚠</span>
+                      <span className="text-yellow-300/80 text-[11px]">Device timed out — tap below to reconnect.</span>
+                    </div>
+                  )}
+                  {/* Quick reconnect to last paired thermometer */}
+                  {(() => {
+                    void savedDevicesKey; // depend on key so forget triggers re-render
+                    try {
+                      const saved = localStorage.getItem("coldstreak-bt-thermo");
+                      if (!saved) return null;
+                      const { deviceId, name } = JSON.parse(saved) as { deviceId: string; name: string };
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            data-testid="button-bt-quick-reconnect"
+                            onClick={() => reconnectThermoFromUI(deviceId, name)}
+                            disabled={btConnecting}
+                            className="flex-1 flex items-center gap-2 bg-blue-900/30 border border-blue-600/30 rounded-xl px-3 py-2 hover:bg-blue-800/40 transition-colors disabled:opacity-40 min-w-0"
+                          >
+                            <Snowflake className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                            <div className="flex-1 text-left min-w-0">
+                              <div className="text-blue-200 text-xs font-semibold truncate">
+                                {btConnecting ? "Connecting…" : <>Reconnect to <span className="text-white">{name || "Thermometer"}</span></>}
+                              </div>
+                              <div className="text-blue-400/60 text-[10px] font-mono truncate">{deviceId}</div>
+                            </div>
+                            {btConnecting
+                              ? <span className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                              : <span className="text-cyan-400 text-[10px] font-semibold shrink-0">Connect</span>
+                            }
+                          </button>
+                          <button
+                            data-testid="button-bt-forget-thermo"
+                            onClick={() => { localStorage.removeItem("coldstreak-bt-thermo"); setSavedDevicesKey(k => k + 1); }}
+                            title="Forget device"
+                            className="w-8 h-8 rounded-xl bg-red-900/20 border border-red-700/20 text-red-400/60 hover:bg-red-900/40 hover:text-red-300 flex items-center justify-center transition-colors shrink-0"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    } catch { return null; }
+                  })()}
+
+                  {/* Thermometer scan / discovered list */}
+                  {thermoScanActive ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between bg-cyan-900/20 border border-cyan-700/30 rounded-xl px-3 py-2">
+                        <div className="flex items-center gap-2 text-cyan-300 text-xs">
+                          <span className="w-3 h-3 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                          Scanning…{thermoScanDevices.length > 0 && <span className="text-cyan-300/60"> ({thermoScanDevices.length} found)</span>}
+                        </div>
+                        <button data-testid="button-thermo-scan-stop" onClick={stopThermoScan} className="text-cyan-400/70 text-[10px] hover:text-cyan-300 transition-colors">Stop</button>
+                      </div>
+                      {thermoScanDevices.length === 0 && (
+                        <p className="text-cyan-400/50 text-[11px] text-center py-1 leading-relaxed">
+                          Press the <span className="text-white font-semibold">pairing button</span> on your thermometer<br/>and it will appear here.
+                        </p>
+                      )}
+                      {thermoScanDevices.length > 0 && (
+                        <div className="max-h-48 overflow-y-auto space-y-1.5 pr-0.5">
+                          {[...thermoScanDevices].sort((a, b) => b.rssi - a.rssi).map((d) => {
+                            const bars = d.rssi >= -60 ? 3 : d.rssi >= -75 ? 2 : 1;
+                            const barColor = bars === 3 ? "text-green-400" : bars === 2 ? "text-yellow-400" : "text-red-400/60";
+                            return (
+                              <button
+                                key={d.deviceId}
+                                data-testid={`button-thermo-device-${d.deviceId}`}
+                                onClick={() => connectFromThermoScan(d.deviceId, d.name)}
+                                disabled={btConnecting}
+                                className="w-full flex items-center gap-3 bg-cyan-900/30 border border-cyan-700/30 rounded-xl px-3 py-2.5 hover:bg-cyan-800/40 transition-colors text-left disabled:opacity-40"
+                              >
+                                <Snowflake className="w-4 h-4 text-cyan-400 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-white text-sm font-medium truncate">{d.name}</div>
+                                  <div className="text-cyan-400/50 text-[10px] font-mono truncate">{d.deviceId}</div>
+                                </div>
+                                <div className={`flex items-end gap-[2px] ${barColor} shrink-0`} title={`${d.rssi} dBm`}>
+                                  <span className="w-[3px] rounded-sm bg-current" style={{height: 6, opacity: bars >= 1 ? 1 : 0.2}} />
+                                  <span className="w-[3px] rounded-sm bg-current" style={{height: 10, opacity: bars >= 2 ? 1 : 0.2}} />
+                                  <span className="w-[3px] rounded-sm bg-current" style={{height: 14, opacity: bars >= 3 ? 1 : 0.2}} />
+                                </div>
+                                <span className="text-cyan-300 text-[10px] font-semibold shrink-0">Connect</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      data-testid="button-bt-connect-devices"
+                      onClick={startThermoScan}
+                      disabled={btConnecting}
+                      className="w-full py-2 rounded-xl bg-cyan-900/20 border border-cyan-700/30 text-cyan-400/80 text-xs font-semibold hover:bg-cyan-900/40 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <Bluetooth className="w-3.5 h-3.5" />
+                      {localStorage.getItem("coldstreak-bt-thermo") ? "Pair a different thermometer" : "Pair Thermometer"}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Heart Rate Monitor */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
+              <div className="flex items-center gap-2">
+                <Heart className="w-4 h-4 text-red-400 shrink-0" />
+                <span className="text-white font-semibold text-sm">Heart Rate Monitor</span>
+                {hrConnected && <span className="ml-auto flex items-center gap-1 text-[10px] text-green-400"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />Connected</span>}
+              </div>
+              <p className="text-blue-400/80 text-xs leading-relaxed">
+                Connect a Bluetooth heart rate monitor or smartwatch. Supports any device using the standard BLE Heart Rate Profile (e.g. Amazfit, Polar, Garmin).
+              </p>
+              <p className="text-yellow-400/70 text-[10px] leading-relaxed bg-yellow-900/20 border border-yellow-700/30 rounded-lg px-3 py-2">
+                ⌚ Smartwatch tip: Start a workout on your watch <em>before</em> connecting to activate live HR broadcasting.
+              </p>
+              <button
+                data-testid="button-watch-hr-troubleshoot"
+                onClick={() => setShowWatchHrHelp(true)}
+                className="w-full text-left text-orange-300/80 text-[11px] leading-snug bg-orange-900/15 border border-orange-700/30 rounded-lg px-3 py-2 hover:bg-orange-900/25 transition-colors flex items-center gap-2"
+              >
+                <span className="text-orange-400">⚠️</span>
+                <span className="flex-1">
+                  <span className="font-semibold">Apple Watch &amp; HealthKit settings</span>
+                  <span className="text-orange-300/60"> — tap to open</span>
+                </span>
+              </button>
+              {hrConnected ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 bg-green-900/30 border border-green-700/40 rounded-xl px-3 py-2">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shrink-0" />
+                    <span className="text-green-300 text-sm font-medium flex-1 truncate">{hrDeviceName || "Heart Rate Monitor"}</span>
+                    {currentHR && <span className="text-red-300 text-sm font-bold">{currentHR} <span className="text-xs font-normal text-red-300/70">BPM</span></span>}
+                  </div>
+                  <button
+                    data-testid="button-hr-disconnect-devices"
+                    onClick={disconnectHR}
+                    className="w-full py-2 rounded-xl bg-red-900/30 border border-red-700/40 text-red-300 text-sm font-semibold hover:bg-red-900/50 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <BluetoothOff className="w-4 h-4" /> Disconnect
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {/* Scan / scanning indicator row */}
+                  {hrScanActive ? (
+                    <div className="flex items-center justify-between bg-red-900/20 border border-red-700/30 rounded-xl px-3 py-2">
+                      <div className="flex items-center gap-2 text-red-300 text-xs">
+                        <span className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                        Scanning…{hrScanDevices.length > 0 && <span className="text-red-300/60"> ({hrScanDevices.length} found)</span>}
+                      </div>
+                      <button
+                        data-testid="button-hr-scan-stop"
+                        onClick={stopHrScan}
+                        className="text-red-400/70 text-[10px] hover:text-red-300 transition-colors"
+                      >Stop</button>
+                    </div>
+                  ) : (
+                    <button
+                      data-testid="button-hr-scan"
+                      onClick={startHrScan}
+                      disabled={hrConnecting}
+                      className="w-full py-2 rounded-xl bg-red-900/20 border border-red-700/40 text-red-300 text-sm font-semibold hover:bg-red-900/40 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {hrConnecting
+                        ? <><span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />Connecting…</>
+                        : <><Bluetooth className="w-4 h-4" />{hrScanDone && hrScanDevices.length > 0 ? "Scan again" : "Scan for Heart Rate Monitors"}</>
+                      }
+                    </button>
+                  )}
+
+                  {/* Discovered devices list — sorted strongest signal first */}
+                  {hrScanDevices.length > 0 && (() => {
+                    // Filter out devices that are clearly not heart rate monitors
+                    const NON_HR_PATTERNS = /\b(TV|Television|YamahaAV|Yamaha|LCI|Remote|MacBook|iMac|MacPro|AirPod|HomePod|iPad|iPhone|Android|Kindle|Echo|Alexa|Chromecast|Roku|Xbox|PlayStation|Nintendo|Printer|Amazon|Ring|Nest|Hue|Sonos|Bose|Harman|JBL|Sony|Samsung|LG|Philips|Panasonic|Denon|Onkyo|Pioneer)\b/i;
+                    // Apple Watch advertises BLE but refuses to expose heart rate
+                    // to third-party apps over Bluetooth — Apple gates that
+                    // through HealthKit. We detect it here and show a dedicated
+                    // helper card instead of letting the user try (and fail) to pair.
+                    const APPLE_WATCH_PATTERN = /apple\s*watch|kevin'?s?\s*watch|.*'?s\s*watch/i;
+                    const appleWatch = hrScanDevices.find(d => APPLE_WATCH_PATTERN.test(d.name));
+                    const filtered = [...hrScanDevices]
+                      .filter(d => !NON_HR_PATTERNS.test(d.name) && !APPLE_WATCH_PATTERN.test(d.name))
+                      .sort((a, b) => b.rssi - a.rssi);
+                    if (filtered.length === 0 && !appleWatch) return (
+                      <p className="text-center text-blue-400/50 text-xs py-2">No heart rate monitors detected nearby.<br/>Make sure your device is powered on.</p>
+                    );
+                    return (
+                    <>
+                    {appleWatch && (
+                      <div className="bg-purple-900/30 border border-purple-700/40 rounded-xl px-3 py-2.5 mb-2">
+                        <div className="flex items-start gap-2">
+                          <Heart className="w-4 h-4 text-purple-300 shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-purple-100 text-sm font-semibold">Apple Watch detected</div>
+                            <div className="text-purple-200/80 text-[11px] leading-snug mt-1">
+                              Apple Watch can't share heart rate over Bluetooth — Apple only allows it through HealthKit.
+                              Use the <span className="font-semibold text-white">ColdStreak Watch app</span> instead: open
+                              it on your watch and tap <span className="font-semibold text-white">Start Plunge</span>, and
+                              live BPM will be sent to your iPhone automatically.
+                            </div>
+                            <div className="mt-2 pt-2 border-t border-purple-700/40">
+                              <div className="text-purple-100 text-[11px] font-semibold">First time setup</div>
+                              <div className="text-purple-200/80 text-[11px] leading-snug mt-0.5">
+                                When the Health permission dialog pops up, tap <span className="font-semibold text-white">Allow All</span> (or at minimum: Heart Rate, HRV, and Active Energy). All three are required for live HR to record.
+                              </div>
+                              <div className="text-purple-200/60 text-[10px] leading-snug mt-1">
+                                Already installed? Open <span className="font-semibold text-purple-100">iPhone Settings → Health → Data Access &amp; Devices → ColdStreak</span> and turn all three on.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {filtered.length === 0 ? (
+                      <p className="text-center text-blue-400/50 text-xs py-2">No other heart rate monitors detected nearby.</p>
+                    ) : (
+                    <div className="max-h-52 overflow-y-auto space-y-1.5 pr-0.5">
+                      {filtered.map((d) => {
+                        const bars = d.rssi >= -60 ? 3 : d.rssi >= -75 ? 2 : 1;
+                        const barColor = bars === 3 ? "text-green-400" : bars === 2 ? "text-yellow-400" : "text-red-400/60";
+                        return (
+                          <button
+                            key={d.deviceId}
+                            data-testid={`button-hr-device-${d.deviceId}`}
+                            onClick={() => connectFromHrScan(d.deviceId, d.name)}
+                            disabled={hrConnecting}
+                            className="w-full flex items-center gap-3 bg-blue-900/40 border border-blue-700/30 rounded-xl px-3 py-2.5 hover:bg-blue-800/50 transition-colors text-left disabled:opacity-40"
+                          >
+                            <Heart className="w-4 h-4 text-red-400 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-white text-sm font-medium truncate">{d.name}</div>
+                              <div className="text-blue-400/50 text-[10px] font-mono truncate">{d.deviceId}</div>
+                            </div>
+                            {/* Signal strength bars */}
+                            <div className={`flex items-end gap-[2px] ${barColor} shrink-0`} title={`${d.rssi} dBm`}>
+                              <span className={`w-[3px] rounded-sm ${bars >= 1 ? "bg-current" : "bg-current opacity-20"}`} style={{height: 6}} />
+                              <span className={`w-[3px] rounded-sm ${bars >= 2 ? "bg-current" : "bg-current opacity-20"}`} style={{height: 10}} />
+                              <span className={`w-[3px] rounded-sm ${bars >= 3 ? "bg-current" : "bg-current opacity-20"}`} style={{height: 14}} />
+                            </div>
+                            <span className="text-blue-300 text-[10px] font-semibold shrink-0">Connect</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    )}
+                    </>
+                    );
+                  })()}
+
+                  {/* No devices found after scan */}
+                  {hrScanDone && !hrScanActive && hrScanDevices.length === 0 && (
+                    <p className="text-blue-400/50 text-[11px] text-center py-1">
+                      No devices found. Make sure your watch is nearby and awake.
+                    </p>
+                  )}
+
+                  {/* Quick reconnect to last manually-paired device */}
+                  {(() => {
+                    void savedDevicesKey; // depend on key so forget triggers re-render
+                    try {
+                      const saved = localStorage.getItem("coldstreak-bt-hr");
+                      if (!saved) return null;
+                      const { deviceId, name } = JSON.parse(saved) as { deviceId: string; name: string };
+                      if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(deviceId)) return null;
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            data-testid="button-hr-quick-reconnect"
+                            onClick={() => connectManualHR(deviceId, name)}
+                            disabled={hrConnecting}
+                            className="flex-1 flex items-center gap-2 bg-blue-900/30 border border-blue-600/30 rounded-xl px-3 py-2 hover:bg-blue-800/40 transition-colors disabled:opacity-40 min-w-0"
+                          >
+                            <Heart className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                            <div className="flex-1 text-left min-w-0">
+                              <div className="text-blue-200 text-xs font-semibold truncate">
+                                {hrConnecting ? "Connecting…" : <>Reconnect to <span className="text-white">{name || "Heart Rate Monitor"}</span></>}
+                              </div>
+                              <div className="text-blue-400/60 text-[10px] font-mono truncate">{deviceId}</div>
+                            </div>
+                            {hrConnecting
+                              ? <span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                              : <span className="text-red-400 text-[10px] font-semibold shrink-0">Connect</span>
+                            }
+                          </button>
+                          <button
+                            data-testid="button-hr-forget"
+                            onClick={() => { localStorage.removeItem("coldstreak-bt-hr"); setSavedDevicesKey(k => k + 1); }}
+                            title="Forget device"
+                            className="w-8 h-8 rounded-xl bg-red-900/20 border border-red-700/20 text-red-400/60 hover:bg-red-900/40 hover:text-red-300 flex items-center justify-center transition-colors shrink-0"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    } catch { return null; }
+                  })()}
+
+                  {/* Manual Bluetooth address entry */}
+                  <div className="border-t border-blue-700/20 pt-2 mt-1">
+                    <button
+                      data-testid="button-hr-manual-toggle"
+                      onClick={() => {
+                        const next = !hrManualEntry;
+                        setHrManualEntry(next);
+                        if (next && !hrManualAddress) {
+                          try {
+                            const saved = localStorage.getItem("coldstreak-bt-hr");
+                            if (saved) {
+                              const { deviceId, name } = JSON.parse(saved) as { deviceId: string; name: string };
+                              if (/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(deviceId)) {
+                                setHrManualAddress(deviceId);
+                                setHrManualName(name || "");
+                              }
+                            }
+                          } catch { /* ignore */ }
+                        }
+                      }}
+                      className="text-blue-400/60 text-[11px] hover:text-blue-300 transition-colors w-full text-center"
+                    >
+                      {hrManualEntry ? "Hide" : "Enter Bluetooth address manually →"}
+                    </button>
+
+                    {hrManualEntry && (
+                      <div className="mt-2 space-y-2">
+                        <p className="text-blue-400/60 text-[10px] leading-relaxed">
+                          Find your device's Bluetooth address in its companion app settings (e.g. Zepp → Profile → Device Info → Bluetooth Address). The app will scan for your device in the background then connect — keep the watch nearby. Allow up to 12 seconds.
+                        </p>
+                        <p className="text-yellow-400/60 text-[10px] bg-yellow-900/20 border border-yellow-700/30 rounded-lg px-2.5 py-1.5 leading-relaxed">
+                          Android only — iOS randomizes Bluetooth addresses and this won't work on iPhone.
+                        </p>
+                        <input
+                          data-testid="input-hr-manual-address"
+                          type="text"
+                          placeholder="e.g. AB:CD:EF:12:34:56"
+                          value={hrManualAddress}
+                          onChange={e => {
+                            // Strip non-hex chars, replace letter O with 0, uppercase
+                            const raw = e.target.value.toUpperCase().replace(/O/g, "0").replace(/[^0-9A-F]/g, "");
+                            // Group into pairs and join with colons (max 6 pairs = 12 hex chars)
+                            const trimmed = raw.slice(0, 12);
+                            const formatted = trimmed.match(/.{1,2}/g)?.join(":") ?? trimmed;
+                            setHrManualAddress(formatted);
+                          }}
+                          maxLength={17}
+                          className="w-full bg-blue-900/40 border border-blue-700/40 rounded-lg px-3 py-2 text-white text-sm placeholder-blue-500/50 focus:outline-none focus:border-blue-500 font-mono tracking-wider"
+                        />
+                        <input
+                          data-testid="input-hr-manual-name"
+                          type="text"
+                          placeholder="Device name (optional, e.g. Amazfit T-Rex 2)"
+                          value={hrManualName}
+                          onChange={e => setHrManualName(e.target.value)}
+                          className="w-full bg-blue-900/40 border border-blue-700/40 rounded-lg px-3 py-2 text-white text-sm placeholder-blue-500/50 focus:outline-none focus:border-blue-500"
+                        />
+                        <button
+                          data-testid="button-hr-manual-connect"
+                          onClick={() => {
+                            const addr = hrManualAddress.trim();
+                            if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(addr)) {
+                              toast({ title: "Invalid address", description: "Format must be AB:CD:EF:12:34:56", variant: "destructive" });
+                              return;
+                            }
+                            connectManualHR(addr, hrManualName.trim() || addr);
+                            setHrManualEntry(false);
+                            setHrManualAddress("");
+                            setHrManualName("");
+                          }}
+                          disabled={hrConnecting || !hrManualAddress.trim()}
+                          className="w-full py-2 rounded-xl bg-red-900/20 border border-red-700/40 text-red-300 text-sm font-semibold hover:bg-red-900/40 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                        >
+                          {hrConnecting
+                            ? <><span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />Connecting…</>
+                            : <><Bluetooth className="w-4 h-4" />Connect to Address</>
+                          }
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Troubleshooting — collapsible, no extra state needed */}
+              <details className="border-t border-blue-700/20 pt-2 mt-1">
+                <summary className="text-blue-400/50 text-[11px] cursor-pointer hover:text-blue-300 transition-colors select-none list-none flex items-center gap-1">
+                  <span className="text-[9px]">▸</span> Can't connect? Try these steps
+                </summary>
+                <ol className="mt-2 space-y-2 text-blue-300/70 text-[11px] leading-relaxed pl-1">
+                  <li><span className="text-white/80 font-semibold">1. Pair in Android Bluetooth settings first.</span>{" "}
+                    Open Android <em>Settings → Connected devices → Pair new device</em>, find your watch in the list and tap it. This creates the system-level bond ColdStreak needs. Come back and connect here after.</li>
+                  <li><span className="text-white/80 font-semibold">2. Start a workout on your watch.</span>{" "}
+                    Zepp OS watches only broadcast live heart rate over Bluetooth when a workout is active. Start any activity on the watch, then tap Connect here.</li>
+                  <li><span className="text-white/80 font-semibold">3. Enable third-party access in Zepp.</span>{" "}
+                    In the Zepp app: <em>Profile → your watch → Health monitoring → Heart rate → Allow third-party access</em>.</li>
+                  <li><span className="text-white/80 font-semibold">4. Connecting from a tablet?</span>{" "}
+                    First disconnect the watch from your phone (turn off phone Bluetooth or close Zepp) — the watch can only be actively connected to one device at a time. Then pair and connect on the tablet.</li>
+                  <li><span className="text-white/80 font-semibold">5. Still timing out?</span>{" "}
+                    Forget the device here, unpair it in Android Bluetooth settings, then redo steps 1–3.</li>
+                </ol>
+              </details>
+            </div>
+
+            {/* ── Apple Health (HealthKit) ─────────────────────────── */}
+            {/* Apple Guideline 2.5.1: clearly identify HealthKit usage in the UI. */}
+            {isHealthKitPossible() && (
+              <div data-testid="card-apple-health" className="bg-gradient-to-br from-pink-900/40 to-blue-900/60 backdrop-blur-md rounded-2xl border border-pink-500/30 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Heart className="w-5 h-5 text-pink-400 fill-pink-400" />
+                  <h3 className="text-white font-bold text-sm">Apple Health</h3>
+                </div>
+                <p className="text-blue-200 text-xs leading-relaxed">
+                  ColdStreak uses Apple HealthKit to import your heart rate, HRV, and body weight from Apple Watch (or any device that writes to Apple Health). This is how your plunges get a heart-rate average without a chest strap and accurate calorie estimates without re-entering your weight.
+                </p>
+                <div className="bg-blue-950/60 rounded-xl border border-blue-700/30 p-3 space-y-1.5">
+                  <p className="text-pink-300 text-[11px] font-semibold uppercase tracking-wide">Data read from Apple Health</p>
+                  <ul className="text-blue-200 text-[11px] space-y-1">
+                    <li>• Heart Rate — averaged across your plunge window</li>
+                    <li>• Heart Rate Variability (HRV) — for recovery insights</li>
+                    <li>• Body Weight — used to estimate calories burned</li>
+                  </ul>
+                  <p className="text-blue-400 text-[11px] mt-2">No data is written to Apple Health, and nothing leaves your device without your action.</p>
+                </div>
+                <button
+                  data-testid="button-apple-health-connect"
+                  onClick={async () => {
+                    const result = await connectHealthKit();
+                    if (result === "connected") {
+                      toast({ title: "Apple Health connected", description: "Heart rate, HRV, and weight will be pulled from Apple Health for your plunges. Make sure Heart Rate, HRV, and Body Mass are turned ON in the Health permission screen." });
+                    } else if (result === "no-plugin") {
+                      toast({
+                        title: "Update needed",
+                        description: "This app version doesn't include Apple Health support yet. Install the latest TestFlight/App Store build, then try again.",
+                        variant: "destructive",
+                      });
+                    } else if (result === "unavailable") {
+                      toast({
+                        title: "Apple Health unavailable",
+                        description: "This device doesn't have Apple Health data available.",
+                        variant: "destructive",
+                      });
+                    } else if (result === "error") {
+                      toast({
+                        title: "Couldn't open Apple Health",
+                        description: "Something went wrong reaching Apple Health. Please try again, or check ColdStreak under Settings → Health → Data Access & Devices.",
+                        variant: "destructive",
+                      });
+                    } else {
+                      toast({
+                        title: "Grant access in Health",
+                        description: "Opening Health app. Tap Sharing tab → Apps → ColdStreak, then turn on Heart Rate, HRV, and Body Mass.",
+                      });
+                      setTimeout(() => { window.location.href = "x-apple-health://"; }, 400);
+                    }
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-400 hover:to-red-400 text-white font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  <Heart className="w-4 h-4" /> Connect Apple Health
+                </button>
+              </div>
+            )}
+
+            {/* Manual reminder */}
+            <p className="text-blue-600/70 text-[10px] text-center px-2 pb-1">
+              No BLE device? You can always type your water temperature manually on the timer screen.
+            </p>
             </>)}
 
             {settingsTab === 'support' && (

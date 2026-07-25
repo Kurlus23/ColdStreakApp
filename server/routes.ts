@@ -9,7 +9,7 @@ import Stripe from "stripe";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail, sendAdminSecurityAlert, sendSupportEmail, sendAdminReplyEmail, sendCoManagerInviteEmail } from "./email";
+import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail, sendAdminSecurityAlert, sendSupportEmail, sendAdminReplyEmail, sendCoManagerInviteEmail, sendFriendInviteEmail } from "./email";
 import webpush from "web-push";
 
 webpush.setVapidDetails(
@@ -1467,6 +1467,37 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     })();
 
     res.json({ success: true });
+  });
+
+  // Invite a friend by email — sends a request if they have an account, otherwise an invite email
+  app.post("/api/friends/invite-by-email", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller) return res.status(401).json({ error: "Login required" });
+    const parsed = z.object({ email: z.string().email() }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Invalid email address" });
+    const { email } = parsed.data;
+
+    const callerUser = await storage.getUserById(caller.userId);
+    if (!callerUser) return res.status(401).json({ error: "User not found" });
+
+    const target = await storage.getUserByEmail(email.toLowerCase());
+    if (target) {
+      if (target.id === caller.userId) return res.status(400).json({ error: "That's you!" });
+      const existing = await storage.getFriendship(caller.userId, target.id);
+      if (existing?.status === "accepted") return res.json({ status: "already_friends" });
+      if (existing?.status === "pending") return res.json({ status: "request_pending" });
+      const result = await storage.sendFriendRequest(caller.userId, target.id);
+      if (!result.ok) return res.status(400).json({ error: result.error });
+      return res.json({ status: "request_sent", username: target.username });
+    }
+
+    // No account found — send an invite email
+    const inviterName = callerUser.displayName || callerUser.username || "A ColdStreak user";
+    const origin = getSiteOrigin(req);
+    sendFriendInviteEmail(email, inviterName, origin).catch(err =>
+      console.error("[friends/invite-by-email] email error:", err)
+    );
+    res.json({ status: "invite_sent" });
   });
 
   // Accept or decline a friend request

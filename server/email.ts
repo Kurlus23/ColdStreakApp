@@ -38,6 +38,30 @@ async function sendEmail(to: string, subject: string, html: string): Promise<voi
   console.log("[email] Sent successfully to:", to, "subject:", subject);
 }
 
+export async function sendFriendInviteEmail(to: string, inviterName: string, appUrl: string): Promise<void> {
+  await sendEmail(to, `${inviterName} wants to be your ColdStreak friend! 🧊`, `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">
+      <h1 style="color:#22d3ee;margin:0 0 8px">🧊 ColdStreak</h1>
+      <h2 style="color:#fff;margin:0 0 16px;font-size:20px">You've been invited!</h2>
+      <p style="color:#94a3b8;margin:0 0 8px;line-height:1.6">
+        <strong style="color:#e2e8f0">${inviterName}</strong> sent you a friend request on ColdStreak — the cold plunge tracking app.
+      </p>
+      <p style="color:#94a3b8;margin:0 0 24px;line-height:1.6">
+        Join ColdStreak to track your plunges, build streaks, and compete on leaderboards with friends.
+      </p>
+      <a href="${appUrl}"
+         style="display:inline-block;background:#22d3ee;color:#0f172a;font-weight:700;
+                text-decoration:none;padding:14px 28px;border-radius:12px;font-size:15px;">
+        Accept &amp; Join ColdStreak
+      </a>
+      <p style="color:#64748b;margin:24px 0 0;font-size:13px;line-height:1.6">
+        Once you sign up, set a username so ${inviterName} can send you a friend request directly.<br><br>
+        — The ColdStreak Team 🥶
+      </p>
+    </div>
+  `);
+}
+
 export async function sendVerificationEmail(to: string, verifyUrl: string): Promise<void> {
   await sendEmail(to, "Verify your ColdStreak email", `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f1f3d;color:#e2e8f0;border-radius:16px;padding:32px;">
