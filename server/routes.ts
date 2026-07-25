@@ -1390,6 +1390,37 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     const { addresseeId } = z.object({ addresseeId: z.number().int().positive() }).parse(req.body);
     const result = await storage.sendFriendRequest(caller.userId, addresseeId);
     if (!result.ok) return res.status(400).json({ error: result.error });
+
+    // Fire-and-forget push notification to the addressee
+    (async () => {
+      try {
+        const subs = await storage.getPushSubscriptionsByUser(addresseeId);
+        if (subs.length === 0) return;
+        const requester = await storage.getUserById(caller.userId);
+        const name = requester?.displayName || requester?.username || "Someone";
+        const payload = JSON.stringify({
+          title: `👋 ${name} sent you a friend request`,
+          body: "Open Cold Streak to accept or decline.",
+          url: "/friends",
+          tag: `friend-request-${caller.userId}`,
+        });
+        for (const sub of subs) {
+          try {
+            await webpush.sendNotification(
+              { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+              payload
+            );
+          } catch (err: any) {
+            if (err.statusCode === 410 || err.statusCode === 404) {
+              await storage.deletePushSubscription(sub.endpoint);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[friends/request] push notification error:", err);
+      }
+    })();
+
     res.json({ success: true });
   });
 
