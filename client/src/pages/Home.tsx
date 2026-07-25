@@ -56,6 +56,7 @@ import { loadFriends as loadFriendsImpl } from "@/lib/loadFriends";
 import { searchFriends as searchFriendsImpl } from "@/lib/searchFriends";
 import { sendFriendRequest as sendFriendRequestImpl } from "@/lib/sendFriendRequest";
 import { respondFriendRequest as respondFriendRequestImpl } from "@/lib/respondFriendRequest";
+import { sendFriendChallenge as sendFriendChallengeImpl } from "@/lib/sendFriendChallenge";
 
 // Pick a fresh cold take the user hasn't unlocked yet and persist it to the
 // unlocked collection. Falls back to a repeat only if the pool is exhausted.
@@ -4503,10 +4504,13 @@ export default function Home() {
                           onClick={async (e) => {
                             e.stopPropagation();
                             setChallengingId(f.userId);
-                            try {
-                              const r = await authFetch(`/api/friends/challenge/${f.userId}`, { method: 'POST' }).then(x => x.json());
-                              toast({ title: r.sent ? '❄️ Challenge sent!' : 'Could not send', description: r.sent ? `${f.displayName || f.username} was notified.` : 'They may not have notifications on.', variant: r.sent ? 'default' : 'destructive' });
-                            } finally { setChallengingId(null); }
+                            await sendFriendChallengeImpl(f.userId, f.displayName || f.username || "Friend", {
+                              authFetch,
+                              navigate,
+                              toast,
+                              onSettled: () => setChallengingId(null),
+                              clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                            });
                           }}
                           className="shrink-0 px-2 py-1 rounded-lg bg-cyan-600/30 border border-cyan-500/40 text-cyan-300 text-[10px] font-bold hover:bg-cyan-600/50 transition-all active:scale-95 disabled:opacity-40"
                         >
