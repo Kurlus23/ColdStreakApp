@@ -53,6 +53,8 @@ import { type Plunge, type UserLocation, usernameSchema } from "@shared/schema";
 import { pickColdTake, type ColdTakeContext } from "@shared/coldTakes";
 import { MoodCheckIn } from "@/components/MoodCheckIn";
 import { loadFriends as loadFriendsImpl } from "@/lib/loadFriends";
+import { searchFriends as searchFriendsImpl } from "@/lib/searchFriends";
+import { sendFriendRequest as sendFriendRequestImpl } from "@/lib/sendFriendRequest";
 
 // Pick a fresh cold take the user hasn't unlocked yet and persist it to the
 // unlocked collection. Falls back to a repeat only if the pool is exhausted.
@@ -4545,23 +4547,14 @@ export default function Home() {
                         const q = e.target.value;
                         setFriendSearch(q);
                         if (q.length < 2) { setFriendSearchResults([]); return; }
-                        setFriendsSearchLoading(true);
-                        try {
-                          const res = await authFetch(`/api/users/search?q=${encodeURIComponent(q)}`);
-                          if (res.status === 401) {
-                            localStorage.removeItem("coldstreak-auth-token");
-                            navigate("/");
-                            return;
-                          }
-                          if (!res.ok) {
-                            toast({ title: "Search failed, please try again", variant: "destructive" });
-                            return;
-                          }
-                          const r = await res.json();
-                          if (Array.isArray(r)) setFriendSearchResults(r);
-                        } catch {
-                          toast({ title: "Search failed, please try again", variant: "destructive" });
-                        } finally { setFriendsSearchLoading(false); }
+                        await searchFriendsImpl(q, {
+                          authFetch,
+                          navigate,
+                          toast,
+                          setFriendsSearchLoading,
+                          setFriendSearchResults,
+                          clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                        });
                       }}
                       className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
                     />
@@ -4585,9 +4578,13 @@ export default function Home() {
                           <span className="text-blue-400 text-[10px]">Pending…</span>
                         ) : (
                           <button onClick={async () => {
-                            await authFetch('/api/friends/request', { method: 'POST', body: JSON.stringify({ addresseeId: u.id }) });
-                            setFriendSearchResults(prev => prev.map(x => x.id === u.id ? { ...x, friendshipStatus: 'pending' } : x));
-                            toast({ title: 'Request sent! 🧊', description: `${u.displayName || u.username} will get a notification.` });
+                            await sendFriendRequestImpl(u.id, u.displayName || u.username || "them", {
+                              authFetch,
+                              navigate,
+                              toast,
+                              onSuccess: (id) => setFriendSearchResults(prev => prev.map(x => x.id === id ? { ...x, friendshipStatus: 'pending' } : x)),
+                              clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                            });
                           }} className="shrink-0 px-2 py-1 rounded-lg bg-cyan-600 text-white text-[10px] font-bold hover:bg-cyan-500 active:scale-95 transition-all">+ Add</button>
                         )}
                       </div>
