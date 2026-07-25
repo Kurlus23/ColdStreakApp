@@ -3996,7 +3996,7 @@ export default function Home() {
 
       {/* ─── SETTINGS SCREEN ─── */}
       {screen === "settings" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto px-4 py-3">
+        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overscroll-none px-4 py-3">
           <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-5 border border-blue-800/50 space-y-6 min-h-full">
             <div className="flex items-center justify-between">
               <h2 className="text-white font-bold text-lg flex items-center gap-2">
@@ -4958,7 +4958,7 @@ export default function Home() {
 
       {/* ─── FRIENDS SCREEN ─── */}
       {screen === "friends" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
+        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overscroll-none overflow-x-hidden px-4 py-3">
           <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl border border-blue-800/50 min-h-full min-w-0 flex flex-col">
 
             {/* Header */}
