@@ -12,7 +12,7 @@ import {
   Play, Pause, RotateCcw, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2, VolumeX, FileText,
-  Camera, MapPin, Lock, ShieldAlert, Trophy, User, ChevronDown,
+  Camera, MapPin, Lock, ShieldAlert, Trophy, User, Users, ChevronDown,
   Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff, Heart, X, Droplets, Thermometer,
   Image as ImageIcon, MessageCircle, Send, Eye, EyeOff
 } from "lucide-react";
@@ -152,7 +152,7 @@ function playAlarm(url: string, label: string, isCustom: boolean, stopAfterMs?: 
   return handle;
 }
 
-type Screen = "timer" | "history" | "explore" | "gear" | "settings" | "legal" | "achievements" | "devices";
+type Screen = "timer" | "history" | "explore" | "gear" | "settings" | "legal" | "achievements" | "friends";
 
 
 function plungeScore(durationSeconds: number, tempF: number): number {
@@ -359,7 +359,9 @@ export default function Home() {
   const [friendSearchResults, setFriendSearchResults] = useState<UserResult[]>([]);
   const [friendsSearchLoading, setFriendsSearchLoading] = useState(false);
   const [challengingId, setChallengingId] = useState<number | null>(null);
-  // Badge shown on the Settings nav when a friend request resolves while the
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteSending, setInviteSending] = useState(false);
+  // Badge shown on the Friends nav when a friend request resolves while the
   // user is on a different screen. Cleared when they navigate to the Friends
   // section (Settings → User tab) and the list re-fetches.
   const [friendsBadge, setFriendsBadge] = useState(false);
@@ -683,20 +685,20 @@ export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'user' | 'settings' | 'support'>('user');
 
-  // Load friends whenever the user tab becomes visible and clear the badge —
+  // Load friends whenever the Friends screen becomes visible and clear the badge —
   // the user has now seen the updated list.
   useEffect(() => {
-    if (screen === "settings" && settingsTab === "user" && auth.user) {
+    if (screen === "friends" && auth.user) {
       loadFriends();
       setFriendsBadge(false);
     }
-  }, [screen, settingsTab, auth.user, loadFriends]);
+  }, [screen, auth.user, loadFriends]);
 
   // Keep isOnFriendsScreenRef in sync so the SW message handler (registered
   // earlier) can read the current screen without a stale closure. Declared
   // here — after settingsTab — to avoid a temporal dead zone during render.
   useEffect(() => {
-    isOnFriendsScreenRef.current = screen === "settings" && settingsTab === "user";
+    isOnFriendsScreenRef.current = screen === "friends";
   }, [screen, settingsTab]);
 
   // Intro video — disabled by default for now while we sort out the iOS WebView
@@ -1201,8 +1203,8 @@ export default function Home() {
 
   const navTo = (s: Screen) => {
     const next = screen === s ? "timer" : s;
-    // Stop any active HR scan when leaving devices screen
-    if (screen === "devices" && next !== "devices" && hrScanActive) {
+    // Stop any active HR scan when leaving a screen that could be scanning
+    if (hrScanActive && next !== screen) {
       BleClient.stopLEScan().catch(() => {});
       setHrScanActive(false);
       setHrScanDevices([]);
@@ -3090,7 +3092,7 @@ export default function Home() {
                 <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest">Water Temp</div>
                 {/* Always rendered to keep header height stable; invisible when not live */}
                 <button
-                  onClick={() => navTo("devices")}
+                  onClick={() => { navTo("settings"); setTimeout(() => setSettingsTab('settings'), 50); }}
                   className={`flex items-center justify-end gap-1 w-full mt-0.5 ${btConnected ? "" : "invisible"}`}
                   data-testid="button-bt-status-header"
                 >
@@ -5171,596 +5173,281 @@ export default function Home() {
         </div>
       )}
 
-      {/* ─── DEVICES SCREEN ─── */}
-      {screen === "devices" && (
+      {/* ─── FRIENDS SCREEN ─── */}
+      {screen === "friends" && (
         <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
-          <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-4 border border-blue-800/50 min-h-full min-w-0 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-white font-bold text-lg flex items-center gap-2">
-                <Bluetooth className="w-5 h-5 text-cyan-400" /> Bluetooth Devices
-              </h2>
-              <button
-                data-testid="button-close-devices"
-                onClick={() => navTo("timer")}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-800/60 border border-blue-600/50 text-blue-300 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95 text-lg font-bold"
-              >✕</button>
-            </div>
+          <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl border border-blue-800/50 min-h-full min-w-0 flex flex-col">
 
-            {/* Warning when BLE plugin is missing from this build */}
-            {!bleAvailable && Capacitor.isNativePlatform() && (
-              <div className="bg-red-900/30 border border-red-700/50 rounded-2xl px-4 py-3 flex gap-3 items-start">
-                <span className="text-red-400 text-lg shrink-0">⚠️</span>
-                <div>
-                  <p className="text-red-300 text-sm font-semibold">Rebuild required</p>
-                  <p className="text-red-400/80 text-xs leading-relaxed mt-0.5">
-                    The Bluetooth plugin wasn't included in this build. Run <span className="font-mono">npx cap sync android</span> then rebuild and reinstall the APK.
-                  </p>
-                </div>
-              </div>
-            )}
-            {/* Mobile-browser warning — BLE only works in native Capacitor app */}
-            {!bleAvailable && !Capacitor.isNativePlatform() && (
-              <div className="bg-yellow-900/30 border border-yellow-700/50 rounded-2xl px-4 py-3 flex gap-3 items-start">
-                <span className="text-yellow-400 text-lg shrink-0">⚠️</span>
-                <div>
-                  <p className="text-yellow-300 text-sm font-semibold">Native app required</p>
-                  <p className="text-yellow-400/80 text-xs leading-relaxed mt-0.5">
-                    Bluetooth sensor pairing is only available in the ColdStreak Android or iOS app. This browser does not support BLE device connections.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Thermometer */}
-            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
-              <div className="flex items-center gap-2">
-                <Snowflake className="w-4 h-4 text-cyan-400 shrink-0" />
-                <span className="text-white font-semibold text-sm">Water Thermometer</span>
-                {btConnected && <span className="ml-auto flex items-center gap-1 text-[10px] text-green-400"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />Connected</span>}
-              </div>
-              <p className="text-blue-400/80 text-xs leading-relaxed">
-                Connect a BLE thermometer to automatically read your water temperature during a plunge.
-              </p>
-              <p className="text-blue-400/60 text-[11px] leading-relaxed -mt-1">
-                <span className="text-cyan-300/80 font-semibold">Currently supported:</span> Inkbird IBS-TH2 Plus (waterproof external probe). Support for other models is on the roadmap.
-              </p>
-              {btConnected ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 bg-green-900/30 border border-green-700/40 rounded-xl px-3 py-2">
-                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shrink-0" />
-                    <span className="text-green-300 text-sm font-medium flex-1 truncate">{btDeviceName || "Thermometer"}</span>
-                    <span className="text-green-400/70 text-xs font-bold">{btConnected ? `${temperature}°${useCelsius ? "C" : "F"}` : "—"}</span>
-                  </div>
-                  {/* Calibration offset — only visible when connected */}
-                  <div className="flex items-center gap-2 pt-1 border-t border-blue-700/30">
-                    <span className="text-blue-400/70 text-xs flex-1">Calibration offset</span>
-                    <button
-                      data-testid="button-temp-offset-down"
-                      onClick={() => setBtTempOffset(v => Math.max(-20, +(v - 1).toFixed(0)))}
-                      className="w-7 h-7 rounded-lg bg-blue-800/60 text-white text-base font-bold flex items-center justify-center hover:bg-blue-700/60 transition-colors"
-                    >−</button>
-                    <span data-testid="text-temp-offset" className="text-white text-xs font-bold w-10 text-center">
-                      {btTempOffset > 0 ? `+${btTempOffset}` : btTempOffset}°{useCelsius ? "C" : "F"}
-                    </span>
-                    <button
-                      data-testid="button-temp-offset-up"
-                      onClick={() => setBtTempOffset(v => Math.min(20, +(v + 1).toFixed(0)))}
-                      className="w-7 h-7 rounded-lg bg-blue-800/60 text-white text-base font-bold flex items-center justify-center hover:bg-blue-700/60 transition-colors"
-                    >+</button>
-                    {btTempOffset !== 0 && (
-                      <button
-                        data-testid="button-temp-offset-reset"
-                        onClick={() => setBtTempOffset(0)}
-                        className="text-blue-400/60 text-[10px] hover:text-blue-300 transition-colors"
-                      >reset</button>
-                    )}
-                  </div>
-                  <button
-                    data-testid="button-bt-disconnect-devices"
-                    onClick={disconnectThermometer}
-                    className="w-full py-2 rounded-xl bg-red-900/30 border border-red-700/40 text-red-300 text-sm font-semibold hover:bg-red-900/50 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <BluetoothOff className="w-4 h-4" /> Disconnect
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {/* Timed-out notice — shown after 3 failed auto-reconnect attempts */}
-                  {btThermoTimedOut && (
-                    <div className="flex items-center gap-2 bg-yellow-900/20 border border-yellow-700/30 rounded-xl px-3 py-2">
-                      <span className="text-yellow-400 text-sm">⚠</span>
-                      <span className="text-yellow-300/80 text-[11px]">Device timed out — tap below to reconnect.</span>
-                    </div>
-                  )}
-                  {/* Quick reconnect to last paired thermometer */}
-                  {(() => {
-                    void savedDevicesKey; // depend on key so forget triggers re-render
-                    try {
-                      const saved = localStorage.getItem("coldstreak-bt-thermo");
-                      if (!saved) return null;
-                      const { deviceId, name } = JSON.parse(saved) as { deviceId: string; name: string };
-                      return (
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            data-testid="button-bt-quick-reconnect"
-                            onClick={() => reconnectThermoFromUI(deviceId, name)}
-                            disabled={btConnecting}
-                            className="flex-1 flex items-center gap-2 bg-blue-900/30 border border-blue-600/30 rounded-xl px-3 py-2 hover:bg-blue-800/40 transition-colors disabled:opacity-40 min-w-0"
-                          >
-                            <Snowflake className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                            <div className="flex-1 text-left min-w-0">
-                              <div className="text-blue-200 text-xs font-semibold truncate">
-                                {btConnecting ? "Connecting…" : <>Reconnect to <span className="text-white">{name || "Thermometer"}</span></>}
-                              </div>
-                              <div className="text-blue-400/60 text-[10px] font-mono truncate">{deviceId}</div>
-                            </div>
-                            {btConnecting
-                              ? <span className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
-                              : <span className="text-cyan-400 text-[10px] font-semibold shrink-0">Connect</span>
-                            }
-                          </button>
-                          <button
-                            data-testid="button-bt-forget-thermo"
-                            onClick={() => { localStorage.removeItem("coldstreak-bt-thermo"); setSavedDevicesKey(k => k + 1); }}
-                            title="Forget device"
-                            className="w-8 h-8 rounded-xl bg-red-900/20 border border-red-700/20 text-red-400/60 hover:bg-red-900/40 hover:text-red-300 flex items-center justify-center transition-colors shrink-0"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      );
-                    } catch { return null; }
-                  })()}
-
-                  {/* Thermometer scan / discovered list */}
-                  {thermoScanActive ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between bg-cyan-900/20 border border-cyan-700/30 rounded-xl px-3 py-2">
-                        <div className="flex items-center gap-2 text-cyan-300 text-xs">
-                          <span className="w-3 h-3 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
-                          Scanning…{thermoScanDevices.length > 0 && <span className="text-cyan-300/60"> ({thermoScanDevices.length} found)</span>}
-                        </div>
-                        <button data-testid="button-thermo-scan-stop" onClick={stopThermoScan} className="text-cyan-400/70 text-[10px] hover:text-cyan-300 transition-colors">Stop</button>
-                      </div>
-                      {thermoScanDevices.length === 0 && (
-                        <p className="text-cyan-400/50 text-[11px] text-center py-1 leading-relaxed">
-                          Press the <span className="text-white font-semibold">pairing button</span> on your thermometer<br/>and it will appear here.
-                        </p>
-                      )}
-                      {thermoScanDevices.length > 0 && (
-                        <div className="max-h-48 overflow-y-auto space-y-1.5 pr-0.5">
-                          {[...thermoScanDevices].sort((a, b) => b.rssi - a.rssi).map((d) => {
-                            const bars = d.rssi >= -60 ? 3 : d.rssi >= -75 ? 2 : 1;
-                            const barColor = bars === 3 ? "text-green-400" : bars === 2 ? "text-yellow-400" : "text-red-400/60";
-                            return (
-                              <button
-                                key={d.deviceId}
-                                data-testid={`button-thermo-device-${d.deviceId}`}
-                                onClick={() => connectFromThermoScan(d.deviceId, d.name)}
-                                disabled={btConnecting}
-                                className="w-full flex items-center gap-3 bg-cyan-900/30 border border-cyan-700/30 rounded-xl px-3 py-2.5 hover:bg-cyan-800/40 transition-colors text-left disabled:opacity-40"
-                              >
-                                <Snowflake className="w-4 h-4 text-cyan-400 shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-white text-sm font-medium truncate">{d.name}</div>
-                                  <div className="text-cyan-400/50 text-[10px] font-mono truncate">{d.deviceId}</div>
-                                </div>
-                                <div className={`flex items-end gap-[2px] ${barColor} shrink-0`} title={`${d.rssi} dBm`}>
-                                  <span className="w-[3px] rounded-sm bg-current" style={{height: 6, opacity: bars >= 1 ? 1 : 0.2}} />
-                                  <span className="w-[3px] rounded-sm bg-current" style={{height: 10, opacity: bars >= 2 ? 1 : 0.2}} />
-                                  <span className="w-[3px] rounded-sm bg-current" style={{height: 14, opacity: bars >= 3 ? 1 : 0.2}} />
-                                </div>
-                                <span className="text-cyan-300 text-[10px] font-semibold shrink-0">Connect</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      data-testid="button-bt-connect-devices"
-                      onClick={startThermoScan}
-                      disabled={btConnecting}
-                      className="w-full py-2 rounded-xl bg-cyan-900/20 border border-cyan-700/30 text-cyan-400/80 text-xs font-semibold hover:bg-cyan-900/40 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      <Bluetooth className="w-3.5 h-3.5" />
-                      {localStorage.getItem("coldstreak-bt-thermo") ? "Pair a different thermometer" : "Pair Thermometer"}
-                    </button>
-                  )}
-                </div>
+            {/* Header */}
+            <div className="flex items-center gap-2 px-5 pt-5 pb-3 shrink-0">
+              <Users className="w-5 h-5 text-cyan-400" />
+              <h2 className="text-white font-bold text-lg flex-1">Friends</h2>
+              {friendsLoading && (
+                <span className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
               )}
             </div>
 
-            {/* Heart Rate Monitor */}
-            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
-              <div className="flex items-center gap-2">
-                <Heart className="w-4 h-4 text-red-400 shrink-0" />
-                <span className="text-white font-semibold text-sm">Heart Rate Monitor</span>
-                {hrConnected && <span className="ml-auto flex items-center gap-1 text-[10px] text-green-400"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />Connected</span>}
-              </div>
-              <p className="text-blue-400/80 text-xs leading-relaxed">
-                Connect a Bluetooth heart rate monitor or smartwatch. Supports any device using the standard BLE Heart Rate Profile (e.g. Amazfit, Polar, Garmin).
-              </p>
-              <p className="text-yellow-400/70 text-[10px] leading-relaxed bg-yellow-900/20 border border-yellow-700/30 rounded-lg px-3 py-2">
-                ⌚ Smartwatch tip: Start a workout on your watch <em>before</em> connecting to activate live HR broadcasting.
-              </p>
-              <button
-                data-testid="button-watch-hr-troubleshoot"
-                onClick={() => setShowWatchHrHelp(true)}
-                className="w-full text-left text-orange-300/80 text-[11px] leading-snug bg-orange-900/15 border border-orange-700/30 rounded-lg px-3 py-2 hover:bg-orange-900/25 transition-colors flex items-center gap-2"
-              >
-                <span className="text-orange-400">⚠️</span>
-                <span className="flex-1">
-                  <span className="font-semibold">Apple Watch &amp; HealthKit settings</span>
-                  <span className="text-orange-300/60"> — tap to open</span>
-                </span>
-              </button>
-              {hrConnected ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 bg-green-900/30 border border-green-700/40 rounded-xl px-3 py-2">
-                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shrink-0" />
-                    <span className="text-green-300 text-sm font-medium flex-1 truncate">{hrDeviceName || "Heart Rate Monitor"}</span>
-                    {currentHR && <span className="text-red-300 text-sm font-bold">{currentHR} <span className="text-xs font-normal text-red-300/70">BPM</span></span>}
-                  </div>
-                  <button
-                    data-testid="button-hr-disconnect-devices"
-                    onClick={disconnectHR}
-                    className="w-full py-2 rounded-xl bg-red-900/30 border border-red-700/40 text-red-300 text-sm font-semibold hover:bg-red-900/50 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <BluetoothOff className="w-4 h-4" /> Disconnect
-                  </button>
+            {/* Not logged in */}
+            {!auth.user && (
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 pb-8 text-center">
+                <Users className="w-12 h-12 text-blue-700" />
+                <div className="space-y-1">
+                  <p className="text-white font-bold text-base">Sign in to use Friends</p>
+                  <p className="text-blue-400 text-sm leading-relaxed">Add friends, compete on the leaderboard, and challenge each other.</p>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {/* Scan / scanning indicator row */}
-                  {hrScanActive ? (
-                    <div className="flex items-center justify-between bg-red-900/20 border border-red-700/30 rounded-xl px-3 py-2">
-                      <div className="flex items-center gap-2 text-red-300 text-xs">
-                        <span className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin shrink-0" />
-                        Scanning…{hrScanDevices.length > 0 && <span className="text-red-300/60"> ({hrScanDevices.length} found)</span>}
-                      </div>
+                <button
+                  onClick={() => navTo("settings")}
+                  className="px-5 py-2.5 rounded-2xl bg-cyan-500 text-blue-950 font-bold text-sm hover:bg-cyan-400 transition-colors active:scale-95"
+                >Sign in →</button>
+              </div>
+            )}
+
+            {auth.user && (<>
+
+              {/* Sub-tabs */}
+              <div className="flex px-4 pb-3 gap-1.5 shrink-0">
+                {(['leaderboard', 'requests', 'add'] as const).map((v) => (
+                  <button key={v} onClick={() => setFriendsView(v)}
+                    className={`flex-1 py-2 rounded-xl text-[11px] font-bold transition-all border ${friendsView === v ? 'bg-cyan-500/20 border-cyan-500/50 text-white' : 'text-blue-400 hover:text-blue-200 border-transparent'}`}>
+                    {v === 'leaderboard' ? '🏆 Leaderboard'
+                    : v === 'requests' ? (
+                      <span className="flex items-center justify-center gap-1">
+                        👥 Requests
+                        {pendingRequests.length > 0 && (
+                          <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">{pendingRequests.length}</span>
+                        )}
+                      </span>
+                    ) : '➕ Add'}
+                  </button>
+                ))}
+              </div>
+
+              {/* ── Leaderboard tab ── */}
+              {friendsView === 'leaderboard' && (
+                <div className="flex-1 px-4 pb-4 space-y-2 overflow-y-auto">
+                  {friendsLoading ? (
+                    <div className="flex items-center justify-center py-10">
+                      <span className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : friends.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center gap-3 py-10">
+                      <span className="text-4xl">🧊</span>
+                      <p className="text-white font-semibold text-sm">No friends yet</p>
+                      <p className="text-blue-400 text-xs text-center">Add friends to see the leaderboard and compete!</p>
                       <button
-                        data-testid="button-hr-scan-stop"
-                        onClick={stopHrScan}
-                        className="text-red-400/70 text-[10px] hover:text-red-300 transition-colors"
-                      >Stop</button>
+                        onClick={() => setFriendsView('add')}
+                        className="px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold hover:bg-cyan-500/30 transition-colors active:scale-95"
+                      >➕ Add Friends</button>
                     </div>
                   ) : (
-                    <button
-                      data-testid="button-hr-scan"
-                      onClick={startHrScan}
-                      disabled={hrConnecting}
-                      className="w-full py-2 rounded-xl bg-red-900/20 border border-red-700/40 text-red-300 text-sm font-semibold hover:bg-red-900/40 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {hrConnecting
-                        ? <><span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />Connecting…</>
-                        : <><Bluetooth className="w-4 h-4" />{hrScanDone && hrScanDevices.length > 0 ? "Scan again" : "Scan for Heart Rate Monitors"}</>
-                      }
-                    </button>
+                    friends.map((f, i) => (
+                      <div key={f.friendshipId} className="flex items-center gap-3 bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40 active:scale-[0.99] transition-transform">
+                        {/* Rank */}
+                        <span className={`font-bold text-sm w-5 shrink-0 text-center ${i === 0 ? "text-yellow-400" : i === 1 ? "text-slate-300" : i === 2 ? "text-amber-600" : "text-blue-600"}`}>{i + 1}</span>
+                        {/* Avatar */}
+                        {f.avatarUrl ? (
+                          <img src={f.avatarUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 border border-blue-700/50" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-xl bg-blue-800/80 border border-blue-700/50 flex items-center justify-center shrink-0">
+                            <User className="w-4 h-4 text-blue-500" />
+                          </div>
+                        )}
+                        {/* Name + stats */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-sm font-semibold truncate">{f.displayName || f.username || "Friend"}</p>
+                          <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                            {f.streak > 0 && <span className="text-orange-400 text-[11px] font-bold">🔥 {f.streak}</span>}
+                            {f.latestScore != null && <span className="text-blue-400 text-[11px]">⚡ {f.latestScore.toFixed(1)}</span>}
+                            {f.bestScore != null && <span className="text-cyan-400/70 text-[10px]">best {f.bestScore.toFixed(1)}</span>}
+                          </div>
+                        </div>
+                        {/* Challenge */}
+                        <button
+                          data-testid={`button-challenge-${f.userId}`}
+                          onClick={async () => {
+                            if (challengingId === f.userId) return;
+                            setChallengingId(f.userId);
+                            await sendFriendChallengeImpl(f.userId, f.displayName || f.username || "Friend", {
+                              authFetch, navigate, toast,
+                              clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                            });
+                            setChallengingId(null);
+                          }}
+                          disabled={challengingId === f.userId}
+                          className="shrink-0 px-2.5 py-1.5 rounded-xl bg-orange-500/20 border border-orange-500/40 text-orange-300 text-[10px] font-bold hover:bg-orange-500/30 transition-colors active:scale-95 disabled:opacity-40"
+                        >{challengingId === f.userId ? "…" : "⚡ Challenge"}</button>
+                      </div>
+                    ))
                   )}
+                </div>
+              )}
 
-                  {/* Discovered devices list — sorted strongest signal first */}
-                  {hrScanDevices.length > 0 && (() => {
-                    // Filter out devices that are clearly not heart rate monitors
-                    const NON_HR_PATTERNS = /\b(TV|Television|YamahaAV|Yamaha|LCI|Remote|MacBook|iMac|MacPro|AirPod|HomePod|iPad|iPhone|Android|Kindle|Echo|Alexa|Chromecast|Roku|Xbox|PlayStation|Nintendo|Printer|Amazon|Ring|Nest|Hue|Sonos|Bose|Harman|JBL|Sony|Samsung|LG|Philips|Panasonic|Denon|Onkyo|Pioneer)\b/i;
-                    // Apple Watch advertises BLE but refuses to expose heart rate
-                    // to third-party apps over Bluetooth — Apple gates that
-                    // through HealthKit. We detect it here and show a dedicated
-                    // helper card instead of letting the user try (and fail) to pair.
-                    const APPLE_WATCH_PATTERN = /apple\s*watch|kevin'?s?\s*watch|.*'?s\s*watch/i;
-                    const appleWatch = hrScanDevices.find(d => APPLE_WATCH_PATTERN.test(d.name));
-                    const filtered = [...hrScanDevices]
-                      .filter(d => !NON_HR_PATTERNS.test(d.name) && !APPLE_WATCH_PATTERN.test(d.name))
-                      .sort((a, b) => b.rssi - a.rssi);
-                    if (filtered.length === 0 && !appleWatch) return (
-                      <p className="text-center text-blue-400/50 text-xs py-2">No heart rate monitors detected nearby.<br/>Make sure your device is powered on.</p>
-                    );
-                    return (
-                    <>
-                    {appleWatch && (
-                      <div className="bg-purple-900/30 border border-purple-700/40 rounded-xl px-3 py-2.5 mb-2">
-                        <div className="flex items-start gap-2">
-                          <Heart className="w-4 h-4 text-purple-300 shrink-0 mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-purple-100 text-sm font-semibold">Apple Watch detected</div>
-                            <div className="text-purple-200/80 text-[11px] leading-snug mt-1">
-                              Apple Watch can't share heart rate over Bluetooth — Apple only allows it through HealthKit.
-                              Use the <span className="font-semibold text-white">ColdStreak Watch app</span> instead: open
-                              it on your watch and tap <span className="font-semibold text-white">Start Plunge</span>, and
-                              live BPM will be sent to your iPhone automatically.
+              {/* ── Requests tab ── */}
+              {friendsView === 'requests' && (
+                <div className="flex-1 px-4 pb-4 space-y-3 overflow-y-auto">
+                  {pendingRequests.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center gap-3 py-10">
+                      <span className="text-4xl">📭</span>
+                      <p className="text-white font-semibold text-sm">No pending requests</p>
+                      <p className="text-blue-400 text-xs text-center">Friend requests you receive will appear here.</p>
+                    </div>
+                  ) : (
+                    pendingRequests.map((req) => (
+                      <div key={req.friendshipId} className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40 space-y-3">
+                        <div className="flex items-center gap-3">
+                          {req.requesterAvatarUrl ? (
+                            <img src={req.requesterAvatarUrl} alt="" className="w-10 h-10 rounded-xl object-cover border border-blue-700/50 shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-xl bg-blue-800/80 border border-blue-700/50 flex items-center justify-center shrink-0">
+                              <User className="w-5 h-5 text-blue-500" />
                             </div>
-                            <div className="mt-2 pt-2 border-t border-purple-700/40">
-                              <div className="text-purple-100 text-[11px] font-semibold">First time setup</div>
-                              <div className="text-purple-200/80 text-[11px] leading-snug mt-0.5">
-                                When the Health permission dialog pops up, tap <span className="font-semibold text-white">Allow All</span> (or at minimum: Heart Rate, HRV, and Active Energy). All three are required for live HR to record.
-                              </div>
-                              <div className="text-purple-200/60 text-[10px] leading-snug mt-1">
-                                Already installed? Open <span className="font-semibold text-purple-100">iPhone Settings → Health → Data Access &amp; Devices → ColdStreak</span> and turn all three on.
-                              </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-semibold text-sm truncate">{req.requesterDisplayName || req.requesterUsername || "Someone"}</p>
+                            <div className="flex items-center gap-3 mt-0.5">
+                              {req.requesterStreak > 0 && <span className="text-orange-400 text-[11px]">🔥 {req.requesterStreak} streak</span>}
+                              <span className="text-blue-400 text-[11px]">{req.requesterPlungeCount} plunge{req.requesterPlungeCount !== 1 ? "s" : ""}</span>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                    {filtered.length === 0 ? (
-                      <p className="text-center text-blue-400/50 text-xs py-2">No other heart rate monitors detected nearby.</p>
-                    ) : (
-                    <div className="max-h-52 overflow-y-auto space-y-1.5 pr-0.5">
-                      {filtered.map((d) => {
-                        const bars = d.rssi >= -60 ? 3 : d.rssi >= -75 ? 2 : 1;
-                        const barColor = bars === 3 ? "text-green-400" : bars === 2 ? "text-yellow-400" : "text-red-400/60";
-                        return (
+                        <div className="flex gap-2">
                           <button
-                            key={d.deviceId}
-                            data-testid={`button-hr-device-${d.deviceId}`}
-                            onClick={() => connectFromHrScan(d.deviceId, d.name)}
-                            disabled={hrConnecting}
-                            className="w-full flex items-center gap-3 bg-blue-900/40 border border-blue-700/30 rounded-xl px-3 py-2.5 hover:bg-blue-800/50 transition-colors text-left disabled:opacity-40"
-                          >
-                            <Heart className="w-4 h-4 text-red-400 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <div className="text-white text-sm font-medium truncate">{d.name}</div>
-                              <div className="text-blue-400/50 text-[10px] font-mono truncate">{d.deviceId}</div>
-                            </div>
-                            {/* Signal strength bars */}
-                            <div className={`flex items-end gap-[2px] ${barColor} shrink-0`} title={`${d.rssi} dBm`}>
-                              <span className={`w-[3px] rounded-sm ${bars >= 1 ? "bg-current" : "bg-current opacity-20"}`} style={{height: 6}} />
-                              <span className={`w-[3px] rounded-sm ${bars >= 2 ? "bg-current" : "bg-current opacity-20"}`} style={{height: 10}} />
-                              <span className={`w-[3px] rounded-sm ${bars >= 3 ? "bg-current" : "bg-current opacity-20"}`} style={{height: 14}} />
-                            </div>
-                            <span className="text-blue-300 text-[10px] font-semibold shrink-0">Connect</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    )}
-                    </>
-                    );
-                  })()}
-
-                  {/* No devices found after scan */}
-                  {hrScanDone && !hrScanActive && hrScanDevices.length === 0 && (
-                    <p className="text-blue-400/50 text-[11px] text-center py-1">
-                      No devices found. Make sure your watch is nearby and awake.
-                    </p>
-                  )}
-
-                  {/* Quick reconnect to last manually-paired device */}
-                  {(() => {
-                    void savedDevicesKey; // depend on key so forget triggers re-render
-                    try {
-                      const saved = localStorage.getItem("coldstreak-bt-hr");
-                      if (!saved) return null;
-                      const { deviceId, name } = JSON.parse(saved) as { deviceId: string; name: string };
-                      if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(deviceId)) return null;
-                      return (
-                        <div className="flex items-center gap-1.5">
+                            data-testid={`button-accept-${req.friendshipId}`}
+                            onClick={async () => await respondFriendRequestImpl(req.friendshipId, 'accepted', {
+                              authFetch, navigate, toast,
+                              onSuccess: async () => { await loadFriends(); setFriendsView('leaderboard'); },
+                              clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                            })}
+                            className="flex-1 py-2 rounded-xl bg-green-700/50 border border-green-600/50 text-green-200 text-xs font-bold hover:bg-green-700/70 transition-colors active:scale-[0.98]"
+                          >✓ Accept</button>
                           <button
-                            data-testid="button-hr-quick-reconnect"
-                            onClick={() => connectManualHR(deviceId, name)}
-                            disabled={hrConnecting}
-                            className="flex-1 flex items-center gap-2 bg-blue-900/30 border border-blue-600/30 rounded-xl px-3 py-2 hover:bg-blue-800/40 transition-colors disabled:opacity-40 min-w-0"
-                          >
-                            <Heart className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                            <div className="flex-1 text-left min-w-0">
-                              <div className="text-blue-200 text-xs font-semibold truncate">
-                                {hrConnecting ? "Connecting…" : <>Reconnect to <span className="text-white">{name || "Heart Rate Monitor"}</span></>}
-                              </div>
-                              <div className="text-blue-400/60 text-[10px] font-mono truncate">{deviceId}</div>
-                            </div>
-                            {hrConnecting
-                              ? <span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin shrink-0" />
-                              : <span className="text-red-400 text-[10px] font-semibold shrink-0">Connect</span>
-                            }
-                          </button>
-                          <button
-                            data-testid="button-hr-forget"
-                            onClick={() => { localStorage.removeItem("coldstreak-bt-hr"); setSavedDevicesKey(k => k + 1); }}
-                            title="Forget device"
-                            className="w-8 h-8 rounded-xl bg-red-900/20 border border-red-700/20 text-red-400/60 hover:bg-red-900/40 hover:text-red-300 flex items-center justify-center transition-colors shrink-0"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+                            data-testid={`button-decline-${req.friendshipId}`}
+                            onClick={async () => await respondFriendRequestImpl(req.friendshipId, 'declined', {
+                              authFetch, navigate, toast,
+                              onSuccess: async () => { await loadFriends(); },
+                              clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                            })}
+                            className="flex-1 py-2 rounded-xl bg-blue-900/50 border border-blue-700/40 text-blue-300 text-xs font-bold hover:bg-red-900/30 hover:border-red-700/40 hover:text-red-300 transition-colors active:scale-[0.98]"
+                          >✕ Decline</button>
                         </div>
-                      );
-                    } catch { return null; }
-                  })()}
-
-                  {/* Manual Bluetooth address entry */}
-                  <div className="border-t border-blue-700/20 pt-2 mt-1">
-                    <button
-                      data-testid="button-hr-manual-toggle"
-                      onClick={() => {
-                        const next = !hrManualEntry;
-                        setHrManualEntry(next);
-                        if (next && !hrManualAddress) {
-                          try {
-                            const saved = localStorage.getItem("coldstreak-bt-hr");
-                            if (saved) {
-                              const { deviceId, name } = JSON.parse(saved) as { deviceId: string; name: string };
-                              if (/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(deviceId)) {
-                                setHrManualAddress(deviceId);
-                                setHrManualName(name || "");
-                              }
-                            }
-                          } catch { /* ignore */ }
-                        }
-                      }}
-                      className="text-blue-400/60 text-[11px] hover:text-blue-300 transition-colors w-full text-center"
-                    >
-                      {hrManualEntry ? "Hide" : "Enter Bluetooth address manually →"}
-                    </button>
-
-                    {hrManualEntry && (
-                      <div className="mt-2 space-y-2">
-                        <p className="text-blue-400/60 text-[10px] leading-relaxed">
-                          Find your device's Bluetooth address in its companion app settings (e.g. Zepp → Profile → Device Info → Bluetooth Address). The app will scan for your device in the background then connect — keep the watch nearby. Allow up to 12 seconds.
-                        </p>
-                        <p className="text-yellow-400/60 text-[10px] bg-yellow-900/20 border border-yellow-700/30 rounded-lg px-2.5 py-1.5 leading-relaxed">
-                          Android only — iOS randomizes Bluetooth addresses and this won't work on iPhone.
-                        </p>
-                        <input
-                          data-testid="input-hr-manual-address"
-                          type="text"
-                          placeholder="e.g. AB:CD:EF:12:34:56"
-                          value={hrManualAddress}
-                          onChange={e => {
-                            // Strip non-hex chars, replace letter O with 0, uppercase
-                            const raw = e.target.value.toUpperCase().replace(/O/g, "0").replace(/[^0-9A-F]/g, "");
-                            // Group into pairs and join with colons (max 6 pairs = 12 hex chars)
-                            const trimmed = raw.slice(0, 12);
-                            const formatted = trimmed.match(/.{1,2}/g)?.join(":") ?? trimmed;
-                            setHrManualAddress(formatted);
-                          }}
-                          maxLength={17}
-                          className="w-full bg-blue-900/40 border border-blue-700/40 rounded-lg px-3 py-2 text-white text-sm placeholder-blue-500/50 focus:outline-none focus:border-blue-500 font-mono tracking-wider"
-                        />
-                        <input
-                          data-testid="input-hr-manual-name"
-                          type="text"
-                          placeholder="Device name (optional, e.g. Amazfit T-Rex 2)"
-                          value={hrManualName}
-                          onChange={e => setHrManualName(e.target.value)}
-                          className="w-full bg-blue-900/40 border border-blue-700/40 rounded-lg px-3 py-2 text-white text-sm placeholder-blue-500/50 focus:outline-none focus:border-blue-500"
-                        />
-                        <button
-                          data-testid="button-hr-manual-connect"
-                          onClick={() => {
-                            const addr = hrManualAddress.trim();
-                            if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(addr)) {
-                              toast({ title: "Invalid address", description: "Format must be AB:CD:EF:12:34:56", variant: "destructive" });
-                              return;
-                            }
-                            connectManualHR(addr, hrManualName.trim() || addr);
-                            setHrManualEntry(false);
-                            setHrManualAddress("");
-                            setHrManualName("");
-                          }}
-                          disabled={hrConnecting || !hrManualAddress.trim()}
-                          className="w-full py-2 rounded-xl bg-red-900/20 border border-red-700/40 text-red-300 text-sm font-semibold hover:bg-red-900/40 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
-                        >
-                          {hrConnecting
-                            ? <><span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />Connecting…</>
-                            : <><Bluetooth className="w-4 h-4" />Connect to Address</>
-                          }
-                        </button>
                       </div>
-                    )}
-                  </div>
+                    ))
+                  )}
                 </div>
               )}
 
-              {/* Troubleshooting — collapsible, no extra state needed */}
-              <details className="border-t border-blue-700/20 pt-2 mt-1">
-                <summary className="text-blue-400/50 text-[11px] cursor-pointer hover:text-blue-300 transition-colors select-none list-none flex items-center gap-1">
-                  <span className="text-[9px]">▸</span> Can't connect? Try these steps
-                </summary>
-                <ol className="mt-2 space-y-2 text-blue-300/70 text-[11px] leading-relaxed pl-1">
-                  <li><span className="text-white/80 font-semibold">1. Pair in Android Bluetooth settings first.</span>{" "}
-                    Open Android <em>Settings → Connected devices → Pair new device</em>, find your watch in the list and tap it. This creates the system-level bond ColdStreak needs. Come back and connect here after.</li>
-                  <li><span className="text-white/80 font-semibold">2. Start a workout on your watch.</span>{" "}
-                    Zepp OS watches only broadcast live heart rate over Bluetooth when a workout is active. Start any activity on the watch, then tap Connect here.</li>
-                  <li><span className="text-white/80 font-semibold">3. Enable third-party access in Zepp.</span>{" "}
-                    In the Zepp app: <em>Profile → your watch → Health monitoring → Heart rate → Allow third-party access</em>.</li>
-                  <li><span className="text-white/80 font-semibold">4. Connecting from a tablet?</span>{" "}
-                    First disconnect the watch from your phone (turn off phone Bluetooth or close Zepp) — the watch can only be actively connected to one device at a time. Then pair and connect on the tablet.</li>
-                  <li><span className="text-white/80 font-semibold">5. Still timing out?</span>{" "}
-                    Forget the device here, unpair it in Android Bluetooth settings, then redo steps 1–3.</li>
-                </ol>
-              </details>
-            </div>
+              {/* ── Add tab ── */}
+              {friendsView === 'add' && (
+                <div className="flex-1 px-4 pb-4 space-y-3 overflow-y-auto">
+                  {/* Username tip */}
+                  <div className="bg-cyan-900/30 border border-cyan-700/40 rounded-xl px-3 py-2.5">
+                    <p className="text-cyan-300 text-xs leading-relaxed">
+                      🔍 Friends search by your <span className="font-semibold text-white">@username</span>.{" "}
+                      {auth.user?.username
+                        ? <>Your username: <span className="font-bold text-white">@{auth.user.username}</span></>
+                        : <>No username set?{" "}
+                            <button
+                              onClick={() => { setScreen("achievements"); }}
+                              className="underline text-cyan-200 hover:text-white transition-colors"
+                            >Set one on your profile</button>
+                          </>
+                      }
+                    </p>
+                  </div>
 
-            {/* ── Apple Health (HealthKit) ─────────────────────────── */}
-            {/* Apple Guideline 2.5.1: clearly identify HealthKit usage in the UI. */}
-            {isHealthKitPossible() && (
-              <div data-testid="card-apple-health" className="bg-gradient-to-br from-pink-900/40 to-blue-900/60 backdrop-blur-md rounded-2xl border border-pink-500/30 p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Heart className="w-5 h-5 text-pink-400 fill-pink-400" />
-                  <h3 className="text-white font-bold text-sm">Apple Health</h3>
+                  {/* Search input */}
+                  <input
+                    data-testid="input-friend-search"
+                    type="text"
+                    placeholder="Search by @username or display name…"
+                    value={friendSearch}
+                    onChange={async (e) => {
+                      const q = e.target.value; setFriendSearch(q);
+                      if (q.length < 2) { setFriendSearchResults([]); return; }
+                      await searchFriendsImpl(q, { authFetch, navigate, toast, setFriendsSearchLoading, setFriendSearchResults, clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token") });
+                    }}
+                    className="w-full bg-blue-900/60 border border-blue-700/50 rounded-xl px-3 py-2.5 text-white text-sm placeholder-blue-500 focus:outline-none focus:border-cyan-400"
+                  />
+
+                  {friendsSearchLoading && <div className="text-blue-400 text-xs text-center py-2">Searching…</div>}
+
+                  {/* Search results */}
+                  {friendSearchResults.length > 0 && (
+                    <div className="space-y-1.5">
+                      {friendSearchResults.map((u) => (
+                        <div key={u.id} className="flex items-center gap-3 bg-blue-900/60 rounded-xl px-3 py-2.5 border border-blue-700/40">
+                          {u.avatarUrl ? (
+                            <img src={u.avatarUrl} alt="" className="w-9 h-9 rounded-xl object-cover shrink-0 border border-blue-700/50" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-xl bg-blue-800/80 border border-blue-700/50 flex items-center justify-center shrink-0">
+                              <User className="w-4 h-4 text-blue-500" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm font-semibold truncate">{u.displayName || u.username}</p>
+                            {u.username && <p className="text-blue-400 text-[11px]">@{u.username}</p>}
+                          </div>
+                          {u.friendshipStatus === 'accepted' ? (
+                            <span className="text-cyan-400 text-[10px] font-bold shrink-0">Friends ✓</span>
+                          ) : u.friendshipStatus === 'pending' ? (
+                            <span className="text-yellow-400 text-[10px] font-bold shrink-0">Pending…</span>
+                          ) : (
+                            <button
+                              data-testid={`button-add-friend-${u.id}`}
+                              onClick={async () => await sendFriendRequestImpl(u.id, { authFetch, navigate, toast, loadFriends, clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token") })}
+                              className="shrink-0 px-2.5 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-[10px] font-bold hover:bg-cyan-500/30 transition-colors active:scale-95"
+                            >+ Add</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* No results → invite by email */}
+                  {friendSearch.length >= 2 && !friendsSearchLoading && friendSearchResults.length === 0 && (
+                    <div className="space-y-3">
+                      <p className="text-blue-500 text-xs text-center">No users found for "{friendSearch}"</p>
+                      <div className="bg-blue-900/40 border border-blue-700/40 rounded-xl p-4 space-y-2.5">
+                        <p className="text-blue-200 text-xs font-semibold">✉️ Invite by email</p>
+                        <p className="text-blue-500 text-[11px]">Know someone who isn't on ColdStreak yet? Send them an invite.</p>
+                        <input
+                          data-testid="input-invite-email"
+                          type="email"
+                          placeholder="friend@example.com"
+                          value={inviteEmail}
+                          onChange={(e) => setInviteEmail(e.target.value)}
+                          className="w-full bg-blue-800/60 border border-blue-600/50 rounded-lg px-3 py-2 text-white text-xs placeholder-blue-500 focus:outline-none focus:border-cyan-400"
+                        />
+                        <button
+                          data-testid="button-send-invite"
+                          disabled={inviteSending || !inviteEmail.includes('@')}
+                          onClick={async () => {
+                            setInviteSending(true);
+                            try {
+                              const res = await authFetch("/api/friends/invite-by-email", { method: "POST", body: JSON.stringify({ email: inviteEmail }) });
+                              const data = await res.json();
+                              if (!res.ok) throw new Error(data.message || "Failed");
+                              toast({ title: "Invite sent!", description: `An invitation was sent to ${inviteEmail}.` });
+                              setInviteEmail("");
+                            } catch (err: any) {
+                              toast({ title: "Invite failed", description: err.message, variant: "destructive" });
+                            } finally { setInviteSending(false); }
+                          }}
+                          className="w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-colors disabled:opacity-40 flex items-center justify-center gap-1 active:scale-[0.98]"
+                        >{inviteSending ? "Sending…" : "✉️ Send Invite"}</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Empty prompt */}
+                  {friendSearch.length < 2 && !friendsSearchLoading && friendSearchResults.length === 0 && (
+                    <p className="text-blue-600 text-xs text-center py-4">Type at least 2 characters to search</p>
+                  )}
                 </div>
-                <p className="text-blue-200 text-xs leading-relaxed">
-                  ColdStreak uses Apple HealthKit to import your heart rate, HRV, and body weight from Apple Watch (or any device that writes to Apple Health). This is how your plunges get a heart-rate average without a chest strap and accurate calorie estimates without re-entering your weight.
-                </p>
-                <div className="bg-blue-950/60 rounded-xl border border-blue-700/30 p-3 space-y-1.5">
-                  <p className="text-pink-300 text-[11px] font-semibold uppercase tracking-wide">Data read from Apple Health</p>
-                  <ul className="text-blue-200 text-[11px] space-y-1">
-                    <li>• Heart Rate — averaged across your plunge window</li>
-                    <li>• Heart Rate Variability (HRV) — for recovery insights</li>
-                    <li>• Body Weight — used to estimate calories burned</li>
-                  </ul>
-                  <p className="text-blue-400 text-[11px] mt-2">No data is written to Apple Health, and nothing leaves your device without your action.</p>
-                </div>
-                <button
-                  data-testid="button-apple-health-connect"
-                  onClick={async () => {
-                    const result = await connectHealthKit();
-                    if (result === "connected") {
-                      toast({ title: "Apple Health connected", description: "Heart rate, HRV, and weight will be pulled from Apple Health for your plunges. Make sure Heart Rate, HRV, and Body Mass are turned ON in the Health permission screen." });
-                    } else if (result === "no-plugin") {
-                      toast({
-                        title: "Update needed",
-                        description: "This app version doesn't include Apple Health support yet. Install the latest TestFlight/App Store build, then try again.",
-                        variant: "destructive",
-                      });
-                    } else if (result === "unavailable") {
-                      toast({
-                        title: "Apple Health unavailable",
-                        description: "This device doesn't have Apple Health data available.",
-                        variant: "destructive",
-                      });
-                    } else if (result === "error") {
-                      toast({
-                        title: "Couldn't open Apple Health",
-                        description: "Something went wrong reaching Apple Health. Please try again, or check ColdStreak under Settings → Health → Data Access & Devices.",
-                        variant: "destructive",
-                      });
-                    } else {
-                      toast({
-                        title: "Grant access in Health",
-                        description: "Opening Health app. Tap Sharing tab → Apps → ColdStreak, then turn on Heart Rate, HRV, and Body Mass.",
-                      });
-                      setTimeout(() => { window.location.href = "x-apple-health://"; }, 400);
-                    }
-                  }}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-400 hover:to-red-400 text-white font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  <Heart className="w-4 h-4" /> Connect Apple Health
-                </button>
-              </div>
-            )}
+              )}
 
-            {/* Manual reminder */}
-            <p className="text-blue-600/70 text-[10px] text-center px-2 pb-1">
-              No BLE device? You can always type your water temperature manually on the timer screen.
-            </p>
+            </>)}
           </div>
-        </div>
-      )}
-
-      {/* ─── DEVICES PRO FROST OVERLAY ─── */}
-      {screen === "devices" && !isPro && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 z-20 backdrop-blur-md bg-blue-950/60 flex flex-col items-center justify-center gap-5 px-8">
-          <Crown className="w-12 h-12 text-yellow-400/90" />
-          <div className="text-center">
-            <div className="text-white font-bold text-xl mb-2">Pro Feature</div>
-            <div className="text-blue-300/80 text-sm leading-relaxed">
-              Bluetooth thermometer and heart rate monitor integration requires ColdStreak Pro.
-            </div>
-          </div>
-          <button
-            data-testid="button-devices-upgrade"
-            onClick={() => setShowUpgradeModal(true)}
-            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-sm shadow-lg shadow-yellow-500/30 hover:from-yellow-400 hover:to-orange-400 transition-all active:scale-95"
-          >
-            Upgrade to Pro
-          </button>
-          <button
-            onClick={() => navTo("timer")}
-            className="text-blue-400/60 text-xs hover:text-blue-300 transition-colors"
-          >
-            Go back
-          </button>
         </div>
       )}
 
@@ -7727,19 +7414,19 @@ export default function Home() {
             <span className="text-[10px] font-semibold">Profile</span>
           </button>
 
-          {/* Devices */}
+          {/* Friends */}
           <button
-            data-testid="nav-devices"
-            onClick={() => navTo("devices")}
-            className={`flex-1 flex flex-col items-center gap-1 transition-colors relative ${screen === "devices" ? "text-white" : "text-blue-500 hover:text-blue-300"}`}
+            data-testid="nav-friends"
+            onClick={() => navTo("friends")}
+            className={`flex-1 flex flex-col items-center gap-1 transition-colors relative ${screen === "friends" ? "text-white" : "text-blue-500 hover:text-blue-300"}`}
           >
             <div className="relative">
-              <Bluetooth className="w-5 h-5" />
-              {(btConnected || hrConnected) && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full border border-blue-950" />
+              <Users className="w-5 h-5" />
+              {friendsBadge && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-blue-950" />
               )}
             </div>
-            <span className="text-[10px] font-semibold">Devices</span>
+            <span className="text-[10px] font-semibold">Friends</span>
           </button>
 
           {/* Settings */}
@@ -7748,12 +7435,7 @@ export default function Home() {
             onClick={() => navTo("settings")}
             className={`flex-1 flex flex-col items-center gap-1 transition-colors ${screen === "settings" ? "text-white" : "text-blue-500 hover:text-blue-300"}`}
           >
-            <div className="relative">
-              <Settings className="w-5 h-5" />
-              {friendsBadge && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-blue-950" />
-              )}
-            </div>
+            <Settings className="w-5 h-5" />
             <span className="text-[10px] font-semibold">Settings</span>
           </button>
         </div>
