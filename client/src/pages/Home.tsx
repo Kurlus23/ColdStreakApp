@@ -7371,7 +7371,7 @@ export default function Home() {
       )}
 
       {/* ─── BOTTOM NAV ─── */}
-      <div className="absolute left-0 right-0 bg-blue-950/90 backdrop-blur-md border-t border-blue-800/60" style={{ bottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <div className="absolute bottom-0 left-0 right-0 bg-blue-950/90 backdrop-blur-md border-t border-blue-800/60" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         <div className="flex items-center h-20 max-w-xl mx-auto px-2">
           {/* History */}
           <button
