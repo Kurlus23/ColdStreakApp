@@ -387,6 +387,7 @@ export default function Home() {
   // via notification action buttons (Accept / Decline) while the app is open.
   // Also shows a badge on the Settings nav when the user isn't already on the
   // Friends screen so they know something changed.
+  // Shows a toast when an action silently failed (e.g. duplicate tap).
   useEffect(() => {
     const handleSwMessage = (event: MessageEvent) => {
       if (event.data?.type === "friend-request-resolved") {
@@ -394,6 +395,12 @@ export default function Home() {
         if (!isOnFriendsScreenRef.current) {
           setFriendsBadge(true);
         }
+      } else if (event.data?.type === "friend-action-failed") {
+        toast({
+          title: "Action failed",
+          description: event.data.message || "Something went wrong. Please try again in the app.",
+          variant: "destructive",
+        });
       }
     };
     navigator.serviceWorker?.addEventListener("message", handleSwMessage);
