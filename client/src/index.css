@@ -8,12 +8,11 @@ html, body {
   overscroll-behavior: none;
 }
 
-/* Give #root an explicit height and clip overflow so the body has nothing
-   to elastic-scroll, while leaving body itself unrestricted so that
-   Capacitor's contentInset:automatic safe-area handling still works. */
+/* Give #root an explicit height matching the viewport so the body has
+   nothing to elastic-scroll. Home's own overflow-hidden root div fills
+   this exactly; other pages (Admin, etc.) can still body-scroll freely. */
 #root {
   height: 100dvh;
-  overflow: hidden;
 }
 
 @layer base {
