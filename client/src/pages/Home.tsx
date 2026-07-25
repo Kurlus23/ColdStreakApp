@@ -3079,7 +3079,7 @@ export default function Home() {
 
       {/* ─── TIMER SCREEN ─── */}
       {screen === "timer" && (
-        <div className="absolute bottom-20 left-0 right-0 px-3 pb-2">
+        <div className="absolute left-0 right-0 px-3 pb-2" style={{ bottom: "var(--nav-bottom)" }}>
 
           {/* 3-column cards */}
           <div className="grid grid-cols-3 gap-2.5 mb-3">
@@ -3432,7 +3432,7 @@ export default function Home() {
 
       {/* ─── HISTORY SCREEN ─── */}
       {screen === "history" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
+        <div className="absolute top-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3" style={{ bottom: "var(--nav-bottom)" }}>
           <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-4 border border-blue-800/50 min-h-full min-w-0">
             {/* Header row: title + close */}
             <div className="flex items-center justify-between mb-2">
@@ -3982,7 +3982,7 @@ export default function Home() {
 
       {/* ─── EXPLORE SCREEN ─── */}
       {screen === "explore" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto">
+        <div className="absolute top-20 left-0 right-0 overflow-y-auto" style={{ bottom: "var(--nav-bottom)" }}>
           <Explore
             username={username}
             onClose={() => navTo("timer")}
@@ -3997,7 +3997,7 @@ export default function Home() {
 
       {/* ─── SETTINGS SCREEN ─── */}
       {screen === "settings" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overscroll-none px-4 py-3">
+        <div className="absolute top-20 left-0 right-0 overflow-y-auto overscroll-none px-4 py-3" style={{ bottom: "var(--nav-bottom)" }}>
           <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-5 border border-blue-800/50 space-y-6 min-h-full">
             <div className="flex items-center justify-between">
               <h2 className="text-white font-bold text-lg flex items-center gap-2">
@@ -4876,7 +4876,7 @@ export default function Home() {
 
       {/* ─── GEAR SCREEN ─── */}
       {screen === "gear" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 flex flex-col">
+        <div className="absolute top-20 left-0 right-0 flex flex-col" style={{ bottom: "var(--nav-bottom)" }}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0">
             <h2 className="text-white font-bold text-lg flex items-center gap-2">
@@ -4959,7 +4959,7 @@ export default function Home() {
 
       {/* ─── FRIENDS SCREEN ─── */}
       {screen === "friends" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overscroll-none overflow-x-hidden px-4 py-3">
+        <div className="absolute top-20 left-0 right-0 overflow-y-auto overscroll-none overflow-x-hidden px-4 py-3" style={{ bottom: "var(--nav-bottom)" }}>
           <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl border border-blue-800/50 min-h-full min-w-0 flex flex-col">
 
             {/* Header */}
@@ -5317,7 +5317,7 @@ export default function Home() {
 
 
         return (
-          <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
+          <div className="absolute top-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3" style={{ bottom: "var(--nav-bottom)" }}>
             <div className="space-y-3 min-w-0">
 
               {/* Header */}
@@ -5986,7 +5986,7 @@ export default function Home() {
 
       {/* ─── LEGAL SCREEN ─── */}
       {screen === "legal" && (
-        <div className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3">
+        <div className="absolute top-20 left-0 right-0 overflow-y-auto overflow-x-hidden px-4 py-3" style={{ bottom: "var(--nav-bottom)" }}>
           <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl p-5 border border-blue-800/50 space-y-4 min-h-full min-w-0">
             <div className="flex items-center justify-between">
               <h2 className="text-white font-bold text-lg flex items-center gap-2">
@@ -7371,8 +7371,8 @@ export default function Home() {
       )}
 
       {/* ─── BOTTOM NAV ─── */}
-      <div className="absolute bottom-0 left-0 right-0 h-20 bg-blue-950/90 backdrop-blur-md border-t border-blue-800/60">
-        <div className="flex items-center h-full max-w-xl mx-auto px-2">
+      <div className="absolute bottom-0 left-0 right-0 bg-blue-950/90 backdrop-blur-md border-t border-blue-800/60" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        <div className="flex items-center h-20 max-w-xl mx-auto px-2">
           {/* History */}
           <button
             data-testid="nav-history"

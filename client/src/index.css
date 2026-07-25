@@ -18,6 +18,12 @@ html, body {
   overflow: hidden;
 }
 
+/* --nav-bottom: total height the bottom nav occupies, including the iOS
+   home-indicator safe area. Used by content panels and the nav itself. */
+:root {
+  --nav-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+
 @layer base {
   :root {
     --font-sans: 'DM Sans', sans-serif;
