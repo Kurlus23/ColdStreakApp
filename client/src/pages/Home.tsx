@@ -52,6 +52,7 @@ import { useMutation } from "@tanstack/react-query";
 import { type Plunge, type UserLocation, usernameSchema } from "@shared/schema";
 import { pickColdTake, type ColdTakeContext } from "@shared/coldTakes";
 import { MoodCheckIn } from "@/components/MoodCheckIn";
+import { loadFriends as loadFriendsImpl } from "@/lib/loadFriends";
 
 // Pick a fresh cold take the user hasn't unlocked yet and persist it to the
 // unlocked collection. Falls back to a repeat only if the pool is exhausted.
@@ -362,32 +363,15 @@ export default function Home() {
 
   const loadFriends = useCallback(async () => {
     if (!auth.user) return;
-    setFriendsLoading(true);
-    try {
-      const [friendsRes, requestsRes] = await Promise.all([
-        authFetch("/api/friends"),
-        authFetch("/api/friends/requests"),
-      ]);
-
-      if (friendsRes.status === 401 || requestsRes.status === 401) {
-        localStorage.removeItem("coldstreak-auth-token");
-        navigate("/");
-        return;
-      }
-
-      if (!friendsRes.ok || !requestsRes.ok) {
-        toast({ title: "Couldn't load friends", description: "Please check your connection and try again.", variant: "destructive" });
-        return;
-      }
-
-      const [fr, pr] = await Promise.all([friendsRes.json(), requestsRes.json()]);
-      if (Array.isArray(fr)) setFriends(fr);
-      if (Array.isArray(pr)) setPendingRequests(pr);
-    } catch {
-      toast({ title: "Couldn't load friends", description: "Please check your connection and try again.", variant: "destructive" });
-    } finally {
-      setFriendsLoading(false);
-    }
+    await loadFriendsImpl({
+      authFetch,
+      navigate,
+      toast,
+      setFriendsLoading,
+      setFriends,
+      setPendingRequests,
+      clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+    });
   }, [auth.user, authFetch, navigate]);
 
   // No auto-open login modal — users discover signup organically through
