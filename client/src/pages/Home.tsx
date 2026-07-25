@@ -4429,7 +4429,11 @@ export default function Home() {
                         <p className="text-blue-400 text-xs">No friends yet — add some to see the board!</p>
                       </div>
                     ) : friends.map((f, i) => (
-                      <div key={f.friendshipId} className="flex items-center gap-2 bg-blue-950/60 rounded-xl px-3 py-2.5 border border-blue-800/40">
+                      <div
+                        key={f.friendshipId}
+                        className="flex items-center gap-2 bg-blue-950/60 rounded-xl px-3 py-2.5 border border-blue-800/40 cursor-pointer hover:bg-blue-900/60 transition-colors active:scale-[0.98]"
+                        onClick={() => { if (f.username) navigate(`/profile/${encodeURIComponent(f.username)}`); }}
+                      >
                         {/* Rank */}
                         <span className="text-blue-500 text-xs font-bold w-4 shrink-0">{i + 1}</span>
                         {/* Avatar */}
@@ -4452,7 +4456,8 @@ export default function Home() {
                         {/* Challenge button */}
                         <button
                           disabled={challengingId === f.userId}
-                          onClick={async () => {
+                          onClick={async (e) => {
+                            e.stopPropagation();
                             setChallengingId(f.userId);
                             try {
                               const r = await authFetch(`/api/friends/challenge/${f.userId}`, { method: 'POST' }).then(x => x.json());
