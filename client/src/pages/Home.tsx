@@ -355,25 +355,40 @@ export default function Home() {
   const [friendsSearchLoading, setFriendsSearchLoading] = useState(false);
   const [challengingId, setChallengingId] = useState<number | null>(null);
 
-  const authFetch = (url: string, opts: RequestInit = {}) => {
+  const authFetch = useCallback((url: string, opts: RequestInit = {}) => {
     const token = localStorage.getItem("coldstreak-auth-token") ?? "";
     return fetch(url, { ...opts, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(opts.headers ?? {}) } });
-  };
+  }, []);
 
   const loadFriends = useCallback(async () => {
     if (!auth.user) return;
     setFriendsLoading(true);
     try {
-      const [fr, pr] = await Promise.all([
-        authFetch("/api/friends").then(r => r.json()),
-        authFetch("/api/friends/requests").then(r => r.json()),
+      const [friendsRes, requestsRes] = await Promise.all([
+        authFetch("/api/friends"),
+        authFetch("/api/friends/requests"),
       ]);
+
+      if (friendsRes.status === 401 || requestsRes.status === 401) {
+        localStorage.removeItem("coldstreak-auth-token");
+        navigate("/");
+        return;
+      }
+
+      if (!friendsRes.ok || !requestsRes.ok) {
+        toast({ title: "Couldn't load friends", description: "Please check your connection and try again.", variant: "destructive" });
+        return;
+      }
+
+      const [fr, pr] = await Promise.all([friendsRes.json(), requestsRes.json()]);
       if (Array.isArray(fr)) setFriends(fr);
       if (Array.isArray(pr)) setPendingRequests(pr);
+    } catch {
+      toast({ title: "Couldn't load friends", description: "Please check your connection and try again.", variant: "destructive" });
     } finally {
       setFriendsLoading(false);
     }
-  }, [auth.user]);
+  }, [auth.user, authFetch, navigate]);
 
   // No auto-open login modal — users discover signup organically through
   // the nudge that fires after their first plunge.
