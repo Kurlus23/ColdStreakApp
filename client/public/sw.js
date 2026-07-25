@@ -1,4 +1,4 @@
-const CACHE_NAME = "coldstreak-v10";
+const CACHE_NAME = "coldstreak-v11";
 const OFFLINE_URL = "/offline.html";
 
 // Assets to pre-cache on install so they're instant on first use
@@ -96,22 +96,42 @@ self.addEventListener("fetch", (e) => {
 self.addEventListener("push", (e) => {
   let data = { title: "ColdStreak 🧊", body: "Don't let your streak expire!", url: "/", tag: "streak-reminder" };
   try { if (e.data) data = { ...data, ...e.data.json() }; } catch {}
-  e.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-72.png",
-      tag: data.tag || "streak-reminder",
-      renotify: true,
-      data: { url: data.url },
-    })
-  );
+  const options = {
+    body: data.body,
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-72.png",
+    tag: data.tag || "streak-reminder",
+    renotify: true,
+    data: { url: data.url, actionToken: data.actionToken || null },
+  };
+  // Attach action buttons when the push payload includes them
+  if (Array.isArray(data.actions) && data.actions.length > 0) {
+    options.actions = data.actions;
+  }
+  e.waitUntil(self.registration.showNotification(data.title, options));
 });
 
-// Notification click — open or focus the app
+// Notification click — handle action buttons or open/focus the app
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
-  const targetUrl = (e.notification.data && e.notification.data.url) || "/";
+  const notifData = e.notification.data || {};
+  const targetUrl = notifData.url || "/";
+  const actionToken = notifData.actionToken;
+
+  // Handle Accept / Decline action buttons on friend-request notifications
+  if ((e.action === "accept" || e.action === "decline") && actionToken) {
+    const status = e.action === "accept" ? "accepted" : "declined";
+    e.waitUntil(
+      fetch("/api/friends/respond-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: actionToken, status }),
+      }).catch(() => {}) // best-effort; user can always act in-app
+    );
+    return;
+  }
+
+  // Default: open or focus the app and navigate to the target URL
   e.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {

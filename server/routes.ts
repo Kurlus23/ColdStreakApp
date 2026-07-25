@@ -1398,11 +1398,31 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
         if (subs.length === 0) return;
         const requester = await storage.getUserById(caller.userId);
         const name = requester?.displayName || requester?.username || "Someone";
+
+        // Build a short-lived signed token so the service worker can act without a user JWT.
+        // The push payload is ECDH-encrypted in transit, so embedding this token is safe.
+        const actionToken = result.friendshipId
+          ? jwt.sign(
+              { friendshipId: result.friendshipId, addresseeId, type: "friend-respond" },
+              JWT_SECRET,
+              { expiresIn: "7d" }
+            )
+          : null;
+
         const payload = JSON.stringify({
           title: `👋 ${name} sent you a friend request`,
-          body: "Open Cold Streak to accept or decline.",
+          body: actionToken
+            ? "Tap Accept or Decline, or open the app."
+            : "Open Cold Streak to accept or decline.",
           url: "/friends",
           tag: `friend-request-${caller.userId}`,
+          actions: actionToken
+            ? [
+                { action: "accept", title: "✅ Accept" },
+                { action: "decline", title: "❌ Decline" },
+              ]
+            : undefined,
+          actionToken: actionToken ?? undefined,
         });
         for (const sub of subs) {
           try {
@@ -1435,6 +1455,35 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     const ok = await storage.respondFriendRequest(friendshipId, caller.userId, status);
     if (!ok) return res.status(404).json({ error: "Request not found" });
     res.json({ success: true });
+  });
+
+  // Accept or decline a friend request via a signed action token (used by the service worker
+  // when the user taps Accept/Decline directly on the push notification, without a user JWT).
+  app.post("/api/friends/respond-action", async (req, res) => {
+    try {
+      const { token, status } = z.object({
+        token: z.string().min(1),
+        status: z.enum(["accepted", "declined"]),
+      }).parse(req.body);
+
+      let payload: { friendshipId: number; addresseeId: number; type: string };
+      try {
+        payload = jwt.verify(token, JWT_SECRET) as typeof payload;
+      } catch {
+        return res.status(401).json({ error: "Invalid or expired action token" });
+      }
+
+      if (payload.type !== "friend-respond") {
+        return res.status(400).json({ error: "Wrong token type" });
+      }
+
+      const ok = await storage.respondFriendRequest(payload.friendshipId, payload.addresseeId, status);
+      if (!ok) return res.status(404).json({ error: "Request not found or already handled" });
+      res.json({ success: true });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ error: err.errors[0].message });
+      throw err;
+    }
   });
 
   // Remove a friend

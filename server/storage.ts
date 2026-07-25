@@ -242,7 +242,7 @@ export interface IStorage {
   getReports(status?: "open" | "resolved" | "removed"): Promise<Report[]>;
   setReportStatus(id: number, status: "open" | "resolved" | "removed"): Promise<void>;
   // Friends
-  sendFriendRequest(requesterId: number, addresseeId: number): Promise<{ ok: boolean; error?: string }>;
+  sendFriendRequest(requesterId: number, addresseeId: number): Promise<{ ok: boolean; error?: string; friendshipId?: number }>;
   respondFriendRequest(friendshipId: number, addresseeId: number, status: "accepted" | "declined"): Promise<boolean>;
   removeFriend(userId: number, friendId: number): Promise<void>;
   getFriends(userId: number): Promise<FriendWithStats[]>;
@@ -1680,8 +1680,8 @@ export class DatabaseStorage implements IStorage {
       if (existing.status === "pending") return { ok: false, error: "Request already sent" };
     }
     try {
-      await db.insert(friendships).values({ requesterId, addresseeId, status: "pending" });
-      return { ok: true };
+      const [inserted] = await db.insert(friendships).values({ requesterId, addresseeId, status: "pending" }).returning();
+      return { ok: true, friendshipId: inserted.id };
     } catch {
       return { ok: false, error: "Could not send request" };
     }
