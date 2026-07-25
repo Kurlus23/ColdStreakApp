@@ -18,10 +18,11 @@ html, body {
   overflow: hidden;
 }
 
-/* --nav-bottom: total height the bottom nav occupies, including the iOS
-   home-indicator safe area. Used by content panels and the nav itself. */
+/* --nav-bottom: height the bottom nav occupies.
+   Capacitor's contentInset:automatic already handles the iOS home-indicator
+   safe area at the native layer, so we only need the nav height here. */
 :root {
-  --nav-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  --nav-bottom: 5rem;
 }
 
 @layer base {
