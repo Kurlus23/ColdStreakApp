@@ -27,7 +27,6 @@ import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry, type L
 import { useProStatus, PENDING_CHECKOUT_KEY, PENDING_SESSION_KEY } from "@/hooks/use-pro-status";
 import { PlungeCard, buildShareText } from "@/components/PlungeCard";
 import { ColdTakeOverlay } from "@/components/ColdTakeOverlay";
-import { BannerAd, FeedAd, InterstitialAd } from "@/components/AdUnit";
 import { MusicWidget, MusicTransportMini, openMusic, shouldAutoPlay } from "@/components/MusicWidget";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
 import { Analytics } from "@/lib/analytics";
@@ -1002,7 +1001,6 @@ export default function Home() {
   const lifetimeLabel = lifetimePriceData?.label ?? "Early Adopter";
   const lifetimePhase = lifetimePriceData?.phase ?? 1;
   const lifetimeNextPrice = lifetimePriceData?.nextPrice ?? null;
-  const [showPostSessionAd, setShowPostSessionAd] = useState(false);
   const [gearCategory, setGearCategory] = useState<GearCategory>("plunges");
   const [showAchievements, setShowAchievements] = useState(() => {
     return localStorage.getItem("coldstreak-achievements-open") !== "false";
@@ -1460,7 +1458,6 @@ export default function Home() {
   const handleLogout = () => {
     auth.logout();
     clearPro();
-    setShowPostSessionAd(false);
     setSyncDone(false);
     localStorage.removeItem("coldstreak-username");
     localStorage.removeItem("coldstreak-account-username");
@@ -2612,7 +2609,6 @@ export default function Home() {
             setGpsLocationLoading(false);
           })();
           setPromptSubmitLeaderboard(true);
-          setShowPostSessionAd(true);
           backgroundSync();
         },
       }
@@ -3302,9 +3298,6 @@ export default function Home() {
           </div>
 
 
-          {/* Affiliate banner ad — in-content so it never overlaps readouts */}
-          {!isPro && !showPostSessionAd && <BannerAd />}
-
           {/* Weekly goal / score row */}
           <div
             className="text-center text-white/90 text-sm font-semibold tracking-wide"
@@ -3898,9 +3891,6 @@ export default function Home() {
                   {visible.map((plunge, idx) => (
                     <Fragment key={plunge.id}>
                       <PlungeCard plunge={plunge} bodyWeightLbs={bodyWeightLbs} username={username} streak={streak} homeLabel={homeLabel} communityLocs={communityLocs} isPro={isPro} avatarUrl={ownAvatarUrl} />
-                      {!isPro && (idx + 1) % 5 === 0 && idx !== visible.length - 1 && (
-                        <FeedAd index={Math.floor(idx / 5)} />
-                      )}
                     </Fragment>
                   ))}
                   {locked.length > 0 && (
@@ -7439,14 +7429,6 @@ export default function Home() {
           </button>
         </div>
       </div>
-
-      {/* ─── POST-SESSION AD ─── */}
-      {showPostSessionAd && !isPro && !!auth.user && (
-        <InterstitialAd
-          adIndex={plunges.length % 3}
-          onDismiss={() => setShowPostSessionAd(false)}
-        />
-      )}
 
       {/* ─── POST-CHECKOUT RESTORE PROMPT (native app return from Stripe) ─── */}
       {pendingRestoreEmail !== null && (
