@@ -36,6 +36,45 @@ const PERIODS: { id: Period; label: string; days: number | null; description: st
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/** Format a Date as "Mon D" or "Mon D, YYYY" depending on whether the year differs from today's. */
+function fmtDate(d: Date, todayYear: number): string {
+  const month = d.toLocaleString("en-US", { month: "short" });
+  const day   = d.getDate();
+  return d.getFullYear() !== todayYear
+    ? `${month} ${day}, ${d.getFullYear()}`
+    : `${month} ${day}`;
+}
+
+/**
+ * Returns a human-readable date-range string for the active period tab.
+ * - Rolling windows: "Jul 20 – Jul 27"
+ * - All time (>0 plunges): "Since Jan 3, 2024" (cross-year) or "Jan 3 – Jul 27" (same year)
+ * - All time (no plunges): returns null
+ */
+function dateRangeLabel(period: Period, plunges: Plunge[]): string | null {
+  const now         = new Date();
+  const todayYear   = now.getFullYear();
+  const todayStr    = fmtDate(now, todayYear);
+
+  if (period === "all") {
+    if (plunges.length === 0) return null;
+    const earliest = plunges.reduce<Date>((min, p) => {
+      const d = new Date(p.createdAt);
+      return d < min ? d : min;
+    }, new Date(plunges[0].createdAt));
+    const startStr = fmtDate(earliest, todayYear);
+    // If same day as today, don't show a range
+    if (earliest.toDateString() === now.toDateString()) return todayStr;
+    return earliest.getFullYear() !== todayYear
+      ? `Since ${startStr}`
+      : `${startStr} – ${todayStr}`;
+  }
+
+  const days    = period === "7d" ? 7 : 30;
+  const cutoff  = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  return `${fmtDate(cutoff, todayYear)} – ${todayStr}`;
+}
+
 function toReportRow(p: Plunge): ReportRow {
   return {
     duration:    p.duration,
@@ -176,6 +215,16 @@ export function DiscoveryReportCard({ plunges }: Props) {
               </button>
             ))}
           </div>
+
+          {/* Date range for the active tab */}
+          {(() => {
+            const label = dateRangeLabel(period, plunges);
+            return label ? (
+              <p className="text-[10px] text-slate-500 text-center -mt-1">
+                {label}
+              </p>
+            ) : null;
+          })()}
 
           {/* No data in this window */}
           {!hasAnyInsight && (
