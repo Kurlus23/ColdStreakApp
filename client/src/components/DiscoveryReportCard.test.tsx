@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { DiscoveryReportCard } from "./DiscoveryReportCard";
 import { analysePatterns, computeStats, type ReportRow } from "@shared/reportAnalysis";
 import { type Plunge } from "@shared/schema";
@@ -379,5 +379,159 @@ describe("DiscoveryReportCard — pattern flags", () => {
     ];
     render(<DiscoveryReportCard plunges={plunges} />);
     expect(screen.getByText(/Diminishing Returns/i)).toBeInTheDocument();
+  });
+});
+
+// ── 30-day tab tests ──────────────────────────────────────────────────────────
+//
+// All suites below freeze time at 2025-01-15T12:00:00Z so "days ago" offsets
+// always land on deterministic calendar dates and reliably span two months
+// (December 2024 and January 2025) regardless of when the test runs.
+
+const FROZEN_NOW = new Date("2025-01-15T12:00:00Z");
+
+/** ISO timestamp N days before the frozen "now". */
+function daysAgoISO(n: number): string {
+  return new Date(FROZEN_NOW.getTime() - n * 24 * 60 * 60 * 1000).toISOString();
+}
+
+describe("DiscoveryReportCard — 30-day tab with sessions spanning two calendar months", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FROZEN_NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /**
+   * 5 rated plunges spread across January and December 2024 —
+   * all outside the 7-day window, all inside the 30-day window.
+   *
+   * With FROZEN_NOW = 2025-01-15:
+   *   8 days ago  → 2025-01-07  (January)
+   *   12 days ago → 2025-01-03  (January)
+   *   18 days ago → 2024-12-28  (December ← cross-month)
+   *   23 days ago → 2024-12-23  (December)
+   *   28 days ago → 2024-12-18  (December)
+   */
+  function crossMonthPlunges(): Plunge[] {
+    return [
+      makePlunge({ id: 1, mood: 5, duration: 240, temperature: 48, createdAt: daysAgoISO(8)  as unknown as Date }),
+      makePlunge({ id: 2, mood: 5, duration: 240, temperature: 48, createdAt: daysAgoISO(12) as unknown as Date }),
+      makePlunge({ id: 3, mood: 5, duration: 240, temperature: 48, createdAt: daysAgoISO(18) as unknown as Date }),
+      makePlunge({ id: 4, mood: 5, duration: 240, temperature: 48, createdAt: daysAgoISO(23) as unknown as Date }),
+      makePlunge({ id: 5, mood: 5, duration: 240, temperature: 48, createdAt: daysAgoISO(28) as unknown as Date }),
+    ];
+  }
+
+  it("7-day tab is blank when all 5 sessions are older than 7 days (outside window)", () => {
+    render(<DiscoveryReportCard plunges={crossMonthPlunges()} />);
+    expect(screen.getByText(/No plunges with check-ins in the last 7 days/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Your Current Sweet Spot/i)).not.toBeInTheDocument();
+  });
+
+  it("30-day tab shows the full sweet-spot card for sessions spanning December and January", () => {
+    render(<DiscoveryReportCard plunges={crossMonthPlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /30 days/i }));
+
+    expect(screen.getByText(/Your Current Sweet Spot/i)).toBeInTheDocument();
+  });
+
+  it("30-day tab shows the correct temperature label for cross-month data", () => {
+    render(<DiscoveryReportCard plunges={crossMonthPlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /30 days/i }));
+
+    expect(screen.getByText("45–50°F")).toBeInTheDocument();
+  });
+
+  it("30-day tab shows the correct duration label for cross-month data", () => {
+    render(<DiscoveryReportCard plunges={crossMonthPlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /30 days/i }));
+
+    expect(screen.getByText("3–6 min")).toBeInTheDocument();
+  });
+
+  it("30-day tab shows 'How You Felt' section with 5 check-ins for cross-month data", () => {
+    render(<DiscoveryReportCard plunges={crossMonthPlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /30 days/i }));
+
+    expect(screen.getByText(/How You Felt After Plunging/i)).toBeInTheDocument();
+    expect(screen.getByText(/5 check-ins/i)).toBeInTheDocument();
+  });
+
+  it("switching back from 30-day to 7-day tab returns to the blank state", () => {
+    render(<DiscoveryReportCard plunges={crossMonthPlunges()} />);
+
+    // Switch to 30 days → sweet spot visible
+    fireEvent.click(screen.getByRole("button", { name: /30 days/i }));
+    expect(screen.getByText(/Your Current Sweet Spot/i)).toBeInTheDocument();
+
+    // Switch back to 7 days → blank again
+    fireEvent.click(screen.getByRole("button", { name: /7 days/i }));
+    expect(screen.getByText(/No plunges with check-ins in the last 7 days/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Your Current Sweet Spot/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("DiscoveryReportCard — switching periods updates rendered insights (cross-month)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FROZEN_NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /**
+   * Mixed dataset with FROZEN_NOW = 2025-01-15:
+   *   2 recent plunges within 7 days  → 2025-01-14 and 2025-01-12 (January)
+   *   3 older plunges 9–19 days ago   → 2025-01-06 (Jan) and 2024-12-27/17 (Dec)
+   *
+   * 7-day tab: only 2 rated → shows "Need at least 3"
+   * 30-day tab: all 5 rated → shows full sweet-spot card
+   */
+  function mixedCrossMonthPlunges(): Plunge[] {
+    return [
+      // Within 7-day window (January 2025)
+      makePlunge({ id: 1, mood: 4, duration: 240, temperature: 48, createdAt: daysAgoISO(1) as unknown as Date }),
+      makePlunge({ id: 2, mood: 4, duration: 240, temperature: 48, createdAt: daysAgoISO(3) as unknown as Date }),
+      // Outside 7-day window; span January and December 2024
+      makePlunge({ id: 3, mood: 5, duration: 240, temperature: 48, createdAt: daysAgoISO(9)  as unknown as Date }), // 2025-01-06
+      makePlunge({ id: 4, mood: 5, duration: 240, temperature: 48, createdAt: daysAgoISO(19) as unknown as Date }), // 2024-12-27
+      makePlunge({ id: 5, mood: 5, duration: 240, temperature: 48, createdAt: daysAgoISO(29) as unknown as Date }), // 2024-12-17
+    ];
+  }
+
+  it("7-day tab shows 'Need at least 3' with only 2 recent rated sessions", () => {
+    render(<DiscoveryReportCard plunges={mixedCrossMonthPlunges()} />);
+    expect(screen.getByText(/Need at least 3 rated check-ins/i)).toBeInTheDocument();
+  });
+
+  it("30-day tab shows the full sweet-spot card when the window spans December and January", () => {
+    render(<DiscoveryReportCard plunges={mixedCrossMonthPlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /30 days/i }));
+
+    expect(screen.getByText(/Your Current Sweet Spot/i)).toBeInTheDocument();
+  });
+
+  it("switching back from 30-day to 7-day tab reverts to the insufficient-data message", () => {
+    render(<DiscoveryReportCard plunges={mixedCrossMonthPlunges()} />);
+
+    // Switch to 30 days — shows sweet spot for cross-month data
+    fireEvent.click(screen.getByRole("button", { name: /30 days/i }));
+    expect(screen.getByText(/Your Current Sweet Spot/i)).toBeInTheDocument();
+
+    // Switch back to 7 days — only 2 recent sessions, back to insufficient message
+    fireEvent.click(screen.getByRole("button", { name: /7 days/i }));
+    expect(screen.getByText(/Need at least 3 rated check-ins/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Your Current Sweet Spot/i)).not.toBeInTheDocument();
   });
 });
