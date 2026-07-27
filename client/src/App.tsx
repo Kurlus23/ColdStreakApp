@@ -17,6 +17,7 @@ import Admin from "@/pages/Admin";
 import ChurnSurvey from "@/pages/ChurnSurvey";
 import BusinessDashboard from "@/pages/BusinessDashboard";
 import BusinessProfile from "@/pages/BusinessProfile";
+import Insights from "@/pages/Insights";
 import { Sentry } from "@/lib/monitoring";
 import { useState, useEffect } from "react";
 
@@ -73,6 +74,7 @@ function Router() {
       <Route path="/event/:code" component={EventPage} />
       <Route path="/feedback/:token" component={ChurnSurvey} />
       <Route path="/admin" component={Admin} />
+      <Route path="/insights" component={Insights} />
       <Route path="/business" component={BusinessDashboard} />
       <Route path="/biz/:slug" component={BusinessProfile} />
       <Route component={NotFound} />
