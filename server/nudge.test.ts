@@ -254,3 +254,46 @@ describe("nudge message parity — trending-up generic copy", () => {
     expect(card!.kind).toBe("trending-up");
   });
 });
+
+// ── 7-day absence guard ───────────────────────────────────────────────────────
+
+describe("deriveNudgeForPush — 7-day absence guard", () => {
+  /**
+   * Build 10+ plunges spread across two calendar months (so trend delta is
+   * computable) but pin the most-recent plunge to `daysAgo` days in the past.
+   */
+  function makePlungesWithLastDaysAgo(daysAgo: number): Plunge[] {
+    // Rising scores so the function would normally return a non-null nudge
+    const plunges = makeTwoMonthPlunges(14, (_, isSecondMonth) =>
+      isSecondMonth ? 5 : 1,
+    );
+
+    const mostRecent = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+    plunges[plunges.length - 1] = makePlunge({
+      ...plunges[plunges.length - 1],
+      createdAt: mostRecent,
+    });
+
+    return plunges;
+  }
+
+  it("returns null when the most-recent plunge is exactly 7 days ago", () => {
+    const plunges = makePlungesWithLastDaysAgo(7);
+    expect(deriveNudgeForPush(plunges)).toBeNull();
+  });
+
+  it("returns null when the most-recent plunge is 10 days ago", () => {
+    const plunges = makePlungesWithLastDaysAgo(10);
+    expect(deriveNudgeForPush(plunges)).toBeNull();
+  });
+
+  it("returns non-null when the most-recent plunge is exactly 6 days ago", () => {
+    const plunges = makePlungesWithLastDaysAgo(6);
+    expect(deriveNudgeForPush(plunges)).not.toBeNull();
+  });
+
+  it("boundary: 6 days → nudge, 7 days → null", () => {
+    expect(deriveNudgeForPush(makePlungesWithLastDaysAgo(6))).not.toBeNull();
+    expect(deriveNudgeForPush(makePlungesWithLastDaysAgo(7))).toBeNull();
+  });
+});
