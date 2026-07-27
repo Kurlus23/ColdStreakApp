@@ -1229,20 +1229,24 @@ export default function Home() {
   const { data: plunges = [], isLoading } = usePlunges();
 
   // ── Coach walkthrough triggers ────────────────────────────────────────────
-  // First-open tour: once authenticated, onboarding dismissed, tour not yet seen
+  // First-open tour: once authenticated, onboarding dismissed, tour not yet seen.
+  // Mark seen immediately so a force-quit mid-tour never causes a replay.
   useEffect(() => {
     if (!auth.user) return;
     if (showOnboarding) return;
     if (localStorage.getItem(FIRST_OPEN_KEY)) return;
+    localStorage.setItem(FIRST_OPEN_KEY, "1");
     const id = setTimeout(() => setShowFirstOpenWalkthrough(true), 800);
     return () => clearTimeout(id);
   }, [auth.user, showOnboarding]);
 
-  // Post-plunge tour: fires when the user logs their very first plunge
+  // Post-plunge tour: fires when the user logs their very first plunge.
+  // Mark seen immediately for the same reason.
   useEffect(() => {
     if (!auth.user) return;
     if (plunges.length !== 1) return;
     if (localStorage.getItem(POST_PLUNGE_KEY)) return;
+    localStorage.setItem(POST_PLUNGE_KEY, "1");
     const id = setTimeout(() => setShowPostPlungeWalkthrough(true), 1200);
     return () => clearTimeout(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
