@@ -17,6 +17,7 @@ export function OptionC() {
               <span className="text-blue-600/60 text-[10px]">/</span>
               <button className="text-blue-400/60 text-[10px] font-bold">°C</button>
             </div>
+            {/* Always reserves space — visible when live, invisible when not */}
             <div className="flex items-center gap-1 mt-2">
               <span className="w-1.5 h-1.5 rounded-full bg-green-400" style={{ boxShadow: "0 0 6px #4ade80" }} />
               <span className="text-green-400/80 text-[8px]">Live</span>
@@ -32,6 +33,8 @@ export function OptionC() {
               <button className="flex-1 py-1.5 rounded-xl bg-blue-500/90 text-white text-[10px] font-bold">Start</button>
               <button className="flex-1 py-1.5 rounded-xl border border-slate-600/60 text-slate-300 text-[10px] font-bold">Stop</button>
             </div>
+            {/* Reserved space matching Live badge height */}
+            <div className="mt-2 h-[14px]" />
             <div className="absolute right-0 top-3 bottom-3 w-px bg-blue-800/50" />
           </div>
 
@@ -41,6 +44,7 @@ export function OptionC() {
             <span className="text-cyan-300 text-[2.4rem] font-bold leading-none"
                   style={{ textShadow: "0 0 20px rgba(103,232,249,0.35)" }}>11.4</span>
             <span className="text-blue-500/50 text-[8px] mt-1.5">today</span>
+            {/* Reserved space + tap to cycle */}
             <span className="text-blue-500/30 text-[8px] uppercase tracking-widest mt-auto pt-2">Tap to cycle</span>
           </div>
 
