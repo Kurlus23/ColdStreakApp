@@ -5282,12 +5282,12 @@ export default function Home() {
               {/* ── Friend profile sheet ── */}
               {selectedFriend && (
                 <div
-                  className="absolute inset-0 z-10 flex flex-col justify-end"
-                  style={{ background: "rgba(4,15,30,0.7)", backdropFilter: "blur(6px)" }}
+                  className="fixed inset-0 z-50 flex flex-col justify-end"
+                  style={{ background: "rgba(4,15,30,0.75)", backdropFilter: "blur(6px)" }}
                   onClick={() => setSelectedFriend(null)}
                 >
                   <div
-                    className="rounded-t-3xl px-6 pt-6 pb-10 space-y-5"
+                    className="rounded-t-3xl px-6 pt-5 pb-10 space-y-5"
                     style={{ background: "linear-gradient(to bottom, #0d2240, #071428)", border: "1px solid rgba(34,211,238,0.15)", borderBottom: "none" }}
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -5306,8 +5306,11 @@ export default function Home() {
                           {selectedFriend.username && <p className="text-blue-400 text-xs">@{selectedFriend.username}</p>}
                         </div>
                       </div>
-                      <button onClick={() => setSelectedFriend(null)} className="text-slate-500 hover:text-slate-300 transition-colors">
-                        <X className="w-5 h-5" />
+                      <button
+                        onClick={() => setSelectedFriend(null)}
+                        className="w-9 h-9 flex items-center justify-center rounded-full bg-blue-800/70 border border-blue-600/50 text-blue-200 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95"
+                      >
+                        <X className="w-4 h-4" />
                       </button>
                     </div>
 
