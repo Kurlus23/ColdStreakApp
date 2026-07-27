@@ -172,7 +172,7 @@ export function BenefitBar({
           const filling     = rawFill > 0 && rawFill < 100; // currently accumulating
 
           return (
-            <div key={seg.id} className="flex-1 min-w-0 space-y-[5px]">
+            <div key={seg.id} className="flex-1 min-w-0 space-y-2">
               {/*
                 Outer div = achievement ring (stays all day once earned).
                 No overflow:hidden here so the ring is never clipped.
