@@ -2846,6 +2846,18 @@ export default function Home() {
   const todayPlunges = plunges.filter((p) => new Date(p.createdAt).toLocaleDateString() === todayString);
   const todayTotalSec = todayPlunges.reduce((sum, p) => sum + p.duration, 0);
   const todayScore = todayPlunges.reduce((sum, p) => sum + Number(p.score), 0);
+
+  // Benefit bar carry-over: only accumulate prior sessions if the most recent
+  // one finished within 2 hours (interrupted / back-to-back session).
+  // A fresh session after a long gap gets a clean bar.
+  const benefitCarryOver = (() => {
+    if (todayPlunges.length === 0) return 0;
+    const lastPlunge = todayPlunges.reduce((latest, p) =>
+      new Date(p.createdAt) > new Date(latest.createdAt) ? p : latest
+    );
+    const msSinceLast = Date.now() - new Date(lastPlunge.createdAt).getTime();
+    return msSinceLast < 2 * 60 * 60 * 1000 ? todayTotalSec : 0;
+  })();
   const personalBest = plunges.length > 0 ? Math.max(...plunges.map((p) => Number(p.score))) : 0;
   // Current week = Monday 00:00:00 through Sunday 23:59:59 — resets each Monday
   const weekStart = (() => {
@@ -3299,7 +3311,7 @@ export default function Home() {
           </div>
 
           {/* Benefit progress bar — shown during and after a plunge */}
-          <BenefitBar elapsedSeconds={elapsedSeconds} tempF={temperature} isActive={isActive} todayLoggedSeconds={todayTotalSec} />
+          <BenefitBar elapsedSeconds={elapsedSeconds} tempF={temperature} isActive={isActive} todayLoggedSeconds={benefitCarryOver} />
 
           {/* Weekly goal / score row */}
           <div
