@@ -65,12 +65,14 @@ const FIRST_OPEN_STEPS: Step[] = [
     icon: "📊",
     title: "History tab",
     body: "After your first plunge, tap History to see your log, Sweet Spot, and Cold Adaptation trend.",
+    highlight: '[data-testid="nav-history"]',
     hint: "↓ bottom nav",
   },
   {
     icon: "💬",
     title: "Ask me anything",
-    body: "Tap the ❄️ button bottom-right any time to ask about your stats or any feature.",
+    body: "Tap the ❄️ button top-left any time to ask about your stats or any feature.",
+    highlight: '[data-testid="coach-fab"]',
   },
 ];
 
@@ -83,8 +85,9 @@ const POST_PLUNGE_STEPS: Step[] = [
   {
     icon: "⭐",
     title: "Rate how you feel",
-    body: "Open a plunge in History and rate your Energy, Focus, and Mood. These ratings power your Sweet Spot and Cold Adaptation insights — the more you rate, the smarter your data gets.",
-    hint: "Tap 📊 History → tap today's plunge",
+    body: "Open a plunge in History and rate your Energy, Focus, and Mood. The more you rate, the smarter your insights get.",
+    highlight: '[data-testid="nav-history"]',
+    hint: "↓ tap History → tap today's plunge",
   },
   {
     icon: "🔥",
@@ -95,6 +98,7 @@ const POST_PLUNGE_STEPS: Step[] = [
     icon: "💬",
     title: "I'm here when you need me",
     body: "Tap the ❄️ button any time to ask about cold plunge science, your stats, or how any feature works. See you in the water!",
+    highlight: '[data-testid="coach-fab"]',
   },
 ];
 
