@@ -2952,12 +2952,6 @@ export default function Home() {
     return msSinceLast < 2 * 60 * 60 * 1000 ? todayTotalSec : 0;
   })();
 
-  // ms timestamp when the last plunge of the day ended — used for benefit decay.
-  // createdAt is the session start; end = start + duration.
-  // Undefined during an active session (no decay while plunging).
-  const lastPlungeEndedAt = isActive || !lastTodayPlunge
-    ? undefined
-    : new Date(lastTodayPlunge.createdAt).getTime() + lastTodayPlunge.duration * 1000;
   const personalBest = plunges.length > 0 ? Math.max(...plunges.map((p) => Number(p.score))) : 0;
   // Current week = Monday 00:00:00 through Sunday 23:59:59 — resets each Monday
   const weekStart = (() => {
@@ -3004,6 +2998,12 @@ export default function Home() {
 
   const displaySeconds = countdownMode ? countdown : seconds;
   const isActive = countdownMode ? countdownRunning : isRunning;
+  // ms timestamp when the last plunge of the day ended — used for benefit decay.
+  // createdAt is the session start; end = start + duration.
+  // Undefined during an active session (no decay while plunging).
+  const lastPlungeEndedAt = isActive || !lastTodayPlunge
+    ? undefined
+    : new Date(lastTodayPlunge.createdAt).getTime() + lastTodayPlunge.duration * 1000;
   const elapsedSeconds = countdownMode ? countdownElapsed : seconds;
   const displayScore = isActive && displaySeconds > 0 ? plungeScore(elapsedSeconds, temperature, bodyWeightLbs, bodyHeightCm) : todayScore;
 
