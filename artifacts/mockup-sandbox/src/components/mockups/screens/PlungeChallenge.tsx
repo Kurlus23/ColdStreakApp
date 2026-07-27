@@ -123,9 +123,6 @@ export function PlungeChallenge() {
 
         {/* Challenge race bar */}
         <ChallengeBar />
-
-        {/* Benefit bar */}
-        <BenefitBar />
       </div>
 
       {/* Bottom */}
@@ -153,6 +150,9 @@ export function PlungeChallenge() {
             <span className="text-amber-400 text-3xl font-bold tracking-tight" style={{ textShadow: "0 0 15px rgba(251,191,36,0.3)" }}>21.1</span>
           </div>
         </div>
+
+        {/* Benefit bar */}
+        <BenefitBar />
 
         {/* Music */}
         <div className="flex items-center gap-2 bg-blue-900/60 border border-blue-700/40 rounded-2xl px-3 py-2 w-full">

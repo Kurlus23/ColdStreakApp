@@ -61,7 +61,7 @@ export function PlungeSolo() {
         </div>
       </div>
 
-      {/* Center — giant timer + Cold Take + Benefit bar */}
+      {/* Center — giant timer + Cold Take */}
       <div className="flex-1 flex flex-col items-center justify-center w-full z-10 gap-4 px-6">
         <div className="font-mono font-bold text-white leading-none tracking-tighter"
           style={{ fontSize: "108px", filter: "drop-shadow(0 0 20px rgba(6,182,212,0.4))" }}>
@@ -74,12 +74,9 @@ export function PlungeSolo() {
           <p className="text-[10px] uppercase tracking-[0.25em] mb-1.5 font-semibold" style={{ color: "rgba(103,232,249,0.8)" }}>❄ Cold Take</p>
           <p className="text-white text-sm italic font-light leading-snug">"The pain is temporary. The pride is permanent."</p>
         </div>
-
-        {/* Benefit bar */}
-        <BenefitBar />
       </div>
 
-      {/* Bottom — stats + music + stop */}
+      {/* Bottom — stats + benefit bar + music + stop */}
       <div className="w-full flex flex-col items-center gap-5 pb-10 z-10 px-6">
         {/* Stats row — 3 columns */}
         <div className="flex items-center justify-between w-full px-1">
@@ -108,6 +105,9 @@ export function PlungeSolo() {
             <span className="text-amber-400 text-3xl font-bold tracking-tight" style={{ textShadow: "0 0 15px rgba(251,191,36,0.3)" }}>21.1</span>
           </div>
         </div>
+
+        {/* Benefit bar */}
+        <BenefitBar />
 
         {/* Music transport */}
         <div className="flex items-center gap-2 bg-blue-900/60 border border-blue-700/40 rounded-2xl px-3 py-2 w-full">
