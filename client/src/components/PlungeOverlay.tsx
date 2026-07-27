@@ -243,17 +243,18 @@ export function PlungeOverlay({
         />
       </div>
 
-      {/* Bottom HUD */}
-      <div
-        className="w-full z-10 shrink-0 px-6 pt-3 pb-10 flex flex-col gap-3"
-        style={{
-          background: "rgba(4,15,30,0.75)",
-          backdropFilter: "blur(20px)",
-          borderTop: "1px solid rgba(34,211,238,0.1)",
-        }}
-      >
-        {/* Stats row */}
-        <div className="flex items-center justify-between px-1">
+      {/* Bottom HUD — no unified panel; each row floats independently */}
+      <div className="w-full z-10 shrink-0 px-6 pb-10 flex flex-col gap-4">
+
+        {/* Stats row — pill-shaped glass card */}
+        <div
+          className="flex items-center justify-between px-5 py-3 rounded-2xl"
+          style={{
+            background: "rgba(6,182,212,0.07)",
+            border: "1px solid rgba(34,211,238,0.12)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-1 mb-0.5">
               <span className="relative flex h-1.5 w-1.5">
@@ -285,7 +286,7 @@ export function PlungeOverlay({
           )}
         </div>
 
-        {/* Benefit bar */}
+        {/* Benefit bar — sits on its own line, no extra wrapper */}
         <BenefitBar
           elapsedSeconds={elapsedSeconds}
           tempF={temperature}
@@ -293,16 +294,16 @@ export function PlungeOverlay({
           todayLoggedSeconds={benefitCarryOver}
         />
 
-        {/* Music transport */}
+        {/* Music transport — its own floating card */}
         {isPro && <MusicTransportMini />}
 
-        {/* Stop button */}
+        {/* Stop button — floats with just its glow halo */}
         <button
           data-testid="button-stop-overlay"
           onClick={onStop}
-          className="w-full relative group mt-1"
+          className="w-full relative group"
         >
-          <div className="absolute inset-0 bg-red-600 rounded-2xl blur-lg opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-0 bg-red-600 rounded-2xl blur-lg opacity-50 group-hover:opacity-80 transition-opacity duration-300" />
           <div className="relative bg-gradient-to-b from-red-500 to-red-700 border border-red-400/50 text-white font-bold py-5 rounded-2xl text-xl tracking-wider transition-all active:scale-[0.98] shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)]">
             STOP
           </div>
