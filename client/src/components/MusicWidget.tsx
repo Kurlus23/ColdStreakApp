@@ -220,7 +220,7 @@ export function MusicTransportMini({ className = "" }: { className?: string }) {
         onClick={() => skip("prev")}
         disabled={busy !== null}
         aria-label="Previous track"
-        className="w-8 h-8 rounded-full flex items-center justify-center text-blue-200 hover:text-white hover:bg-blue-800/60 active:scale-95 transition-all disabled:opacity-50"
+        className="w-9 h-9 rounded-full flex items-center justify-center text-blue-200 hover:text-white hover:bg-blue-800/60 active:scale-95 transition-all disabled:opacity-50"
       >
         {busy === "prev" ? <Loader2 className="w-4 h-4 animate-spin" /> : <SkipBack className="w-4 h-4 fill-current" />}
       </button>
@@ -240,7 +240,7 @@ export function MusicTransportMini({ className = "" }: { className?: string }) {
         onClick={() => skip("next")}
         disabled={busy !== null}
         aria-label="Next track"
-        className="w-8 h-8 rounded-full flex items-center justify-center text-blue-200 hover:text-white hover:bg-blue-800/60 active:scale-95 transition-all disabled:opacity-50"
+        className="w-9 h-9 rounded-full flex items-center justify-center text-blue-200 hover:text-white hover:bg-blue-800/60 active:scale-95 transition-all disabled:opacity-50"
       >
         {busy === "next" ? <Loader2 className="w-4 h-4 animate-spin" /> : <SkipForward className="w-4 h-4 fill-current" />}
       </button>

@@ -194,7 +194,7 @@ export function PlungeOverlay({
       </div>
 
       {/* Ring + timer hero */}
-      <div className="relative flex-1 flex items-center justify-center w-full z-10 shrink-0" style={{ minHeight: 0 }}>
+      <div className="relative flex-1 flex items-center justify-center w-full z-10 shrink-0" style={{ minHeight: "300px" }}>
         <ChallengeRing progress={ringProgress} targetLabel={targetLabel} />
 
         <div className="relative z-10 flex flex-col items-center gap-0.5">
