@@ -58,6 +58,7 @@ import { SweetSpotCard } from "@/components/SweetSpotCard";
 import { WelcomeBackCard } from "@/components/WelcomeBackCard";
 import { ColdAdaptationCard } from "@/components/ColdAdaptationCard";
 import { TryThisNextCard } from "@/components/TryThisNextCard";
+import { DiscoveryReportCard } from "@/components/DiscoveryReportCard";
 import { loadFriends as loadFriendsImpl } from "@/lib/loadFriends";
 import { searchFriends as searchFriendsImpl } from "@/lib/searchFriends";
 import { sendFriendRequest as sendFriendRequestImpl } from "@/lib/sendFriendRequest";
@@ -3983,6 +3984,9 @@ export default function Home() {
                 </div>
               </div>
             )}
+
+            {/* Discovery report — in-app version of the weekly/monthly email */}
+            <DiscoveryReportCard plunges={plunges} />
 
             {/* Welcome back — shown after a 7+ day gap */}
             <WelcomeBackCard plunges={plunges} />
