@@ -5104,7 +5104,7 @@ export default function Home() {
                     };
                     const sorted = [meEntry, ...friends].sort((a, b) =>
                       friendsSort === 'daily'
-                        ? (Number(b.plungedToday) - Number(a.plungedToday)) || (b.streak - a.streak)
+                        ? (Number(b.plungedToday) - Number(a.plungedToday)) || ((b.latestScore ?? 0) - (a.latestScore ?? 0)) || (b.streak - a.streak)
                         : ((b.bestScore ?? 0) - (a.bestScore ?? 0)) || (b.streak - a.streak)
                     );
                     return (<>
@@ -5126,43 +5126,43 @@ export default function Home() {
                           <div
                             key={f.friendshipId}
                             onClick={() => isMe ? setScreen("achievements") : setSelectedFriend(f)}
-                            className={`flex items-center gap-3 rounded-2xl px-4 py-3 border cursor-pointer active:opacity-75 transition-opacity ${
+                            className={`flex flex-col gap-2 rounded-2xl px-4 py-3 border cursor-pointer active:opacity-75 transition-opacity ${
                               isMe
                                 ? 'bg-cyan-900/40 border-cyan-700/50'
                                 : 'bg-blue-900/60 border-blue-700/40'
                             }`}
                           >
-                            {/* Avatar */}
-                            {f.avatarUrl ? (
-                              <img src={f.avatarUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 border border-blue-700/50" />
-                            ) : (
-                              <div className="w-10 h-10 rounded-xl bg-blue-800/80 border border-blue-700/50 flex items-center justify-center shrink-0">
-                                <User className="w-4 h-4 text-blue-500" />
-                              </div>
-                            )}
-                            {/* Name + stats */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <p className="text-white text-sm font-semibold truncate">{f.displayName || f.username || "Friend"}</p>
-                                {isMe && <span className="shrink-0 text-[9px] font-bold bg-cyan-500/30 text-cyan-300 rounded-full px-1.5 py-0.5 leading-none">you</span>}
-                              </div>
-                              <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                                {/* Today status */}
-                                {f.plungedToday
-                                  ? <span className="text-green-400 text-[11px] font-bold">✓ Plunged today</span>
-                                  : <span className="text-blue-600 text-[11px]">– Not yet today</span>}
-                                {/* Streak as secondary */}
-                                {f.streak > 0 && <span className="text-orange-400 text-[11px]">🔥 {f.streak}</span>}
-                                {/* Score — today's in Daily mode, best in Score mode */}
-                                {friendsSort === 'daily' && f.plungedToday && f.latestScore != null && (
-                                  <span className="text-cyan-400 text-[11px] font-semibold">⚡ {f.latestScore.toFixed(1)}</span>
-                                )}
-                                {friendsSort === 'score' && f.bestScore != null && (
-                                  <span className="text-cyan-400/80 text-[11px]">⚡ {f.bestScore.toFixed(1)}</span>
-                                )}
+                            {/* Top row: avatar + name + score */}
+                            <div className="flex items-center gap-3">
+                              {f.avatarUrl ? (
+                                <img src={f.avatarUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 border border-blue-700/50" />
+                              ) : (
+                                <div className="w-10 h-10 rounded-xl bg-blue-800/80 border border-blue-700/50 flex items-center justify-center shrink-0">
+                                  <User className="w-4 h-4 text-blue-500" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                {/* Name + you badge + score on same line */}
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <p className="text-white text-sm font-semibold">{f.displayName || f.username || "Friend"}</p>
+                                  {isMe && <span className="shrink-0 text-[9px] font-bold bg-cyan-500/30 text-cyan-300 rounded-full px-1.5 py-0.5 leading-none">you</span>}
+                                  {friendsSort === 'daily' && f.plungedToday && f.latestScore != null && (
+                                    <span className="text-cyan-400 text-[11px] font-bold">⚡ {f.latestScore.toFixed(1)}</span>
+                                  )}
+                                  {friendsSort === 'score' && f.bestScore != null && (
+                                    <span className="text-cyan-400 text-[11px] font-bold">⚡ {f.bestScore.toFixed(1)}</span>
+                                  )}
+                                </div>
+                                {/* Sub-line: today status + streak */}
+                                <div className="flex items-center gap-3 mt-0.5">
+                                  {f.plungedToday
+                                    ? <span className="text-green-400 text-[11px] font-bold">✓ Plunged today</span>
+                                    : <span className="text-blue-600 text-[11px]">– Not yet today</span>}
+                                  {f.streak > 0 && <span className="text-orange-400 text-[11px]">🔥 {f.streak}</span>}
+                                </div>
                               </div>
                             </div>
-                            {/* Challenge button — only for friends, not yourself */}
+                            {/* Challenge button on its own row */}
                             {!isMe && (
                               <button
                                 data-testid={`button-challenge-${f.userId}`}
@@ -5177,8 +5177,8 @@ export default function Home() {
                                   setChallengingId(null);
                                 }}
                                 disabled={challengingId === f.userId}
-                                className="shrink-0 px-2.5 py-1.5 rounded-xl bg-orange-500/20 border border-orange-500/40 text-orange-300 text-[10px] font-bold hover:bg-orange-500/30 transition-colors active:scale-95 disabled:opacity-40"
-                              >{challengingId === f.userId ? "…" : "⚡ Challenge"}</button>
+                                className="w-full py-1.5 rounded-xl bg-orange-500/20 border border-orange-500/40 text-orange-300 text-[10px] font-bold hover:bg-orange-500/30 transition-colors active:scale-95 disabled:opacity-40"
+                              >{challengingId === f.userId ? "Sending…" : "⚡ Challenge"}</button>
                             )}
                           </div>
                         );
