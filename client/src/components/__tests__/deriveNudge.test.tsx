@@ -241,6 +241,99 @@ describe("deriveNudge", () => {
     // Result must be trend-based, not sweet-spot
     expect(nudge!.kind).not.toBe("sweet-spot");
   });
+
+  // ── Mixed rated / unrated plunges ─────────────────────────────────────────
+
+  it("minimum-count check uses total plunges, not rated plunges", () => {
+    // 10 plunges total but only 5 are rated; the gate is plunges.length < 10
+    // so this should NOT return null just because rated count < 10.
+    // The 5 rated plunges span two months → a trend is computable.
+    const unrated1 = makePlunges(3, 60, { mood: null, idStart: 1 }); // 3 unrated, old month
+    const rated1   = makePlunges(2, 60, { mood: 2,    idStart: 4 }); // 2 rated, old month
+    const unrated2 = makePlunges(2, 1,  { mood: null, idStart: 6 }); // 2 unrated, recent
+    const rated2   = makePlunges(3, 1,  { mood: 5,    idStart: 8 }); // 3 rated, recent
+    // total = 10; rated = 5 (across 2 months) → delta > 0 → trending-up
+    const nudge = deriveNudge([...unrated1, ...rated1, ...unrated2, ...rated2]);
+    expect(nudge).not.toBeNull();
+    expect(nudge!.kind).toBe("trending-up");
+  });
+
+  it("returns null when all 10 plunges are unrated (no mood data at all)", () => {
+    // plunges.length === 10 passes the gate, but:
+    //   - computeMonthTrendDelta → null (no rated data)
+    //   - bestBucket → null (rated.length === 0 < 10)
+    const plunges = makePlunges(10, 1, { mood: null });
+    expect(deriveNudge(plunges)).toBeNull();
+  });
+
+  it("returns null when 10 total plunges but only 1 is rated (insufficient for sweet-spot)", () => {
+    // 9 unrated + 1 rated → total passes; rated.length=1 fails bestBucket's ≥10 check
+    const unrated = makePlunges(9, 1,  { mood: null, idStart: 1 });
+    const rated   = makePlunges(1, 60, { mood: 4,    idStart: 10, temperature: 50, duration: 240 });
+    const nudge   = deriveNudge([...unrated, ...rated]);
+    expect(nudge).toBeNull();
+  });
+
+  it("returns sweet-spot when 15 total plunges have 10 rated in a qualifying bucket", () => {
+    // 5 unrated + 10 rated in the same bucket (50°F, 240 s → "45–50°F", "3–6 min")
+    // All within one calendar month → no 2-month delta → falls through to bestBucket.
+    const unrated = makePlunges(5,  2, { mood: null, idStart: 1 });
+    const rated   = makePlunges(10, 3, { mood: 4, temperature: 50, duration: 240, idStart: 6 });
+    const nudge   = deriveNudge([...unrated, ...rated]);
+    expect(nudge).not.toBeNull();
+    expect(nudge!.kind).toBe("sweet-spot");
+  });
+
+  it("returns trending-up when unrated plunges are interspersed across both months", () => {
+    // month1: 5 rated (mood=2) + 2 unrated; month2: 5 rated (mood=5) + 2 unrated
+    // Unrated entries must not corrupt the composite calculation.
+    const rated1   = makePlunges(5, 60, { mood: 2,    idStart: 1  });
+    const unrated1 = makePlunges(2, 62, { mood: null, idStart: 6  });
+    const rated2   = makePlunges(5, 1,  { mood: 5,    idStart: 8  });
+    const unrated2 = makePlunges(2, 2,  { mood: null, idStart: 13 });
+    const nudge    = deriveNudge([...rated1, ...unrated1, ...rated2, ...unrated2]);
+    expect(nudge).not.toBeNull();
+    expect(nudge!.kind).toBe("trending-up");
+  });
+
+  it("returns trending-down when unrated plunges are interspersed across both months", () => {
+    // month1: 5 rated (mood=5) + 2 unrated; month2: 5 rated (mood=1) + 2 unrated
+    const rated1   = makePlunges(5, 60, { mood: 5,    idStart: 1  });
+    const unrated1 = makePlunges(2, 62, { mood: null, idStart: 6  });
+    const rated2   = makePlunges(5, 1,  { mood: 1,    idStart: 8  });
+    const unrated2 = makePlunges(2, 2,  { mood: null, idStart: 13 });
+    const nudge    = deriveNudge([...rated1, ...unrated1, ...rated2, ...unrated2]);
+    expect(nudge).not.toBeNull();
+    expect(nudge!.kind).toBe("trending-down");
+  });
+
+  it("returns holding-steady when unrated plunges are mixed in with stable rated data", () => {
+    // month1 and month2 both mood=3; unrated entries scattered throughout
+    const rated1   = makePlunges(5, 60, { mood: 3,    idStart: 1  });
+    const unrated1 = makePlunges(3, 62, { mood: null, idStart: 6  });
+    const rated2   = makePlunges(5, 1,  { mood: 3,    idStart: 9  });
+    const unrated2 = makePlunges(2, 2,  { mood: null, idStart: 14 });
+    const nudge    = deriveNudge([...rated1, ...unrated1, ...rated2, ...unrated2]);
+    expect(nudge).not.toBeNull();
+    expect(nudge!.kind).toBe("holding-steady");
+  });
+
+  it("sweet-spot bucket counts only rated plunges (unrated in same bucket are ignored)", () => {
+    // bestBucket first filters to rated entries (mood != null), so:
+    //   - 10 rated in the high-mood bucket (50°F / 240s → "45–50°F" / "3–6 min")
+    //   - 5 unrated in a DIFFERENT bucket (55°F / 300s → "50–55°F" / "3–6 min")
+    // The unrated entries must not pollute the high-mood bucket's score or be
+    // counted in the rated set, so the sweet-spot must still land on "45–50°F".
+    const rated   = makePlunges(10, 3, { mood: 5, temperature: 50, duration: 240, idStart: 1  });
+    const unrated = makePlunges(5,  2, { mood: null, temperature: 55, duration: 300, idStart: 11 });
+    // total = 15; single month → no trend; 10 rated in same bucket → sweet-spot
+    const nudge = deriveNudge([...rated, ...unrated]);
+    expect(nudge).not.toBeNull();
+    expect(nudge!.kind).toBe("sweet-spot");
+    // temperature=50 falls in [50, 55) → "50–55°F" bucket; the sweet-spot must
+    // reference the rated bucket, not the unrated one ("55–60°F" at temp=55).
+    expect(nudge!.body).toMatch(/50–55°F/);
+  });
 });
 
 // ── Dismiss-key component tests ───────────────────────────────────────────────
