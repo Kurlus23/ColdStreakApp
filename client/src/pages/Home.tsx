@@ -3181,7 +3181,7 @@ export default function Home() {
         <div className="absolute bottom-20 left-0 right-0 px-3 pb-2">
 
           {/* ── Unified stat panel ── */}
-          <div className="rounded-2xl mb-3 relative" style={{ background: "rgba(6,15,35,0.75)", backdropFilter: "blur(24px)" }} data-testid="card-stat-panel">
+          <div className="rounded-2xl mb-3 relative bg-blue-950/90 backdrop-blur-sm border border-blue-800/50" data-testid="card-stat-panel">
 
             {/* Top row — Water / Timer / Score */}
             <div className="grid grid-cols-3">
@@ -3384,26 +3384,28 @@ export default function Home() {
                 <div className="absolute right-0 top-2 bottom-2 w-px bg-blue-800/50" />
               </div>
 
-              {/* Under Score — PB progress bar */}
-              <div className="flex flex-col justify-center px-3 pt-2 pb-2.5">
-                {personalBest > 0 ? (
-                  <>
+              {/* Under Score — next days badge progress */}
+              {(() => {
+                const sortedTiers = [...DAYS_TIERS].sort((a, b) => a.days - b.days);
+                const nextTier = sortedTiers.find(t => _fbtUniqueDays < t.days) ?? null;
+                if (!nextTier) return <div className="px-3 pt-2 pb-2.5" />;
+                const prevDays = [...sortedTiers].reverse().find(t => _fbtUniqueDays >= t.days)?.days ?? 0;
+                const pct = Math.min(100, Math.round(((_fbtUniqueDays - prevDays) / (nextTier.days - prevDays)) * 100));
+                return (
+                  <div className="flex flex-col justify-center px-3 pt-2 pb-2.5">
                     <div className="flex justify-between mb-1">
-                      <span className="text-blue-500/40 text-[8px]">today</span>
-                      <span className="text-blue-500/40 text-[8px]">PB {personalBest.toFixed(1)}</span>
+                      <span className="text-blue-500/40 text-[8px]">{_fbtUniqueDays}d</span>
+                      <span className="text-blue-500/40 text-[8px]">{nextTier.emoji} {nextTier.days}d</span>
                     </div>
                     <div className="h-0.5 rounded-full bg-blue-900">
                       <div
                         className="h-full rounded-full"
-                        style={{
-                          width: `${Math.min(100, personalBest > 0 ? (displayScore / personalBest) * 100 : 0)}%`,
-                          background: "linear-gradient(90deg, #0891b2, #67e8f9)"
-                        }}
+                        style={{ width: `${pct}%`, background: "linear-gradient(90deg, #0891b2, #67e8f9)" }}
                       />
                     </div>
-                  </>
-                ) : null}
-              </div>
+                  </div>
+                );
+              })()}
 
             </div>
           </div>
