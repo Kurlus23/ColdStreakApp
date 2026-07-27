@@ -1,0 +1,354 @@
+/**
+ * CoachFAB — floating AI coach button + slide-up chat panel.
+ *
+ * • Fixed in the bottom-right corner, above the navigation bar.
+ * • Badge indicator when there are unseen feature announcements.
+ * • On open, injects unseen announcements as coach messages then marks them seen.
+ * • Chat history is kept in component state (not persisted) — starts fresh each session.
+ * • Calls POST /api/coach/chat with message + history; falls back gracefully on error.
+ *
+ * Suggested quick-question chips are shown when the conversation is empty.
+ */
+
+import { useState, useRef, useEffect, useCallback } from "react";
+import {
+  getUnseenAnnouncements,
+  markAllAnnouncementsSeen,
+  type Announcement,
+} from "@/lib/coachAnnouncements";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+interface Props {
+  /** JWT token for the API call. */
+  authToken: string | null;
+}
+
+// ── Quick-question chips ──────────────────────────────────────────────────────
+
+const QUICK_QUESTIONS = [
+  "How does the benefits bar work?",
+  "What is Cold Adaptation?",
+  "How do I build a streak?",
+  "What temperature should I aim for?",
+  "How does the Sweet Spot work?",
+  "What does the plunge score measure?",
+];
+
+// ── API helper ────────────────────────────────────────────────────────────────
+
+async function sendMessage(
+  token: string,
+  message: string,
+  history: ChatMessage[],
+): Promise<string> {
+  const res = await fetch("/api/coach/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ message, history }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = (await res.json()) as { reply: string };
+  return data.reply;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export function CoachFAB({ authToken }: Props) {
+  const [open, setOpen]         = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput]       = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [hasUnread, setHasUnread] = useState(() => getUnseenAnnouncements().length > 0);
+  const [panelVisible, setPanelVisible] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef       = useRef<HTMLTextAreaElement>(null);
+
+  // Animate panel in/out
+  useEffect(() => {
+    if (open) {
+      const id = setTimeout(() => setPanelVisible(true), 20);
+      return () => clearTimeout(id);
+    } else {
+      setPanelVisible(false);
+    }
+  }, [open]);
+
+  // Scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  const openPanel = useCallback(() => {
+    setOpen(true);
+
+    // Inject unseen announcements as initial coach messages
+    const unseen = getUnseenAnnouncements();
+    if (unseen.length > 0) {
+      const announcementMessages: ChatMessage[] = unseen.map((a: Announcement) => ({
+        role: "assistant" as const,
+        content: `**${a.title}**\n\n${a.message}`,
+      }));
+      setMessages((prev) =>
+        prev.length === 0 ? announcementMessages : [...prev, ...announcementMessages],
+      );
+      markAllAnnouncementsSeen();
+      setHasUnread(false);
+    }
+
+    // Focus input after animation
+    setTimeout(() => inputRef.current?.focus(), 380);
+  }, []);
+
+  const closePanel = useCallback(() => {
+    setPanelVisible(false);
+    setTimeout(() => setOpen(false), 280);
+  }, []);
+
+  const submit = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed || loading || !authToken) return;
+
+      const userMsg: ChatMessage = { role: "user", content: trimmed };
+      setMessages((prev) => [...prev, userMsg]);
+      setInput("");
+      setLoading(true);
+
+      try {
+        const reply = await sendMessage(authToken, trimmed, messages.concat(userMsg));
+        setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "Sorry, I couldn't reach the server right now. Try again in a moment.",
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loading, authToken, messages],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        submit(input);
+      }
+    },
+    [input, submit],
+  );
+
+  const isEmpty = messages.length === 0;
+
+  return (
+    <>
+      {/* ── Floating Action Button ── */}
+      <button
+        onClick={openPanel}
+        aria-label="Open coach"
+        className="fixed bottom-24 right-4 z-40 w-13 h-13 rounded-full shadow-lg flex items-center justify-center transition-transform active:scale-95"
+        style={{
+          width: 52,
+          height: 52,
+          background: "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)",
+          boxShadow: "0 4px 20px rgba(14,165,233,0.45)",
+        }}
+      >
+        <span className="text-2xl leading-none select-none">❄️</span>
+        {hasUnread && (
+          <span className="absolute top-0.5 right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-[#0a1628]" />
+        )}
+      </button>
+
+      {/* ── Chat panel ── */}
+      {open && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40 bg-black/40"
+            style={{
+              opacity: panelVisible ? 1 : 0,
+              transition: "opacity 0.25s ease",
+            }}
+            onClick={closePanel}
+          />
+
+          {/* Panel */}
+          <div
+            className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl border-t border-blue-800/60 bg-[#0a1628]"
+            style={{
+              height: "72dvh",
+              transform: panelVisible ? "translateY(0)" : "translateY(100%)",
+              transition: "transform 0.3s cubic-bezier(.32,0,.67,0)",
+            }}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-2 pb-1 shrink-0">
+              <div className="w-10 h-1 rounded-full bg-blue-800/60" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 pb-3 border-b border-blue-900/60 shrink-0">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-base shrink-0"
+                  style={{ background: "linear-gradient(135deg,#0ea5e9,#0369a1)" }}
+                >
+                  ❄️
+                </div>
+                <div>
+                  <p className="text-white text-sm font-bold leading-tight">ColdStreak Coach</p>
+                  <p className="text-cyan-500 text-[10px] leading-tight">Powered by AI · Always here</p>
+                </div>
+              </div>
+              <button
+                onClick={closePanel}
+                className="w-7 h-7 rounded-full bg-blue-900/60 flex items-center justify-center text-slate-400 hover:text-white transition-colors text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+              {isEmpty && (
+                <div className="space-y-3">
+                  {/* Welcome */}
+                  <div className="flex gap-2 items-start">
+                    <div className="w-6 h-6 rounded-full bg-cyan-900/60 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                      ❄️
+                    </div>
+                    <div className="bg-blue-900/40 rounded-2xl rounded-tl-sm px-3.5 py-2.5 max-w-[85%]">
+                      <p className="text-blue-100 text-sm leading-relaxed">
+                        Hey! I'm your ColdStreak Coach. Ask me anything about the app, your stats,
+                        or cold plunge science.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Quick questions */}
+                  <div className="pl-8">
+                    <p className="text-slate-500 text-[10px] uppercase tracking-wide font-semibold mb-2">
+                      Quick questions
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {QUICK_QUESTIONS.map((q) => (
+                        <button
+                          key={q}
+                          onClick={() => submit(q)}
+                          className="text-xs text-cyan-300 border border-cyan-800/60 bg-cyan-950/40 rounded-full px-3 py-1 hover:bg-cyan-900/40 transition-colors"
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex gap-2 items-start ${msg.role === "user" ? "flex-row-reverse" : ""}`}
+                >
+                  {msg.role === "assistant" && (
+                    <div className="w-6 h-6 rounded-full bg-cyan-900/60 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                      ❄️
+                    </div>
+                  )}
+                  <div
+                    className={`rounded-2xl px-3.5 py-2.5 max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap ${
+                      msg.role === "user"
+                        ? "bg-cyan-700/60 text-white rounded-tr-sm"
+                        : "bg-blue-900/40 text-blue-100 rounded-tl-sm"
+                    }`}
+                    dangerouslySetInnerHTML={{
+                      // Convert **bold** markdown to <strong> tags safely
+                      __html: msg.content
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                        .replace(/\n/g, "<br/>"),
+                    }}
+                  />
+                </div>
+              ))}
+
+              {loading && (
+                <div className="flex gap-2 items-start">
+                  <div className="w-6 h-6 rounded-full bg-cyan-900/60 flex items-center justify-center text-xs shrink-0">
+                    ❄️
+                  </div>
+                  <div className="bg-blue-900/40 rounded-2xl rounded-tl-sm px-3.5 py-2.5">
+                    <div className="flex gap-1 items-center h-4">
+                      {[0, 1, 2].map((i) => (
+                        <div
+                          key={i}
+                          className="w-1.5 h-1.5 rounded-full bg-cyan-500"
+                          style={{
+                            animation: "coach-dot-bounce 1.2s ease-in-out infinite",
+                            animationDelay: `${i * 0.2}s`,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="px-3 pt-2 shrink-0" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+              <div className="flex gap-2 items-end bg-blue-900/40 rounded-2xl border border-blue-800/50 px-3 py-2">
+                <textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask anything…"
+                  rows={1}
+                  className="flex-1 bg-transparent text-white text-sm placeholder-slate-500 resize-none outline-none leading-relaxed"
+                  style={{ maxHeight: 80 }}
+                />
+                <button
+                  onClick={() => submit(input)}
+                  disabled={!input.trim() || loading || !authToken}
+                  className="w-8 h-8 rounded-xl bg-cyan-600 disabled:opacity-30 flex items-center justify-center shrink-0 transition-opacity"
+                  aria-label="Send"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M1 7L13 1L9 7L13 13L1 7Z" fill="white" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Dot-bounce animation */}
+      <style>{`
+        @keyframes coach-dot-bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+          40%            { transform: translateY(-4px); opacity: 1; }
+        }
+      `}</style>
+    </>
+  );
+}

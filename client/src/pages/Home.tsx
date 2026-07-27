@@ -31,6 +31,8 @@ import { PlungeOverlay } from "@/components/PlungeOverlay";
 import { ChallengeResultCard, type ChallengeResult } from "@/components/ChallengeResultCard";
 import { MusicWidget, MusicTransportMini, openMusic, shouldAutoPlay } from "@/components/MusicWidget";
 import { BenefitBar } from "@/components/BenefitBar";
+import { CoachFAB } from "@/components/CoachFAB";
+import { CoachWalkthrough, FIRST_OPEN_KEY, POST_PLUNGE_KEY } from "@/components/CoachWalkthrough";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
 import { Analytics } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
@@ -248,6 +250,8 @@ function openDirections(lat: number | string, lng: number | string) {
 export default function Home() {
   const [, navigate] = useLocation();
   const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
+  const [showFirstOpenWalkthrough, setShowFirstOpenWalkthrough] = useState(false);
+  const [showPostPlungeWalkthrough, setShowPostPlungeWalkthrough] = useState(false);
   const auth = useAuth();
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [rememberEmail, setRememberEmail] = useState<boolean>(() => localStorage.getItem("coldstreak-remember-email") === "true");
@@ -458,6 +462,27 @@ export default function Home() {
   useEffect(() => {
     if (auth.user) setShowLoginModal(false);
   }, [auth.user]);
+
+  // ── Coach walkthrough triggers ────────────────────────────────────────────
+  // First-open tour: once user is authenticated, onboarding complete, and tour unseen
+  useEffect(() => {
+    if (!auth.user) return;
+    if (showOnboarding) return; // wait until onboarding sheet is dismissed
+    if (localStorage.getItem(FIRST_OPEN_KEY)) return;
+    // Small delay so the home screen has fully rendered first
+    const id = setTimeout(() => setShowFirstOpenWalkthrough(true), 800);
+    return () => clearTimeout(id);
+  }, [auth.user, showOnboarding]);
+
+  // Post-plunge tour: triggers when user logs their very first plunge
+  useEffect(() => {
+    if (!auth.user) return;
+    if (plunges.length !== 1) return; // exactly 1 = just logged their first
+    if (localStorage.getItem(POST_PLUNGE_KEY)) return;
+    const id = setTimeout(() => setShowPostPlungeWalkthrough(true), 1200);
+    return () => clearTimeout(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.user, plunges.length]);
 
   useEffect(() => {
     localStorage.setItem("coldstreak-temperature", String(temperature));
@@ -3433,7 +3458,7 @@ export default function Home() {
 
           {/* ── Benefit bar (home screen) ── */}
           {/* Uses full today total — no 2-hour window; once earned, stays lit until midnight */}
-          <div className="rounded-xl mt-2 px-2 pt-2 pb-1.5 bg-blue-950/90 backdrop-blur-sm border border-blue-800/50">
+          <div data-testid="benefit-bar" className="rounded-xl mt-2 px-2 pt-2 pb-1.5 bg-blue-950/90 backdrop-blur-sm border border-blue-800/50">
             <BenefitBar
               todayPlungesData={todayPlunges}
               elapsedSeconds={elapsedSeconds}
@@ -8354,6 +8379,25 @@ export default function Home() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── AI Coach ── */}
+      {auth.user && (
+        <>
+          <CoachFAB authToken={localStorage.getItem("coldstreak-auth-token")} />
+          {showFirstOpenWalkthrough && (
+            <CoachWalkthrough
+              tourType="first-open"
+              onComplete={() => setShowFirstOpenWalkthrough(false)}
+            />
+          )}
+          {showPostPlungeWalkthrough && (
+            <CoachWalkthrough
+              tourType="post-plunge"
+              onComplete={() => setShowPostPlungeWalkthrough(false)}
+            />
+          )}
+        </>
       )}
 
     </div>

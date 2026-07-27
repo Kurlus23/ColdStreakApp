@@ -3856,5 +3856,26 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     res.json(result);
   });
 
+  // ── AI Coach ──────────────────────────────────────────────────────────────
+  app.post("/api/coach/chat", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    const { message, history = [] } = req.body as {
+      message?: string;
+      history?: { role: "user" | "assistant"; content: string }[];
+    };
+    if (!message || typeof message !== "string") {
+      return res.status(400).json({ message: "message is required" });
+    }
+    try {
+      const { coachChat } = await import("./coach");
+      const reply = await coachChat(payload.userId, message, history);
+      res.json({ reply });
+    } catch (err) {
+      console.error("Coach chat error:", err);
+      res.status(500).json({ message: "Coach unavailable right now — please try again." });
+    }
+  });
+
   return httpServer;
 }
