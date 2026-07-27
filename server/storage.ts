@@ -2,7 +2,7 @@ import { db } from "./db";
 import {
   plunges, leaderboardEntries, proUsers, promoCodes, userLocations, businessListings, users, badgeProfiles, pushSubscriptions,
   events, eventParticipants, eventCoordinators, eventBans, supportMessages, clientVisits, shareEvents,
-  verifiedBusinessSubs, reports, locationViews, locationClicks, friendships,
+  verifiedBusinessSubs, reports, locationViews, locationClicks, friendships, pendingChallenges,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
   type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile, type PushSubscription,
@@ -176,6 +176,10 @@ export interface IStorage {
   updatePushSubscriptionSentAt(endpoint: string): Promise<void>;
   deletePushSubscription(endpoint: string): Promise<void>;
   getAllPushSubscriptions(): Promise<PushSubscription[]>;
+  // Pending challenges (fallback when push subscription is missing)
+  upsertPendingChallenge(fromUserId: number, toUserId: number): Promise<void>;
+  getPendingChallenge(toUserId: number): Promise<{ fromUserId: number } | null>;
+  deletePendingChallenge(toUserId: number): Promise<void>;
   // Events
   getEvents(): Promise<Event[]>;
   getEventByCode(shareCode: string): Promise<Event | null>;
@@ -659,7 +663,7 @@ export class DatabaseStorage implements IStorage {
     return updated ?? null;
   }
 
-  async updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number; username?: string }): Promise<User> {
+  async updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; username?: string }): Promise<User> {
     const [updated] = await db.update(users)
       .set(patch)
       .where(eq(users.id, id))
@@ -1085,6 +1089,25 @@ export class DatabaseStorage implements IStorage {
 
   async getAllPushSubscriptions(): Promise<PushSubscription[]> {
     return db.select().from(pushSubscriptions);
+  }
+
+  async upsertPendingChallenge(fromUserId: number, toUserId: number): Promise<void> {
+    await db.insert(pendingChallenges)
+      .values({ fromUserId, toUserId })
+      .onConflictDoUpdate({
+        target: pendingChallenges.toUserId,
+        set: { fromUserId, createdAt: sql`now()` },
+      });
+  }
+
+  async getPendingChallenge(toUserId: number): Promise<{ fromUserId: number } | null> {
+    const [row] = await db.select().from(pendingChallenges)
+      .where(eq(pendingChallenges.toUserId, toUserId));
+    return row ? { fromUserId: row.fromUserId } : null;
+  }
+
+  async deletePendingChallenge(toUserId: number): Promise<void> {
+    await db.delete(pendingChallenges).where(eq(pendingChallenges.toUserId, toUserId));
   }
 
   async getEvents(): Promise<Event[]> {

@@ -156,14 +156,24 @@ function playAlarm(url: string, label: string, isCustom: boolean, stopAfterMs?: 
 type Screen = "timer" | "history" | "explore" | "gear" | "settings" | "legal" | "achievements" | "friends";
 
 
-function plungeScore(durationSeconds: number, tempF: number): number {
+// Leaner body = less insulation = cold hits harder = slightly higher score.
+// Neutral anchor: BMI 22 (factor 1.0). Clamped to ±10% so it's meaningful but not wild.
+function _plungeBmiFactor(weightLbs: number, heightCm: number): number {
+  if (heightCm <= 0 || weightLbs <= 0) return 1.0;
+  const weightKg = weightLbs / 2.205;
+  const heightM  = heightCm / 100;
+  const bmi = weightKg / (heightM * heightM);
+  return Math.min(1.10, Math.max(0.90, 22 / bmi));
+}
+
+function plungeScore(durationSeconds: number, tempF: number, weightLbs = 150, heightCm = 175): number {
   const minutes = durationSeconds / 60;
   let coldFactor = 1;
   if (tempF <= 55) coldFactor = 1.2;
   if (tempF <= 50) coldFactor = 1.5;
   if (tempF <= 45) coldFactor = 1.9;
   if (tempF <= 40) coldFactor = 2.3;
-  return Number((minutes * coldFactor).toFixed(2));
+  return Number((minutes * coldFactor * _plungeBmiFactor(weightLbs, heightCm)).toFixed(2));
 }
 
 function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
@@ -1074,6 +1084,16 @@ export default function Home() {
     }
     return Number(localStorage.getItem("coldstreak-body-weight") || 150);
   });
+  // Height stored internally as cm; default 175 cm (≈ 5 ft 9 in)
+  const [bodyHeightCm, setBodyHeightCm] = useState<number>(() =>
+    Number(localStorage.getItem("coldstreak-body-height") || 175)
+  );
+  const [heightUnit, setHeightUnit] = useState<"imperial" | "metric">(() =>
+    (localStorage.getItem("coldstreak-height-unit") as "imperial" | "metric") || "imperial"
+  );
+  const [weightUnit, setWeightUnit] = useState<"lbs" | "kg">(() =>
+    (localStorage.getItem("coldstreak-weight-unit") as "lbs" | "kg") || "lbs"
+  );
   const [restoreEmailInput, setRestoreEmailInput] = useState("");
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [settingsRestoreEmail, setSettingsRestoreEmail] = useState("");
@@ -1323,7 +1343,8 @@ export default function Home() {
       .then((data) => {
         const localName = localStorage.getItem("coldstreak-username") || "";
         const localWeight = Number(localStorage.getItem("coldstreak-body-weight")) || 0;
-        const patch: { displayName?: string; bodyWeight?: number } = {};
+        const localHeight = Number(localStorage.getItem("coldstreak-body-height")) || 0;
+        const patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number } = {};
 
         if (data.username) {
           setAccountUsername(data.username);
@@ -1344,6 +1365,13 @@ export default function Home() {
           patch.bodyWeight = localWeight;
         }
 
+        if (data.bodyHeight && data.bodyHeight > 0) {
+          setBodyHeightCm(data.bodyHeight);
+          localStorage.setItem("coldstreak-body-height", String(data.bodyHeight));
+        } else if (localHeight > 0) {
+          patch.bodyHeight = localHeight;
+        }
+
         if (Object.keys(patch).length > 0) {
           fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(patch) }).catch(() => {});
         }
@@ -1362,6 +1390,26 @@ export default function Home() {
             fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: lbs }) }).catch(() => {});
           }).catch(() => {});
         }
+      })
+      .catch(() => {});
+  }, [auth.user]);
+
+  // On login, check for a pending challenge (sent while push was unavailable).
+  // Consume it immediately so it doesn't fire again on the next open.
+  useEffect(() => {
+    if (!auth.user) return;
+    const token = localStorage.getItem("coldstreak-auth-token");
+    if (!token) return;
+    fetch("/api/friends/pending-challenge", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.none || !data.fromUserId) return;
+        setActiveChallengerUserId(data.fromUserId);
+        // Delete it server-side — the client state now owns it
+        fetch("/api/friends/pending-challenge", {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => {});
       })
       .catch(() => {});
   }, [auth.user]);
@@ -2509,7 +2557,7 @@ export default function Home() {
   // ─────────────────────────────────────────────────────────────────────────
 
   const doLogPlunge = useCallback(async (durationSec: number, startedAtOverride?: Date) => {
-    const score = plungeScore(durationSec, temperature);
+    const score = plungeScore(durationSec, temperature, bodyWeightLbs, bodyHeightCm);
     const weightAtLogTime = Number(localStorage.getItem("coldstreak-body-weight") || 150);
     const caloriesAtLogTime = Math.round(estimateCalories(durationSec, temperature, weightAtLogTime));
 
@@ -2930,7 +2978,7 @@ export default function Home() {
   const displaySeconds = countdownMode ? countdown : seconds;
   const isActive = countdownMode ? countdownRunning : isRunning;
   const elapsedSeconds = countdownMode ? countdownElapsed : seconds;
-  const displayScore = isActive && displaySeconds > 0 ? plungeScore(elapsedSeconds, temperature) : todayScore;
+  const displayScore = isActive && displaySeconds > 0 ? plungeScore(elapsedSeconds, temperature, bodyWeightLbs, bodyHeightCm) : todayScore;
 
   const tempDisplay = useCelsius
     ? `${Math.round((temperature - 32) * 5 / 9)}°C`
@@ -3745,7 +3793,7 @@ export default function Home() {
                     const durationSec = manualMins * 60 + manualSecs;
                     if (durationSec === 0) return;
                     const isoDate = new Date(`${manualDate}T${manualTime}:00`).toISOString();
-                    const score = plungeScore(durationSec, manualTempF);
+                    const score = plungeScore(durationSec, manualTempF, bodyWeightLbs, bodyHeightCm);
                     const finalLocId = manualLocSel === "home" ? "home" : manualLocSel.startsWith("community-") ? manualLocSel : undefined;
                     const finalLocName = manualLocSel === "home"
                       ? (homeLabel || "Home")
@@ -5483,31 +5531,108 @@ export default function Home() {
 
                   {/* Body weight */}
                   <div>
-                    <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Body Weight</label>
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const saveWeight = (val: number) => {
-                          const clamped = Math.min(400, Math.max(80, val));
-                          setBodyWeightLbs(clamped);
-                          localStorage.setItem("coldstreak-body-weight", String(clamped));
-                          const token = localStorage.getItem("coldstreak-auth-token");
-                          if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: clamped }) }).catch(() => {});
-                        };
-                        return (<>
-                          <button data-testid="button-account-weight-decrease" onClick={() => saveWeight(bodyWeightLbs - 1)}
-                            className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
-                          >−</button>
-                          <div data-testid="text-account-weight"
-                            className="w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none"
-                          >{bodyWeightLbs}</div>
-                          <button data-testid="button-account-weight-increase" onClick={() => saveWeight(bodyWeightLbs + 1)}
-                            className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none"
-                          >+</button>
-                          <span className="text-blue-500 text-xs">lbs ({Math.round(bodyWeightLbs / 2.205)} kg)</span>
-                        </>);
-                      })()}
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-blue-400 text-xs uppercase tracking-wide">Body Weight</label>
+                      <div className="flex rounded-lg overflow-hidden border border-blue-700 text-[10px] font-bold">
+                        {(["lbs", "kg"] as const).map((u) => (
+                          <button
+                            key={u}
+                            onClick={() => { setWeightUnit(u); localStorage.setItem("coldstreak-weight-unit", u); }}
+                            className={`px-2 py-0.5 transition-colors ${weightUnit === u ? "bg-cyan-600 text-white" : "bg-blue-900 text-blue-400"}`}
+                          >
+                            {u}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-blue-500 text-xs mt-1">Only used to estimate calories burned.</p>
+                    {(() => {
+                      const saveWeight = (lbs: number) => {
+                        const clamped = Math.min(400, Math.max(80, Math.round(lbs)));
+                        setBodyWeightLbs(clamped);
+                        localStorage.setItem("coldstreak-body-weight", String(clamped));
+                        const token = localStorage.getItem("coldstreak-auth-token");
+                        if (token) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: clamped }) }).catch(() => {});
+                      };
+                      const btnCls = "w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none";
+                      const valCls = "w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none";
+                      const displayKg = Math.round(bodyWeightLbs / 2.205);
+                      if (weightUnit === "kg") {
+                        return (
+                          <div className="flex items-center gap-2">
+                            <button data-testid="button-account-weight-decrease" onClick={() => saveWeight((displayKg - 1) * 2.205)} className={btnCls}>−</button>
+                            <div data-testid="text-account-weight" className={valCls}>{displayKg} kg</div>
+                            <button data-testid="button-account-weight-increase" onClick={() => saveWeight((displayKg + 1) * 2.205)} className={btnCls}>+</button>
+                            <span className="text-blue-500 text-xs">{bodyWeightLbs} lbs</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="flex items-center gap-2">
+                          <button data-testid="button-account-weight-decrease" onClick={() => saveWeight(bodyWeightLbs - 1)} className={btnCls}>−</button>
+                          <div data-testid="text-account-weight" className={valCls}>{bodyWeightLbs} lbs</div>
+                          <button data-testid="button-account-weight-increase" onClick={() => saveWeight(bodyWeightLbs + 1)} className={btnCls}>+</button>
+                          <span className="text-blue-500 text-xs">{displayKg} kg</span>
+                        </div>
+                      );
+                    })()}
+                    <p className="text-blue-500 text-xs mt-1">Used with height to personalize benefit timing and estimate calories.</p>
+                  </div>
+
+                  {/* Body height */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-blue-400 text-xs uppercase tracking-wide">Height</label>
+                      <div className="flex rounded-lg overflow-hidden border border-blue-700 text-[10px] font-bold">
+                        {(["imperial", "metric"] as const).map((u) => (
+                          <button
+                            key={u}
+                            onClick={() => { setHeightUnit(u); localStorage.setItem("coldstreak-height-unit", u); }}
+                            className={`px-2 py-0.5 transition-colors ${heightUnit === u ? "bg-cyan-600 text-white" : "bg-blue-900 text-blue-400"}`}
+                          >
+                            {u === "imperial" ? "ft / in" : "cm"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {(() => {
+                      const saveHeight = (cm: number) => {
+                        const clamped = Math.min(250, Math.max(100, Math.round(cm)));
+                        setBodyHeightCm(clamped);
+                        localStorage.setItem("coldstreak-body-height", String(clamped));
+                        const tok = localStorage.getItem("coldstreak-auth-token");
+                        if (tok) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bodyHeight: clamped }) }).catch(() => {});
+                      };
+                      const totalInches = Math.round(bodyHeightCm / 2.54);
+                      const feet   = Math.floor(totalInches / 12);
+                      const inches = totalInches % 12;
+                      const btnCls = "w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none";
+                      const valCls = "bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none";
+                      if (heightUnit === "imperial") {
+                        return (
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5">
+                              <button onClick={() => saveHeight((feet - 1) * 30.48 + inches * 2.54)} className={btnCls}>−</button>
+                              <div className={`w-14 ${valCls}`}>{feet} ft</div>
+                              <button onClick={() => saveHeight((feet + 1) * 30.48 + inches * 2.54)} className={btnCls}>+</button>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <button onClick={() => saveHeight(feet * 30.48 + (inches - 1) * 2.54)} className={btnCls}>−</button>
+                              <div className={`w-14 ${valCls}`}>{inches} in</div>
+                              <button onClick={() => saveHeight(feet * 30.48 + (inches + 1) * 2.54)} className={btnCls}>+</button>
+                            </div>
+                            <span className="text-blue-500 text-xs">{bodyHeightCm} cm</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => saveHeight(bodyHeightCm - 1)} className={btnCls}>−</button>
+                          <div className={`w-20 ${valCls}`}>{bodyHeightCm} cm</div>
+                          <button onClick={() => saveHeight(bodyHeightCm + 1)} className={btnCls}>+</button>
+                          <span className="text-blue-500 text-xs">{feet} ft {inches} in</span>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Sync */}
@@ -7304,6 +7429,8 @@ export default function Home() {
           isLandscape={isLandscape}
           streak={streak}
           plungesCount={plunges.length}
+          bodyWeightLbs={bodyWeightLbs}
+          bodyHeightCm={bodyHeightCm}
           onStop={handleStop}
           onDismissChallenger={() => setActiveChallengerUserId(null)}
         />

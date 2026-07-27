@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 
 // ─── Benefit segments ────────────────────────────────────────────────────────
-// baseDuration = seconds each segment takes to fill at 50 °F.
+// baseDuration = seconds each segment takes to fill at 50 °F, BMI 22 (neutral).
 const SEGMENTS = [
   { id: "energy",     emoji: "⚡", label: "Energy",     baseDuration: 60,  barColor: "#22d3ee", dimColor: "#164e63" },
   { id: "mood",       emoji: "😊", label: "Mood",       baseDuration: 120, barColor: "#fbbf24", dimColor: "#78350f" },
@@ -27,6 +27,19 @@ function getTempFactor(tempF: number): number {
   return 1.0;
 }
 
+// ─── BMI factor ───────────────────────────────────────────────────────────────
+// Higher BMI → more insulation → segments take longer to fill.
+// Neutral anchor: BMI 22 (factor = 1.0). Clamped to [0.75, 1.35].
+const NEUTRAL_BMI = 22;
+
+function getBmiFactor(weightLbs: number, heightCm: number): number {
+  if (heightCm <= 0 || weightLbs <= 0) return 1.0;
+  const weightKg = weightLbs / 2.205;
+  const heightM  = heightCm / 100;
+  const bmi = weightKg / (heightM * heightM);
+  return Math.min(1.35, Math.max(0.75, bmi / NEUTRAL_BMI));
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 interface BenefitBarProps {
   /** Seconds elapsed in the current live session (stopwatch / countdown elapsed). */
@@ -41,32 +54,41 @@ interface BenefitBarProps {
    * Defaults to 0.
    */
   todayLoggedSeconds?: number;
+  /** User's body weight in lbs. Defaults to 150. */
+  bodyWeightLbs?: number;
+  /** User's height in cm. Defaults to 175 (≈ 5 ft 9 in). */
+  bodyHeightCm?: number;
 }
 
-export function BenefitBar({ elapsedSeconds, tempF, isActive, todayLoggedSeconds = 0 }: BenefitBarProps) {
-  const factor = useMemo(() => getTempFactor(tempF), [tempF]);
+export function BenefitBar({
+  elapsedSeconds,
+  tempF,
+  isActive,
+  todayLoggedSeconds = 0,
+  bodyWeightLbs = 150,
+  bodyHeightCm = 175,
+}: BenefitBarProps) {
+  const tempFactor = useMemo(() => getTempFactor(tempF), [tempF]);
+  const bmiFactor  = useMemo(() => getBmiFactor(bodyWeightLbs, bodyHeightCm), [bodyWeightLbs, bodyHeightCm]);
 
   // Cumulative seconds at which each segment completes
   const cumulative = useMemo(() => {
     let total = 0;
     return SEGMENTS.map((seg) => {
-      total += Math.round(seg.baseDuration * factor);
+      total += Math.round(seg.baseDuration * tempFactor * bmiFactor);
       return total;
     });
-  }, [factor]);
+  }, [tempFactor, bmiFactor]);
 
   // Total cold exposure today: prior logged sessions + current live session
   const totalElapsed = todayLoggedSeconds + elapsedSeconds;
 
   // ── Milestone toasts ──────────────────────────────────────────────────────
-  // Pre-seed on mount with any milestones already achieved from prior sessions
-  // so we don't re-announce them when a new session starts.
   const announcedRef = useRef<Set<string> | null>(null);
   if (announcedRef.current === null) {
-    // Compute cumulative inline for initialization (same formula as useMemo above)
     let t = 0;
     const initCum = SEGMENTS.map((seg) => {
-      t += Math.round(seg.baseDuration * getTempFactor(tempF));
+      t += Math.round(seg.baseDuration * getTempFactor(tempF) * getBmiFactor(bodyWeightLbs, bodyHeightCm));
       return t;
     });
     announcedRef.current = new Set(
@@ -77,7 +99,6 @@ export function BenefitBar({ elapsedSeconds, tempF, isActive, todayLoggedSeconds
   const [milestone, setMilestone] = useState<string | null>(null);
   const milestoneTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Announce a milestone the first time its threshold is crossed while active
   useEffect(() => {
     if (!isActive || elapsedSeconds === 0) return;
     SEGMENTS.forEach((seg, i) => {
@@ -91,7 +112,6 @@ export function BenefitBar({ elapsedSeconds, tempF, isActive, todayLoggedSeconds
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalElapsed, isActive]);
 
-  // Re-seed announced set whenever prior logged seconds increase (new session saved)
   useEffect(() => {
     if (!announcedRef.current) return;
     SEGMENTS.forEach((seg, i) => {
@@ -101,7 +121,6 @@ export function BenefitBar({ elapsedSeconds, tempF, isActive, todayLoggedSeconds
     });
   }, [todayLoggedSeconds, cumulative]);
 
-  // Per-segment fill percentage (0–100), driven by cumulative daily exposure
   const fills = SEGMENTS.map((_, i) => {
     const start = i === 0 ? 0 : cumulative[i - 1];
     const end = cumulative[i];
@@ -110,10 +129,9 @@ export function BenefitBar({ elapsedSeconds, tempF, isActive, todayLoggedSeconds
     return ((totalElapsed - start) / (end - start)) * 100;
   });
 
-  // Always rendered — segments dim when nothing logged yet (no layout shift)
   return (
     <div className="px-1 space-y-1 my-2">
-      {/* Milestone flash — always occupies space to prevent layout shift */}
+      {/* Milestone flash */}
       <p
         className="text-center text-[11px] font-semibold tracking-wide transition-opacity duration-500"
         style={{ opacity: milestone ? 1 : 0, color: "#6ee7b7", minHeight: "1rem" }}
@@ -130,12 +148,10 @@ export function BenefitBar({ elapsedSeconds, tempF, isActive, todayLoggedSeconds
 
           return (
             <div key={seg.id} className="flex-1 min-w-0 space-y-1">
-              {/* Bar track */}
               <div
                 className="relative h-2 rounded-full overflow-hidden"
                 style={{ backgroundColor: seg.dimColor + "44" }}
               >
-                {/* Filled portion */}
                 <div
                   className="absolute inset-y-0 left-0 rounded-full"
                   style={{
@@ -147,8 +163,6 @@ export function BenefitBar({ elapsedSeconds, tempF, isActive, todayLoggedSeconds
                   }}
                 />
               </div>
-
-              {/* Label */}
               <p
                 className="text-center text-[9px] font-semibold leading-none truncate"
                 style={{

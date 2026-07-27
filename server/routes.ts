@@ -349,7 +349,7 @@ export async function registerRoutes(
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUserById(payload.userId);
     if (!user) return res.status(401).json({ message: "User not found" });
-    res.json({ username: user.username ?? null, displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null });
+    res.json({ username: user.username ?? null, displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null, bodyHeight: user.bodyHeight ?? null });
   });
 
   app.patch("/api/auth/profile", async (req, res) => {
@@ -357,10 +357,11 @@ export async function registerRoutes(
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
     const existing = await storage.getUserById(payload.userId);
     if (!existing) return res.status(401).json({ message: "User not found" });
-    const { displayName, bodyWeight, username } = req.body;
-    const patch: { displayName?: string; bodyWeight?: number; username?: string } = {};
+    const { displayName, bodyWeight, bodyHeight, username } = req.body;
+    const patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; username?: string } = {};
     if (typeof displayName === "string") patch.displayName = displayName.trim().slice(0, 32);
     if (typeof bodyWeight === "number" && bodyWeight > 0) patch.bodyWeight = Math.round(bodyWeight);
+    if (typeof bodyHeight === "number" && bodyHeight > 0) patch.bodyHeight = Math.round(bodyHeight);
     if (typeof username === "string") {
       const parsed = usernameSchema.safeParse(username);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0].message });
@@ -374,7 +375,7 @@ export async function registerRoutes(
       patch.username = parsed.data;
     }
     const user = await storage.updateUserProfile(payload.userId, patch);
-    res.json({ username: user.username ?? null, displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null });
+    res.json({ username: user.username ?? null, displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null, bodyHeight: user.bodyHeight ?? null });
   });
 
   app.delete("/api/auth/account", async (req, res) => {
@@ -1570,34 +1571,55 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
       return res.status(403).json({ error: "Not friends" });
     }
 
-    const subs = await storage.getPushSubscriptionsByUser(friendId);
-    if (subs.length === 0) return res.json({ sent: false, reason: "No push subscription" });
+    // Always persist so the recipient sees it on next app open (push fallback)
+    await storage.upsertPendingChallenge(caller.userId, friendId);
 
     // Get challenger's display name
     const challenger = await storage.getUserById(caller.userId);
     const name = challenger?.displayName || challenger?.username || "Someone";
-    const payload = JSON.stringify({
-      title: `❄️ ${name} challenged you!`,
-      body: "They just plunged. Can you handle the cold?",
-      url: `/?challenger=${caller.userId}`,
-      tag: `challenge-${caller.userId}`,
-    });
 
+    const subs = await storage.getPushSubscriptionsByUser(friendId);
     let sent = 0;
-    for (const sub of subs) {
-      try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload
-        );
-        sent++;
-      } catch (err: any) {
-        if (err.statusCode === 410 || err.statusCode === 404) {
-          await storage.deletePushSubscription(sub.endpoint);
+    if (subs.length > 0) {
+      const payload = JSON.stringify({
+        title: `❄️ ${name} challenged you!`,
+        body: "They just plunged. Can you handle the cold?",
+        url: `/?challenger=${caller.userId}`,
+        tag: `challenge-${caller.userId}`,
+      });
+      for (const sub of subs) {
+        try {
+          await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            payload
+          );
+          sent++;
+        } catch (err: any) {
+          if (err.statusCode === 410 || err.statusCode === 404) {
+            await storage.deletePushSubscription(sub.endpoint);
+          }
         }
       }
     }
     res.json({ sent: sent > 0 });
+  });
+
+  // Fetch a pending challenge for the authenticated user (called on app load)
+  app.get("/api/friends/pending-challenge", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ error: "Login required" });
+    const pending = await storage.getPendingChallenge(payload.userId);
+    if (!pending) return res.json({ none: true });
+    const from = await storage.getUserById(pending.fromUserId);
+    res.json({ fromUserId: pending.fromUserId, fromName: from?.displayName || from?.username || "Someone" });
+  });
+
+  // Clear a pending challenge (called once the client has consumed it)
+  app.delete("/api/friends/pending-challenge", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ error: "Login required" });
+    await storage.deletePendingChallenge(payload.userId);
+    res.json({ ok: true });
   });
 
   // ── UGC Reports (Apple App Review Guideline 1.2) ────────────────────────

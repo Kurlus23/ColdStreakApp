@@ -13,12 +13,21 @@ export const users = pgTable("users", {
   resetTokenExpiry: timestamp("reset_token_expiry"),
   displayName: text("display_name"),
   bodyWeight: integer("body_weight"),
+  bodyHeight: integer("body_height"), // stored in cm
   isAdmin: boolean("is_admin").default(false).notNull(),
   isDisabled: boolean("is_disabled").default(false).notNull(),
   timezone: text("timezone"), // IANA tz from client (e.g., "America/Los_Angeles")
   country: text("country"),   // ISO-2 country code (e.g., "US", "GB")
   region: text("region"),     // State / region / city (free-form, geo-derived)
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Persisted so the challenged user sees it on next open even without push
+export const pendingChallenges = pgTable("pending_challenges", {
+  id:         serial("id").primaryKey(),
+  fromUserId: integer("from_user_id").notNull(),
+  toUserId:   integer("to_user_id").notNull().unique(), // one active challenge per recipient
+  createdAt:  timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });

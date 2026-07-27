@@ -105,6 +105,8 @@ interface PlungeOverlayProps {
   isLandscape: boolean;
   streak: number;
   plungesCount: number;
+  bodyWeightLbs: number;
+  bodyHeightCm: number;
   onStop: () => void;
   onDismissChallenger: () => void;
 }
@@ -127,6 +129,8 @@ export function PlungeOverlay({
   isLandscape,
   streak,
   plungesCount,
+  bodyWeightLbs,
+  bodyHeightCm,
   onStop,
   onDismissChallenger,
 }: PlungeOverlayProps) {
@@ -292,6 +296,8 @@ export function PlungeOverlay({
           tempF={temperature}
           isActive={isActive}
           todayLoggedSeconds={benefitCarryOver}
+          bodyWeightLbs={bodyWeightLbs}
+          bodyHeightCm={bodyHeightCm}
         />
 
         {/* Music transport — its own floating card */}
