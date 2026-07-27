@@ -27,6 +27,7 @@ import { useLeaderboard, useSubmitLeaderboard, useDeleteLeaderboardEntry, type L
 import { useProStatus, PENDING_CHECKOUT_KEY, PENDING_SESSION_KEY } from "@/hooks/use-pro-status";
 import { PlungeCard, buildShareText } from "@/components/PlungeCard";
 import { ColdTakeOverlay } from "@/components/ColdTakeOverlay";
+import { PlungeOverlay } from "@/components/PlungeOverlay";
 import { MusicWidget, MusicTransportMini, openMusic, shouldAutoPlay } from "@/components/MusicWidget";
 import { BenefitBar } from "@/components/BenefitBar";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
@@ -7284,119 +7285,28 @@ export default function Home() {
 
       {/* ─── ACTIVE TIMER OVERLAY ─── */}
       {isActive && screen === "timer" && (
-        <div className="fixed inset-0 z-[60] bg-[#0c1a2e] flex flex-col items-center justify-between overflow-hidden animate-in fade-in">
-          {/* Underwater background glows */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(6,182,212,0.2),transparent_60%)] pointer-events-none" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_100%,rgba(14,165,233,0.15),transparent_60%)] pointer-events-none" />
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')" }} />
-
-          {/* Top — wordmark + mode pill */}
-          <div className="w-full flex flex-col items-center pt-14 pb-4 z-10">
-            <span
-              className="text-2xl font-black pointer-events-none select-none tracking-[0.2em] mb-4"
-              style={{
-                background: "linear-gradient(to bottom, #ffffff 0%, #a5f3fc 60%, #0891b2 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-                filter: "drop-shadow(0 2px 12px rgba(8,145,178,0.6))",
-              }}
-            >
-              COLDSTREAK
-            </span>
-            <div className="glass-panel px-4 py-1.5 rounded-full border border-cyan-500/30 text-cyan-300 text-[10px] font-bold uppercase tracking-[0.15em] shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-              {countdownMode ? "Countdown" : "Stopwatch"}
-            </div>
-          </div>
-
-          {/* Center — giant timer + Cold Take */}
-          <div className="flex-1 flex flex-col items-center justify-center w-full z-10 gap-4">
-            <div
-              className="font-mono font-bold text-white leading-none tracking-tighter animate-pulse-glow"
-              style={{ fontSize: isLandscape ? "18vw" : "28vw" }}
-              data-testid="display-timer-overlay"
-            >
-              {formatTime(displaySeconds)}
-            </div>
-            {/* Cold Take sits right below timer — fixed position, no layout shift */}
-            <ColdTakeOverlay
-              isActive={isActive}
-              elapsedSeconds={displaySeconds}
-              tempF={temperature}
-              isFirstPlunge={plunges.length === 0}
-              streakDays={streak}
-            />
-
-            {/* Benefit bar — below Cold Take, above bottom stats */}
-            <div className="w-full px-6">
-              <BenefitBar elapsedSeconds={elapsedSeconds} tempF={temperature} isActive={isActive} todayLoggedSeconds={benefitCarryOver} />
-            </div>
-          </div>
-
-          {/* Bottom section — stats, music, stop (never shifts) */}
-          <div className="w-full flex flex-col items-center gap-5 pb-10 z-10 px-6">
-            {/* Stats row */}
-            <div className="flex items-center justify-between w-full px-1">
-              <div className="flex flex-col items-center">
-                <div className="flex items-center gap-1 mb-1">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-300" />
-                  </span>
-                  <div className="text-slate-400 text-[10px] uppercase tracking-widest font-semibold">Live Temp</div>
-                </div>
-                <div className="text-white text-3xl font-bold tracking-tight">{tempDisplay}</div>
-              </div>
-              <div className="w-px h-12 bg-gradient-to-b from-transparent via-slate-700 to-transparent" />
-              <div className="flex flex-col items-center">
-                <div className="text-cyan-400 text-[10px] uppercase tracking-widest mb-1 font-semibold">Cold Score</div>
-                <div className="text-cyan-300 text-3xl font-bold tracking-tight animate-pulse-glow">{displayScore}</div>
-              </div>
-              {challengerScore !== null && activeChallengerFriend && (
-                <>
-                  <div className="w-px h-12 bg-gradient-to-b from-transparent via-slate-700 to-transparent" />
-                  <div className="flex flex-col items-center relative">
-                    <div className="text-rose-400 text-[10px] uppercase tracking-widest mb-1 font-semibold">
-                      vs {activeChallengerFriend.displayName || activeChallengerFriend.username || "Friend"}
-                    </div>
-                    <div className="text-rose-300 text-3xl font-bold tracking-tight" style={{ textShadow: "0 0 15px rgba(251,113,133,0.4)" }}>
-                      {challengerScore.toFixed(1)}
-                    </div>
-                    <button
-                      onClick={() => setActiveChallengerUserId(null)}
-                      className="absolute -top-2 -right-3 text-slate-500 hover:text-slate-300 text-[10px] leading-none"
-                      title="Dismiss challenge"
-                    >✕</button>
-                  </div>
-                </>
-              )}
-              {personalBest > 0 && (
-                <>
-                  <div className="w-px h-12 bg-gradient-to-b from-transparent via-slate-700 to-transparent" />
-                  <div className="flex flex-col items-center">
-                    <div className="text-amber-400 text-[10px] uppercase tracking-widest mb-1 font-semibold">Personal Best</div>
-                    <div className="text-amber-400 text-3xl font-bold tracking-tight" style={{ textShadow: "0 0 15px rgba(251,191,36,0.3)" }}>{personalBest.toFixed(1)}</div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Music transport — pause/skip without leaving the plunge (Pro) */}
-            {isPro && <MusicTransportMini />}
-
-            {/* Stop button */}
-            <button
-              data-testid="button-stop-overlay"
-              onClick={handleStop}
-              className="w-full relative group mt-2"
-            >
-              <div className="absolute inset-0 bg-red-600 rounded-2xl blur-lg opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="relative bg-gradient-to-b from-red-500 to-red-700 border border-red-400/50 text-white font-bold py-5 rounded-2xl text-xl tracking-wider transition-all active:scale-[0.98] shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)]">
-                STOP
-              </div>
-            </button>
-          </div>
-        </div>
+        <PlungeOverlay
+          displaySeconds={displaySeconds}
+          formattedTime={formatTime(displaySeconds)}
+          displayScore={typeof displayScore === "number" ? displayScore : 0}
+          temperature={temperature}
+          tempDisplay={tempDisplay}
+          personalBest={personalBest}
+          challengerScore={challengerScore}
+          challengerName={activeChallengerFriend
+            ? (activeChallengerFriend.displayName || activeChallengerFriend.username || "Friend")
+            : null}
+          elapsedSeconds={elapsedSeconds}
+          benefitCarryOver={benefitCarryOver}
+          isActive={isActive}
+          countdownMode={countdownMode}
+          isPro={isPro}
+          isLandscape={isLandscape}
+          streak={streak}
+          plungesCount={plunges.length}
+          onStop={handleStop}
+          onDismissChallenger={() => setActiveChallengerUserId(null)}
+        />
       )}
 
       {/* ─── BOTTOM NAV ─── */}
