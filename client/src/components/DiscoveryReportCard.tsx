@@ -26,11 +26,12 @@ interface Props {
 
 // ── Period definitions (mirror server email cadences) ─────────────────────────
 
-type Period = "7d" | "30d";
+type Period = "7d" | "30d" | "all";
 
-const PERIODS: { id: Period; label: string; days: number; description: string }[] = [
-  { id: "7d",  label: "Last 7 days",  days: 7,  description: "same window as weekly email"  },
-  { id: "30d", label: "Last 30 days", days: 30, description: "same window as monthly email" },
+const PERIODS: { id: Period; label: string; days: number | null; description: string }[] = [
+  { id: "7d",  label: "7 days",   days: 7,    description: "same window as weekly email"  },
+  { id: "30d", label: "30 days",  days: 30,   description: "same window as monthly email" },
+  { id: "all", label: "All time", days: null, description: "all recorded plunges"          },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -86,6 +87,10 @@ export function DiscoveryReportCard({ plunges }: Props) {
   // Filter plunges to the selected rolling window
   const windowRows = useMemo<ReportRow[]>(() => {
     const periodDef = PERIODS.find((p) => p.id === period)!;
+    if (periodDef.days === null) {
+      // All time — no cutoff
+      return plunges.map(toReportRow);
+    }
     const cutoff = new Date(Date.now() - periodDef.days * 24 * 60 * 60 * 1000);
     return plunges
       .filter((p) => new Date(p.createdAt) >= cutoff)
@@ -177,10 +182,16 @@ export function DiscoveryReportCard({ plunges }: Props) {
             <div className="bg-blue-900/40 rounded-xl p-3 text-center">
               <p className="text-slate-400 text-[12px]">
                 {totalRatedInWindow === 0
-                  ? `No plunges with check-ins in the last ${PERIODS.find((p) => p.id === period)!.days} days.`
+                  ? period === "all"
+                    ? "No plunges with check-ins yet."
+                    : `No plunges with check-ins in the last ${PERIODS.find((p) => p.id === period)!.days} days.`
                   : `Need at least 3 rated check-ins — you have ${totalRatedInWindow} so far in this window.`}
               </p>
-              <p className="text-slate-500 text-[10px] mt-1">Try switching to a longer window or add more check-ins after plunging.</p>
+              <p className="text-slate-500 text-[10px] mt-1">
+                {period === "all"
+                  ? "Add a check-in after your next plunge to start seeing patterns."
+                  : "Try switching to a longer window or add more check-ins after plunging."}
+              </p>
             </div>
           )}
 
