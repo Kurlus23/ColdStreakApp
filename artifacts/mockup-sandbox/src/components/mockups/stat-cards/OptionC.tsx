@@ -35,17 +35,12 @@ export function OptionC() {
             <div className="absolute right-0 top-3 bottom-3 w-px bg-blue-800/50" />
           </div>
 
-          {/* Cold Score */}
+          {/* Cold Score — clean, no bar */}
           <div className="flex flex-col items-center px-2 py-2">
             <span className="text-blue-400/60 text-[8.5px] font-semibold uppercase tracking-widest mb-1">Score</span>
             <span className="text-cyan-300 text-[2.4rem] font-bold leading-none"
                   style={{ textShadow: "0 0 20px rgba(103,232,249,0.35)" }}>11.4</span>
             <span className="text-blue-500/50 text-[8px] mt-1.5">today</span>
-            <div className="mt-2 w-full px-2">
-              <div className="h-0.5 rounded-full bg-blue-900">
-                <div className="h-full w-3/4 rounded-full" style={{ background: "linear-gradient(90deg, #0891b2, #67e8f9)" }} />
-              </div>
-            </div>
           </div>
 
         </div>
@@ -53,7 +48,7 @@ export function OptionC() {
         {/* ── Bottom strip: 3 panes aligned under each column ── */}
         <div className="grid grid-cols-3 border-t border-blue-800/30 mt-1">
 
-          {/* Under Water Temp — calibration offset */}
+          {/* Under Water — calibration offset */}
           <div className="flex items-center justify-center gap-1 px-2 pt-2 pb-1 relative">
             <button className="w-5 h-5 rounded bg-blue-800/70 text-blue-300 text-xs flex items-center justify-center font-bold">−</button>
             <span className="text-blue-400/70 text-[10px] font-semibold w-6 text-center">+0°</span>
@@ -67,9 +62,15 @@ export function OptionC() {
             <div className="absolute right-0 top-2 bottom-2 w-px bg-blue-800/50" />
           </div>
 
-          {/* Under Score — cycle hint */}
-          <div className="flex items-center justify-center px-2 pt-2 pb-1">
-            <span className="text-blue-500/40 text-[8px] uppercase tracking-widest">Tap to cycle</span>
+          {/* Under Score — PB progress bar */}
+          <div className="flex flex-col justify-center px-3 pt-2 pb-1">
+            <div className="flex justify-between mb-1">
+              <span className="text-blue-500/40 text-[8px]">today</span>
+              <span className="text-blue-500/40 text-[8px]">PB 15.2</span>
+            </div>
+            <div className="h-0.5 rounded-full bg-blue-900">
+              <div className="h-full w-3/4 rounded-full" style={{ background: "linear-gradient(90deg, #0891b2, #67e8f9)" }} />
+            </div>
           </div>
 
         </div>
