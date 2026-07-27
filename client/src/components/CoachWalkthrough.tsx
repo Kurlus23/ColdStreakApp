@@ -183,9 +183,10 @@ export function CoachWalkthrough({ tourType, onComplete }: Props) {
         onClick={complete}
       />
 
-      {/* Step card */}
+      {/* Step card — sits in the upper half so the timer/temp/benefits at the bottom stay visible */}
       <div
-        className="fixed inset-x-4 bottom-[88px] z-[61] rounded-2xl border border-blue-700/60 bg-[#0c1e3a] shadow-2xl p-5"
+        className="fixed inset-x-4 z-[61] rounded-2xl border border-blue-700/60 bg-[#0c1e3a] shadow-2xl p-5"
+        style={{ top: "max(96px, env(safe-area-inset-top, 0px) + 80px)" }}
         style={{
           transform: visible ? "translateY(0)" : "translateY(24px)",
           opacity: visible ? 1 : 0,
