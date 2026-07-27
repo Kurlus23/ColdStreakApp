@@ -3333,7 +3333,7 @@ export default function Home() {
                       Calories<br />Burned
                     </div>
                     {/* Number + icon centered — number first so it lines up with temp & timer */}
-                    <div className="flex-1 flex flex-col items-center justify-center gap-1">
+                    <div className="flex-1 flex items-center justify-center">
                       <div className="text-orange-300 font-bold text-3xl leading-none">
                         {scoreView === "kcal"
                           ? (todayCalories > 0 ? Math.round(todayCalories) : "—")
@@ -3364,7 +3364,6 @@ export default function Home() {
                           : (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
                         }
                       </div>
-                      <Snowflake className="w-5 h-5 text-cyan-400" />
                     </div>
                     {/* Subtitle at bottom */}
                     <div className="text-blue-400 text-[10px]">
