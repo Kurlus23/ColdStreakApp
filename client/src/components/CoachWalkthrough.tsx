@@ -38,39 +38,39 @@ const FIRST_OPEN_STEPS: Step[] = [
   {
     icon: "❄️",
     title: "Welcome to ColdStreak",
-    body: "I'm your personal cold plunge coach. Let me show you around in 30 seconds.",
+    body: "Your personal cold plunge coach — let me point out the key parts.",
   },
   {
     icon: "⏱️",
     title: "Your plunge timer",
-    body: "When you're in the water, hit Start. Stop when you get out. ColdStreak tracks your time, temperature, and benefits automatically.",
+    body: "Hit Start when you're in the water, Stop when you get out.",
     highlight: '[data-testid="card-timer"]',
-    hint: "↓ The timer is right here on the main screen",
+    hint: "↓ below",
   },
   {
     icon: "🌡️",
-    title: "Set your water temp",
-    body: "Tap the temperature display to enter your water temp. Accuracy matters — it powers your Sweet Spot and personalised suggestions.",
+    title: "Water temperature",
+    body: "Tap the temperature display to set your water temp before you plunge.",
     highlight: '[data-testid="card-water-temp"]',
-    hint: "← Tap the temperature display",
+    hint: "↓ below",
   },
   {
     icon: "⚡",
-    title: "The benefits bar",
-    body: "It fills as you plunge. Energy unlocks at ~60s, Mood at 2 min, Metabolism at 3 min, Recovery at 5 min+. Benefits decay gradually between sessions.",
+    title: "Benefits bar",
+    body: "Fills as you plunge — Energy at 60 s, Mood at 2 min, Metabolism at 3 min, Recovery at 5 min.",
     highlight: '[data-testid="benefit-bar"]',
-    hint: "↓ The bar just below the timer",
+    hint: "↓ below",
   },
   {
     icon: "📊",
-    title: "Track your progress",
-    body: "After your first plunge, open the History tab. You'll find your full log, your Sweet Spot, and your Cold Adaptation trend there.",
-    hint: "Tap 📊 in the navigation bar below",
+    title: "History tab",
+    body: "After your first plunge, tap History to see your log, Sweet Spot, and Cold Adaptation trend.",
+    hint: "↓ bottom nav",
   },
   {
     icon: "💬",
     title: "Ask me anything",
-    body: "Tap the blue ❄️ button in the bottom-right corner any time to ask about cold plunge science, your stats, or any feature in the app.",
+    body: "Tap the ❄️ button bottom-right any time to ask about your stats or any feature.",
   },
 ];
 
@@ -183,77 +183,81 @@ export function CoachWalkthrough({ tourType, onComplete }: Props) {
         onClick={complete}
       />
 
-      {/* Step card — sits in the upper half so the timer/temp/benefits at the bottom stay visible */}
+      {/* Step card — floats in the landscape dead-zone, compact tooltip style */}
       <div
-        className="fixed inset-x-4 z-[61] rounded-2xl border border-blue-700/60 bg-[#0c1e3a] shadow-2xl p-5"
-        style={{ top: "max(96px, env(safe-area-inset-top, 0px) + 80px)" }}
+        className="fixed z-[61] rounded-2xl border border-blue-700/60 bg-[#0c1e3a]/95 shadow-2xl"
         style={{
-          transform: visible ? "translateY(0)" : "translateY(24px)",
+          top: "32%",
+          left: "5%",
+          right: "5%",
+          transform: visible ? "translateY(0)" : "translateY(-12px)",
           opacity: visible ? 1 : 0,
           transition: "transform 0.35s cubic-bezier(.22,1,.36,1), opacity 0.3s ease",
         }}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl leading-none">{current.icon}</span>
-            <div>
-              <p className="text-cyan-400 text-[10px] font-semibold uppercase tracking-wide leading-none mb-0.5">
-                ColdStreak Coach
-              </p>
-              <p className="text-white text-base font-bold leading-tight">{current.title}</p>
-            </div>
-          </div>
-          <button
-            onClick={complete}
-            className="text-slate-500 hover:text-slate-300 text-lg leading-none p-1"
-            aria-label="Skip tour"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Body */}
-        <p className="text-blue-200 text-sm leading-relaxed mb-2">{current.body}</p>
-
-        {/* Hint */}
+        {/* Downward arrow pointing toward bottom UI elements */}
         {current.hint && (
-          <p className="text-cyan-500 text-[11px] font-medium mb-3">{current.hint}</p>
+          <div
+            className="absolute left-1/2 -translate-x-1/2 text-cyan-400 text-lg leading-none select-none"
+            style={{ bottom: "-28px" }}
+          >
+            ↓
+          </div>
         )}
 
-        {/* Footer */}
-        <div className="flex items-center justify-between mt-3">
-          {/* Progress dots */}
-          <div className="flex gap-1.5">
-            {steps.map((_, i) => (
-              <div
-                key={i}
-                className="rounded-full transition-all duration-300"
-                style={{
-                  width: i === step ? "16px" : "6px",
-                  height: "6px",
-                  backgroundColor: i === step ? "#22d3ee" : "#1e3a5f",
-                }}
-              />
-            ))}
+        <div className="px-4 pt-3 pb-3">
+          {/* Header row */}
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-base leading-none">{current.icon}</span>
+              <p className="text-white text-sm font-bold leading-tight">{current.title}</p>
+            </div>
+            <button
+              onClick={complete}
+              className="text-slate-500 hover:text-slate-300 text-sm leading-none p-1 -mr-1"
+              aria-label="Skip tour"
+            >
+              ✕
+            </button>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex gap-2">
-            {!isLast && (
+          {/* Body */}
+          <p className="text-blue-200 text-xs leading-relaxed">{current.body}</p>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between mt-2.5">
+            {/* Progress dots */}
+            <div className="flex gap-1">
+              {steps.map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-full transition-all duration-300"
+                  style={{
+                    width: i === step ? "14px" : "5px",
+                    height: "5px",
+                    backgroundColor: i === step ? "#22d3ee" : "#1e3a5f",
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-1.5">
+              {!isLast && (
+                <button
+                  onClick={complete}
+                  className="text-slate-500 text-xs px-2.5 py-1 rounded-lg hover:text-slate-300"
+                >
+                  Skip
+                </button>
+              )}
               <button
-                onClick={complete}
-                className="text-slate-500 text-xs px-3 py-1.5 rounded-lg hover:text-slate-300"
+                onClick={next}
+                className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-4 py-1 rounded-lg transition-colors"
               >
-                Skip
+                {isLast ? "Got it!" : "Next →"}
               </button>
-            )}
-            <button
-              onClick={next}
-              className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold px-5 py-1.5 rounded-xl transition-colors"
-            >
-              {isLast ? "Got it!" : "Next →"}
-            </button>
+            </div>
           </div>
         </div>
       </div>
