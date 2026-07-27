@@ -3219,7 +3219,10 @@ export default function Home() {
                       : Array.from({ length: 36 }, (_, i) => 25 + i).map((f) => <option key={f} value={f}>{f}°F</option>)
                     }
                   </select>
-                  <span className="text-white text-[2.4rem] font-bold leading-none pointer-events-none">{tempDisplay}</span>
+                  <span
+                    className={`text-[2.4rem] font-bold leading-none pointer-events-none transition-all ${btConnected ? "text-cyan-300 animate-pulse" : "text-white"}`}
+                    style={btConnected ? { textShadow: "0 0 18px rgba(34,211,238,0.55)" } : undefined}
+                  >{tempDisplay}</span>
                 </div>
                 {/* °F / °C inline toggle */}
                 <div className="flex items-center gap-1.5 mt-1.5">
@@ -7603,6 +7606,7 @@ export default function Home() {
           plungesCount={plunges.length}
           bodyWeightLbs={bodyWeightLbs}
           bodyHeightCm={bodyHeightCm}
+          btConnected={btConnected}
           onStop={handleStop}
           onDismissChallenger={() => setActiveChallengerUserId(null)}
         />
