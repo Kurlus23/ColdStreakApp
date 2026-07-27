@@ -374,6 +374,7 @@ export default function Home() {
   const [friendSearchResults, setFriendSearchResults] = useState<UserResult[]>([]);
   const [friendsSearchLoading, setFriendsSearchLoading] = useState(false);
   const [challengingId, setChallengingId] = useState<number | null>(null);
+  const [selectedFriend, setSelectedFriend] = useState<FriendEntry | null>(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteSending, setInviteSending] = useState(false);
   // Badge shown on the Friends nav when a friend request resolves while the
@@ -5151,7 +5152,10 @@ export default function Home() {
                                   : <span className="text-blue-600 text-[11px]">– Not yet today</span>}
                                 {/* Streak as secondary */}
                                 {f.streak > 0 && <span className="text-orange-400 text-[11px]">🔥 {f.streak}</span>}
-                                {/* Best score when on score tab */}
+                                {/* Score — today's in Daily mode, best in Score mode */}
+                                {friendsSort === 'daily' && f.plungedToday && f.latestScore != null && (
+                                  <span className="text-cyan-400 text-[11px] font-semibold">⚡ {f.latestScore.toFixed(1)}</span>
+                                )}
                                 {friendsSort === 'score' && f.bestScore != null && (
                                   <span className="text-cyan-400/80 text-[11px]">⚡ {f.bestScore.toFixed(1)}</span>
                                 )}
@@ -5161,7 +5165,8 @@ export default function Home() {
                             {!isMe && (
                               <button
                                 data-testid={`button-challenge-${f.userId}`}
-                                onClick={async () => {
+                                onClick={async (e) => {
+                                  e.stopPropagation();
                                   if (challengingId === f.userId) return;
                                   setChallengingId(f.userId);
                                   await sendFriendChallengeImpl(f.userId, f.displayName || f.username || "Friend", {

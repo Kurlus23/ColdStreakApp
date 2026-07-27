@@ -171,10 +171,10 @@ export function PlungeOverlay({
           style={{ background: "radial-gradient(circle, rgba(6,182,212,0.09) 0%, transparent 70%)" }} />
       </div>
 
-      {/* Wordmark + mode pill */}
+      {/* Wordmark */}
       <div className="w-full flex flex-col items-center pt-14 pb-2 z-10 shrink-0">
         <span
-          className="text-xl font-black pointer-events-none select-none tracking-[0.2em] mb-3"
+          className="text-xl font-black pointer-events-none select-none tracking-[0.2em]"
           style={{
             background: "linear-gradient(to bottom, #ffffff 0%, #a5f3fc 60%, #0891b2 100%)",
             WebkitBackgroundClip: "text",
@@ -185,12 +185,6 @@ export function PlungeOverlay({
         >
           COLDSTREAK
         </span>
-        <div
-          className="px-4 py-1 rounded-full border border-cyan-500/30 text-cyan-300 text-[10px] font-bold uppercase tracking-[0.15em]"
-          style={{ background: "rgba(6,182,212,0.1)", boxShadow: "0 0 15px rgba(6,182,212,0.2)" }}
-        >
-          {countdownMode ? "Countdown" : "Stopwatch"}
-        </div>
       </div>
 
       {/* Ring + timer hero */}
