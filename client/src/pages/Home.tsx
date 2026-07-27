@@ -3313,42 +3313,15 @@ export default function Home() {
           {/* Benefit progress bar — shown during and after a plunge */}
           <BenefitBar elapsedSeconds={elapsedSeconds} tempF={temperature} isActive={isActive} todayLoggedSeconds={benefitCarryOver} />
 
-          {/* Weekly goal / score row */}
-          <div
-            className="text-center text-white/90 text-sm font-semibold tracking-wide"
-            data-testid="display-weekly"
-            style={{ textShadow: "0 1px 6px rgba(0,0,0,0.8)" }}
-          >
-            Weekly: {weeklyMinutes.toFixed(1)} / {weeklyGoalMinutes} min&nbsp;&nbsp;·&nbsp;&nbsp;
-            {isActive ? (
-              <span className="text-cyan-300">Best: {personalBest > 0 ? personalBest.toFixed(1) : "—"}</span>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  data-testid="button-streak-freeze-open"
-                  onClick={() => {
-                    if (!auth.user) { setShowLoginModal(true); return; }
-                    if (!isPro) { setShowUpgradeModal(true); return; }
-                    setShowFreezeModal(true);
-                  }}
-                  className="inline-flex items-center gap-1 hover:text-cyan-300 transition-colors"
-                  title={isPro ? "Streak Freeze — protect a missed day" : "Pro feature: protect your streak when you miss a day"}
-                >
-                  Streak: {streak} days
-                  <Snowflake className="w-3 h-3 text-cyan-400" />
-                </button>
-                {personalBest > 0 && (
-                  <>
-                    &nbsp;&nbsp;·&nbsp;&nbsp;
-                    <span className="text-orange-400" data-testid="text-personal-best">
-                      Best: {personalBest.toFixed(1)}
-                    </span>
-                  </>
-                )}
-              </>
-            )}
-          </div>
+          {/* Personal best — only shown during an active plunge */}
+          {isActive && personalBest > 0 && (
+            <div
+              className="text-center text-sm font-semibold tracking-wide"
+              style={{ textShadow: "0 1px 6px rgba(0,0,0,0.8)" }}
+            >
+              <span className="text-orange-400">Best: {personalBest.toFixed(1)}</span>
+            </div>
+          )}
         </div>
       )}
 
