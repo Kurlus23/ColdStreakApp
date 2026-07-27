@@ -2,12 +2,29 @@ import { useEffect, useState } from "react";
 import { useUpdatePlunge } from "@/hooks/use-plunges";
 import { type Plunge } from "@shared/schema";
 
-export const MOODS = [
-  { value: 1, emoji: "🙁", label: "Rough" },
-  { value: 2, emoji: "😐", label: "Meh" },
-  { value: 3, emoji: "🙂", label: "Good" },
-  { value: 4, emoji: "😊", label: "Great" },
+// ── Scale definitions ──────────────────────────────────────────────────────────
+
+export const MOOD_OPTIONS = [
+  { value: 1, emoji: "😞", label: "Rough" },
+  { value: 2, emoji: "😕", label: "Low"   },
+  { value: 3, emoji: "😐", label: "OK"    },
+  { value: 4, emoji: "🙂", label: "Good"  },
+  { value: 5, emoji: "😄", label: "Great" },
 ] as const;
+
+export const ENERGY_OPTIONS = [
+  { value: 1, emoji: "💤", label: "Drained"   },
+  { value: 2, emoji: "⚡", label: "Neutral"   },
+  { value: 3, emoji: "🔋", label: "Energized" },
+] as const;
+
+export const FOCUS_OPTIONS = [
+  { value: 1, emoji: "🌫️", label: "Worse"  },
+  { value: 2, emoji: "🧠", label: "Same"   },
+  { value: 3, emoji: "🎯", label: "Better" },
+] as const;
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
 const DISMISS_KEY = (id: number) => `coldstreak-mood-dismissed-${id}`;
 
@@ -23,11 +40,60 @@ function extractMoodId(url: string): number | null {
   }
 }
 
+interface PickerRowProps<T extends readonly { value: number; emoji: string; label: string }[]> {
+  icon: string;
+  label: string;
+  options: T;
+  value: number | null;
+  onPick: (v: number) => void;
+}
+
+function PickerRow<T extends readonly { value: number; emoji: string; label: string }[]>(
+  { icon, label, options, value, onPick }: PickerRowProps<T>
+) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-1.5">
+        <span className="text-sm">{icon}</span>
+        <span className="text-blue-300 text-xs font-semibold uppercase tracking-wide">{label}</span>
+      </div>
+      <div className="flex gap-1.5">
+        {options.map((opt) => {
+          const selected = value === opt.value;
+          return (
+            <button
+              key={opt.value}
+              onClick={() => onPick(opt.value)}
+              className={[
+                "flex-1 flex flex-col items-center gap-0.5 rounded-xl py-2 transition-all active:scale-95 border",
+                selected
+                  ? "bg-cyan-500/20 border-cyan-400/70 shadow-sm"
+                  : "bg-blue-900/50 border-blue-700/40 hover:bg-blue-800/60 hover:border-blue-600/50",
+              ].join(" ")}
+            >
+              <span className="text-xl leading-none">{opt.emoji}</span>
+              <span className={`text-[9px] font-semibold ${selected ? "text-cyan-300" : "text-blue-400"}`}>
+                {opt.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
+
 export function MoodCheckIn({ plunges, visible }: { plunges: Plunge[]; visible: boolean }) {
   const updatePlunge = useUpdatePlunge();
   const [notifPlungeId, setNotifPlungeId] = useState<number | null>(null);
   const [saved, setSaved] = useState(false);
   const [dismissTick, setDismissTick] = useState(0);
+
+  const [mood,       setMood]       = useState<number | null>(null);
+  const [moodEnergy, setMoodEnergy] = useState<number | null>(null);
+  const [moodFocus,  setMoodFocus]  = useState<number | null>(null);
 
   // Cold start: arrived via /?mood=<id> (notification tap opened a new window)
   useEffect(() => {
@@ -55,8 +121,6 @@ export function MoodCheckIn({ plunges, visible }: { plunges: Plunge[]; visible: 
 
   const now = Date.now();
 
-  // Notification-driven prompt takes priority; otherwise catch-up banner for
-  // the most recent plunge that is 1-24h old and still unanswered.
   const notifPlunge = notifPlungeId != null
     ? plunges.find((p) => p.id === notifPlungeId && p.mood == null) ?? null
     : null;
@@ -72,6 +136,13 @@ export function MoodCheckIn({ plunges, visible }: { plunges: Plunge[]; visible: 
   })();
 
   const target = notifPlunge ?? catchUpPlunge;
+
+  // Reset selections when target changes
+  useEffect(() => {
+    setMood(null);
+    setMoodEnergy(null);
+    setMoodFocus(null);
+  }, [target?.id]);
 
   useEffect(() => {
     if (saved) {
@@ -99,10 +170,12 @@ export function MoodCheckIn({ plunges, visible }: { plunges: Plunge[]; visible: 
 
   const isNotif = notifPlunge != null;
   const ageHours = Math.round((now - new Date(target.createdAt).getTime()) / 3600000);
+  const allPicked = mood !== null && moodEnergy !== null && moodFocus !== null;
 
-  const pick = (mood: number) => {
+  const submit = () => {
+    if (!allPicked) return;
     updatePlunge.mutate(
-      { id: target.id, patch: { mood } },
+      { id: target.id, patch: { mood, moodEnergy, moodFocus } },
       { onSuccess: () => { setSaved(true); setNotifPlungeId(null); } },
     );
   };
@@ -119,13 +192,14 @@ export function MoodCheckIn({ plunges, visible }: { plunges: Plunge[]; visible: 
         data-testid="banner-mood-checkin"
         className="w-full max-w-md bg-blue-950/95 backdrop-blur-sm border border-blue-700/60 rounded-2xl p-4 shadow-2xl space-y-3"
       >
+        {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <p className="text-white text-sm font-semibold leading-snug">
             {isNotif
-              ? "How's your body feeling after that plunge?"
+              ? "How did your plunge affect the rest of your day?"
               : ageHours <= 3
-                ? "How did you feel after your plunge?"
-                : "How did you feel after your last plunge?"}
+                ? "How did your plunge affect you today?"
+                : "How did your last plunge affect the rest of your day?"}
           </p>
           <button
             data-testid="button-dismiss-mood"
@@ -135,19 +209,44 @@ export function MoodCheckIn({ plunges, visible }: { plunges: Plunge[]; visible: 
             Skip
           </button>
         </div>
-        <div className="flex gap-2">
-          {MOODS.map((m) => (
-            <button
-              key={m.value}
-              data-testid={`button-mood-${m.value}`}
-              onClick={() => pick(m.value)}
-              className="flex-1 flex flex-col items-center gap-1 bg-blue-900/60 hover:bg-blue-800/80 border border-blue-700/40 hover:border-cyan-400/50 rounded-xl py-2.5 transition-all active:scale-95"
-            >
-              <span className="text-2xl leading-none">{m.emoji}</span>
-              <span className="text-blue-300 text-[10px] font-semibold">{m.label}</span>
-            </button>
-          ))}
-        </div>
+
+        {/* Three pickers */}
+        <PickerRow
+          icon="😊"
+          label="Mood"
+          options={MOOD_OPTIONS}
+          value={mood}
+          onPick={setMood}
+        />
+        <PickerRow
+          icon="⚡"
+          label="Energy"
+          options={ENERGY_OPTIONS}
+          value={moodEnergy}
+          onPick={setMoodEnergy}
+        />
+        <PickerRow
+          icon="🧠"
+          label="Focus"
+          options={FOCUS_OPTIONS}
+          value={moodFocus}
+          onPick={setMoodFocus}
+        />
+
+        {/* Save button */}
+        <button
+          data-testid="button-mood-save"
+          disabled={!allPicked}
+          onClick={submit}
+          className={[
+            "w-full py-2.5 rounded-xl text-sm font-semibold transition-all",
+            allPicked
+              ? "bg-cyan-500/20 border border-cyan-400/60 text-cyan-300 hover:bg-cyan-500/30 active:scale-95"
+              : "bg-blue-900/30 border border-blue-700/30 text-blue-600 cursor-not-allowed",
+          ].join(" ")}
+        >
+          {allPicked ? "Save check-in" : "Select all three to save"}
+        </button>
       </div>
     </div>
   );

@@ -51,10 +51,23 @@ interface PlungeCardProps {
 }
 
 const MOOD_META: Record<number, { emoji: string; label: string; color: string }> = {
-  1: { emoji: "🙁", label: "Rough", color: "#94a3b8" },
-  2: { emoji: "😐", label: "Meh",   color: "#94a3b8" },
-  3: { emoji: "🙂", label: "Good",  color: "#6ee7b7" },
-  4: { emoji: "😊", label: "Great", color: "#22d3ee" },
+  1: { emoji: "😞", label: "Rough",  color: "#94a3b8" },
+  2: { emoji: "😕", label: "Low",    color: "#94a3b8" },
+  3: { emoji: "😐", label: "OK",     color: "#94a3b8" },
+  4: { emoji: "🙂", label: "Good",   color: "#6ee7b7" },
+  5: { emoji: "😄", label: "Great",  color: "#22d3ee" },
+};
+
+const ENERGY_META: Record<number, { emoji: string; label: string }> = {
+  1: { emoji: "💤", label: "Drained"   },
+  2: { emoji: "⚡", label: "Neutral"   },
+  3: { emoji: "🔋", label: "Energized" },
+};
+
+const FOCUS_META: Record<number, { emoji: string; label: string }> = {
+  1: { emoji: "🌫️", label: "Worse"  },
+  2: { emoji: "🧠", label: "Same"   },
+  3: { emoji: "🎯", label: "Better" },
 };
 
 function formatTime(totalSeconds: number) {
@@ -664,40 +677,68 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, us
           </div>
         )}
 
-        {/* ── Benefits earned + mood check-in ── */}
+        {/* ── Mini benefit bar + check-in ratings ── */}
         {(() => {
-          const earned = computeEarnedSegments(plunge.duration, plunge.temperature, bodyWeightLbs, bodyHeightCm);
-          const mood = plunge.mood != null ? MOOD_META[plunge.mood] : null;
-          if (earned.length === 0 && !mood) return null;
+          const earned     = computeEarnedSegments(plunge.duration, plunge.temperature, bodyWeightLbs, bodyHeightCm);
+          const mood       = plunge.mood       != null ? MOOD_META[plunge.mood]         : null;
+          const energy     = plunge.moodEnergy != null ? ENERGY_META[plunge.moodEnergy] : null;
+          const focus      = plunge.moodFocus  != null ? FOCUS_META[plunge.moodFocus]   : null;
+          const hasCheckin = mood || energy || focus;
           return (
-            <div className="relative z-10 mt-3 flex items-center justify-between gap-2 flex-wrap">
-              {/* Benefit chips */}
-              {earned.length > 0 && (
-                <div className="flex items-center gap-1 flex-wrap">
-                  {SEGMENTS.filter((s) => earned.includes(s.id)).map((seg) => (
+            <div className="relative z-10 mt-3 space-y-2">
+              {/* Mini segmented benefit bar — same visual as live bar, static snapshot */}
+              <div className="flex gap-1.5">
+                {SEGMENTS.map((seg) => {
+                  const isEarned = earned.includes(seg.id);
+                  return (
+                    <div key={seg.id} className="flex-1 min-w-0 space-y-0.5">
+                      <div
+                        className="relative h-1.5 rounded-full overflow-hidden"
+                        style={{
+                          backgroundColor: isEarned ? seg.barColor + "22" : seg.dimColor + "44",
+                          boxShadow: isEarned ? `0 0 0 1px ${seg.barColor}88` : "none",
+                        }}
+                      >
+                        {isEarned && (
+                          <div
+                            className="absolute inset-0 rounded-full"
+                            style={{ backgroundColor: seg.barColor, opacity: 0.8 }}
+                          />
+                        )}
+                      </div>
+                      <p
+                        className="text-center text-[8px] font-semibold leading-none truncate"
+                        style={{ color: isEarned ? seg.barColor : "#1e3a5f" }}
+                      >
+                        {seg.emoji} {seg.label}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Check-in badges: Mood · Energy · Focus */}
+              {hasCheckin && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {mood && (
                     <span
-                      key={seg.id}
-                      title={seg.label}
-                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border"
-                      style={{
-                        background: seg.barColor + "18",
-                        borderColor: seg.barColor + "55",
-                        color: seg.barColor,
-                      }}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50"
+                      style={{ color: mood.color }}
                     >
-                      {seg.emoji} {seg.label}
+                      {mood.emoji} {mood.label}
                     </span>
-                  ))}
+                  )}
+                  {energy && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-blue-300">
+                      {energy.emoji} {energy.label}
+                    </span>
+                  )}
+                  {focus && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-purple-300">
+                      {focus.emoji} {focus.label}
+                    </span>
+                  )}
                 </div>
-              )}
-              {/* Mood badge */}
-              {mood && (
-                <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 ml-auto"
-                  style={{ color: mood.color }}
-                >
-                  {mood.emoji} {mood.label}
-                </span>
               )}
             </div>
           );

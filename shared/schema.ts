@@ -57,7 +57,9 @@ export const plunges = pgTable("plunges", {
   timerUsed: boolean("timer_used").default(false).notNull(), // true = in-app timer; false = manually entered
   calories: integer("calories"), // kcal estimate locked at log time (nullable for legacy rows)
   timezone: text("timezone"), // IANA tz captured at log time (nullable for legacy rows)
-  mood: integer("mood"), // post-plunge mood check-in: 1 (bad) → 4 (great), nullable until answered
+  mood: integer("mood"), // post-plunge mood check-in: 1 (rough) → 5 (great), nullable until answered
+  moodEnergy: integer("mood_energy"), // post-plunge energy check-in: 1 (drained) → 3 (energized), nullable
+  moodFocus: integer("mood_focus"),   // post-plunge focus check-in:  1 (worse)   → 3 (better),   nullable
   moodPromptedAt: timestamp("mood_prompted_at"), // when the 1-hour mood push was sent (nullable)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -140,10 +142,14 @@ export const updatePlungeSchema = insertPlungeSchema.partial().pick({
   duration: true,
   temperature: true,
   score: true,
-  createdAt: true,
   mood: true,
+  moodEnergy: true,
+  moodFocus: true,
 }).extend({
-  mood: z.number().int().min(1).max(4).nullable().optional(),
+  mood:        z.number().int().min(1).max(5).nullable().optional(),
+  moodEnergy:  z.number().int().min(1).max(3).nullable().optional(),
+  moodFocus:   z.number().int().min(1).max(3).nullable().optional(),
+  createdAt:   z.string().optional(), // allow date/time editing from history card
 });
 
 export const insertLeaderboardEntrySchema = createInsertSchema(leaderboardEntries).omit({

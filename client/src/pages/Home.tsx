@@ -54,6 +54,7 @@ import { useMutation } from "@tanstack/react-query";
 import { type Plunge, type UserLocation, usernameSchema } from "@shared/schema";
 import { pickColdTake, type ColdTakeContext } from "@shared/coldTakes";
 import { MoodCheckIn } from "@/components/MoodCheckIn";
+import { SweetSpotCard } from "@/components/SweetSpotCard";
 import { loadFriends as loadFriendsImpl } from "@/lib/loadFriends";
 import { searchFriends as searchFriendsImpl } from "@/lib/searchFriends";
 import { sendFriendRequest as sendFriendRequestImpl } from "@/lib/sendFriendRequest";
@@ -3973,6 +3974,9 @@ export default function Home() {
                 </div>
               </div>
             )}
+
+            {/* Sweet Spot card — shown after 10+ check-ins */}
+            <SweetSpotCard plunges={plunges} />
 
             {isLoading ? (
               <div className="space-y-3">{[1,2,3].map((i) => <div key={i} className="h-20 bg-blue-900/40 rounded-2xl animate-pulse" />)}</div>
