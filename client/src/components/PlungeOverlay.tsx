@@ -295,7 +295,7 @@ export function PlungeOverlay({
         />
 
         {/* Music transport — its own floating card */}
-        {isPro && <MusicTransportMini />}
+        {isPro && <MusicTransportMini className="self-center" />}
 
         {/* Stop button — floats with just its glow halo */}
         <button
