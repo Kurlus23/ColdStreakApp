@@ -3432,7 +3432,7 @@ export default function Home() {
 
           {/* ── Benefit bar (home screen) ── */}
           {/* Uses full today total — no 2-hour window; once earned, stays lit until midnight */}
-          <div className="rounded-2xl mt-2 px-3 pt-2 pb-1 bg-blue-950/90 backdrop-blur-sm border border-blue-800/50">
+          <div className="rounded-xl mt-2 px-2 pt-1.5 pb-1 bg-blue-950/90 backdrop-blur-sm border border-blue-800/50">
             <BenefitBar
               elapsedSeconds={elapsedSeconds}
               tempF={temperature}

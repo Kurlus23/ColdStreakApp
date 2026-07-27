@@ -121,11 +121,11 @@ export function BenefitBar({
   });
 
   return (
-    <div className="px-1 space-y-1 my-2">
+    <div className="px-0.5 space-y-0.5 my-1">
       {/* Milestone flash */}
       <p
-        className="text-center text-[11px] font-semibold tracking-wide transition-opacity duration-500"
-        style={{ opacity: milestone ? 1 : 0, color: "#6ee7b7", minHeight: "1rem" }}
+        className="text-center text-[10px] font-semibold tracking-wide transition-opacity duration-500"
+        style={{ opacity: milestone ? 1 : 0, color: "#6ee7b7", minHeight: milestone ? "0.875rem" : 0 }}
       >
         {milestone ?? "\u00a0"}
       </p>
