@@ -3235,16 +3235,25 @@ export default function Home() {
                     className={`text-[10px] font-bold transition-all ${useCelsius ? "text-white" : "text-blue-400/60 hover:text-blue-300"}`}
                   >°C</button>
                 </div>
-                {/* Live badge — always in DOM, invisible when not connected so height is always reserved */}
-                <button
-                  onClick={() => { navTo("settings"); setTimeout(() => setSettingsTab('settings'), 50); }}
-                  className="flex items-center gap-1 mt-2"
-                  style={{ visibility: btConnected ? "visible" : "hidden" }}
-                  data-testid="button-bt-status-header"
-                >
-                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                  <span className="text-green-400/80 text-[8px] font-semibold">Live</span>
-                </button>
+                {/* Offset controls — shown inside the temp pane when BT connected */}
+                {btOffsetVisible && (
+                  <div className="flex items-center gap-1 mt-1.5">
+                    <button
+                      data-testid="button-tile-offset-down"
+                      onClick={() => setBtTempOffset(prev => Math.max(-20, prev - 1))}
+                      className="w-5 h-5 rounded bg-blue-800/70 text-blue-200 text-xs font-bold flex items-center justify-center hover:bg-blue-700/70 active:scale-95 transition-all"
+                    >−</button>
+                    <span
+                      data-testid="text-tile-offset"
+                      className="text-blue-400/70 text-[10px] font-semibold w-7 text-center"
+                    >{btTempOffset >= 0 ? "+" : ""}{btTempOffset}°</span>
+                    <button
+                      data-testid="button-tile-offset-up"
+                      onClick={() => setBtTempOffset(prev => Math.min(20, prev + 1))}
+                      className="w-5 h-5 rounded bg-blue-800/70 text-blue-200 text-xs font-bold flex items-center justify-center hover:bg-blue-700/70 active:scale-95 transition-all"
+                    >+</button>
+                  </div>
+                )}
                 {/* Right divider */}
                 <div className="absolute right-0 top-3 bottom-3 w-px bg-blue-800/50" />
               </div>
@@ -3350,26 +3359,20 @@ export default function Home() {
             {/* Bottom strip — 3 panes aligned under each column */}
             <div className="grid grid-cols-3 border-t border-blue-800/30">
 
-              {/* Under Water — calibration offset (only when BT connected) */}
+              {/* Under Water — LIVE indicator (always visible) */}
               <div className="flex items-center justify-center px-2 pt-2 pb-2.5 relative" style={{ minHeight: "2rem" }}>
-                {btOffsetVisible ? (
-                  <div className="flex items-center gap-1">
-                    <button
-                      data-testid="button-tile-offset-down"
-                      onClick={() => setBtTempOffset(prev => Math.max(-20, prev - 1))}
-                      className="w-5 h-5 rounded bg-blue-800/70 text-blue-200 text-xs font-bold flex items-center justify-center hover:bg-blue-700/70 active:scale-95 transition-all"
-                    >−</button>
-                    <span
-                      data-testid="text-tile-offset"
-                      className="text-blue-400/70 text-[10px] font-semibold w-7 text-center"
-                    >{btTempOffset >= 0 ? "+" : ""}{btTempOffset}°</span>
-                    <button
-                      data-testid="button-tile-offset-up"
-                      onClick={() => setBtTempOffset(prev => Math.min(20, prev + 1))}
-                      className="w-5 h-5 rounded bg-blue-800/70 text-blue-200 text-xs font-bold flex items-center justify-center hover:bg-blue-700/70 active:scale-95 transition-all"
-                    >+</button>
-                  </div>
-                ) : null}
+                <button
+                  onClick={() => { navTo("settings"); setTimeout(() => setSettingsTab('settings'), 50); }}
+                  className="flex items-center gap-1.5 focus:outline-none active:opacity-70 transition-opacity"
+                  data-testid="button-bt-status-header"
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${btConnected ? "bg-green-400 animate-pulse" : "bg-blue-700/60"}`}
+                  />
+                  <span
+                    className={`text-[9px] font-bold uppercase tracking-widest ${btConnected ? "text-green-400" : "text-blue-700/60"}`}
+                  >Live</span>
+                </button>
                 <div className="absolute right-0 top-2 bottom-2 w-px bg-blue-800/50" />
               </div>
 
