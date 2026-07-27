@@ -463,26 +463,6 @@ export default function Home() {
     if (auth.user) setShowLoginModal(false);
   }, [auth.user]);
 
-  // ── Coach walkthrough triggers ────────────────────────────────────────────
-  // First-open tour: once user is authenticated, onboarding complete, and tour unseen
-  useEffect(() => {
-    if (!auth.user) return;
-    if (showOnboarding) return; // wait until onboarding sheet is dismissed
-    if (localStorage.getItem(FIRST_OPEN_KEY)) return;
-    // Small delay so the home screen has fully rendered first
-    const id = setTimeout(() => setShowFirstOpenWalkthrough(true), 800);
-    return () => clearTimeout(id);
-  }, [auth.user, showOnboarding]);
-
-  // Post-plunge tour: triggers when user logs their very first plunge
-  useEffect(() => {
-    if (!auth.user) return;
-    if (plunges.length !== 1) return; // exactly 1 = just logged their first
-    if (localStorage.getItem(POST_PLUNGE_KEY)) return;
-    const id = setTimeout(() => setShowPostPlungeWalkthrough(true), 1200);
-    return () => clearTimeout(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auth.user, plunges.length]);
 
   useEffect(() => {
     localStorage.setItem("coldstreak-temperature", String(temperature));
@@ -1247,6 +1227,27 @@ export default function Home() {
   }, [toast]);
 
   const { data: plunges = [], isLoading } = usePlunges();
+
+  // ── Coach walkthrough triggers ────────────────────────────────────────────
+  // First-open tour: once authenticated, onboarding dismissed, tour not yet seen
+  useEffect(() => {
+    if (!auth.user) return;
+    if (showOnboarding) return;
+    if (localStorage.getItem(FIRST_OPEN_KEY)) return;
+    const id = setTimeout(() => setShowFirstOpenWalkthrough(true), 800);
+    return () => clearTimeout(id);
+  }, [auth.user, showOnboarding]);
+
+  // Post-plunge tour: fires when the user logs their very first plunge
+  useEffect(() => {
+    if (!auth.user) return;
+    if (plunges.length !== 1) return;
+    if (localStorage.getItem(POST_PLUNGE_KEY)) return;
+    const id = setTimeout(() => setShowPostPlungeWalkthrough(true), 1200);
+    return () => clearTimeout(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.user, plunges.length]);
+
   const createPlunge = useCreatePlunge();
   const updatePlunge = useUpdatePlunge();
   const deletePlunge = useDeletePlunge();
