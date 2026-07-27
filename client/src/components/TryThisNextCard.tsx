@@ -27,7 +27,7 @@ interface Props {
   plunges: Plunge[];
 }
 
-const DISMISS_KEY = "coldstreak-try-next-dismissed-plunge";
+export const DISMISS_KEY = "coldstreak-try-next-dismissed-plunge";
 
 // ── Trend delta (mirrors ColdAdaptationCard composite logic) ──────────────────
 

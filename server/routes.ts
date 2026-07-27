@@ -557,40 +557,54 @@ export async function registerRoutes(
       }
 
       // ── "Try this next" nudge notification ─────────────────────────────────
-      // Fire-and-forget: fetch the user's plunges (including the new one),
-      // compute the nudge, and push it if there's something to say.
+      // Synchronously derive the nudge so we can include nudgeSent in the
+      // response — the client uses it to auto-dismiss the in-app card and
+      // avoid showing the same advice twice.  The actual push sends are still
+      // fire-and-forget (external HTTP calls shouldn't block the response).
+      let nudgeSent = false;
       if (authUser) {
-        (async () => {
-          try {
-            const userPlunges = await storage.getPlunges(undefined, authUser.userId);
-            const nudge = deriveNudgeForPush(userPlunges);
-            if (nudge) {
-              const subs = await storage.getPushSubscriptionsByUser(authUser.userId);
-              const payload = JSON.stringify({
-                title: nudge.title,
-                body:  nudge.body,
-                tag:   "try-this-next",
-              });
-              for (const sub of subs) {
-                try {
-                  await webpush.sendNotification(
-                    { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-                    payload,
-                  );
-                } catch (err: any) {
-                  if (err.statusCode === 410 || err.statusCode === 404) {
-                    await storage.deletePushSubscription(sub.endpoint);
+        try {
+          const [userPlunges, subs] = await Promise.all([
+            storage.getPlunges(undefined, authUser.userId),
+            storage.getPushSubscriptionsByUser(authUser.userId),
+          ]);
+          const nudge = deriveNudgeForPush(userPlunges);
+          // Only set nudgeSent when there is a nudge to send AND at least one
+          // subscription to deliver it to.  Users with no subscriptions never
+          // receive a push, so their in-app card must remain visible.
+          if (nudge && subs.length > 0) {
+            nudgeSent = true;
+            // Fire-and-forget: only the external push delivery is async.
+            const nudgePayload = JSON.stringify({
+              title: nudge.title,
+              body:  nudge.body,
+              tag:   "try-this-next",
+            });
+            (async () => {
+              try {
+                for (const sub of subs) {
+                  try {
+                    await webpush.sendNotification(
+                      { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                      nudgePayload,
+                    );
+                  } catch (err: any) {
+                    if (err.statusCode === 410 || err.statusCode === 404) {
+                      await storage.deletePushSubscription(sub.endpoint);
+                    }
                   }
                 }
+              } catch (err) {
+                console.error("[nudge] push notification error:", err);
               }
-            }
-          } catch (err) {
-            console.error("[nudge] push notification error:", err);
+            })();
           }
-        })();
+        } catch (err) {
+          console.error("[nudge] derivation error:", err);
+        }
       }
 
-      res.status(201).json({ ...newPlunge, challengeResult });
+      res.status(201).json({ ...newPlunge, challengeResult, nudgeSent });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join('.') });

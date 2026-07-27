@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl, type PlungeInput, type PlungeUpdateInput } from "@shared/routes";
 import { getAuthToken } from "@/hooks/use-auth";
 import { Capacitor } from "@capacitor/core";
+import { DISMISS_KEY } from "@/components/TryThisNextCard";
 
 const REVIEW_COUNT_KEY = "coldstreak-plunge-saved-count";
 const REVIEW_PROMPTED_KEY = "coldstreak-review-prompted";
@@ -80,7 +81,13 @@ export function useCreatePlunge() {
       }
       return api.plunges.create.responses[201].parse(await res.json());
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // If the server sent a nudge push, auto-dismiss the in-app card so the
+      // user doesn't see the same advice twice (once in the notification,
+      // once in TryThisNextCard).
+      if ((data as any).nudgeSent && data.id != null) {
+        localStorage.setItem(DISMISS_KEY, String(data.id));
+      }
       queryClient.invalidateQueries({ queryKey: [api.plunges.list.path] });
       maybeRequestReview();
     },
