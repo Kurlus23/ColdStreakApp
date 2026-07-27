@@ -35,12 +35,13 @@ export function OptionC() {
             <div className="absolute right-0 top-3 bottom-3 w-px bg-blue-800/50" />
           </div>
 
-          {/* Cold Score — clean, no bar */}
+          {/* Cold Score */}
           <div className="flex flex-col items-center px-2 py-2">
             <span className="text-blue-400/60 text-[8.5px] font-semibold uppercase tracking-widest mb-1">Score</span>
             <span className="text-cyan-300 text-[2.4rem] font-bold leading-none"
                   style={{ textShadow: "0 0 20px rgba(103,232,249,0.35)" }}>11.4</span>
             <span className="text-blue-500/50 text-[8px] mt-1.5">today</span>
+            <span className="text-blue-500/30 text-[8px] uppercase tracking-widest mt-auto pt-2">Tap to cycle</span>
           </div>
 
         </div>
