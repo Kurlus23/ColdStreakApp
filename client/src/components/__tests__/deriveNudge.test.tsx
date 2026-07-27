@@ -318,6 +318,45 @@ describe("deriveNudge", () => {
     expect(nudge!.kind).toBe("holding-steady");
   });
 
+  // ── computeMonthTrendDelta per-month minimum threshold ───────────────────
+  //
+  // These tests document the intentional minimum: a single rated plunge in each
+  // of two calendar months is sufficient to produce a delta.  They make the
+  // implicit floor explicit so that future refactors can't accidentally raise or
+  // lower the bar without a failing test.
+
+  it("produces a valid trending-up nudge with exactly 1 rated plunge per month (minimum threshold)", () => {
+    // 8 unrated recent plunges pass the total-count (≥10) gate without adding
+    // months of rated data; the two rated entries — one per calendar month —
+    // are enough for computeMonthTrendDelta to return a non-null delta.
+    //
+    // month1 (60 days ago): mood=2  → composite ≈ 0.25
+    // month2 (1 day ago):   mood=5  → composite = 1.00
+    // delta ≈ +0.75  →  trending-up
+    const unrated = makePlunges(8, 1,  { mood: null, idStart: 1 });
+    const rated1  = makePlunges(1, 60, { mood: 2,    idStart: 9 });
+    const rated2  = makePlunges(1, 1,  { mood: 5,    idStart: 10 });
+    const nudge   = deriveNudge([...unrated, ...rated1, ...rated2]);
+    expect(nudge).not.toBeNull();
+    expect(nudge!.kind).toBe("trending-up");
+  });
+
+  it("months with a single rated entry still produce a valid (not suppressed) delta — intentional behaviour", () => {
+    // Identical mood in both months → delta = 0 → holding-steady.
+    // This confirms that computeMonthTrendDelta does NOT suppress thin per-month
+    // data: one rated plunge per month is enough to produce a result (not null).
+    //
+    // month1 (60 days ago): mood=3  → composite = 0.50
+    // month2 (1 day ago):   mood=3  → composite = 0.50
+    // delta = 0.00  →  |delta| ≤ 0.05  →  holding-steady
+    const unrated = makePlunges(8, 1,  { mood: null, idStart: 1 });
+    const rated1  = makePlunges(1, 60, { mood: 3,    idStart: 9 });
+    const rated2  = makePlunges(1, 1,  { mood: 3,    idStart: 10 });
+    const nudge   = deriveNudge([...unrated, ...rated1, ...rated2]);
+    expect(nudge).not.toBeNull();
+    expect(nudge!.kind).toBe("holding-steady");
+  });
+
   it("sweet-spot bucket counts only rated plunges (unrated in same bucket are ignored)", () => {
     // bestBucket first filters to rated entries (mood != null), so:
     //   - 10 rated in the high-mood bucket (50°F / 240s → "45–50°F" / "3–6 min")
