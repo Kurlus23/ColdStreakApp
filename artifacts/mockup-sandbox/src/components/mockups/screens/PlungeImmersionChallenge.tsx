@@ -1,23 +1,24 @@
-// Active plunge — Immersion variant with challenge ring
-// Concept: the circular ring IS the challenge bar.
-// Two concentric arcs — outer = Jake (challenger), inner = You.
-// Fill is based on cold score vs personal best, so both arcs
-// represent real progress on the same scale. Who's ahead is instant.
+// Active plunge — Immersion + Challenge
+// Single ring = your progress toward beating Jake's score.
+// Full ring = you've beaten him.
 
-const PERSONAL_BEST = 21.1;
-const JAKE_SCORE    = 8.4;   // challenger's current score
-const MY_SCORE      = 4.2;   // your current score
+const JAKE_SCORE = 8.4;
+const MY_SCORE   = 4.2;
+const WINNING    = MY_SCORE >= JAKE_SCORE;
 
-const JAKE_PCT = Math.min(1, JAKE_SCORE / PERSONAL_BEST);
-const MY_PCT   = Math.min(1, MY_SCORE   / PERSONAL_BEST);
-const WINNING  = MY_SCORE >= JAKE_SCORE;
+// Ring fills as MY_SCORE → JAKE_SCORE
+const PROGRESS = Math.min(1, MY_SCORE / JAKE_SCORE); // 0–1
 
-// SVG geometry
 const CX = 160;
 const CY = 160;
-const R_JAKE = 136; // outer arc — challenger
-const R_ME   = 118; // inner arc — you
-const STROKE = 9;
+const R  = 128;
+const STROKE = 10;
+const CIRC = 2 * Math.PI * R;
+
+function anglePt(r: number, pct: number) {
+  const a = pct * 2 * Math.PI - Math.PI / 2;
+  return { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) };
+}
 
 const BENEFIT_SEGMENTS = [
   { id: "energy",     emoji: "⚡", label: "Energy",     fill: 100, bar: "#22d3ee", dim: "#0e3d4d55" },
@@ -26,78 +27,58 @@ const BENEFIT_SEGMENTS = [
   { id: "recovery",   emoji: "💪", label: "Recovery",   fill: 0,   bar: "#34d399", dim: "#023d2555" },
 ] as const;
 
-function arcDash(r: number, pct: number) {
-  const circ = 2 * Math.PI * r;
-  return { strokeDasharray: circ, strokeDashoffset: circ * (1 - pct) };
-}
-
-function leadingDot(r: number, pct: number) {
-  const angle = pct * 2 * Math.PI - Math.PI / 2;
-  return { cx: CX + r * Math.cos(angle), cy: CY + r * Math.sin(angle) };
-}
-
 function ChallengeRing() {
-  const jakeDash = arcDash(R_JAKE, JAKE_PCT);
-  const meDash   = arcDash(R_ME,   MY_PCT);
-  const jakeDot  = leadingDot(R_JAKE, JAKE_PCT);
-  const meDot    = leadingDot(R_ME,   MY_PCT);
+  const dot     = anglePt(R, PROGRESS);       // your live dot
+  const jakePt  = anglePt(R + 18, 1);         // Jake's marker at 12 o'clock (full)
 
   return (
     <svg
       viewBox="0 0 320 320"
       className="w-[320px] h-[320px] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
     >
-      {/* Track rings */}
-      <circle cx={CX} cy={CY} r={R_JAKE} fill="none" stroke="rgba(251,113,133,0.1)" strokeWidth={STROKE} />
-      <circle cx={CX} cy={CY} r={R_ME}   fill="none" stroke="rgba(34,211,238,0.1)"  strokeWidth={STROKE} />
-
-      {/* Jake's arc (outer, rose) */}
+      {/* Track */}
       <circle
-        cx={CX} cy={CY} r={R_JAKE}
+        cx={CX} cy={CY} r={R}
         fill="none"
-        stroke="url(#jake-grad)"
+        stroke="rgba(34,211,238,0.08)"
+        strokeWidth={STROKE}
+      />
+
+      {/* Progress arc */}
+      <circle
+        cx={CX} cy={CY} r={R}
+        fill="none"
+        stroke="url(#progress-grad)"
         strokeWidth={STROKE}
         strokeLinecap="round"
-        {...jakeDash}
+        strokeDasharray={CIRC}
+        strokeDashoffset={CIRC * (1 - PROGRESS)}
         transform={`rotate(-90 ${CX} ${CY})`}
-        style={{ filter: "drop-shadow(0 0 6px rgba(244,63,94,0.5))" }}
-      />
-      {/* Jake's leading dot */}
-      <circle
-        cx={jakeDot.cx} cy={jakeDot.cy} r={5}
-        fill="#fb7185"
-        style={{ filter: "drop-shadow(0 0 5px rgba(244,63,94,0.8))" }}
+        style={{ filter: "drop-shadow(0 0 10px rgba(34,211,238,0.5))" }}
       />
 
-      {/* Your arc (inner, cyan) */}
-      <circle
-        cx={CX} cy={CY} r={R_ME}
-        fill="none"
-        stroke="url(#me-grad)"
-        strokeWidth={STROKE}
-        strokeLinecap="round"
-        {...meDash}
-        transform={`rotate(-90 ${CX} ${CY})`}
-        style={{ filter: "drop-shadow(0 0 8px rgba(34,211,238,0.55))" }}
-      />
-      {/* My leading dot with pulse */}
-      <circle
-        cx={meDot.cx} cy={meDot.cy} r={5}
-        fill="#22d3ee"
-        style={{ filter: "drop-shadow(0 0 6px rgba(34,211,238,0.9))" }}
-      />
+      {/* Jake's target marker at the top (12 o'clock = full) */}
+      <circle cx={CX} cy={CY - R} r={4} fill="#fb7185"
+        style={{ filter: "drop-shadow(0 0 5px rgba(244,63,94,0.8))" }} />
+      <text
+        x={CX} y={CY - R - 10}
+        textAnchor="middle"
+        fill="rgba(251,113,133,0.75)"
+        fontSize="9"
+        fontFamily="sans-serif"
+        fontWeight="700"
+        letterSpacing="0.05em"
+      >
+        JAKE {JAKE_SCORE}
+      </text>
 
-      {/* Legend labels on ring at 3 o'clock */}
-      <text x={CX + R_JAKE + 14} y={CY - 4}  textAnchor="start" fill="rgba(251,113,133,0.7)" fontSize="9" fontFamily="sans-serif" fontWeight="700">JAKE</text>
-      <text x={CX + R_ME  + 14} y={CY + 10} textAnchor="start" fill="rgba(34,211,238,0.7)"  fontSize="9" fontFamily="sans-serif" fontWeight="700">YOU</text>
+      {/* Your live leading dot */}
+      <circle cx={dot.x} cy={dot.y} r={6} fill="#22d3ee"
+        style={{ filter: "drop-shadow(0 0 8px rgba(34,211,238,1))" }} />
 
       <defs>
-        <linearGradient id="jake-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#fb7185" />
-          <stop offset="100%" stopColor="#f43f5e" />
-        </linearGradient>
-        <linearGradient id="me-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#0e7490" />
+        <linearGradient id="progress-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stopColor="#0e7490" />
           <stop offset="100%" stopColor="#22d3ee" />
         </linearGradient>
       </defs>
@@ -144,12 +125,10 @@ export function PlungeImmersionChallenge() {
   return (
     <div className="w-[390px] h-[844px] relative overflow-hidden font-sans select-none flex flex-col bg-[#030c14]">
 
-      {/* Ambient glow — dual colour to hint at the rivalry */}
+      {/* Ambient glow */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[8%] left-[35%] -translate-x-1/2 w-[280px] h-[280px] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(6,182,212,0.1) 0%, transparent 70%)" }} />
-        <div className="absolute top-[8%] left-[65%] -translate-x-1/2 w-[280px] h-[280px] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(244,63,94,0.07) 0%, transparent 70%)" }} />
+        <div className="absolute top-[8%] left-1/2 -translate-x-1/2 w-[320px] h-[320px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(6,182,212,0.11) 0%, transparent 70%)" }} />
         <div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 w-[240px] h-[240px] rounded-full"
           style={{ background: "radial-gradient(circle, rgba(14,116,144,0.07) 0%, transparent 70%)" }} />
       </div>
@@ -170,11 +149,10 @@ export function PlungeImmersionChallenge() {
         </span>
       </div>
 
-      {/* Challenge ring + timer hero */}
+      {/* Ring + timer hero */}
       <div className="relative flex-1 flex items-center justify-center z-10 shrink-0" style={{ minHeight: 0 }}>
         <ChallengeRing />
 
-        {/* Timer + status inside ring */}
         <div className="relative z-10 flex flex-col items-center gap-0.5">
           <div
             className="font-mono font-bold text-white leading-none tracking-tighter"
@@ -186,18 +164,16 @@ export function PlungeImmersionChallenge() {
             style={{ color: "rgba(103,232,249,0.55)" }}>
             Stopwatch
           </div>
-          {/* Race status */}
+          {/* Race status pill */}
           <div
             className="mt-2 px-3 py-0.5 rounded-full text-[10px] font-bold tracking-wide"
             style={{
               background: WINNING ? "rgba(34,211,238,0.1)" : "rgba(251,113,133,0.1)",
-              border: WINNING ? "1px solid rgba(34,211,238,0.25)" : "1px solid rgba(251,113,133,0.25)",
-              color: WINNING ? "rgba(103,232,249,0.9)" : "rgba(251,113,133,0.9)",
+              border: WINNING ? "1px solid rgba(34,211,238,0.3)" : "1px solid rgba(251,113,133,0.3)",
+              color: WINNING ? "rgba(103,232,249,0.9)" : "rgba(251,113,133,0.85)",
             }}
           >
-            {WINNING
-              ? "You're ahead ❄️"
-              : `${(JAKE_SCORE - MY_SCORE).toFixed(1)} pts behind`}
+            {WINNING ? "You beat Jake! ❄️" : `${(JAKE_SCORE - MY_SCORE).toFixed(1)} pts to beat Jake`}
           </div>
         </div>
       </div>
@@ -211,7 +187,7 @@ export function PlungeImmersionChallenge() {
           borderTop: "1px solid rgba(34,211,238,0.08)",
         }}
       >
-        {/* Stats row */}
+        {/* Stats */}
         <div className="flex items-center justify-between px-1">
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-1 mb-0.5">
@@ -226,7 +202,7 @@ export function PlungeImmersionChallenge() {
           <div className="w-px h-10 bg-gradient-to-b from-transparent via-slate-700 to-transparent" />
           <div className="flex flex-col items-center">
             <span className="text-cyan-500 text-[9px] uppercase tracking-widest mb-0.5 font-semibold">Cold Score</span>
-            <span className="text-cyan-300 text-2xl font-bold tracking-tight">4.2</span>
+            <span className="text-cyan-300 text-2xl font-bold tracking-tight">{MY_SCORE}</span>
           </div>
           <div className="w-px h-10 bg-gradient-to-b from-transparent via-slate-700 to-transparent" />
           <div className="flex flex-col items-center">
@@ -239,7 +215,7 @@ export function PlungeImmersionChallenge() {
         {/* Benefit bar */}
         <BenefitBar />
 
-        {/* Music transport */}
+        {/* Music */}
         <div
           className="flex items-center gap-2 px-3 py-2 rounded-2xl w-full"
           style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
@@ -253,7 +229,7 @@ export function PlungeImmersionChallenge() {
           </div>
         </div>
 
-        {/* Stop button */}
+        {/* Stop */}
         <div className="w-full relative mt-1">
           <div className="absolute inset-0 bg-red-700 rounded-2xl blur-xl opacity-40" />
           <button
