@@ -3993,6 +3993,7 @@ export default function Home() {
                       <PlungeCard
                         plunge={plunge}
                         bodyWeightLbs={bodyWeightLbs}
+                        bodyHeightCm={bodyHeightCm}
                         username={username}
                         streak={streak}
                         homeLabel={homeLabel}

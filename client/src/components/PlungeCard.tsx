@@ -9,6 +9,7 @@ import { getPhoto, deletePhoto } from "@/lib/photoStore";
 import { buildShareImage, dataUrlToBlob } from "@/lib/shareImage";
 import { shareContent, logShareEvent } from "@/lib/share";
 import { isNative, nativeShare } from "@/lib/nativeShare";
+import { computeEarnedSegments, SEGMENTS } from "@/lib/benefitSegments";
 
 function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
   const durationMin = durationSeconds / 60;
@@ -38,6 +39,7 @@ export interface ChallengeFriend {
 interface PlungeCardProps {
   plunge: Plunge;
   bodyWeightLbs?: number;
+  bodyHeightCm?: number;
   username?: string;
   streak?: number;
   homeLabel?: string;
@@ -47,6 +49,13 @@ interface PlungeCardProps {
   friends?: ChallengeFriend[];
   onChallengeFriend?: (userId: number, displayName: string) => void;
 }
+
+const MOOD_META: Record<number, { emoji: string; label: string; color: string }> = {
+  1: { emoji: "🙁", label: "Rough", color: "#94a3b8" },
+  2: { emoji: "😐", label: "Meh",   color: "#94a3b8" },
+  3: { emoji: "🙂", label: "Good",  color: "#6ee7b7" },
+  4: { emoji: "😊", label: "Great", color: "#22d3ee" },
+};
 
 function formatTime(totalSeconds: number) {
   const m = Math.floor(totalSeconds / 60);
@@ -152,7 +161,7 @@ function resolveLocationDisplay(locId: string | null | undefined, locName: strin
   return null;
 }
 
-export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, homeLabel, communityLocs = [], isPro = false, avatarUrl, friends = [], onChallengeFriend }: PlungeCardProps) {
+export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, username, streak, homeLabel, communityLocs = [], isPro = false, avatarUrl, friends = [], onChallengeFriend }: PlungeCardProps) {
   const deletePlunge = useDeletePlunge();
   const updatePlunge = useUpdatePlunge();
   const { toast } = useToast();
@@ -654,6 +663,45 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
             )}
           </div>
         )}
+
+        {/* ── Benefits earned + mood check-in ── */}
+        {(() => {
+          const earned = computeEarnedSegments(plunge.duration, plunge.temperature, bodyWeightLbs, bodyHeightCm);
+          const mood = plunge.mood != null ? MOOD_META[plunge.mood] : null;
+          if (earned.length === 0 && !mood) return null;
+          return (
+            <div className="relative z-10 mt-3 flex items-center justify-between gap-2 flex-wrap">
+              {/* Benefit chips */}
+              {earned.length > 0 && (
+                <div className="flex items-center gap-1 flex-wrap">
+                  {SEGMENTS.filter((s) => earned.includes(s.id)).map((seg) => (
+                    <span
+                      key={seg.id}
+                      title={seg.label}
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border"
+                      style={{
+                        background: seg.barColor + "18",
+                        borderColor: seg.barColor + "55",
+                        color: seg.barColor,
+                      }}
+                    >
+                      {seg.emoji} {seg.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {/* Mood badge */}
+              {mood && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 ml-auto"
+                  style={{ color: mood.color }}
+                >
+                  {mood.emoji} {mood.label}
+                </span>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Inline full editor */}
         {editing && (

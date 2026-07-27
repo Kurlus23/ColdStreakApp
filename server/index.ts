@@ -46,6 +46,50 @@ async function ensureRuntimeTables() {
   }
 }
 
+// Weekly (Monday) and monthly (1st) plunge-insight report emailer.
+// Imported lazily so a syntax error here can never block server boot.
+async function startReportScheduler() {
+  try {
+    const { runWeeklyReports, runMonthlyReports } = await import("./reports");
+
+    // Track which day we last ran each report type so we fire at most once per day.
+    let lastWeeklySentDate  = "";
+    let lastMonthlySentDate = "";
+
+    const tick = async () => {
+      try {
+        const now = new Date();
+        const utcHour  = now.getUTCHours();
+        const utcDay   = now.getUTCDay();   // 0=Sun … 6=Sat
+        const utcDate  = now.getUTCDate();
+        const todayKey = now.toISOString().slice(0, 10);
+
+        // Weekly: Monday at 07:00 UTC
+        if (utcDay === 1 && utcHour === 7 && lastWeeklySentDate !== todayKey) {
+          lastWeeklySentDate = todayKey;
+          console.log("[reports] triggering weekly report");
+          await runWeeklyReports();
+        }
+
+        // Monthly: 1st of month at 07:00 UTC
+        if (utcDate === 1 && utcHour === 7 && lastMonthlySentDate !== todayKey) {
+          lastMonthlySentDate = todayKey;
+          console.log("[reports] triggering monthly report");
+          await runMonthlyReports();
+        }
+      } catch (err) {
+        console.error("[reports] tick failed:", err);
+      }
+    };
+
+    // Check every hour. Run first check 10 min after boot to let DB settle.
+    setTimeout(tick, 10 * 60 * 1000);
+    setInterval(tick, 60 * 60 * 1000);
+  } catch (err) {
+    console.error("[reports] scheduler failed to start:", err);
+  }
+}
+
 // Daily(ish) inactivity-survey scanner. Imported lazily so a syntax error in
 // the survey module can never block server boot.
 async function startChurnSurveyScheduler() {
@@ -302,6 +346,7 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
       void ensureRuntimeTables();
       void startChurnSurveyScheduler();
+      void startReportScheduler();
     },
   );
 })();
