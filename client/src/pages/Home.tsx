@@ -3299,7 +3299,7 @@ export default function Home() {
           </div>
 
           {/* Benefit progress bar — shown during and after a plunge */}
-          <BenefitBar elapsedSeconds={elapsedSeconds} tempF={temperature} isActive={isActive} />
+          <BenefitBar elapsedSeconds={elapsedSeconds} tempF={temperature} isActive={isActive} todayLoggedSeconds={todayTotalSec} />
 
           {/* Weekly goal / score row */}
           <div
