@@ -11,19 +11,11 @@ export function OptionC() {
           <div className="flex flex-col items-center px-2 py-2 relative">
             <span className="text-blue-400/60 text-[8.5px] font-semibold uppercase tracking-widest mb-1">Water</span>
             <span className="text-white text-[2.4rem] font-bold leading-none">43°</span>
-            {/* °F / °C inline toggle */}
             <div className="flex items-center gap-1.5 mt-1.5">
               <button className="text-white text-[10px] font-bold opacity-90">°F</button>
               <span className="text-blue-600/60 text-[10px]">/</span>
               <button className="text-blue-400/60 text-[10px] font-bold">°C</button>
             </div>
-            {/* Centered +/- calibration row */}
-            <div className="flex items-center justify-center gap-2 mt-2">
-              <button className="w-5 h-5 rounded bg-blue-800/70 text-blue-200 text-xs font-bold flex items-center justify-center">−</button>
-              <span className="text-blue-400/70 text-[10px] font-semibold w-6 text-center">+0°</span>
-              <button className="w-5 h-5 rounded bg-blue-800/70 text-blue-200 text-xs font-bold flex items-center justify-center">+</button>
-            </div>
-            {/* Live badge */}
             <div className="flex items-center gap-1 mt-2">
               <span className="w-1.5 h-1.5 rounded-full bg-green-400" style={{ boxShadow: "0 0 6px #4ade80" }} />
               <span className="text-green-400/80 text-[8px]">Live</span>
