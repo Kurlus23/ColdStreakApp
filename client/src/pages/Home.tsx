@@ -3180,216 +3180,231 @@ export default function Home() {
       {screen === "timer" && (
         <div className="absolute bottom-20 left-0 right-0 px-3 pb-2">
 
-          {/* 3-column cards */}
-          <div className="grid grid-cols-3 gap-2.5 mb-3">
+          {/* ── Unified stat panel ── */}
+          <div className="rounded-2xl mb-3 relative" style={{ background: "rgba(6,15,35,0.75)", backdropFilter: "blur(24px)" }} data-testid="card-stat-panel">
 
-            {/* Water Temp */}
-            <div
-              className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col"
-              data-testid="card-water-temp"
-            >
-              {/* Number at top — native select overlay so tapping opens picker */}
-              <div className="relative">
-                <select
-                  data-testid="select-temperature"
-                  value={useCelsius ? Math.round((temperature - 32) * 5 / 9) : temperature}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setTemperature(useCelsius ? Math.round(v * 9 / 5 + 32) : v);
-                  }}
-                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
-                >
-                  {useCelsius
-                    ? Array.from({ length: 21 }, (_, i) => -4 + i).map((c) => <option key={c} value={c}>{c}°C</option>)
-                    : Array.from({ length: 36 }, (_, i) => 25 + i).map((f) => <option key={f} value={f}>{f}°F</option>)
-                  }
-                </select>
-                <span className="text-white text-3xl font-bold leading-none pointer-events-none block">{tempDisplay}</span>
-              </div>
+            {/* Top row — Water / Timer / Score */}
+            <div className="grid grid-cols-3">
 
-              {/* °F / °C toggle pill */}
-              <div className="flex bg-blue-800/70 rounded-lg p-0.5 gap-0.5 mt-2">
-                <button
-                  data-testid="button-unit-f"
-                  onClick={() => setUseCelsius(false)}
-                  className={`flex-1 text-[11px] py-1 rounded-md font-bold transition-all ${!useCelsius ? "bg-white text-blue-900" : "text-blue-300 hover:text-white"}`}
-                >°F</button>
-                <button
-                  data-testid="button-unit-c"
-                  onClick={() => setUseCelsius(true)}
-                  className={`flex-1 text-[11px] py-1 rounded-md font-bold transition-all ${useCelsius ? "bg-white text-blue-900" : "text-blue-300 hover:text-white"}`}
-                >●C</button>
-              </div>
-
-              {/* Calibration offset — shown while thermometer is connected */}
-              {btOffsetVisible && (
-                <div className="flex items-center justify-center gap-1 mt-1.5 pt-1.5 border-t border-blue-700/30">
-                  <button
-                    data-testid="button-tile-offset-down"
-                    onClick={() => setBtTempOffset(prev => Math.max(-20, prev - 1))}
-                    className="w-6 h-6 rounded-md flex items-center justify-center bg-blue-800/70 text-blue-200 text-sm font-bold hover:bg-blue-700/70 active:scale-95 transition-all"
-                  >−</button>
-                  <span
-                    data-testid="text-tile-offset"
-                    className="text-blue-300 text-[11px] font-bold w-10 text-center"
-                  >{btTempOffset >= 0 ? "+" : ""}{btTempOffset}°</span>
-                  <button
-                    data-testid="button-tile-offset-up"
-                    onClick={() => setBtTempOffset(prev => Math.min(20, prev + 1))}
-                    className="w-6 h-6 rounded-md flex items-center justify-center bg-blue-800/70 text-blue-200 text-sm font-bold hover:bg-blue-700/70 active:scale-95 transition-all"
-                  >+</button>
-                </div>
-              )}
-
-              {/* Label + live badge pinned to bottom */}
-              <div className="flex items-center justify-between mt-auto pt-2">
-                <span className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest">Water Temp</span>
-                {btConnected && (
-                  <button
-                    onClick={() => { navTo("settings"); setTimeout(() => setSettingsTab('settings'), 50); }}
-                    className="flex items-center gap-1"
-                    data-testid="button-bt-status-header"
+              {/* Water Temp */}
+              <div className="flex flex-col items-center px-2 py-2.5 relative" data-testid="card-water-temp">
+                <span className="text-blue-400/60 text-[8.5px] font-semibold uppercase tracking-widest mb-1">Water</span>
+                {/* Native select overlay — tapping opens the picker */}
+                <div className="relative">
+                  <select
+                    data-testid="select-temperature"
+                    value={useCelsius ? Math.round((temperature - 32) * 5 / 9) : temperature}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setTemperature(useCelsius ? Math.round(v * 9 / 5 + 32) : v);
+                    }}
+                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                   >
-                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                    <span className="text-green-400 text-[9px] font-semibold">Live</span>
+                    {useCelsius
+                      ? Array.from({ length: 21 }, (_, i) => -4 + i).map((c) => <option key={c} value={c}>{c}°C</option>)
+                      : Array.from({ length: 36 }, (_, i) => 25 + i).map((f) => <option key={f} value={f}>{f}°F</option>)
+                    }
+                  </select>
+                  <span className="text-white text-[2.4rem] font-bold leading-none pointer-events-none">{tempDisplay}</span>
+                </div>
+                {/* °F / °C inline toggle */}
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <button
+                    data-testid="button-unit-f"
+                    onClick={() => setUseCelsius(false)}
+                    className={`text-[10px] font-bold transition-all ${!useCelsius ? "text-white" : "text-blue-400/60 hover:text-blue-300"}`}
+                  >°F</button>
+                  <span className="text-blue-600/60 text-[10px]">/</span>
+                  <button
+                    data-testid="button-unit-c"
+                    onClick={() => setUseCelsius(true)}
+                    className={`text-[10px] font-bold transition-all ${useCelsius ? "text-white" : "text-blue-400/60 hover:text-blue-300"}`}
+                  >°C</button>
+                </div>
+                {/* Live badge — always in DOM, invisible when not connected so height is always reserved */}
+                <button
+                  onClick={() => { navTo("settings"); setTimeout(() => setSettingsTab('settings'), 50); }}
+                  className="flex items-center gap-1 mt-2"
+                  style={{ visibility: btConnected ? "visible" : "hidden" }}
+                  data-testid="button-bt-status-header"
+                >
+                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                  <span className="text-green-400/80 text-[8px] font-semibold">Live</span>
+                </button>
+                {/* Right divider */}
+                <div className="absolute right-0 top-3 bottom-3 w-px bg-blue-800/50" />
+              </div>
+
+              {/* Timer */}
+              <div className="flex flex-col items-center px-2 py-2.5 relative" data-testid="card-timer">
+                <span className="text-blue-400/60 text-[8.5px] font-semibold uppercase tracking-widest mb-1">Timer</span>
+                <span className={`text-[2.4rem] leading-none font-mono font-bold tracking-tight ${isActive ? "text-white" : "text-slate-200"}`}>
+                  {formatTime(displaySeconds)}
+                </span>
+                <div className="flex gap-1.5 mt-2.5 w-full">
+                  <button
+                    data-testid="button-start"
+                    onClick={handleStart}
+                    disabled={isActive}
+                    className="flex-1 min-w-0 py-1.5 rounded-xl bg-blue-500/90 hover:bg-blue-400 disabled:opacity-40 text-white text-[10px] font-bold transition-all active:scale-95 shadow-lg shadow-blue-500/30"
+                  >Start</button>
+                  <button
+                    data-testid="button-stop"
+                    onClick={handleStop}
+                    className="flex-1 min-w-0 py-1.5 rounded-xl border border-slate-600/60 text-slate-300 text-[10px] font-bold transition-all active:scale-95 hover:bg-slate-700/40"
+                  >Stop</button>
+                </div>
+                {displaySeconds > 0 && !isActive && (
+                  <button
+                    data-testid="button-reset"
+                    onClick={handleReset}
+                    className="text-[10px] text-blue-400 hover:text-white transition-colors flex items-center gap-1 mt-1"
+                  >
+                    <RotateCcw className="w-3 h-3" /> Reset
                   </button>
                 )}
-              </div>
-            </div>
-
-            {/* Timer */}
-            <div
-              className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center"
-              data-testid="card-timer"
-            >
-              {/* Number at top — same size as other tiles */}
-              <div className={`text-3xl leading-none font-mono font-bold tracking-tight w-full text-center ${isActive ? "text-white" : "text-slate-200"}`}>
-                {formatTime(displaySeconds)}
+                {/* Right divider */}
+                <div className="absolute right-0 top-3 bottom-3 w-px bg-blue-800/50" />
               </div>
 
-              {/* Start / Stop buttons */}
-              <div className="flex gap-1 w-full mt-2">
+              {/* Cold Score */}
+              <div className="relative flex flex-col items-center px-2 py-2.5">
+                <span className="text-blue-400/60 text-[8.5px] font-semibold uppercase tracking-widest mb-1">Score</span>
                 <button
-                  data-testid="button-start"
-                  onClick={handleStart}
-                  disabled={isActive}
-                  className="flex-1 min-w-0 bg-blue-500 hover:bg-blue-400 disabled:opacity-40 text-white rounded-xl py-1.5 text-xs font-bold transition-all active:scale-95 shadow-lg shadow-blue-500/30"
-                >Start</button>
-                <button
-                  data-testid="button-stop"
-                  onClick={handleStop}
-                  className="flex-1 min-w-0 bg-slate-600/80 hover:bg-slate-500/80 text-white rounded-xl py-1.5 text-xs font-bold border border-slate-500/50 transition-all active:scale-95"
-                >Stop</button>
-              </div>
-              {displaySeconds > 0 && !isActive && (
-                <button
-                  data-testid="button-reset"
-                  onClick={handleReset}
-                  className="text-[10px] text-blue-400 hover:text-white transition-colors flex items-center gap-1 mt-1"
+                  data-testid="card-cold-score"
+                  onClick={() => {
+                    setScoreInfoOpen(false);
+                    setScoreView(v => v === "today" ? "week" : v === "week" ? "kcal" : v === "kcal" ? "kcal-week" : "today");
+                  }}
+                  className="flex flex-col items-center w-full focus:outline-none active:opacity-80"
                 >
-                  <RotateCcw className="w-3 h-3" /> Reset
-                </button>
-              )}
-
-              {/* Label at bottom — tap to switch mode */}
-              <button
-                data-testid="display-timer"
-                onClick={() => {
-                  if (isActive) { handleStop(); }
-                  setCountdownMode(m => !m);
-                  setSeconds(0);
-                  setIsRunning(false);
-                  setCountdown(0);
-                  setCountdownRunning(false);
-                  startTimeRef.current = null;
-                  countdownStartRef.current = null;
-                  localStorage.removeItem(ACTIVE_SESSION_KEY);
-                }}
-                className="flex items-center justify-center gap-1 text-blue-300 hover:text-cyan-300 transition-colors text-[10px] uppercase tracking-widest focus:outline-none w-full mt-auto pt-2"
-                title="Tap to switch mode"
-              >
-                {countdownMode ? "Countdown" : "Stopwatch"}
-                <svg className="w-2.5 h-2.5 opacity-60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Cold Score — tappable, cycles today → week → kcal (daily) → kcal (weekly) */}
-            <div className="relative flex flex-col">
-              <button
-                data-testid="card-cold-score"
-                onClick={() => {
-                  setScoreInfoOpen(false);
-                  setScoreView(v => v === "today" ? "week" : v === "week" ? "kcal" : v === "kcal" ? "kcal-week" : "today");
-                }}
-                className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col transition-all active:scale-95 hover:border-cyan-500/50 w-full flex-1 h-full"
-              >
-                {scoreView === "kcal" || scoreView === "kcal-week" ? (
-                  <>
-                    {/* Number at top */}
-                    <div className="text-orange-300 font-bold text-3xl leading-none">
-                      {scoreView === "kcal"
-                        ? (todayCalories > 0 ? Math.round(todayCalories) : "—")
-                        : (weeklyCalories > 0 ? Math.round(weeklyCalories) : "—")
-                      }
-                    </div>
-                    {/* Label at bottom */}
-                    <div className="mt-auto pt-2 flex items-center justify-between">
-                      <div className="text-orange-300 text-[10px] font-semibold uppercase tracking-widest leading-tight">
-                        Calories<br />Burned
-                      </div>
-                      <div
-                        title="Estimated thermogenic calorie burn. Varies by individual physiology — not a precise measurement."
-                        className="text-orange-400/70 text-[10px] cursor-help"
-                      >
-                        {scoreView === "kcal" ? "today" : "/week"}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Number at top */}
-                    <div className="text-cyan-300 font-bold text-3xl leading-none">
-                      {scoreView === "today"
-                        ? (displayScore > 0 ? displayScore.toFixed(1) : "—")
-                        : (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
-                      }
-                    </div>
-                    {/* Label at bottom */}
-                    <div className="mt-auto pt-2 flex items-center justify-between">
-                      <span className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest">Cold Score</span>
-                      <span className="text-blue-400 text-[10px]">
+                  {scoreView === "kcal" || scoreView === "kcal-week" ? (
+                    <>
+                      <span className="text-orange-300 text-[2.4rem] font-bold leading-none">
+                        {scoreView === "kcal"
+                          ? (todayCalories > 0 ? Math.round(todayCalories) : "—")
+                          : (weeklyCalories > 0 ? Math.round(weeklyCalories) : "—")
+                        }
+                      </span>
+                      <span className="text-orange-400/70 text-[8px] mt-1.5"
+                            title="Estimated thermogenic calorie burn. Varies by individual physiology — not a precise measurement.">
+                        {scoreView === "kcal" ? "kcal today" : "kcal/week"}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-cyan-300 text-[2.4rem] font-bold leading-none"
+                            style={{ textShadow: "0 0 20px rgba(103,232,249,0.35)" }}>
+                        {scoreView === "today"
+                          ? (displayScore > 0 ? displayScore.toFixed(1) : "—")
+                          : (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
+                        }
+                      </span>
+                      <span className="text-blue-500/50 text-[8px] mt-1.5">
                         {scoreView === "today" ? (isActive ? "live" : "today") : "this week"}
                       </span>
+                    </>
+                  )}
+                </button>
+                <span className="text-blue-500/30 text-[8px] uppercase tracking-widest mt-auto pt-2">Tap to cycle</span>
+                {/* Info button */}
+                <button
+                  data-testid="button-score-info"
+                  onClick={(e) => { e.stopPropagation(); setScoreInfoOpen(v => !v); }}
+                  className="absolute top-2 right-2 z-20 w-5 h-5 flex items-center justify-center rounded-full bg-blue-800/70 border border-blue-600/50 text-blue-400 hover:text-cyan-300 hover:border-cyan-500/50 transition-all text-[10px] font-bold"
+                >ℹ</button>
+                {/* Info popup */}
+                {scoreInfoOpen && (
+                  <div className="absolute top-8 right-2 z-30 w-52 bg-blue-950 border border-blue-600/60 rounded-xl p-3 shadow-2xl shadow-black/60">
+                    <button
+                      onClick={() => setScoreInfoOpen(false)}
+                      className="absolute top-1.5 right-2 text-blue-500 hover:text-white text-xs"
+                    >✕</button>
+                    <p className="text-blue-200 text-[10px] leading-relaxed">
+                      <span className="text-cyan-300 font-bold">Cold Score</span> = duration (min) × temperature factor.<br />
+                      40°F = <span className="text-cyan-300 font-bold">2.3×</span> · 50°F = <span className="text-cyan-300 font-bold">1.7×</span> · 60°F = <span className="text-cyan-300 font-bold">1.0×</span>
+                    </p>
+                    <p className="text-blue-200 text-[10px] leading-relaxed mt-2">
+                      <span className="text-orange-300 font-bold">Calories</span> = thermogenesis model based on temp, duration &amp; body weight. Set your weight in Settings.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+            {/* Bottom strip — 3 panes aligned under each column */}
+            <div className="grid grid-cols-3 border-t border-blue-800/30">
+
+              {/* Under Water — calibration offset (only when BT connected) */}
+              <div className="flex items-center justify-center px-2 pt-2 pb-2.5 relative" style={{ minHeight: "2rem" }}>
+                {btOffsetVisible ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      data-testid="button-tile-offset-down"
+                      onClick={() => setBtTempOffset(prev => Math.max(-20, prev - 1))}
+                      className="w-5 h-5 rounded bg-blue-800/70 text-blue-200 text-xs font-bold flex items-center justify-center hover:bg-blue-700/70 active:scale-95 transition-all"
+                    >−</button>
+                    <span
+                      data-testid="text-tile-offset"
+                      className="text-blue-400/70 text-[10px] font-semibold w-7 text-center"
+                    >{btTempOffset >= 0 ? "+" : ""}{btTempOffset}°</span>
+                    <button
+                      data-testid="button-tile-offset-up"
+                      onClick={() => setBtTempOffset(prev => Math.min(20, prev + 1))}
+                      className="w-5 h-5 rounded bg-blue-800/70 text-blue-200 text-xs font-bold flex items-center justify-center hover:bg-blue-700/70 active:scale-95 transition-all"
+                    >+</button>
+                  </div>
+                ) : null}
+                <div className="absolute right-0 top-2 bottom-2 w-px bg-blue-800/50" />
+              </div>
+
+              {/* Under Timer — mode toggle */}
+              <div className="flex items-center justify-center px-2 pt-2 pb-2.5 relative">
+                <button
+                  data-testid="display-timer"
+                  onClick={() => {
+                    if (isActive) { handleStop(); }
+                    setCountdownMode(m => !m);
+                    setSeconds(0);
+                    setIsRunning(false);
+                    setCountdown(0);
+                    setCountdownRunning(false);
+                    startTimeRef.current = null;
+                    countdownStartRef.current = null;
+                    localStorage.removeItem(ACTIVE_SESSION_KEY);
+                  }}
+                  className="flex items-center gap-1 text-blue-500/40 hover:text-blue-300 transition-colors text-[8px] uppercase tracking-widest focus:outline-none"
+                >
+                  {countdownMode ? "Countdown" : "Stopwatch"}
+                  <svg className="w-2 h-2 opacity-60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
+                  </svg>
+                </button>
+                <div className="absolute right-0 top-2 bottom-2 w-px bg-blue-800/50" />
+              </div>
+
+              {/* Under Score — PB progress bar */}
+              <div className="flex flex-col justify-center px-3 pt-2 pb-2.5">
+                {personalBest > 0 ? (
+                  <>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-blue-500/40 text-[8px]">today</span>
+                      <span className="text-blue-500/40 text-[8px]">PB {personalBest.toFixed(1)}</span>
+                    </div>
+                    <div className="h-0.5 rounded-full bg-blue-900">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.min(100, personalBest > 0 ? (displayScore / personalBest) * 100 : 0)}%`,
+                          background: "linear-gradient(90deg, #0891b2, #67e8f9)"
+                        }}
+                      />
                     </div>
                   </>
-                )}
-              </button>
+                ) : null}
+              </div>
 
-              {/* Info button */}
-              <button
-                data-testid="button-score-info"
-                onClick={(e) => { e.stopPropagation(); setScoreInfoOpen(v => !v); }}
-                className="absolute top-2 right-2 z-20 w-5 h-5 flex items-center justify-center rounded-full bg-blue-800/70 border border-blue-600/50 text-blue-400 hover:text-cyan-300 hover:border-cyan-500/50 transition-all text-[10px] font-bold"
-              >ℹ</button>
-
-              {/* Info popup */}
-              {scoreInfoOpen && (
-                <div className="absolute top-8 right-2 z-30 w-52 bg-blue-950 border border-blue-600/60 rounded-xl p-3 shadow-2xl shadow-black/60">
-                  <button
-                    onClick={() => setScoreInfoOpen(false)}
-                    className="absolute top-1.5 right-2 text-blue-500 hover:text-white text-xs"
-                  >✕</button>
-                  <p className="text-blue-200 text-[10px] leading-relaxed">
-                    <span className="text-cyan-300 font-bold">Cold Score</span> = duration (min) × temperature factor.<br />
-                    40°F = <span className="text-cyan-300 font-bold">2.3×</span> · 50°F = <span className="text-cyan-300 font-bold">1.7×</span> · 60°F = <span className="text-cyan-300 font-bold">1.0×</span>
-                  </p>
-                  <p className="text-blue-200 text-[10px] leading-relaxed mt-2">
-                    <span className="text-orange-300 font-bold">Calories</span> = thermogenesis model based on temp, duration &amp; body weight. Set your weight in Settings.
-                  </p>
-                </div>
-              )}
             </div>
           </div>
 
