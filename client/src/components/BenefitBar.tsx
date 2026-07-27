@@ -154,13 +154,13 @@ export function BenefitBar({
   });
 
   return (
-    <div className="px-0.5 space-y-0.5 my-1">
-      {/* Milestone flash */}
+    <div className="px-0.5 space-y-0.5 mt-0.5 mb-0">
+      {/* Milestone flash — collapses to zero height when nothing to show */}
       <p
         className="text-center text-[10px] font-semibold tracking-wide transition-opacity duration-500"
-        style={{ opacity: milestone ? 1 : 0, color: "#6ee7b7", minHeight: milestone ? "0.875rem" : 0 }}
+        style={{ opacity: milestone ? 1 : 0, color: "#6ee7b7", minHeight: milestone ? "0.875rem" : 0, height: milestone ? "0.875rem" : 0, overflow: "hidden" }}
       >
-        {milestone ?? "\u00a0"}
+        {milestone ?? ""}
       </p>
 
       {/* Segmented progress bar */}
@@ -172,7 +172,7 @@ export function BenefitBar({
           const filling     = rawFill > 0 && rawFill < 100; // currently accumulating
 
           return (
-            <div key={seg.id} className="flex-1 min-w-0 space-y-1">
+            <div key={seg.id} className="flex-1 min-w-0 space-y-[5px]">
               {/*
                 Outer div = achievement ring (stays all day once earned).
                 No overflow:hidden here so the ring is never clipped.

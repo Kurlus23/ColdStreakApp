@@ -3433,7 +3433,7 @@ export default function Home() {
 
           {/* ── Benefit bar (home screen) ── */}
           {/* Uses full today total — no 2-hour window; once earned, stays lit until midnight */}
-          <div className="rounded-xl mt-2 px-2 pt-1.5 pb-1 bg-blue-950/90 backdrop-blur-sm border border-blue-800/50">
+          <div className="rounded-xl mt-2 px-2 pt-1 pb-0.5 bg-blue-950/90 backdrop-blur-sm border border-blue-800/50">
             <BenefitBar
               todayPlungesData={todayPlunges}
               elapsedSeconds={elapsedSeconds}
