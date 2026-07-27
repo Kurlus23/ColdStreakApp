@@ -2,9 +2,10 @@ export function OptionC() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4"
          style={{ background: "linear-gradient(180deg, #0f1f3d 0%, #0a1628 100%)" }}>
-      {/* Borderless HUD — numbers floating large, labels tiny above, no card outlines */}
       <div className="w-full max-w-sm rounded-2xl px-2 py-3"
            style={{ background: "rgba(6,15,35,0.70)", backdropFilter: "blur(24px)" }}>
+
+        {/* ── Top row: Water / Timer / Score ── */}
         <div className="grid grid-cols-3">
 
           {/* Water Temp */}
@@ -20,7 +21,6 @@ export function OptionC() {
               <span className="w-1.5 h-1.5 rounded-full bg-green-400" style={{ boxShadow: "0 0 6px #4ade80" }} />
               <span className="text-green-400/80 text-[8px]">Live</span>
             </div>
-            {/* right divider */}
             <div className="absolute right-0 top-3 bottom-3 w-px bg-blue-800/50" />
           </div>
 
@@ -32,7 +32,6 @@ export function OptionC() {
               <button className="flex-1 py-1.5 rounded-xl bg-blue-500/90 text-white text-[10px] font-bold">Start</button>
               <button className="flex-1 py-1.5 rounded-xl border border-slate-600/60 text-slate-300 text-[10px] font-bold">Stop</button>
             </div>
-            {/* right divider */}
             <div className="absolute right-0 top-3 bottom-3 w-px bg-blue-800/50" />
           </div>
 
@@ -51,14 +50,28 @@ export function OptionC() {
 
         </div>
 
-        {/* Bottom micro-controls strip */}
-        <div className="flex items-center justify-between px-3 pt-2 mt-1 border-t border-blue-800/30">
-          <div className="flex items-center gap-1">
+        {/* ── Bottom strip: 3 panes aligned under each column ── */}
+        <div className="grid grid-cols-3 border-t border-blue-800/30 mt-1">
+
+          {/* Under Water Temp — calibration offset */}
+          <div className="flex items-center justify-center gap-1 px-2 pt-2 pb-1 relative">
             <button className="w-5 h-5 rounded bg-blue-800/70 text-blue-300 text-xs flex items-center justify-center font-bold">−</button>
-            <span className="text-blue-400/70 text-[10px]">+0°</span>
+            <span className="text-blue-400/70 text-[10px] font-semibold w-6 text-center">+0°</span>
             <button className="w-5 h-5 rounded bg-blue-800/70 text-blue-300 text-xs flex items-center justify-center font-bold">+</button>
+            <div className="absolute right-0 top-2 bottom-2 w-px bg-blue-800/50" />
           </div>
-          <span className="text-blue-500/40 text-[8px] uppercase tracking-widest">Tap score to cycle</span>
+
+          {/* Under Timer — mode switch hint */}
+          <div className="flex items-center justify-center px-2 pt-2 pb-1 relative">
+            <span className="text-blue-500/40 text-[8px] uppercase tracking-widest">Stopwatch ↕</span>
+            <div className="absolute right-0 top-2 bottom-2 w-px bg-blue-800/50" />
+          </div>
+
+          {/* Under Score — cycle hint */}
+          <div className="flex items-center justify-center px-2 pt-2 pb-1">
+            <span className="text-blue-500/40 text-[8px] uppercase tracking-widest">Tap to cycle</span>
+          </div>
+
         </div>
       </div>
     </div>
