@@ -73,20 +73,42 @@ export function ChallengeResultCard({ result, onDismiss, onChallengeBack }: Prop
         <X className="w-5 h-5" />
       </button>
 
-      {/* Hero icon */}
-      <div
-        className="relative flex items-center justify-center w-28 h-28 rounded-full mb-6"
-        style={{
-          background: won
-            ? "radial-gradient(circle, rgba(234,179,8,0.25) 0%, rgba(234,179,8,0.05) 100%)"
-            : "radial-gradient(circle, rgba(6,182,212,0.2) 0%, rgba(6,182,212,0.04) 100%)",
-          border: won ? "1px solid rgba(234,179,8,0.4)" : "1px solid rgba(6,182,212,0.3)",
-          boxShadow: won ? "0 0 40px rgba(234,179,8,0.3)" : "0 0 40px rgba(6,182,212,0.25)",
-        }}
-      >
-        {won
-          ? <Trophy className="w-14 h-14 text-yellow-400" style={{ filter: "drop-shadow(0 0 16px rgba(234,179,8,0.8))" }} />
-          : <Snowflake className="w-14 h-14 text-cyan-400" style={{ filter: "drop-shadow(0 0 16px rgba(6,182,212,0.8))" }} />}
+      {/* Hero — YOU vs OPPONENT */}
+      <div className="flex items-center gap-4 mb-6">
+        {/* You */}
+        <div className="flex flex-col items-center gap-2">
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black"
+            style={{
+              background: won ? "rgba(234,179,8,0.18)" : "rgba(6,182,212,0.15)",
+              border: won ? "1px solid rgba(234,179,8,0.4)" : "1px solid rgba(6,182,212,0.3)",
+              boxShadow: won ? "0 0 24px rgba(234,179,8,0.25)" : "0 0 24px rgba(6,182,212,0.2)",
+              color: won ? "#fbbf24" : "#22d3ee",
+            }}
+          >
+            {won ? "🏆" : "😤"}
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">You</span>
+        </div>
+
+        {/* VS */}
+        <span className="text-slate-600 font-black text-2xl leading-none">vs</span>
+
+        {/* Opponent */}
+        <div className="flex flex-col items-center gap-2">
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black"
+            style={{
+              background: won ? "rgba(6,182,212,0.12)" : "rgba(234,179,8,0.18)",
+              border: won ? "1px solid rgba(6,182,212,0.25)" : "1px solid rgba(234,179,8,0.4)",
+              boxShadow: won ? "0 0 24px rgba(6,182,212,0.15)" : "0 0 24px rgba(234,179,8,0.25)",
+              color: won ? "#22d3ee" : "#fbbf24",
+            }}
+          >
+            {won ? "🥶" : "🏆"}
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{firstName}</span>
+        </div>
       </div>
 
       {/* Headline */}
