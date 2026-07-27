@@ -19,5 +19,8 @@ export const modules: ModuleMap = {
   "./components/mockups/plunge-complete/ColdTakeReveal.tsx": () => import("../components/mockups/plunge-complete/ColdTakeReveal.tsx"),
   "./components/mockups/plunge-complete/Current.tsx": () => import("../components/mockups/plunge-complete/Current.tsx"),
   "./components/mockups/plunge-complete/HybridCombo.tsx": () => import("../components/mockups/plunge-complete/HybridCombo.tsx"),
-  "./components/mockups/plunge-complete/LevelUp.tsx": () => import("../components/mockups/plunge-complete/LevelUp.tsx")
+  "./components/mockups/plunge-complete/LevelUp.tsx": () => import("../components/mockups/plunge-complete/LevelUp.tsx"),
+  "./components/mockups/screens/MainScreen.tsx": () => import("../components/mockups/screens/MainScreen.tsx"),
+  "./components/mockups/screens/PlungeChallenge.tsx": () => import("../components/mockups/screens/PlungeChallenge.tsx"),
+  "./components/mockups/screens/PlungeSolo.tsx": () => import("../components/mockups/screens/PlungeSolo.tsx")
 };

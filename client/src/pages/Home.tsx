@@ -3268,7 +3268,7 @@ export default function Home() {
                     </div>
                     {/* Number + icon centered — number first so it lines up with temp & timer */}
                     <div className="flex-1 flex flex-col items-center justify-center gap-1">
-                      <div className="text-orange-300 font-bold text-2xl leading-none">
+                      <div className="text-orange-300 font-bold text-3xl leading-none">
                         {scoreView === "kcal"
                           ? (todayCalories > 0 ? Math.round(todayCalories) : "—")
                           : (weeklyCalories > 0 ? Math.round(weeklyCalories) : "—")
@@ -3292,7 +3292,7 @@ export default function Home() {
                     </div>
                     {/* Number + icon centered — number first so it lines up with temp & timer */}
                     <div className="flex-1 flex flex-col items-center justify-center gap-1">
-                      <div className="text-cyan-300 font-bold text-2xl leading-none">
+                      <div className="text-cyan-300 font-bold text-3xl leading-none">
                         {scoreView === "today"
                           ? (displayScore > 0 ? displayScore.toFixed(1) : "—")
                           : (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
@@ -3334,18 +3334,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Benefit progress bar — shown during and after a plunge */}
-          <BenefitBar elapsedSeconds={elapsedSeconds} tempF={temperature} isActive={isActive} todayLoggedSeconds={benefitCarryOver} />
-
-          {/* Personal best — only shown during an active plunge */}
-          {isActive && personalBest > 0 && (
-            <div
-              className="text-center text-sm font-semibold tracking-wide"
-              style={{ textShadow: "0 1px 6px rgba(0,0,0,0.8)" }}
-            >
-              <span className="text-orange-400">Best: {personalBest.toFixed(1)}</span>
-            </div>
-          )}
         </div>
       )}
 
@@ -7338,6 +7326,11 @@ export default function Home() {
               isFirstPlunge={plunges.length === 0}
               streakDays={streak}
             />
+
+            {/* Benefit bar — below Cold Take, above bottom stats */}
+            <div className="w-full px-6">
+              <BenefitBar elapsedSeconds={elapsedSeconds} tempF={temperature} isActive={isActive} todayLoggedSeconds={benefitCarryOver} />
+            </div>
           </div>
 
           {/* Bottom section — stats, music, stop (never shifts) */}
