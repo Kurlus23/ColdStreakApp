@@ -28,6 +28,7 @@ import { useProStatus, PENDING_CHECKOUT_KEY, PENDING_SESSION_KEY } from "@/hooks
 import { PlungeCard, buildShareText } from "@/components/PlungeCard";
 import { ColdTakeOverlay } from "@/components/ColdTakeOverlay";
 import { PlungeOverlay } from "@/components/PlungeOverlay";
+import { ChallengeResultCard, type ChallengeResult } from "@/components/ChallengeResultCard";
 import { MusicWidget, MusicTransportMini, openMusic, shouldAutoPlay } from "@/components/MusicWidget";
 import { BenefitBar } from "@/components/BenefitBar";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
@@ -364,6 +365,7 @@ export default function Home() {
   interface UserResult { id: number; username: string | null; displayName: string | null; avatarUrl: string | null; friendshipStatus: string | null; }
   const [friends, setFriends] = useState<FriendEntry[]>([]);
   const [activeChallengerUserId, setActiveChallengerUserId] = useState<number | null>(null);
+  const [challengeResult, setChallengeResult] = useState<ChallengeResult | null>(null);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [friendsView, setFriendsView] = useState<'friends' | 'add'>('friends');
@@ -2556,7 +2558,7 @@ export default function Home() {
   // ─────────────────────────────────────────────────────────────────────────
   // ─────────────────────────────────────────────────────────────────────────
 
-  const doLogPlunge = useCallback(async (durationSec: number, startedAtOverride?: Date) => {
+  const doLogPlunge = useCallback(async (durationSec: number, startedAtOverride?: Date, challenger?: { userId: number; score: number }) => {
     const score = plungeScore(durationSec, temperature, bodyWeightLbs, bodyHeightCm);
     const weightAtLogTime = Number(localStorage.getItem("coldstreak-body-weight") || 150);
     const caloriesAtLogTime = Math.round(estimateCalories(durationSec, temperature, weightAtLogTime));
@@ -2585,11 +2587,19 @@ export default function Home() {
         duration: durationSec, temperature, score: String(score), timerUsed: true, calories: caloriesAtLogTime,
         hrAvg,
         spo2Avg: null,
+        ...(challenger ? { challengerUserId: challenger.userId, challengerScore: challenger.score } : {}),
       },
       {
         onSuccess: (newPlunge) => {
           Analytics.plungeLogged(durationSec, temperature, score);
-          confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
+          const result = (newPlunge as any).challengeResult as ChallengeResult | null | undefined;
+          if (result) {
+            // Gold confetti for winner, ice-blue for loser
+            confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 }, colors: result.won ? ["#fbbf24", "#f59e0b", "#ffffff", "#fde68a"] : ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
+            setChallengeResult(result);
+          } else {
+            confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
+          }
           toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${temperature}°F` });
           promptPlungeRef.current = { score: String(score), duration: durationSec, temperature, timerUsed: true };
           if (!auth.user) setPendingSignupNudge(true);
@@ -2682,7 +2692,7 @@ export default function Home() {
       }
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [temperature, createPlunge, toast, backgroundSync]);
+  }, [temperature, createPlunge, toast, backgroundSync, setChallengeResult]);
 
   // Keep running-state refs in sync for stale-closure-safe restore
   useEffect(() => { isRunningRef.current = isRunning; }, [isRunning]);
@@ -2834,6 +2844,12 @@ export default function Home() {
   };
 
   const handleStop = () => {
+    // Capture challenger context before any state changes
+    const challengerOpts = activeChallengerUserId != null && challengerScore != null
+      ? { userId: activeChallengerUserId, score: challengerScore }
+      : undefined;
+    setActiveChallengerUserId(null);
+
     if (countdownMode) {
       if (countdownRunning) {
         setCountdownRunning(false);
@@ -2841,7 +2857,7 @@ export default function Home() {
         const elapsed = totalDuration - countdown;
         if (elapsed > 0) {
           const startedAt = countdownStartRef.current ? new Date(countdownStartRef.current) : new Date(Date.now() - elapsed * 1000);
-          doLogPlunge(elapsed, startedAt);
+          doLogPlunge(elapsed, startedAt, challengerOpts);
           setCountdown(0);
         } else {
           resetCountdown();
@@ -2859,7 +2875,7 @@ export default function Home() {
       if (isRunning && elapsed > 0) {
         setIsRunning(false);
         const startedAt = startMs ? new Date(startMs) : new Date(Date.now() - elapsed * 1000);
-        doLogPlunge(elapsed, startedAt);
+        doLogPlunge(elapsed, startedAt, challengerOpts);
         setSeconds(0);
         startTimeRef.current = null;
       } else {
@@ -7433,6 +7449,21 @@ export default function Home() {
           bodyHeightCm={bodyHeightCm}
           onStop={handleStop}
           onDismissChallenger={() => setActiveChallengerUserId(null)}
+        />
+      )}
+
+      {/* ─── CHALLENGE RESULT CARD ─── */}
+      {challengeResult && (
+        <ChallengeResultCard
+          result={challengeResult}
+          onDismiss={() => setChallengeResult(null)}
+          onChallengeBack={async (userId) => {
+            const friend = friends.find((f) => f.userId === userId);
+            await sendFriendChallengeImpl(userId, friend?.displayName || friend?.username || "Friend", {
+              authFetch, navigate, toast,
+              clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+            });
+          }}
         />
       )}
 

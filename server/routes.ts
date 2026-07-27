@@ -496,7 +496,7 @@ export async function registerRoutes(
   app.post(api.plunges.create.path, async (req, res) => {
     try {
       const authUser = extractUser(req);
-      const { createdAt: customDateStr, ...input } = api.plunges.create.input.parse(req.body);
+      const { createdAt: customDateStr, challengerUserId, challengerScore, ...input } = api.plunges.create.input.parse(req.body);
       const plungeData: any = { ...input, score: String(input.score) };
       if (customDateStr) plungeData.createdAt = new Date(customDateStr);
       if (authUser) plungeData.userId = authUser.userId;
@@ -505,7 +505,57 @@ export async function registerRoutes(
         plungeData.timezone = tzHeader;
       }
       const newPlunge = await storage.createPlunge(plungeData);
-      res.status(201).json(newPlunge);
+
+      // ── Challenge resolution ────────────────────────────────────────────────
+      let challengeResult: { won: boolean; myScore: number; theirScore: number; opponentName: string; opponentId: number } | null = null;
+
+      if (authUser && challengerUserId && challengerScore != null) {
+        const myScore   = Number(input.score);
+        const theirScore = Number(challengerScore);
+        const iWon = myScore > theirScore;
+
+        const [me, them] = await Promise.all([
+          storage.getUserById(authUser.userId),
+          storage.getUserById(challengerUserId),
+        ]);
+        const myName   = me?.displayName   || me?.username   || "Someone";
+        const theirName = them?.displayName || them?.username || "Someone";
+
+        // Push notification to the challenger
+        const theirSubs = await storage.getPushSubscriptionsByUser(challengerUserId);
+        if (theirSubs.length > 0) {
+          const payload = JSON.stringify(iWon
+            ? {
+                title: `❄️ ${myName} beat your score!`,
+                body: `Their score: ${myScore.toFixed(1)} vs your ${theirScore.toFixed(1)}. Challenge them back?`,
+                tag: `challenge-result-${authUser.userId}`,
+              }
+            : {
+                title: `🏆 You beat ${myName}'s challenge!`,
+                body: `Your score: ${theirScore.toFixed(1)} vs their ${myScore.toFixed(1)}. Well done!`,
+                tag: `challenge-result-${authUser.userId}`,
+              });
+          for (const sub of theirSubs) {
+            try {
+              await webpush.sendNotification(
+                { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                payload
+              );
+            } catch (err: any) {
+              if (err.statusCode === 410 || err.statusCode === 404) {
+                await storage.deletePushSubscription(sub.endpoint);
+              }
+            }
+          }
+        }
+
+        // Clean up the pending challenge row (challenger opened app via fallback path)
+        await storage.deletePendingChallenge(authUser.userId).catch(() => {});
+
+        challengeResult = { won: iWon, myScore, theirScore, opponentName: theirName, opponentId: challengerUserId };
+      }
+
+      res.status(201).json({ ...newPlunge, challengeResult });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join('.') });

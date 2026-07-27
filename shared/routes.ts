@@ -31,6 +31,9 @@ export const api = {
         hrAvg: z.number().int().nullable().optional(),
         spo2Avg: z.number().int().nullable().optional(),
         createdAt: z.string().optional(), // ISO string for manual backdated entry
+        // Challenge resolution — stripped server-side before DB insert
+        challengerUserId: z.number().int().optional(),
+        challengerScore: z.string().or(z.number()).optional(),
       }),
       responses: {
         201: z.custom<typeof plunges.$inferSelect>(),

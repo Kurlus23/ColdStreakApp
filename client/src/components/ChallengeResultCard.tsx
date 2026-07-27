@@ -1,0 +1,208 @@
+import { useState } from "react";
+import { Trophy, Snowflake, Share2, RotateCcw, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+export interface ChallengeResult {
+  won: boolean;
+  myScore: number;
+  theirScore: number;
+  opponentName: string;
+  opponentId: number;
+}
+
+interface Props {
+  result: ChallengeResult;
+  onDismiss: () => void;
+  onChallengeBack: (userId: number) => void;
+}
+
+export function ChallengeResultCard({ result, onDismiss, onChallengeBack }: Props) {
+  const { toast } = useToast();
+  const [challenging, setChallenging] = useState(false);
+
+  const { won, myScore, theirScore, opponentName } = result;
+  const firstName = opponentName.split(" ")[0];
+  const diff = Math.abs(myScore - theirScore).toFixed(1);
+
+  const handleShare = async () => {
+    const text = `🏆 Just beat ${opponentName}'s cold plunge score on Coldstreak!\n❄️ My score: ${myScore.toFixed(1)} vs their ${theirScore.toFixed(1)}\n\nThink you can handle the cold? coldstreak.app`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ text });
+      } else {
+        await navigator.clipboard.writeText(text);
+        toast({ title: "Brag copied! 🏆", description: "Paste it anywhere to show off." });
+      }
+    } catch { /* user cancelled share */ }
+  };
+
+  const handleChallengeBack = async () => {
+    setChallenging(true);
+    try {
+      onChallengeBack(result.opponentId);
+      toast({ title: `Challenge sent to ${firstName}! ❄️`, description: "They'll get a notification." });
+      onDismiss();
+    } finally {
+      setChallenging(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[65] flex flex-col items-center justify-center px-6"
+      style={{ background: "rgba(4,15,30,0.96)", backdropFilter: "blur(20px)" }}
+    >
+      {/* Ambient glow */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full"
+          style={{
+            background: won
+              ? "radial-gradient(circle, rgba(234,179,8,0.18) 0%, transparent 65%)"
+              : "radial-gradient(circle, rgba(6,182,212,0.15) 0%, transparent 65%)",
+          }}
+        />
+      </div>
+
+      {/* Dismiss */}
+      <button
+        onClick={onDismiss}
+        className="absolute top-14 right-6 text-slate-500 hover:text-slate-300 transition-colors"
+        aria-label="Close"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      {/* Hero icon */}
+      <div
+        className="relative flex items-center justify-center w-28 h-28 rounded-full mb-6"
+        style={{
+          background: won
+            ? "radial-gradient(circle, rgba(234,179,8,0.25) 0%, rgba(234,179,8,0.05) 100%)"
+            : "radial-gradient(circle, rgba(6,182,212,0.2) 0%, rgba(6,182,212,0.04) 100%)",
+          border: won ? "1px solid rgba(234,179,8,0.4)" : "1px solid rgba(6,182,212,0.3)",
+          boxShadow: won ? "0 0 40px rgba(234,179,8,0.3)" : "0 0 40px rgba(6,182,212,0.25)",
+        }}
+      >
+        {won
+          ? <Trophy className="w-14 h-14 text-yellow-400" style={{ filter: "drop-shadow(0 0 16px rgba(234,179,8,0.8))" }} />
+          : <Snowflake className="w-14 h-14 text-cyan-400" style={{ filter: "drop-shadow(0 0 16px rgba(6,182,212,0.8))" }} />}
+      </div>
+
+      {/* Headline */}
+      <h1
+        className="text-3xl font-black text-center mb-1 tracking-tight"
+        style={{
+          background: won
+            ? "linear-gradient(to bottom, #fde68a, #f59e0b)"
+            : "linear-gradient(to bottom, #ffffff, #67e8f9)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+        }}
+      >
+        {won ? "You won! 🏆" : "Close call! ❄️"}
+      </h1>
+      <p className="text-slate-400 text-sm text-center mb-8">
+        {won
+          ? `You beat ${firstName} by ${diff} points`
+          : `${firstName} edged you by ${diff} points`}
+      </p>
+
+      {/* Score comparison */}
+      <div
+        className="w-full max-w-xs rounded-2xl p-5 mb-8 flex items-center justify-around"
+        style={{
+          background: "rgba(14,30,54,0.8)",
+          border: "1px solid rgba(34,211,238,0.15)",
+        }}
+      >
+        {/* My score */}
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">You</span>
+          <span
+            className="text-4xl font-black"
+            style={{
+              color: won ? "#fbbf24" : "#22d3ee",
+              filter: won ? "drop-shadow(0 0 12px rgba(251,191,36,0.6))" : "drop-shadow(0 0 12px rgba(34,211,238,0.5))",
+            }}
+          >
+            {myScore.toFixed(1)}
+          </span>
+        </div>
+
+        <span className="text-slate-600 font-bold text-xl">vs</span>
+
+        {/* Their score */}
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{firstName}</span>
+          <span
+            className="text-4xl font-black"
+            style={{
+              color: won ? "#22d3ee" : "#fbbf24",
+              filter: won ? "drop-shadow(0 0 12px rgba(34,211,238,0.4))" : "drop-shadow(0 0 12px rgba(251,191,36,0.6))",
+            }}
+          >
+            {theirScore.toFixed(1)}
+          </span>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="w-full max-w-xs flex flex-col gap-3">
+        {won ? (
+          <>
+            <button
+              onClick={handleShare}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm tracking-wide transition-all active:scale-95"
+              style={{
+                background: "linear-gradient(135deg, #d97706, #f59e0b)",
+                color: "#1c1008",
+                boxShadow: "0 0 24px rgba(245,158,11,0.4)",
+              }}
+            >
+              <Share2 className="w-4 h-4" /> Share your brag 🏆
+            </button>
+            <button
+              onClick={handleChallengeBack}
+              disabled={challenging}
+              className="w-full py-3.5 rounded-2xl font-bold text-sm tracking-wide text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/10 transition-all active:scale-95 disabled:opacity-50"
+            >
+              {challenging ? "Sending…" : `Challenge ${firstName} again ❄️`}
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={handleChallengeBack}
+              disabled={challenging}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm tracking-wide transition-all active:scale-95 disabled:opacity-50"
+              style={{
+                background: "linear-gradient(135deg, #0e7490, #22d3ee)",
+                color: "#001a2e",
+                boxShadow: "0 0 24px rgba(34,211,238,0.35)",
+              }}
+            >
+              <RotateCcw className="w-4 h-4" /> Challenge {firstName} back ❄️
+            </button>
+            <button
+              onClick={onDismiss}
+              className="w-full py-3.5 rounded-2xl font-bold text-sm tracking-wide text-slate-400 border border-slate-700/40 hover:bg-slate-800/40 transition-all active:scale-95"
+            >
+              Maybe next time
+            </button>
+          </>
+        )}
+
+        {won && (
+          <button
+            onClick={onDismiss}
+            className="w-full py-2.5 text-slate-500 text-sm hover:text-slate-300 transition-colors"
+          >
+            Continue
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
