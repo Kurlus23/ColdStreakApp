@@ -2,15 +2,15 @@ import { useState, useEffect, useRef, useMemo } from "react";
 
 // ─── Benefit segments ────────────────────────────────────────────────────────
 // baseDuration = seconds each segment takes to fill at 50 °F, BMI 22 (neutral).
+// halfLifeHours = how long the acute effect lasts before fading to 0 (linear).
 const SEGMENTS = [
-  { id: "energy",     emoji: "⚡", label: "Energy",     baseDuration: 60,  barColor: "#22d3ee", dimColor: "#164e63" },
-  { id: "mood",       emoji: "😊", label: "Mood",       baseDuration: 120, barColor: "#fbbf24", dimColor: "#78350f" },
-  { id: "metabolism", emoji: "🔥", label: "Metabolism", baseDuration: 120, barColor: "#f97316", dimColor: "#7c2d12" },
-  { id: "recovery",   emoji: "💪", label: "Recovery",   baseDuration: 180, barColor: "#34d399", dimColor: "#064e3b" },
+  { id: "energy",     emoji: "⚡", label: "Energy",     baseDuration: 60,  barColor: "#22d3ee", dimColor: "#164e63", halfLifeHours: 3 },
+  { id: "mood",       emoji: "😊", label: "Mood",       baseDuration: 120, barColor: "#fbbf24", dimColor: "#78350f", halfLifeHours: 5 },
+  { id: "metabolism", emoji: "🔥", label: "Metabolism", baseDuration: 120, barColor: "#f97316", dimColor: "#7c2d12", halfLifeHours: 6 },
+  { id: "recovery",   emoji: "💪", label: "Recovery",   baseDuration: 180, barColor: "#34d399", dimColor: "#064e3b", halfLifeHours: 8 },
 ] as const;
 
 // ─── Temperature factor ───────────────────────────────────────────────────────
-// Colder water → smaller factor → segments fill faster.
 const TEMP_POINTS: [number, number][] = [
   [35, 0.55], [38, 0.62], [42, 0.72], [45, 0.82],
   [50, 1.00], [55, 1.28], [60, 1.58], [65, 2.00],
@@ -28,8 +28,6 @@ function getTempFactor(tempF: number): number {
 }
 
 // ─── BMI factor ───────────────────────────────────────────────────────────────
-// Higher BMI → more insulation → segments take longer to fill.
-// Neutral anchor: BMI 22 (factor = 1.0). Clamped to [0.75, 1.35].
 const NEUTRAL_BMI = 22;
 
 function getBmiFactor(weightLbs: number, heightCm: number): number {
@@ -58,6 +56,13 @@ interface BenefitBarProps {
   bodyWeightLbs?: number;
   /** User's height in cm. Defaults to 175 (≈ 5 ft 9 in). */
   bodyHeightCm?: number;
+  /**
+   * Unix ms timestamp of when the last cold session ended.
+   * When provided (and isActive is false), completed segments decay their fill
+   * over each segment's halfLifeHours while keeping their achievement border.
+   * Pass undefined during an active session.
+   */
+  lastPlungeEndedAt?: number;
 }
 
 export function BenefitBar({
@@ -67,6 +72,7 @@ export function BenefitBar({
   todayLoggedSeconds = 0,
   bodyWeightLbs = 150,
   bodyHeightCm = 175,
+  lastPlungeEndedAt,
 }: BenefitBarProps) {
   const tempFactor = useMemo(() => getTempFactor(tempF), [tempF]);
   const bmiFactor  = useMemo(() => getBmiFactor(bodyWeightLbs, bodyHeightCm), [bodyWeightLbs, bodyHeightCm]);
@@ -121,12 +127,34 @@ export function BenefitBar({
     });
   }, [todayLoggedSeconds, cumulative]);
 
-  const fills = SEGMENTS.map((_, i) => {
+  // ── Real-time clock for decay (ticks every 60s when resting) ─────────────
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (isActive || !lastPlungeEndedAt) return;
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, [isActive, lastPlungeEndedAt]);
+
+  // ── Raw fill (0–100) based on total cold exposure ─────────────────────────
+  const rawFills = SEGMENTS.map((_, i) => {
     const start = i === 0 ? 0 : cumulative[i - 1];
     const end = cumulative[i];
     if (totalElapsed <= start) return 0;
     if (totalElapsed >= end) return 100;
     return ((totalElapsed - start) / (end - start)) * 100;
+  });
+
+  // achievedToday[i] = segment was fully earned this calendar day
+  const achievedToday = rawFills.map(f => f >= 100);
+
+  // ── Decayed fill (Option C) ────────────────────────────────────────────────
+  // For completed segments when not actively plunging, the fill fades linearly
+  // over halfLifeHours. The achievement border stays regardless.
+  const decayedFills = SEGMENTS.map((seg, i) => {
+    if (rawFills[i] < 100) return rawFills[i]; // not done yet — no decay
+    if (isActive || !lastPlungeEndedAt) return 100; // live session — no decay
+    const msElapsed = now - lastPlungeEndedAt;
+    return Math.max(0, 100 * (1 - msElapsed / (seg.halfLifeHours * 3600 * 1000)));
   });
 
   return (
@@ -142,31 +170,55 @@ export function BenefitBar({
       {/* Segmented progress bar */}
       <div className="flex gap-1.5">
         {SEGMENTS.map((seg, i) => {
-          const fill = fills[i];
-          const done = fill >= 100;
-          const active = fill > 0 && fill < 100;
+          const decayedFill = decayedFills[i];
+          const rawFill     = rawFills[i];
+          const achieved    = achievedToday[i];
+          const filling     = rawFill > 0 && rawFill < 100; // currently accumulating
 
           return (
             <div key={seg.id} className="flex-1 min-w-0 space-y-1">
+              {/*
+                Outer div = achievement ring (stays all day once earned).
+                No overflow:hidden here so the ring is never clipped.
+                Inner div = clips the decaying fill bar.
+              */}
               <div
-                className="relative h-2 rounded-full overflow-hidden"
-                style={{ backgroundColor: seg.dimColor + "44" }}
+                className="relative h-2 rounded-full"
+                style={{
+                  backgroundColor: achieved
+                    ? seg.barColor + "18"
+                    : seg.dimColor + "44",
+                  // Achievement border — the "you earned this today" marker
+                  boxShadow: achieved
+                    ? `0 0 0 1px ${seg.barColor}cc`
+                    : "none",
+                  transition: "box-shadow 0.4s ease, background-color 0.4s ease",
+                }}
               >
-                <div
-                  className="absolute inset-y-0 left-0 rounded-full"
-                  style={{
-                    width: `${fill}%`,
-                    backgroundColor: seg.barColor,
-                    opacity: done ? 1 : active ? 0.85 : 0,
-                    transition: "width 1s linear, opacity 0.3s ease",
-                    boxShadow: active ? `0 0 6px 1px ${seg.barColor}66` : "none",
-                  }}
-                />
+                {/* Clip container for the decaying fill */}
+                <div className="absolute inset-0 rounded-full overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full"
+                    style={{
+                      width: `${decayedFill}%`,
+                      backgroundColor: seg.barColor,
+                      opacity: decayedFill > 0 ? (filling ? 0.85 : 0.75) : 0,
+                      transition: "width 1s linear, opacity 0.6s ease",
+                      boxShadow: filling ? `0 0 6px 1px ${seg.barColor}66` : "none",
+                    }}
+                  />
+                </div>
               </div>
+
+              {/* Label — full colour when achieved (border earned), dim otherwise */}
               <p
                 className="text-center text-[9px] font-semibold leading-none truncate"
                 style={{
-                  color: done || active ? seg.barColor : "#1e3a5f",
+                  color: achieved
+                    ? seg.barColor          // achievement colour stays
+                    : filling
+                      ? seg.barColor + "bb"
+                      : "#1e3a5f",
                   transition: "color 0.4s ease",
                 }}
               >

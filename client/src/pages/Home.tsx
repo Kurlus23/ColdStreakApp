@@ -2940,14 +2940,24 @@ export default function Home() {
     : null;
   const challengerScore = activeChallengerFriend?.latestScore ?? activeChallengerFriend?.bestScore ?? null;
 
+  const lastTodayPlunge = todayPlunges.length > 0
+    ? todayPlunges.reduce((latest, p) =>
+        new Date(p.createdAt) > new Date(latest.createdAt) ? p : latest
+      )
+    : null;
+
   const benefitCarryOver = (() => {
-    if (todayPlunges.length === 0) return 0;
-    const lastPlunge = todayPlunges.reduce((latest, p) =>
-      new Date(p.createdAt) > new Date(latest.createdAt) ? p : latest
-    );
-    const msSinceLast = Date.now() - new Date(lastPlunge.createdAt).getTime();
+    if (!lastTodayPlunge) return 0;
+    const msSinceLast = Date.now() - new Date(lastTodayPlunge.createdAt).getTime();
     return msSinceLast < 2 * 60 * 60 * 1000 ? todayTotalSec : 0;
   })();
+
+  // ms timestamp when the last plunge of the day ended — used for benefit decay.
+  // createdAt is the session start; end = start + duration.
+  // Undefined during an active session (no decay while plunging).
+  const lastPlungeEndedAt = isActive || !lastTodayPlunge
+    ? undefined
+    : new Date(lastTodayPlunge.createdAt).getTime() + lastTodayPlunge.duration * 1000;
   const personalBest = plunges.length > 0 ? Math.max(...plunges.map((p) => Number(p.score))) : 0;
   // Current week = Monday 00:00:00 through Sunday 23:59:59 — resets each Monday
   const weekStart = (() => {
@@ -3190,6 +3200,7 @@ export default function Home() {
               todayLoggedSeconds={todayTotalSec}
               bodyWeightLbs={bodyWeightLbs}
               bodyHeightCm={bodyHeightCm}
+              lastPlungeEndedAt={lastPlungeEndedAt}
             />
           </div>
 
