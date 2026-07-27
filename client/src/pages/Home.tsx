@@ -3188,22 +3188,8 @@ export default function Home() {
               className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col"
               data-testid="card-water-temp"
             >
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest">Water Temp</div>
-                {btConnected ? (
-                  <button
-                    onClick={() => { navTo("settings"); setTimeout(() => setSettingsTab('settings'), 50); }}
-                    className="flex items-center gap-1"
-                    data-testid="button-bt-status-header"
-                  >
-                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                    <span className="text-green-400 text-[9px] font-semibold">Live</span>
-                  </button>
-                ) : <span className="w-1.5 h-1.5" />}
-              </div>
-
-              {/* Styled native select — looks like a big number, native picker on tap */}
-              <div className="relative flex-1 flex items-center mb-2">
+              {/* Number at top — native select overlay so tapping opens picker */}
+              <div className="relative">
                 <select
                   data-testid="select-temperature"
                   value={useCelsius ? Math.round((temperature - 32) * 5 / 9) : temperature}
@@ -3218,11 +3204,11 @@ export default function Home() {
                     : Array.from({ length: 36 }, (_, i) => 25 + i).map((f) => <option key={f} value={f}>{f}°F</option>)
                   }
                 </select>
-                <span className="text-white text-3xl font-bold leading-none pointer-events-none">{tempDisplay}</span>
+                <span className="text-white text-3xl font-bold leading-none pointer-events-none block">{tempDisplay}</span>
               </div>
 
               {/* °F / °C toggle pill */}
-              <div className="flex bg-blue-800/70 rounded-lg p-0.5 gap-0.5">
+              <div className="flex bg-blue-800/70 rounded-lg p-0.5 gap-0.5 mt-2">
                 <button
                   data-testid="button-unit-f"
                   onClick={() => setUseCelsius(false)}
@@ -3255,6 +3241,20 @@ export default function Home() {
                 </div>
               )}
 
+              {/* Label + live badge pinned to bottom */}
+              <div className="flex items-center justify-between mt-auto pt-2">
+                <span className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest">Water Temp</span>
+                {btConnected && (
+                  <button
+                    onClick={() => { navTo("settings"); setTimeout(() => setSettingsTab('settings'), 50); }}
+                    className="flex items-center gap-1"
+                    data-testid="button-bt-status-header"
+                  >
+                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                    <span className="text-green-400 text-[9px] font-semibold">Live</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Timer */}
@@ -3262,38 +3262,13 @@ export default function Home() {
               className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center"
               data-testid="card-timer"
             >
-              {/* Label row — tap to switch stopwatch/countdown; min-h matches 2-line labels on other tiles */}
-              <button
-                data-testid="display-timer"
-                onClick={() => {
-                  if (isActive) { handleStop(); }
-                  setCountdownMode(m => !m);
-                  setSeconds(0);
-                  setIsRunning(false);
-                  setCountdown(0);
-                  setCountdownRunning(false);
-                  startTimeRef.current = null;
-                  countdownStartRef.current = null;
-                  localStorage.removeItem(ACTIVE_SESSION_KEY);
-                }}
-                className="flex items-center justify-center gap-1 text-blue-300 hover:text-cyan-300 transition-colors text-[9px] uppercase tracking-widest focus:outline-none group w-full min-h-[2.5em] leading-tight"
-                title="Tap to switch mode"
-              >
-                {countdownMode ? "Countdown" : "Stopwatch"}
-                <svg className="w-2.5 h-2.5 opacity-60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-              </button>
-
-              {/* Number — centered in remaining flex space, same vertical position as temp & score */}
-              <div className="flex-1 flex items-center justify-center">
-                <div className={`text-[2rem] leading-none font-mono font-bold tracking-tight ${isActive ? "text-white" : "text-slate-200"}`}>
-                  {formatTime(displaySeconds)}
-                </div>
+              {/* Number at top — same size as other tiles */}
+              <div className={`text-3xl leading-none font-mono font-bold tracking-tight w-full text-center ${isActive ? "text-white" : "text-slate-200"}`}>
+                {formatTime(displaySeconds)}
               </div>
 
-              {/* Buttons at bottom */}
-              <div className="flex gap-1 w-full">
+              {/* Start / Stop buttons */}
+              <div className="flex gap-1 w-full mt-2">
                 <button
                   data-testid="button-start"
                   onClick={handleStart}
@@ -3310,11 +3285,34 @@ export default function Home() {
                 <button
                   data-testid="button-reset"
                   onClick={handleReset}
-                  className="mt-1.5 text-[10px] text-blue-400 hover:text-white transition-colors flex items-center gap-1"
+                  className="text-[10px] text-blue-400 hover:text-white transition-colors flex items-center gap-1 mt-1"
                 >
                   <RotateCcw className="w-3 h-3" /> Reset
                 </button>
               )}
+
+              {/* Label at bottom — tap to switch mode */}
+              <button
+                data-testid="display-timer"
+                onClick={() => {
+                  if (isActive) { handleStop(); }
+                  setCountdownMode(m => !m);
+                  setSeconds(0);
+                  setIsRunning(false);
+                  setCountdown(0);
+                  setCountdownRunning(false);
+                  startTimeRef.current = null;
+                  countdownStartRef.current = null;
+                  localStorage.removeItem(ACTIVE_SESSION_KEY);
+                }}
+                className="flex items-center justify-center gap-1 text-blue-300 hover:text-cyan-300 transition-colors text-[10px] uppercase tracking-widest focus:outline-none w-full mt-auto pt-2"
+                title="Tap to switch mode"
+              >
+                {countdownMode ? "Countdown" : "Stopwatch"}
+                <svg className="w-2.5 h-2.5 opacity-60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+              </button>
             </div>
 
             {/* Cold Score — tappable, cycles today → week → kcal (daily) → kcal (weekly) */}
@@ -3325,56 +3323,51 @@ export default function Home() {
                   setScoreInfoOpen(false);
                   setScoreView(v => v === "today" ? "week" : v === "week" ? "kcal" : v === "kcal" ? "kcal-week" : "today");
                 }}
-                className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col items-center transition-all active:scale-95 hover:border-cyan-500/50 w-full flex-1"
+                className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col transition-all active:scale-95 hover:border-cyan-500/50 w-full flex-1 h-full"
               >
                 {scoreView === "kcal" || scoreView === "kcal-week" ? (
                   <>
-                    {/* Label at top */}
-                    <div className="text-orange-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
-                      Calories<br />Burned
+                    {/* Number at top */}
+                    <div className="text-orange-300 font-bold text-3xl leading-none">
+                      {scoreView === "kcal"
+                        ? (todayCalories > 0 ? Math.round(todayCalories) : "—")
+                        : (weeklyCalories > 0 ? Math.round(weeklyCalories) : "—")
+                      }
                     </div>
-                    {/* Number + icon centered — number first so it lines up with temp & timer */}
-                    <div className="flex-1 flex items-center justify-center">
-                      <div className="text-orange-300 font-bold text-3xl leading-none">
-                        {scoreView === "kcal"
-                          ? (todayCalories > 0 ? Math.round(todayCalories) : "—")
-                          : (weeklyCalories > 0 ? Math.round(weeklyCalories) : "—")
-                        }
+                    {/* Label at bottom */}
+                    <div className="mt-auto pt-2 flex items-center justify-between">
+                      <div className="text-orange-300 text-[10px] font-semibold uppercase tracking-widest leading-tight">
+                        Calories<br />Burned
                       </div>
-                      <Flame className="w-5 h-5 text-orange-400" />
-                    </div>
-                    {/* Subtitle at bottom */}
-                    <div
-                      title="Estimated thermogenic calorie burn. Varies by individual physiology — not a precise measurement."
-                      className="text-orange-400/70 text-[10px] cursor-help"
-                    >
-                      {scoreView === "kcal" ? "kcal today" : "kcal/week"}
+                      <div
+                        title="Estimated thermogenic calorie burn. Varies by individual physiology — not a precise measurement."
+                        className="text-orange-400/70 text-[10px] cursor-help"
+                      >
+                        {scoreView === "kcal" ? "today" : "/week"}
+                      </div>
                     </div>
                   </>
                 ) : (
                   <>
-                    {/* Label at top */}
-                    <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest text-center leading-tight">
-                      Cold<br />Score
+                    {/* Number at top */}
+                    <div className="text-cyan-300 font-bold text-3xl leading-none">
+                      {scoreView === "today"
+                        ? (displayScore > 0 ? displayScore.toFixed(1) : "—")
+                        : (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
+                      }
                     </div>
-                    {/* Number + icon centered — number first so it lines up with temp & timer */}
-                    <div className="flex-1 flex flex-col items-center justify-center gap-1">
-                      <div className="text-cyan-300 font-bold text-3xl leading-none">
-                        {scoreView === "today"
-                          ? (displayScore > 0 ? displayScore.toFixed(1) : "—")
-                          : (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
-                        }
-                      </div>
-                    </div>
-                    {/* Subtitle at bottom */}
-                    <div className="text-blue-400 text-[10px]">
-                      {scoreView === "today" ? (isActive ? "live" : "today") : "this week"}
+                    {/* Label at bottom */}
+                    <div className="mt-auto pt-2 flex items-center justify-between">
+                      <span className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest">Cold Score</span>
+                      <span className="text-blue-400 text-[10px]">
+                        {scoreView === "today" ? (isActive ? "live" : "today") : "this week"}
+                      </span>
                     </div>
                   </>
                 )}
               </button>
 
-              {/* Info button — rendered AFTER card so it always wins DOM stacking order */}
+              {/* Info button */}
               <button
                 data-testid="button-score-info"
                 onClick={(e) => { e.stopPropagation(); setScoreInfoOpen(v => !v); }}
