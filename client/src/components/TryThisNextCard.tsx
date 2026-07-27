@@ -116,6 +116,86 @@ function bestBucket(plunges: Plunge[]): { tempLabel: string; durLabel: string } 
   return best ? { tempLabel: best.tempLabel, durLabel: best.durLabel } : null;
 }
 
+// ── Recent session averages ───────────────────────────────────────────────────
+
+interface RecentAverages {
+  avgTempF: number;   // average temperature of last 5 plunges (°F)
+  avgDurSec: number;  // average duration of last 5 plunges (seconds)
+}
+
+function recentAverages(plunges: Plunge[]): RecentAverages | null {
+  const sorted = [...plunges].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+  const recent = sorted.slice(0, 5);
+  if (recent.length === 0) return null;
+  return {
+    avgTempF:  Math.round(recent.reduce((s, p) => s + p.temperature, 0) / recent.length),
+    avgDurSec: Math.round(recent.reduce((s, p) => s + p.duration,    0) / recent.length),
+  };
+}
+
+// ── Temperature-aware progression suggestion ──────────────────────────────────
+
+/**
+ * Returns a personalised challenge nudge for users whose scores are trending up.
+ *
+ * Temperature tiers (°F):
+ *   ≥ 52  → concrete colder-temp suggestion (floor: recommended target ≥ 40°F)
+ *   46–51 → duration first if sessions are short; small temp step if longer
+ *   40–45 → already advanced — affirm consistency, don't push colder
+ *   < 40  → elite territory — never suggest going colder
+ */
+function trendingUpNudge(recents: RecentAverages): { title: string; body: string } {
+  const { avgTempF, avgDurSec } = recents;
+
+  // Elite tier — already in the extreme cold
+  if (avgTempF < 40) {
+    return {
+      title: "Elite cold exposure",
+      body:  `You're regularly plunging below 40°F — that's serious work. Focus on consistency rather than going colder; at these temperatures, showing up is the achievement.`,
+    };
+  }
+
+  // Advanced tier (40–45°F) — don't push colder, affirm
+  if (avgTempF <= 45) {
+    return {
+      title: "Advanced territory",
+      body:  `At ~${avgTempF}°F you're already in the deep end. Your scores are trending up — keep that consistency going. Duration is the lever to pull here if you want a new challenge.`,
+    };
+  }
+
+  // Intermediate tier (46–51°F)
+  if (avgTempF <= 51) {
+    if (avgDurSec < 150) {
+      // Short sessions — build duration before going colder
+      const targetSec = Math.min(avgDurSec + 45, 300);
+      const targetMin = Math.floor(targetSec / 60);
+      const targetRemSec = targetSec % 60;
+      const targetLabel = targetMin > 0
+        ? `${targetMin}:${String(targetRemSec).padStart(2, "0")}`
+        : `${targetSec}s`;
+      return {
+        title: "Build your time first",
+        body:  `Your scores are improving at ${avgTempF}°F. Before going colder, try extending your session to around ${targetLabel} — building duration at your current temp is the safer next step.`,
+      };
+    }
+    // Longer sessions — small temp drop
+    const targetTemp = Math.max(40, avgTempF - 2);
+    return {
+      title: "Ready to go a little colder",
+      body:  `Your sessions at ~${avgTempF}°F are paying off. Try dropping to ${targetTemp}°F on your next plunge — a 2°F step is enough to feel the difference without a big shock.`,
+    };
+  }
+
+  // Warmer tier (52°F+) — clear colder suggestion
+  const targetTemp = Math.max(40, avgTempF - 3);
+  return {
+    title: "Time to nudge it colder",
+    body:  `You've been plunging around ${avgTempF}°F and your scores are trending up — that's a sign your body is adapting. Try ${targetTemp}°F on your next session and see how you feel.`,
+  };
+}
+
 // ── Nudge derivation ──────────────────────────────────────────────────────────
 
 type NudgeKind = "trending-up" | "holding-steady" | "trending-down" | "sweet-spot";
@@ -141,16 +221,21 @@ function deriveNudge(plunges: Plunge[]): Nudge | null {
   );
   if (daysSince >= 7) return null;
 
+  const recents = recentAverages(plunges);
+
   // Primary: trend direction
   const delta = computeMonthTrendDelta(plunges);
 
   if (delta !== null) {
     if (delta > 0.05) {
+      const { title, body } = recents
+        ? trendingUpNudge(recents)
+        : { title: "Ready for a challenge", body: "Your check-in scores are trending up — consider dropping 2–3°F or adding 30 seconds to your next session and see how you feel." };
       return {
-        kind:        "trending-up",
-        icon:        "📈",
-        title:       "Ready for a challenge",
-        body:        "Your check-in scores are trending up — consider dropping 2–3°F or adding 30 seconds to your next session and see how you feel.",
+        kind: "trending-up",
+        icon: recents && recents.avgTempF <= 45 ? "🏆" : "📈",
+        title,
+        body,
         borderClass: "border-emerald-500/40",
         bgClass:     "bg-emerald-900/20",
       };
