@@ -11,6 +11,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail, sendAdminSecurityAlert, sendSupportEmail, sendAdminReplyEmail, sendCoManagerInviteEmail, sendFriendInviteEmail, sendBroadcastEmail } from "./email";
 import webpush from "web-push";
+import { deriveNudgeForPush } from "./nudge";
 
 webpush.setVapidDetails(
   "mailto:ColdStreakApp17@gmail.com",
@@ -553,6 +554,40 @@ export async function registerRoutes(
         await storage.deletePendingChallenge(authUser.userId).catch(() => {});
 
         challengeResult = { won: iWon, myScore, theirScore, opponentName: theirName, opponentId: challengerUserId };
+      }
+
+      // ── "Try this next" nudge notification ─────────────────────────────────
+      // Fire-and-forget: fetch the user's plunges (including the new one),
+      // compute the nudge, and push it if there's something to say.
+      if (authUser) {
+        (async () => {
+          try {
+            const userPlunges = await storage.getPlunges(undefined, authUser.userId);
+            const nudge = deriveNudgeForPush(userPlunges);
+            if (nudge) {
+              const subs = await storage.getPushSubscriptionsByUser(authUser.userId);
+              const payload = JSON.stringify({
+                title: nudge.title,
+                body:  nudge.body,
+                tag:   "try-this-next",
+              });
+              for (const sub of subs) {
+                try {
+                  await webpush.sendNotification(
+                    { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                    payload,
+                  );
+                } catch (err: any) {
+                  if (err.statusCode === 410 || err.statusCode === 404) {
+                    await storage.deletePushSubscription(sub.endpoint);
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            console.error("[nudge] push notification error:", err);
+          }
+        })();
       }
 
       res.status(201).json({ ...newPlunge, challengeResult });
