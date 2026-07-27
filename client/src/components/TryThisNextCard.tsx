@@ -22,6 +22,7 @@
 
 import { useState } from "react";
 import { type Plunge } from "@shared/schema";
+import { NUDGE_MESSAGES } from "@shared/nudgeMessages";
 
 interface Props {
   plunges: Plunge[];
@@ -230,7 +231,7 @@ export function deriveNudge(plunges: Plunge[]): Nudge | null {
     if (delta > 0.05) {
       const { title, body } = recents
         ? trendingUpNudge(recents)
-        : { title: "Ready for a challenge", body: "Your check-in scores are trending up — consider dropping 2–3°F or adding 30 seconds to your next session and see how you feel." };
+        : { title: NUDGE_MESSAGES.trendingUp.title, body: NUDGE_MESSAGES.trendingUp.body };
       return {
         kind: "trending-up",
         icon: recents && recents.avgTempF <= 45 ? "🏆" : "📈",
@@ -245,8 +246,8 @@ export function deriveNudge(plunges: Plunge[]): Nudge | null {
       return {
         kind:        "trending-down",
         icon:        "🌡️",
-        title:       "Listen to your body",
-        body:        "Your recent check-in ratings have dipped a little. Try dialling back slightly — a warmer temperature or shorter duration can help you stay consistent without burning out.",
+        title:       NUDGE_MESSAGES.trendingDown.title,
+        body:        NUDGE_MESSAGES.trendingDown.body,
         borderClass: "border-amber-500/40",
         bgClass:     "bg-amber-900/20",
       };
@@ -256,8 +257,8 @@ export function deriveNudge(plunges: Plunge[]): Nudge | null {
     return {
       kind:        "holding-steady",
       icon:        "🎯",
-      title:       "Stay the course",
-      body:        "Your ratings have been consistent — you're in a solid rhythm. Commit to your current temperature and duration for another few sessions before experimenting.",
+      title:       NUDGE_MESSAGES.holdingSteady.title,
+      body:        NUDGE_MESSAGES.holdingSteady.body,
       borderClass: "border-blue-500/40",
       bgClass:     "bg-blue-900/30",
     };
@@ -269,8 +270,8 @@ export function deriveNudge(plunges: Plunge[]): Nudge | null {
     return {
       kind:        "sweet-spot",
       icon:        "⭐",
-      title:       "Hit your sweet spot",
-      body:        `Your sweet spot so far is ${spot.tempLabel} for ${spot.durLabel} — try to hit it in your next 3 plunges and keep the momentum going.`,
+      title:       NUDGE_MESSAGES.sweetSpot.title,
+      body:        NUDGE_MESSAGES.sweetSpot.bodyTemplate(spot.tempLabel, spot.durLabel),
       borderClass: "border-cyan-500/30",
       bgClass:     "bg-blue-950/60",
     };

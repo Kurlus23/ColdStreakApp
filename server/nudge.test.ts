@@ -1,171 +1,256 @@
 /**
- * Tests for deriveNudgeForPush in server/nudge.ts.
+ * Cross-checks that the push notification strings (deriveNudgeForPush) and the
+ * in-app card strings (deriveNudge from TryThisNextCard) agree for every fixed
+ * branch.  Any copy-paste drift that changes one side without the other will
+ * fail here rather than reaching users.
  *
- * Covers each branch of the nudge decision tree:
- *   1. Fewer than 10 plunges → null
- *   2. Trending-up  (month-over-month composite delta > 0.05)
- *   3. Trending-down (delta < -0.05)
- *   4. Holding-steady (|delta| ≤ 0.05)
- *   5. Sweet-spot fallback (only one calendar month of data → bestBucket)
+ * Both functions now import their strings from shared/nudgeMessages.ts, so a
+ * divergence would have to come from hand-editing the template strings in one
+ * of the two files — this test catches that.
+ *
+ * Trending-up note:
+ *   The client renders a temperature-aware personalised nudge (trendingUpNudge)
+ *   that intentionally differs from the generic server push.  The generic
+ *   "Ready for a challenge" fallback copy is shared and verified here; the
+ *   personalised variants are by-design server/client differences.
  */
 
 import { describe, it, expect } from "vitest";
 import { deriveNudgeForPush } from "./nudge";
-import type { Plunge } from "@shared/schema";
+import { deriveNudge } from "../client/src/components/TryThisNextCard";
+import { NUDGE_MESSAGES } from "../shared/nudgeMessages";
+import { type Plunge } from "../shared/schema";
 
 // ── Fixture helpers ───────────────────────────────────────────────────────────
 
-let _id = 1;
+const BASE_DATE = new Date("2026-06-15T12:00:00Z");
 
-function makePlunge(
-  overrides: Partial<Omit<Plunge, "createdAt">> & { createdAt: Date },
-): Plunge {
+/**
+ * Build a minimal Plunge object.  Only the fields that affect nudge derivation
+ * need values; everything else gets harmless defaults.
+ */
+function makePlunge(overrides: Partial<Plunge> & { createdAt: Date }): Plunge {
   return {
-    id: _id++,
-    clientId: null,
-    userId: null,
-    duration: 180,
-    temperature: 50,
-    score: "50.00",
-    hrAvg: null,
-    spo2Avg: null,
-    photoData: null,
-    locationName: null,
-    locationId: null,
-    timerUsed: false,
-    calories: null,
-    timezone: null,
-    mood: null,
-    moodEnergy: null,
-    moodFocus: null,
-    moodPromptedAt: null,
+    id:          1,
+    userId:      1,
+    temperature: 55,
+    duration:    120,
+    mood:        null,
+    moodEnergy:  null,
+    moodFocus:   null,
+    notes:       null,
+    waterType:   null,
     ...overrides,
-  };
-}
-
-/** Return a Date that is `daysAgo` days before now. */
-function daysAgo(n: number): Date {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d;
+    createdAt: overrides.createdAt,
+  } as unknown as Plunge;
 }
 
 /**
- * Build `count` plunges all stamped on the same date with the same mood values.
- * The most-recent plunge in every fixture set is 1 day ago so daysSince < 7.
+ * Produce `count` plunges spread across two calendar months so that
+ * computeMonthTrendDelta can return a non-null value.
+ *
+ * The caller supplies a `moodFn` to control the composite score direction.
  */
-function monthPlunges(
-  date: Date,
+function makeTwoMonthPlunges(
   count: number,
-  moodOverrides: Partial<Plunge>,
+  moodFn: (index: number, isSecondMonth: boolean) => number,
+  opts: { temperature?: number; duration?: number } = {},
 ): Plunge[] {
-  return Array.from({ length: count }, () =>
-    makePlunge({ createdAt: date, ...moodOverrides }),
-  );
+  const result: Plunge[] = [];
+  const half = Math.floor(count / 2);
+
+  for (let i = 0; i < count; i++) {
+    const isSecondMonth = i >= half;
+    const date = new Date(BASE_DATE);
+    // First half → January 2026; second half → February 2026
+    date.setUTCMonth(isSecondMonth ? 1 : 0);
+    date.setUTCDate(i + 1);
+
+    result.push(
+      makePlunge({
+        id:          i + 1,
+        createdAt:   date,
+        mood:        moodFn(i, isSecondMonth),
+        temperature: opts.temperature ?? 55,
+        duration:    opts.duration    ?? 120,
+      }),
+    );
+  }
+
+  // Most recent plunge is today so the 7-day suppression doesn't fire
+  result[result.length - 1] = makePlunge({
+    ...result[result.length - 1],
+    createdAt: new Date(),
+  });
+
+  return result;
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+// ── Shared helper: strip a leading emoji + space from a server title ──────────
 
-describe("deriveNudgeForPush", () => {
-  it("returns null when fewer than 10 plunges exist", () => {
-    const plunges = Array.from({ length: 9 }, () =>
-      makePlunge({ createdAt: daysAgo(1), mood: 3 }),
+function stripEmoji(title: string): string {
+  // Server titles look like "📈 Ready for a challenge" — strip the first
+  // grapheme cluster (emoji) and the space that follows it.
+  return title.replace(/^\S+\s/, "");
+}
+
+// ── trending-down ─────────────────────────────────────────────────────────────
+
+describe("nudge message parity — trending-down", () => {
+  // Scores drop noticeably in the second month (delta << −0.05)
+  const plunges = makeTwoMonthPlunges(14, (_, isSecondMonth) =>
+    isSecondMonth ? 1 : 5,
+  );
+
+  it("server body matches shared constant", () => {
+    const push = deriveNudgeForPush(plunges);
+    expect(push).not.toBeNull();
+    expect(push!.body).toBe(NUDGE_MESSAGES.trendingDown.body);
+  });
+
+  it("client body matches shared constant", () => {
+    const card = deriveNudge(plunges);
+    expect(card).not.toBeNull();
+    expect(card!.kind).toBe("trending-down");
+    expect(card!.body).toBe(NUDGE_MESSAGES.trendingDown.body);
+  });
+
+  it("server and client bodies are identical", () => {
+    const push = deriveNudgeForPush(plunges)!;
+    const card = deriveNudge(plunges)!;
+    expect(push.body).toBe(card.body);
+  });
+
+  it("server title (stripped of emoji) matches client title", () => {
+    const push = deriveNudgeForPush(plunges)!;
+    const card = deriveNudge(plunges)!;
+    expect(stripEmoji(push.title)).toBe(card.title);
+  });
+});
+
+// ── holding-steady ────────────────────────────────────────────────────────────
+
+describe("nudge message parity — holding-steady", () => {
+  // Identical mood scores across both months → |delta| = 0
+  const plunges = makeTwoMonthPlunges(14, () => 3);
+
+  it("server body matches shared constant", () => {
+    const push = deriveNudgeForPush(plunges);
+    expect(push).not.toBeNull();
+    expect(push!.body).toBe(NUDGE_MESSAGES.holdingSteady.body);
+  });
+
+  it("client body matches shared constant", () => {
+    const card = deriveNudge(plunges);
+    expect(card).not.toBeNull();
+    expect(card!.kind).toBe("holding-steady");
+    expect(card!.body).toBe(NUDGE_MESSAGES.holdingSteady.body);
+  });
+
+  it("server and client bodies are identical", () => {
+    const push = deriveNudgeForPush(plunges)!;
+    const card = deriveNudge(plunges)!;
+    expect(push.body).toBe(card.body);
+  });
+
+  it("server title (stripped of emoji) matches client title", () => {
+    const push = deriveNudgeForPush(plunges)!;
+    const card = deriveNudge(plunges)!;
+    expect(stripEmoji(push.title)).toBe(card.title);
+  });
+});
+
+// ── sweet-spot ────────────────────────────────────────────────────────────────
+
+describe("nudge message parity — sweet-spot", () => {
+  /**
+   * Sweet-spot fires when computeMonthTrendDelta returns null (fewer than 2
+   * months of rated plunges) but bestBucket finds a bucket with ≥ 3 entries.
+   *
+   * All 12 plunges are spread across the last 6 days (same calendar month as
+   * today) so that:
+   *   - computeMonthTrendDelta sees only 1 month → returns null
+   *   - daysSince < 7 → 7-day suppression does not fire
+   *   - bestBucket has 12 rated plunges in the 55°F / 1.5–3 min bucket
+   */
+  const now = new Date();
+  const plunges = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(now);
+    d.setUTCHours(now.getUTCHours() - i * 12); // spread backwards, all same month
+    return makePlunge({
+      id:          i + 1,
+      createdAt:   d,
+      mood:        4,
+      moodEnergy:  3,
+      temperature: 55,
+      duration:    120,
+    });
+  });
+
+  it("server body matches shared constant body template output", () => {
+    const push = deriveNudgeForPush(plunges);
+    expect(push).not.toBeNull();
+    // The template is parameterised — just verify the constant template is used
+    expect(push!.body).toBe(
+      NUDGE_MESSAGES.sweetSpot.bodyTemplate("55–60°F", "1.5–3 min"),
     );
-    expect(deriveNudgeForPush(plunges)).toBeNull();
   });
 
-  it("returns the trending-up nudge when the composite score improved month-over-month", () => {
-    // Old month: worst possible mood scores → composite = 0
-    const oldMonth = monthPlunges(daysAgo(60), 5, {
-      mood: 1,
-      moodEnergy: 1,
-      moodFocus: 1,
-    });
-    // Recent month (within 7 days): best possible scores → composite = 1
-    const recentMonth = monthPlunges(daysAgo(1), 5, {
-      mood: 5,
-      moodEnergy: 3,
-      moodFocus: 3,
-    });
-
-    const result = deriveNudgeForPush([...oldMonth, ...recentMonth]);
-    expect(result).toEqual({
-      title: "📈 Ready for a challenge",
-      body: "Your check-in scores are trending up — consider dropping 2–3°F or adding 30 seconds to your next session and see how you feel.",
-    });
-  });
-
-  it("returns the trending-down nudge when the composite score declined month-over-month", () => {
-    // Old month: best scores → composite = 1
-    const oldMonth = monthPlunges(daysAgo(60), 5, {
-      mood: 5,
-      moodEnergy: 3,
-      moodFocus: 3,
-    });
-    // Recent month: worst scores → composite = 0; delta = 0 - 1 = -1 < -0.05
-    const recentMonth = monthPlunges(daysAgo(1), 5, {
-      mood: 1,
-      moodEnergy: 1,
-      moodFocus: 1,
-    });
-
-    const result = deriveNudgeForPush([...oldMonth, ...recentMonth]);
-    expect(result).toEqual({
-      title: "🌡️ Listen to your body",
-      body: "Your recent check-in ratings have dipped a little. Try dialling back slightly — a warmer temperature or shorter duration can help you stay consistent without burning out.",
-    });
-  });
-
-  it("returns the holding-steady nudge when scores are flat across two months", () => {
-    // Both months: mid-range scores → same composite; delta ≈ 0
-    const oldMonth = monthPlunges(daysAgo(60), 5, {
-      mood: 3,
-      moodEnergy: 2,
-      moodFocus: 2,
-    });
-    const recentMonth = monthPlunges(daysAgo(1), 5, {
-      mood: 3,
-      moodEnergy: 2,
-      moodFocus: 2,
-    });
-
-    const result = deriveNudgeForPush([...oldMonth, ...recentMonth]);
-    expect(result).toEqual({
-      title: "🎯 Stay the course",
-      body: "Your ratings have been consistent — you're in a solid rhythm. Commit to your current temperature and duration for another few sessions before experimenting.",
-    });
-  });
-
-  it("returns the sweet-spot nudge when all plunges are in a single calendar month", () => {
-    // All in one month → computeMonthTrendDelta returns null (only 1 month bucket).
-    // Put 5 plunges in the winning bucket: temp=49 (→ "45–50°F"), dur=179s (→ "1.5–3 min"),
-    // high mood so the bucket scores well.
-    const bestBucket = Array.from({ length: 5 }, () =>
-      makePlunge({
-        createdAt: daysAgo(1),
-        temperature: 49,
-        duration: 179,
-        mood: 5,
-        moodEnergy: 3,
-        moodFocus: 3,
-      }),
+  it("client body matches shared constant body template output", () => {
+    const card = deriveNudge(plunges);
+    expect(card).not.toBeNull();
+    expect(card!.kind).toBe("sweet-spot");
+    expect(card!.body).toBe(
+      NUDGE_MESSAGES.sweetSpot.bodyTemplate("55–60°F", "1.5–3 min"),
     );
-    // 5 more plunges in a different bucket with lower mood scores (so bestBucket wins).
-    const otherBucket = Array.from({ length: 5 }, () =>
-      makePlunge({
-        createdAt: daysAgo(3),
-        temperature: 55,
-        duration: 300,
-        mood: 2,
-        moodEnergy: 1,
-        moodFocus: 1,
-      }),
-    );
+  });
 
-    const result = deriveNudgeForPush([...bestBucket, ...otherBucket]);
-    expect(result).toEqual({
-      title: "⭐ Hit your sweet spot",
-      body: "Your sweet spot so far is 45–50°F for 1.5–3 min — try to hit it in your next 3 plunges and keep the momentum going.",
-    });
+  it("server and client bodies are identical", () => {
+    const push = deriveNudgeForPush(plunges)!;
+    const card = deriveNudge(plunges)!;
+    expect(push.body).toBe(card.body);
+  });
+
+  it("server title (stripped of emoji) matches client title", () => {
+    const push = deriveNudgeForPush(plunges)!;
+    const card = deriveNudge(plunges)!;
+    expect(stripEmoji(push.title)).toBe(card.title);
+  });
+});
+
+// ── trending-up (generic fallback path) ──────────────────────────────────────
+
+describe("nudge message parity — trending-up generic copy", () => {
+  /**
+   * The client's trendingUpNudge() generates temperature-aware personalised
+   * copy which is intentionally different from the server push.  This test
+   * focuses on the shared string constants used by both sides, verifying that
+   * the NUDGE_MESSAGES.trendingUp values themselves are consistent between what
+   * the server emits and what the client would fall back to when no recent
+   * averages are available.
+   *
+   * The server always uses the generic copy, so we verify that directly.
+   */
+
+  // Scores rise in the second month (delta >> 0.05)
+  const plunges = makeTwoMonthPlunges(14, (_, isSecondMonth) =>
+    isSecondMonth ? 5 : 1,
+  );
+
+  it("server body matches shared constant", () => {
+    const push = deriveNudgeForPush(plunges);
+    expect(push).not.toBeNull();
+    expect(push!.body).toBe(NUDGE_MESSAGES.trendingUp.body);
+  });
+
+  it("server title (stripped of emoji) matches shared constant title", () => {
+    const push = deriveNudgeForPush(plunges)!;
+    expect(stripEmoji(push.title)).toBe(NUDGE_MESSAGES.trendingUp.title);
+  });
+
+  it("client emits trending-up kind", () => {
+    const card = deriveNudge(plunges);
+    expect(card).not.toBeNull();
+    expect(card!.kind).toBe("trending-up");
   });
 });

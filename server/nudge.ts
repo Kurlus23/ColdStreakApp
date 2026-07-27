@@ -9,6 +9,7 @@
  */
 
 import { type Plunge } from "@shared/schema";
+import { NUDGE_MESSAGES }  from "@shared/nudgeMessages";
 
 // ── Month-over-month composite trend ─────────────────────────────────────────
 
@@ -134,22 +135,22 @@ export function deriveNudgeForPush(plunges: Plunge[]): NudgePayload | null {
   if (delta !== null) {
     if (delta > 0.05) {
       return {
-        title: "📈 Ready for a challenge",
-        body:  "Your check-in scores are trending up — consider dropping 2–3°F or adding 30 seconds to your next session and see how you feel.",
+        title: `📈 ${NUDGE_MESSAGES.trendingUp.title}`,
+        body:  NUDGE_MESSAGES.trendingUp.body,
       };
     }
 
     if (delta < -0.05) {
       return {
-        title: "🌡️ Listen to your body",
-        body:  "Your recent check-in ratings have dipped a little. Try dialling back slightly — a warmer temperature or shorter duration can help you stay consistent without burning out.",
+        title: `🌡️ ${NUDGE_MESSAGES.trendingDown.title}`,
+        body:  NUDGE_MESSAGES.trendingDown.body,
       };
     }
 
     // Holding steady
     return {
-      title: "🎯 Stay the course",
-      body:  "Your ratings have been consistent — you're in a solid rhythm. Commit to your current temperature and duration for another few sessions before experimenting.",
+      title: `🎯 ${NUDGE_MESSAGES.holdingSteady.title}`,
+      body:  NUDGE_MESSAGES.holdingSteady.body,
     };
   }
 
@@ -157,8 +158,8 @@ export function deriveNudgeForPush(plunges: Plunge[]): NudgePayload | null {
   const spot = bestBucket(plunges);
   if (spot) {
     return {
-      title: "⭐ Hit your sweet spot",
-      body:  `Your sweet spot so far is ${spot.tempLabel} for ${spot.durLabel} — try to hit it in your next 3 plunges and keep the momentum going.`,
+      title: `⭐ ${NUDGE_MESSAGES.sweetSpot.title}`,
+      body:  NUDGE_MESSAGES.sweetSpot.bodyTemplate(spot.tempLabel, spot.durLabel),
     };
   }
 
