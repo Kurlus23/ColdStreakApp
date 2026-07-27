@@ -5,9 +5,7 @@
 const JAKE_SCORE = 8.4;
 const MY_SCORE   = 4.2;
 const WINNING    = MY_SCORE >= JAKE_SCORE;
-
-// Ring fills as MY_SCORE → JAKE_SCORE
-const PROGRESS = Math.min(1, MY_SCORE / JAKE_SCORE); // 0–1
+const PROGRESS   = Math.min(1, MY_SCORE / JAKE_SCORE);
 
 const CX = 160;
 const CY = 160;
@@ -21,15 +19,14 @@ function anglePt(r: number, pct: number) {
 }
 
 const BENEFIT_SEGMENTS = [
-  { id: "energy",     emoji: "⚡", label: "Energy",     fill: 100, bar: "#22d3ee", dim: "#0e3d4d55" },
-  { id: "mood",       emoji: "😊", label: "Mood",       fill: 68,  bar: "#fbbf24", dim: "#4a2c0055" },
-  { id: "metabolism", emoji: "🔥", label: "Metabolism", fill: 0,   bar: "#f97316", dim: "#3d160055" },
-  { id: "recovery",   emoji: "💪", label: "Recovery",   fill: 0,   bar: "#34d399", dim: "#023d2555" },
+  { id: "energy",     emoji: "⚡", label: "Energy",     fill: 100, bar: "#22d3ee", dim: "#0e3d4d66" },
+  { id: "mood",       emoji: "😊", label: "Mood",       fill: 68,  bar: "#fbbf24", dim: "#4a2c0066" },
+  { id: "metabolism", emoji: "🔥", label: "Metabolism", fill: 0,   bar: "#f97316", dim: "#3d160066" },
+  { id: "recovery",   emoji: "💪", label: "Recovery",   fill: 0,   bar: "#34d399", dim: "#02432566" },
 ] as const;
 
 function ChallengeRing() {
-  const dot     = anglePt(R, PROGRESS);       // your live dot
-  const jakePt  = anglePt(R + 18, 1);         // Jake's marker at 12 o'clock (full)
+  const dot = anglePt(R, PROGRESS);
 
   return (
     <svg
@@ -40,7 +37,7 @@ function ChallengeRing() {
       <circle
         cx={CX} cy={CY} r={R}
         fill="none"
-        stroke="rgba(34,211,238,0.08)"
+        stroke="rgba(34,211,238,0.14)"
         strokeWidth={STROKE}
       />
 
@@ -54,27 +51,27 @@ function ChallengeRing() {
         strokeDasharray={CIRC}
         strokeDashoffset={CIRC * (1 - PROGRESS)}
         transform={`rotate(-90 ${CX} ${CY})`}
-        style={{ filter: "drop-shadow(0 0 10px rgba(34,211,238,0.5))" }}
+        style={{ filter: "drop-shadow(0 0 10px rgba(34,211,238,0.55))" }}
       />
 
-      {/* Jake's target marker at the top (12 o'clock = full) */}
-      <circle cx={CX} cy={CY - R} r={4} fill="#fb7185"
-        style={{ filter: "drop-shadow(0 0 5px rgba(244,63,94,0.8))" }} />
+      {/* Jake's target marker at 12 o'clock */}
+      <circle cx={CX} cy={CY - R} r={5} fill="#fb7185"
+        style={{ filter: "drop-shadow(0 0 6px rgba(244,63,94,0.9))" }} />
       <text
-        x={CX} y={CY - R - 10}
+        x={CX} y={CY - R - 11}
         textAnchor="middle"
-        fill="rgba(251,113,133,0.75)"
+        fill="rgba(251,113,133,0.85)"
         fontSize="9"
         fontFamily="sans-serif"
         fontWeight="700"
-        letterSpacing="0.05em"
+        letterSpacing="0.06em"
       >
         JAKE {JAKE_SCORE}
       </text>
 
-      {/* Your live leading dot */}
+      {/* Live leading dot */}
       <circle cx={dot.x} cy={dot.y} r={6} fill="#22d3ee"
-        style={{ filter: "drop-shadow(0 0 8px rgba(34,211,238,1))" }} />
+        style={{ filter: "drop-shadow(0 0 10px rgba(34,211,238,1))" }} />
 
       <defs>
         <linearGradient id="progress-grad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -110,7 +107,7 @@ function BenefitBar() {
                 />
               </div>
               <p className="text-center text-[9px] font-semibold leading-none truncate"
-                style={{ color: done || active ? seg.bar : "#1a3050" }}>
+                style={{ color: done || active ? seg.bar : "#2a4a6a" }}>
                 {seg.emoji} {seg.label}
               </p>
             </div>
@@ -123,14 +120,17 @@ function BenefitBar() {
 
 export function PlungeImmersionChallenge() {
   return (
-    <div className="w-[390px] h-[844px] relative overflow-hidden font-sans select-none flex flex-col bg-[#030c14]">
+    <div className="w-[390px] h-[844px] relative overflow-hidden font-sans select-none flex flex-col"
+      style={{ background: "linear-gradient(to bottom, #0c2a42 0%, #071a2e 60%, #040f1e 100%)" }}>
 
-      {/* Ambient glow */}
+      {/* Ambient glows — much brighter */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[8%] left-1/2 -translate-x-1/2 w-[320px] h-[320px] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(6,182,212,0.11) 0%, transparent 70%)" }} />
-        <div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 w-[240px] h-[240px] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(14,116,144,0.07) 0%, transparent 70%)" }} />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[420px] h-[420px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(6,182,212,0.22) 0%, transparent 65%)" }} />
+        <div className="absolute top-[20%] left-[20%] w-[200px] h-[200px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(14,116,144,0.15) 0%, transparent 70%)" }} />
+        <div className="absolute bottom-[20%] right-[10%] w-[180px] h-[180px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(6,182,212,0.1) 0%, transparent 70%)" }} />
       </div>
 
       {/* Wordmark */}
@@ -138,11 +138,11 @@ export function PlungeImmersionChallenge() {
         <span
           className="text-lg font-black tracking-[0.22em] select-none"
           style={{
-            background: "linear-gradient(to bottom, #e0f2fe 0%, #67e8f9 55%, #0e7490 100%)",
+            background: "linear-gradient(to bottom, #ffffff 0%, #a5f3fc 55%, #0891b2 100%)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
-            filter: "drop-shadow(0 1px 8px rgba(6,182,212,0.4))",
+            filter: "drop-shadow(0 2px 12px rgba(6,182,212,0.6))",
           }}
         >
           COLDSTREAK
@@ -156,21 +156,21 @@ export function PlungeImmersionChallenge() {
         <div className="relative z-10 flex flex-col items-center gap-0.5">
           <div
             className="font-mono font-bold text-white leading-none tracking-tighter"
-            style={{ fontSize: "5rem", filter: "drop-shadow(0 0 14px rgba(34,211,238,0.4))" }}
+            style={{ fontSize: "5rem", filter: "drop-shadow(0 0 18px rgba(34,211,238,0.5))" }}
           >
             2:14
           </div>
           <div className="text-[9px] uppercase tracking-[0.18em] font-semibold mt-0.5"
-            style={{ color: "rgba(103,232,249,0.55)" }}>
+            style={{ color: "rgba(147,210,230,0.7)" }}>
             Stopwatch
           </div>
           {/* Race status pill */}
           <div
             className="mt-2 px-3 py-0.5 rounded-full text-[10px] font-bold tracking-wide"
             style={{
-              background: WINNING ? "rgba(34,211,238,0.1)" : "rgba(251,113,133,0.1)",
-              border: WINNING ? "1px solid rgba(34,211,238,0.3)" : "1px solid rgba(251,113,133,0.3)",
-              color: WINNING ? "rgba(103,232,249,0.9)" : "rgba(251,113,133,0.85)",
+              background: WINNING ? "rgba(34,211,238,0.15)" : "rgba(251,113,133,0.15)",
+              border: WINNING ? "1px solid rgba(34,211,238,0.4)" : "1px solid rgba(251,113,133,0.4)",
+              color: WINNING ? "#67e8f9" : "#fda4af",
             }}
           >
             {WINNING ? "You beat Jake! ❄️" : `${(JAKE_SCORE - MY_SCORE).toFixed(1)} pts to beat Jake`}
@@ -178,13 +178,31 @@ export function PlungeImmersionChallenge() {
         </div>
       </div>
 
+      {/* Cold Take — floats between ring and HUD */}
+      <div className="w-full px-5 pb-3 z-10 shrink-0">
+        <div
+          className="w-full px-5 py-3 rounded-2xl text-center"
+          style={{
+            background: "rgba(12,42,66,0.6)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(34,211,238,0.18)",
+          }}
+        >
+          <p className="text-[10px] uppercase tracking-[0.25em] mb-1 font-semibold"
+            style={{ color: "rgba(103,232,249,0.7)" }}>❄ Cold Take</p>
+          <p className="text-slate-200 text-sm italic font-light leading-snug">
+            "The pain is temporary. The pride is permanent."
+          </p>
+        </div>
+      </div>
+
       {/* Bottom HUD */}
       <div
         className="w-full z-10 shrink-0 px-4 pt-4 pb-8 flex flex-col gap-3"
         style={{
-          background: "rgba(5,16,27,0.88)",
+          background: "rgba(4,15,30,0.75)",
           backdropFilter: "blur(20px)",
-          borderTop: "1px solid rgba(34,211,238,0.08)",
+          borderTop: "1px solid rgba(34,211,238,0.12)",
         }}
       >
         {/* Stats */}
@@ -195,20 +213,20 @@ export function PlungeImmersionChallenge() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-300" />
               </span>
-              <span className="text-slate-500 text-[9px] uppercase tracking-widest font-semibold">Live Temp</span>
+              <span className="text-slate-400 text-[9px] uppercase tracking-widest font-semibold">Live Temp</span>
             </div>
             <span className="text-white text-2xl font-bold tracking-tight">44°F</span>
           </div>
-          <div className="w-px h-10 bg-gradient-to-b from-transparent via-slate-700 to-transparent" />
+          <div className="w-px h-10 bg-gradient-to-b from-transparent via-slate-600 to-transparent" />
           <div className="flex flex-col items-center">
-            <span className="text-cyan-500 text-[9px] uppercase tracking-widest mb-0.5 font-semibold">Cold Score</span>
+            <span className="text-cyan-400 text-[9px] uppercase tracking-widest mb-0.5 font-semibold">Cold Score</span>
             <span className="text-cyan-300 text-2xl font-bold tracking-tight">{MY_SCORE}</span>
           </div>
-          <div className="w-px h-10 bg-gradient-to-b from-transparent via-slate-700 to-transparent" />
+          <div className="w-px h-10 bg-gradient-to-b from-transparent via-slate-600 to-transparent" />
           <div className="flex flex-col items-center">
-            <span className="text-amber-500 text-[9px] uppercase tracking-widest mb-0.5 font-semibold">Personal Best</span>
-            <span className="text-amber-400 text-2xl font-bold tracking-tight"
-              style={{ textShadow: "0 0 12px rgba(251,191,36,0.3)" }}>21.1</span>
+            <span className="text-amber-400 text-[9px] uppercase tracking-widest mb-0.5 font-semibold">Personal Best</span>
+            <span className="text-amber-300 text-2xl font-bold tracking-tight"
+              style={{ textShadow: "0 0 12px rgba(251,191,36,0.35)" }}>21.1</span>
           </div>
         </div>
 
@@ -218,23 +236,23 @@ export function PlungeImmersionChallenge() {
         {/* Music */}
         <div
           className="flex items-center gap-2 px-3 py-2 rounded-2xl w-full"
-          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
         >
           <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white text-[10px] shrink-0">♫</div>
-          <span className="text-slate-300 text-xs font-medium flex-1 truncate">Road Rage</span>
+          <span className="text-slate-200 text-xs font-medium flex-1 truncate">Road Rage</span>
           <div className="flex items-center gap-0.5">
             <button className="w-7 h-7 flex items-center justify-center text-slate-400 text-xs">⏮</button>
-            <button className="w-7 h-7 flex items-center justify-center text-slate-300 text-xs">⏸</button>
+            <button className="w-7 h-7 flex items-center justify-center text-slate-200 text-xs">⏸</button>
             <button className="w-7 h-7 flex items-center justify-center text-slate-400 text-xs">⏭</button>
           </div>
         </div>
 
         {/* Stop */}
         <div className="w-full relative mt-1">
-          <div className="absolute inset-0 bg-red-700 rounded-2xl blur-xl opacity-40" />
+          <div className="absolute inset-0 bg-red-600 rounded-2xl blur-xl opacity-50" />
           <button
-            className="relative w-full bg-gradient-to-b from-red-500 to-red-700 border border-red-400/40 text-white font-bold py-5 rounded-2xl text-xl tracking-wider"
-            style={{ boxShadow: "inset 0 2px 10px rgba(255,255,255,0.25)" }}
+            className="relative w-full bg-gradient-to-b from-red-500 to-red-700 border border-red-400/50 text-white font-bold py-5 rounded-2xl text-xl tracking-wider"
+            style={{ boxShadow: "inset 0 2px 10px rgba(255,255,255,0.3)" }}
           >
             STOP
           </button>
