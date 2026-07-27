@@ -57,6 +57,7 @@ import { MoodCheckIn } from "@/components/MoodCheckIn";
 import { SweetSpotCard } from "@/components/SweetSpotCard";
 import { WelcomeBackCard } from "@/components/WelcomeBackCard";
 import { ColdAdaptationCard } from "@/components/ColdAdaptationCard";
+import { TryThisNextCard } from "@/components/TryThisNextCard";
 import { loadFriends as loadFriendsImpl } from "@/lib/loadFriends";
 import { searchFriends as searchFriendsImpl } from "@/lib/searchFriends";
 import { sendFriendRequest as sendFriendRequestImpl } from "@/lib/sendFriendRequest";
@@ -3982,6 +3983,9 @@ export default function Home() {
 
             {/* Cold Adaptation chart — monthly trend, 2+ months of check-ins */}
             <ColdAdaptationCard plunges={plunges} />
+
+            {/* Try This Next nudge — personalised action based on trend/state */}
+            <TryThisNextCard plunges={plunges} />
 
             {/* Sweet Spot card — shown after 10+ check-ins */}
             <SweetSpotCard plunges={plunges} />
