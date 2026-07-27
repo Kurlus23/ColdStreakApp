@@ -3986,6 +3986,21 @@ export default function Home() {
             {/* Sweet Spot card — shown after 10+ check-ins */}
             <SweetSpotCard plunges={plunges} />
 
+            {/* Link to full web insights dashboard */}
+            <a
+              href="/insights"
+              className="flex items-center justify-between w-full px-4 py-3 mb-4 rounded-2xl border border-cyan-500/25 bg-cyan-950/30 hover:bg-cyan-900/30 hover:border-cyan-500/50 transition-all active:scale-[0.98] group"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-lg">✨</span>
+                <div>
+                  <p className="text-cyan-200 text-sm font-semibold leading-tight">Full Insights Dashboard</p>
+                  <p className="text-blue-400 text-[11px] leading-tight mt-0.5">Deeper charts & patterns on the web</p>
+                </div>
+              </div>
+              <span className="text-cyan-500 group-hover:text-cyan-300 transition-colors text-sm font-bold">→</span>
+            </a>
+
             {isLoading ? (
               <div className="space-y-3">{[1,2,3].map((i) => <div key={i} className="h-20 bg-blue-900/40 rounded-2xl animate-pulse" />)}</div>
             ) : !plunges.length ? (
