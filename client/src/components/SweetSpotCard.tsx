@@ -1,14 +1,13 @@
 /**
- * SweetSpotCard — shows a user's personalised cold-plunge sweet spot
- * after they have at least 10 completed check-ins.
+ * SweetSpotCard — personalised cold-plunge sweet spot + adaptation trend.
  *
- * Algorithm:
- *   1. Filter plunges to those with a mood check-in (mood != null).
- *   2. Bucket by temp (5 °F bands) × duration (4 buckets).
- *   3. Find the bucket with ≥ 3 data points and the highest composite
- *      score (avg mood normalised 0–1 + avg energy normalised 0–1).
- *   4. Report what the sweet spot is best for (mood, energy, or both).
- *   5. Show a confidence level based on sample size.
+ * Sweet Spot (10+ check-ins):
+ *   Bucket by temp × duration → highest composite mood+energy score.
+ *
+ * Adaptation Trend (20+ check-ins):
+ *   Compare first-10 vs most-recent-10 check-in composite scores.
+ *   If the recent batch outscores the early batch meaningfully, surface the
+ *   improvement in plain language using only "associated with" phrasing.
  */
 
 import { type Plunge } from "@shared/schema";
@@ -45,13 +44,84 @@ function durBand(s: number) {
 
 interface Bucket {
   tempLabel: string;
-  durLabel: string;
-  moodSum: number;
+  durLabel:  string;
+  moodSum:   number;
   energySum: number;
-  count: number;
+  count:     number;
   moodCount: number;
   energyCount: number;
 }
+
+// Composite score (0–1) for a plunge's check-in
+function compositeScore(p: Plunge): number {
+  const moodNorm   = p.mood        != null ? (p.mood       - 1) / 4 : null;
+  const energyNorm = p.moodEnergy  != null ? (p.moodEnergy - 1) / 2 : null;
+  if (moodNorm === null && energyNorm === null) return 0;
+  if (moodNorm === null) return energyNorm!;
+  if (energyNorm === null) return moodNorm;
+  return (moodNorm + energyNorm) / 2;
+}
+
+// ── Adaptation trend ──────────────────────────────────────────────────────────
+
+interface AdaptationTrend {
+  improved: boolean;
+  metrics: string[];  // e.g. ["Mood", "Energy"]
+  deltaStr: string;   // e.g. "+18%"
+}
+
+function computeAdaptationTrend(rated: Plunge[]): AdaptationTrend | null {
+  if (rated.length < 20) return null;
+
+  // Sort oldest → newest
+  const sorted = [...rated].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+
+  const first10  = sorted.slice(0, 10);
+  const recent10 = sorted.slice(-10);
+
+  const avgScore = (group: Plunge[]) => {
+    const scores = group.map(compositeScore);
+    return scores.reduce((s, v) => s + v, 0) / scores.length;
+  };
+
+  const earlyAvg  = avgScore(first10);
+  const recentAvg = avgScore(recent10);
+  const delta     = recentAvg - earlyAvg;
+
+  if (delta < 0.05) return null; // not enough improvement to surface
+
+  // Determine which specific metrics improved
+  const avgMood = (group: Plunge[]) => {
+    const w = group.filter((p) => p.mood != null);
+    return w.length > 0 ? w.reduce((s, p) => s + p.mood!, 0) / w.length : null;
+  };
+  const avgEnergy = (group: Plunge[]) => {
+    const w = group.filter((p) => p.moodEnergy != null);
+    return w.length > 0 ? w.reduce((s, p) => s + p.moodEnergy!, 0) / w.length : null;
+  };
+  const avgFocus = (group: Plunge[]) => {
+    const w = group.filter((p) => p.moodFocus != null);
+    return w.length > 0 ? w.reduce((s, p) => s + p.moodFocus!, 0) / w.length : null;
+  };
+
+  const metrics: string[] = [];
+  const em = [avgMood(first10), avgMood(recent10)];
+  const ee = [avgEnergy(first10), avgEnergy(recent10)];
+  const ef = [avgFocus(first10), avgFocus(recent10)];
+
+  if (em[0] != null && em[1] != null && em[1] > em[0] + 0.2) metrics.push("Mood");
+  if (ee[0] != null && ee[1] != null && ee[1] > ee[0] + 0.15) metrics.push("Energy");
+  if (ef[0] != null && ef[1] != null && ef[1] > ef[0] + 0.15) metrics.push("Focus");
+
+  if (metrics.length === 0) metrics.push("overall responses");
+
+  const deltaPct = Math.round(delta * 100);
+  return { improved: true, metrics, deltaStr: `+${deltaPct}%` };
+}
+
+// ── Sweet Spot computation ────────────────────────────────────────────────────
 
 function computeSweetSpot(plunges: Plunge[]) {
   const rated = plunges.filter((p) => p.mood != null);
@@ -60,24 +130,22 @@ function computeSweetSpot(plunges: Plunge[]) {
   const map = new Map<string, Bucket>();
 
   for (const p of rated) {
-    const tb = tempBand(p.temperature);
-    const db = durBand(p.duration);
+    const tb  = tempBand(p.temperature);
+    const db  = durBand(p.duration);
     const key = `${tb.label}||${db.label}`;
     if (!map.has(key)) {
       map.set(key, {
-        tempLabel: tb.label,
-        durLabel: db.label,
+        tempLabel: tb.label, durLabel: db.label,
         moodSum: 0, energySum: 0,
         count: 0, moodCount: 0, energyCount: 0,
       });
     }
     const b = map.get(key)!;
     b.count++;
-    if (p.mood != null) { b.moodSum += p.mood; b.moodCount++; }
+    if (p.mood       != null) { b.moodSum   += p.mood;       b.moodCount++;   }
     if (p.moodEnergy != null) { b.energySum += p.moodEnergy; b.energyCount++; }
   }
 
-  // Score each bucket: normalised avg mood (1–5 → 0–1) + normalised avg energy (1–3 → 0–1)
   let best: (Bucket & { score: number; avgMood: number; avgEnergy: number | null }) | null = null;
 
   for (const b of Array.from(map.values())) {
@@ -85,18 +153,15 @@ function computeSweetSpot(plunges: Plunge[]) {
     const avgMood   = b.moodCount   > 0 ? b.moodSum   / b.moodCount   : 0;
     const avgEnergy = b.energyCount > 0 ? b.energySum / b.energyCount : null;
 
-    const moodNorm   = (avgMood - 1) / 4;          // 1–5 → 0–1
-    const energyNorm = avgEnergy != null ? (avgEnergy - 1) / 2 : moodNorm; // 1–3 → 0–1
+    const moodNorm   = (avgMood - 1) / 4;
+    const energyNorm = avgEnergy != null ? (avgEnergy - 1) / 2 : moodNorm;
     const score      = (moodNorm + energyNorm) / 2;
 
-    if (!best || score > best.score) {
-      best = { ...b, score, avgMood, avgEnergy };
-    }
+    if (!best || score > best.score) best = { ...b, score, avgMood, avgEnergy };
   }
 
   if (!best) return null;
 
-  // Determine what it's "best for"
   const moodGood   = best.avgMood   >= 4;
   const energyGood = best.avgEnergy != null && best.avgEnergy >= 2.5;
   const bestFor    = moodGood && energyGood ? "Mood + Energy"
@@ -105,16 +170,11 @@ function computeSweetSpot(plunges: Plunge[]) {
     : "Overall";
 
   const confidence = rated.length >= 30 ? "High"
-    : rated.length >= 15 ? "Medium"
-    : "Low";
+    : rated.length >= 15 ? "Medium" : "Low";
 
-  return {
-    tempLabel: best.tempLabel,
-    durLabel:  best.durLabel,
-    bestFor,
-    confidence,
-    sampleSize: rated.length,
-  };
+  const trend = computeAdaptationTrend(rated);
+
+  return { tempLabel: best.tempLabel, durLabel: best.durLabel, bestFor, confidence, sampleSize: rated.length, trend };
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -130,7 +190,7 @@ export function SweetSpotCard({ plunges }: Props) {
   return (
     <div
       data-testid="sweet-spot-card"
-      className="mx-4 mb-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-blue-950 to-slate-900 p-4 shadow-lg"
+      className="mb-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-blue-950 to-slate-900 p-4 shadow-lg"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
@@ -167,9 +227,26 @@ export function SweetSpotCard({ plunges }: Props) {
         </div>
       </div>
 
+      {/* Adaptation trend — only shown when there's enough data */}
+      {spot.trend && (
+        <div className="flex items-start gap-2 bg-emerald-900/20 border border-emerald-500/25 rounded-xl px-3 py-2.5 mb-3">
+          <span className="text-base leading-none mt-0.5">📈</span>
+          <div>
+            <p className="text-emerald-300 text-[11px] font-semibold leading-snug">
+              Cold adaptation detected
+            </p>
+            <p className="text-slate-400 text-[10px] leading-relaxed mt-0.5">
+              Your <span className="text-emerald-300">{spot.trend.metrics.join(" & ")}</span> responses
+              after plunging are <em>associated with</em> higher ratings compared with
+              your first 10 check-ins ({spot.trend.deltaStr} composite).
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Disclaimer */}
       <p className="text-slate-500 text-[9px] leading-relaxed">
-        This range is most consistently <em>associated with</em> your highest mood &amp; energy ratings after plunging — not a medical recommendation.
+        Results are based on your self-reported check-ins and are correlational — not medical data.
       </p>
     </div>
   );

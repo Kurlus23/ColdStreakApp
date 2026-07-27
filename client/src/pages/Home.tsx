@@ -55,6 +55,8 @@ import { type Plunge, type UserLocation, usernameSchema } from "@shared/schema";
 import { pickColdTake, type ColdTakeContext } from "@shared/coldTakes";
 import { MoodCheckIn } from "@/components/MoodCheckIn";
 import { SweetSpotCard } from "@/components/SweetSpotCard";
+import { WelcomeBackCard } from "@/components/WelcomeBackCard";
+import { ColdAdaptationCard } from "@/components/ColdAdaptationCard";
 import { loadFriends as loadFriendsImpl } from "@/lib/loadFriends";
 import { searchFriends as searchFriendsImpl } from "@/lib/searchFriends";
 import { sendFriendRequest as sendFriendRequestImpl } from "@/lib/sendFriendRequest";
@@ -3974,6 +3976,12 @@ export default function Home() {
                 </div>
               </div>
             )}
+
+            {/* Welcome back — shown after a 7+ day gap */}
+            <WelcomeBackCard plunges={plunges} />
+
+            {/* Cold Adaptation chart — monthly trend, 2+ months of check-ins */}
+            <ColdAdaptationCard plunges={plunges} />
 
             {/* Sweet Spot card — shown after 10+ check-ins */}
             <SweetSpotCard plunges={plunges} />
