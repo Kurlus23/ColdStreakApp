@@ -28,6 +28,7 @@ import { useProStatus, PENDING_CHECKOUT_KEY, PENDING_SESSION_KEY } from "@/hooks
 import { PlungeCard, buildShareText } from "@/components/PlungeCard";
 import { ColdTakeOverlay } from "@/components/ColdTakeOverlay";
 import { MusicWidget, MusicTransportMini, openMusic, shouldAutoPlay } from "@/components/MusicWidget";
+import { BenefitBar } from "@/components/BenefitBar";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
 import { Analytics } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
@@ -3297,6 +3298,8 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Benefit progress bar — shown during and after a plunge */}
+          <BenefitBar elapsedSeconds={elapsedSeconds} tempF={temperature} isActive={isActive} />
 
           {/* Weekly goal / score row */}
           <div
