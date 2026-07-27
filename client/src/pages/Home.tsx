@@ -5136,7 +5136,7 @@ export default function Home() {
                           <div
                             key={f.friendshipId}
                             onClick={() => isMe ? setScreen("achievements") : setSelectedFriend(f)}
-                            className={`flex flex-col gap-2 rounded-2xl px-4 py-3 border cursor-pointer active:opacity-75 transition-opacity ${
+                            className={`relative flex flex-col gap-2 rounded-2xl px-4 py-3 border cursor-pointer active:opacity-75 transition-opacity ${
                               isMe
                                 ? 'bg-cyan-900/40 border-cyan-700/50'
                                 : 'bg-blue-900/60 border-blue-700/40'
@@ -5172,7 +5172,7 @@ export default function Home() {
                                 </div>
                               </div>
                             </div>
-                            {/* Challenge button on its own row */}
+                            {/* Challenge pill — top-right corner */}
                             {!isMe && (
                               <button
                                 data-testid={`button-challenge-${f.userId}`}
@@ -5187,8 +5187,8 @@ export default function Home() {
                                   setChallengingId(null);
                                 }}
                                 disabled={challengingId === f.userId}
-                                className="w-full py-1.5 rounded-xl bg-orange-500/20 border border-orange-500/40 text-orange-300 text-[10px] font-bold hover:bg-orange-500/30 transition-colors active:scale-95 disabled:opacity-40"
-                              >{challengingId === f.userId ? "Sending…" : "⚡ Challenge"}</button>
+                                className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-300 text-[9px] font-bold hover:bg-orange-500/30 transition-colors active:scale-95 disabled:opacity-40 leading-none"
+                              >{challengingId === f.userId ? "…" : "⚡ Challenge"}</button>
                             )}
                           </div>
                         );
