@@ -177,13 +177,9 @@ export function CoachWalkthrough({ tourType, onComplete }: Props) {
         }
       `}</style>
 
-      {/* Dimmed backdrop */}
+      {/* Tap-away area — transparent, just catches taps outside the card */}
       <div
-        className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-[1px]"
-        style={{
-          opacity: visible ? 1 : 0,
-          transition: "opacity 0.3s ease",
-        }}
+        className="fixed inset-0 z-[60]"
         onClick={complete}
       />
 
