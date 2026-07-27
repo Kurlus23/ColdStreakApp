@@ -3190,20 +3190,6 @@ export default function Home() {
       {screen === "timer" && (
         <div className="absolute bottom-20 left-0 right-0 px-3 pb-2">
 
-          {/* ── Benefit bar (home screen) ── */}
-          {/* Uses full today total — no 2-hour window; once earned, stays lit until midnight */}
-          <div className="rounded-2xl mb-2 px-3 pt-2 pb-1 bg-blue-950/90 backdrop-blur-sm border border-blue-800/50">
-            <BenefitBar
-              elapsedSeconds={elapsedSeconds}
-              tempF={temperature}
-              isActive={isActive}
-              todayLoggedSeconds={todayTotalSec}
-              bodyWeightLbs={bodyWeightLbs}
-              bodyHeightCm={bodyHeightCm}
-              lastPlungeEndedAt={lastPlungeEndedAt}
-            />
-          </div>
-
           {/* ── Unified stat panel ── */}
           <div className="rounded-2xl mb-3 relative bg-blue-950/90 backdrop-blur-sm border border-blue-800/50" data-testid="card-stat-panel">
 
@@ -3432,6 +3418,20 @@ export default function Home() {
               })()}
 
             </div>
+          </div>
+
+          {/* ── Benefit bar (home screen) ── */}
+          {/* Uses full today total — no 2-hour window; once earned, stays lit until midnight */}
+          <div className="rounded-2xl mt-2 px-3 pt-2 pb-1 bg-blue-950/90 backdrop-blur-sm border border-blue-800/50">
+            <BenefitBar
+              elapsedSeconds={elapsedSeconds}
+              tempF={temperature}
+              isActive={isActive}
+              todayLoggedSeconds={todayTotalSec}
+              bodyWeightLbs={bodyWeightLbs}
+              bodyHeightCm={bodyHeightCm}
+              lastPlungeEndedAt={lastPlungeEndedAt}
+            />
           </div>
 
         </div>
