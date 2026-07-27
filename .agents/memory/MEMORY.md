@@ -8,3 +8,4 @@
 - [Mockup sandbox registry restart](mockup-sandbox-registry-restart.md) — new mockup files need a preview-server workflow restart; screenshot previews via external_url only.
 - [Mockup sandbox gotchas](mockup-sandbox-gotchas.md) — only import packages in the sandbox package.json (react-icons breaks React); cache-bust repeat screenshots.
 - [iOS bounce/scroll + home-indicator fix](ios-bounce-scroll-fix.md) — correct fix needs contentInset:"never" + #root clamped by env(); all CSS-only approaches fail with contentInset:"automatic".
+- [BenefitBar session model](benefit-bar-session-model.md) — 2-hour carry-over window for interrupted sessions; 3x/day plungers get independent bars (science-backed).
