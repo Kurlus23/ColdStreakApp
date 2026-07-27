@@ -159,7 +159,7 @@ export function CoachFAB({ authToken }: Props) {
       <button
         onClick={openPanel}
         aria-label="Open coach"
-        className="fixed bottom-24 right-4 z-40 w-13 h-13 rounded-full shadow-lg flex items-center justify-center transition-transform active:scale-95"
+        className="fixed left-4 z-40 w-13 h-13 rounded-full shadow-lg flex items-center justify-center transition-transform active:scale-95" style={{ top: "calc(env(safe-area-inset-top, 0px) + 56px)" }}
         style={{
           width: 52,
           height: 52,
