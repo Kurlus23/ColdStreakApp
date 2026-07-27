@@ -352,6 +352,7 @@ export default function Home() {
   interface FriendRequest { friendshipId: number; requesterId: number; requesterUsername: string | null; requesterDisplayName: string | null; requesterAvatarUrl: string | null; requesterStreak: number; requesterPlungeCount: number; createdAt: string; }
   interface UserResult { id: number; username: string | null; displayName: string | null; avatarUrl: string | null; friendshipStatus: string | null; }
   const [friends, setFriends] = useState<FriendEntry[]>([]);
+  const [activeChallengerUserId, setActiveChallengerUserId] = useState<number | null>(null);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [friendsView, setFriendsView] = useState<'friends' | 'add'>('friends');
@@ -395,7 +396,12 @@ export default function Home() {
   // Shows a toast when an action silently failed (e.g. duplicate tap).
   useEffect(() => {
     const handleSwMessage = (event: MessageEvent) => {
-      if (event.data?.type === "friend-request-resolved") {
+      if (event.data?.type === "notification-navigate") {
+        // Challenge notification tapped while app was already open
+        const url = event.data?.url ?? "";
+        const id = Number(new URLSearchParams(url.split("?")[1] ?? "").get("challenger"));
+        if (id) setActiveChallengerUserId(id);
+      } else if (event.data?.type === "friend-request-resolved") {
         loadFriends();
         if (!isOnFriendsScreenRef.current) {
           setFriendsBadge(true);
@@ -413,6 +419,18 @@ export default function Home() {
       navigator.serviceWorker?.removeEventListener("message", handleSwMessage);
     };
   }, [loadFriends]);
+
+  // Read ?challenger= from URL on first load (tapping a challenge notification)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = Number(params.get("challenger"));
+    if (id) {
+      setActiveChallengerUserId(id);
+      // Clean the param from the URL without a reload
+      const clean = window.location.pathname;
+      window.history.replaceState({}, "", clean);
+    }
+  }, []);
 
   // No auto-open login modal — users discover signup organically through
   // the nudge that fires after their first plunge.
@@ -2850,6 +2868,12 @@ export default function Home() {
   // Benefit bar carry-over: only accumulate prior sessions if the most recent
   // one finished within 2 hours (interrupted / back-to-back session).
   // A fresh session after a long gap gets a clean bar.
+  // Active challenger — friend whose score we're competing against this plunge
+  const activeChallengerFriend = activeChallengerUserId
+    ? (friends.find((f) => f.userId === activeChallengerUserId) ?? null)
+    : null;
+  const challengerScore = activeChallengerFriend?.latestScore ?? activeChallengerFriend?.bestScore ?? null;
+
   const benefitCarryOver = (() => {
     if (todayPlunges.length === 0) return 0;
     const lastPlunge = todayPlunges.reduce((latest, p) =>
@@ -7335,6 +7359,24 @@ export default function Home() {
                 <div className="text-cyan-400 text-[10px] uppercase tracking-widest mb-1 font-semibold">Cold Score</div>
                 <div className="text-cyan-300 text-3xl font-bold tracking-tight animate-pulse-glow">{displayScore}</div>
               </div>
+              {challengerScore !== null && activeChallengerFriend && (
+                <>
+                  <div className="w-px h-12 bg-gradient-to-b from-transparent via-slate-700 to-transparent" />
+                  <div className="flex flex-col items-center relative">
+                    <div className="text-rose-400 text-[10px] uppercase tracking-widest mb-1 font-semibold">
+                      vs {activeChallengerFriend.displayName || activeChallengerFriend.username || "Friend"}
+                    </div>
+                    <div className="text-rose-300 text-3xl font-bold tracking-tight" style={{ textShadow: "0 0 15px rgba(251,113,133,0.4)" }}>
+                      {challengerScore.toFixed(1)}
+                    </div>
+                    <button
+                      onClick={() => setActiveChallengerUserId(null)}
+                      className="absolute -top-2 -right-3 text-slate-500 hover:text-slate-300 text-[10px] leading-none"
+                      title="Dismiss challenge"
+                    >✕</button>
+                  </div>
+                </>
+              )}
               {personalBest > 0 && (
                 <>
                   <div className="w-px h-12 bg-gradient-to-b from-transparent via-slate-700 to-transparent" />

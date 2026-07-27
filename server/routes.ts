@@ -1579,7 +1579,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     const payload = JSON.stringify({
       title: `❄️ ${name} challenged you!`,
       body: "They just plunged. Can you handle the cold?",
-      url: "/",
+      url: `/?challenger=${caller.userId}`,
       tag: `challenge-${caller.userId}`,
     });
 
