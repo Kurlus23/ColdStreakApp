@@ -5125,7 +5125,8 @@ export default function Home() {
                         return (
                           <div
                             key={f.friendshipId}
-                            className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${
+                            onClick={() => isMe ? setScreen("achievements") : setSelectedFriend(f)}
+                            className={`flex items-center gap-3 rounded-2xl px-4 py-3 border cursor-pointer active:opacity-75 transition-opacity ${
                               isMe
                                 ? 'bg-cyan-900/40 border-cyan-700/50'
                                 : 'bg-blue-900/60 border-blue-700/40'
@@ -5195,6 +5196,83 @@ export default function Home() {
                       )}
                     </>);
                   })()}
+                </div>
+              )}
+
+              {/* ── Friend profile sheet ── */}
+              {selectedFriend && (
+                <div
+                  className="absolute inset-0 z-10 flex flex-col justify-end"
+                  style={{ background: "rgba(4,15,30,0.7)", backdropFilter: "blur(6px)" }}
+                  onClick={() => setSelectedFriend(null)}
+                >
+                  <div
+                    className="rounded-t-3xl px-6 pt-6 pb-10 space-y-5"
+                    style={{ background: "linear-gradient(to bottom, #0d2240, #071428)", border: "1px solid rgba(34,211,238,0.15)", borderBottom: "none" }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {selectedFriend.avatarUrl ? (
+                          <img src={selectedFriend.avatarUrl} alt="" className="w-14 h-14 rounded-2xl object-cover border border-blue-700/50" />
+                        ) : (
+                          <div className="w-14 h-14 rounded-2xl bg-blue-800/80 border border-blue-700/50 flex items-center justify-center">
+                            <User className="w-6 h-6 text-blue-400" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-white font-bold text-lg leading-tight">{selectedFriend.displayName || selectedFriend.username || "Friend"}</p>
+                          {selectedFriend.username && <p className="text-blue-400 text-xs">@{selectedFriend.username}</p>}
+                        </div>
+                      </div>
+                      <button onClick={() => setSelectedFriend(null)} className="text-slate-500 hover:text-slate-300 transition-colors">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Stats row */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="rounded-2xl p-3 text-center" style={{ background: "rgba(14,30,54,0.8)", border: "1px solid rgba(34,211,238,0.12)" }}>
+                        <p className="text-orange-400 text-xl font-black">{selectedFriend.streak}</p>
+                        <p className="text-slate-500 text-[10px] uppercase tracking-wider mt-0.5">Streak</p>
+                      </div>
+                      <div className="rounded-2xl p-3 text-center" style={{ background: "rgba(14,30,54,0.8)", border: "1px solid rgba(34,211,238,0.12)" }}>
+                        <p className="text-cyan-400 text-xl font-black">{selectedFriend.latestScore != null ? selectedFriend.latestScore.toFixed(1) : "—"}</p>
+                        <p className="text-slate-500 text-[10px] uppercase tracking-wider mt-0.5">Today</p>
+                      </div>
+                      <div className="rounded-2xl p-3 text-center" style={{ background: "rgba(14,30,54,0.8)", border: "1px solid rgba(34,211,238,0.12)" }}>
+                        <p className="text-yellow-400 text-xl font-black">{selectedFriend.bestScore != null ? selectedFriend.bestScore.toFixed(1) : "—"}</p>
+                        <p className="text-slate-500 text-[10px] uppercase tracking-wider mt-0.5">Best</p>
+                      </div>
+                    </div>
+
+                    {/* Plunge status */}
+                    <p className="text-center text-sm">
+                      {selectedFriend.plungedToday
+                        ? <span className="text-green-400 font-semibold">✓ Plunged today</span>
+                        : <span className="text-blue-500">– Hasn't plunged yet today</span>}
+                    </p>
+
+                    {/* Challenge */}
+                    <button
+                      onClick={async () => {
+                        if (challengingId === selectedFriend.userId) return;
+                        setChallengingId(selectedFriend.userId);
+                        await sendFriendChallengeImpl(selectedFriend.userId, selectedFriend.displayName || selectedFriend.username || "Friend", {
+                          authFetch, navigate, toast,
+                          clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                        });
+                        setChallengingId(null);
+                        setSelectedFriend(null);
+                      }}
+                      disabled={challengingId === selectedFriend.userId}
+                      className="w-full py-4 rounded-2xl font-bold text-sm tracking-wide transition-all active:scale-95 disabled:opacity-50"
+                      style={{ background: "linear-gradient(135deg, #c2410c, #f97316)", color: "#fff", boxShadow: "0 0 20px rgba(249,115,22,0.35)" }}
+                    >
+                      {challengingId === selectedFriend.userId ? "Sending…" : `⚡ Challenge ${(selectedFriend.displayName || selectedFriend.username || "them").split(" ")[0]}`}
+                    </button>
+                  </div>
                 </div>
               )}
 
