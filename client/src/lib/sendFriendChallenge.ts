@@ -41,11 +41,10 @@ export async function sendFriendChallenge(
 
     const r = await res.json();
     toast({
-      title: r.sent ? "❄️ Challenge sent!" : "Could not send",
+      title: "❄️ Challenge sent!",
       description: r.sent
         ? `${displayName} was notified.`
-        : "They may not have notifications on.",
-      variant: r.sent ? "default" : "destructive",
+        : `${displayName} will see it next time they open the app.`,
     });
   } catch {
     toast({

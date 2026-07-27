@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Clock, Trash2, Heart, MapPin, Share2, Flame, Download, Pencil, Check, X, Thermometer } from "lucide-react";
+import { Clock, Trash2, Heart, MapPin, Share2, Flame, Download, Pencil, Check, X, Thermometer, Zap } from "lucide-react";
 import { type Plunge, type UserLocation } from "@shared/schema";
 import { PASSPORT_LOCATIONS } from "@/lib/passport";
 import { useDeletePlunge, useUpdatePlunge } from "@/hooks/use-plunges";
@@ -29,6 +29,12 @@ function calcScore(durationSeconds: number, tempF: number): number {
   return Math.round(Math.sqrt(minutes) * coldFactor * 10) / 10;
 }
 
+export interface ChallengeFriend {
+  userId: number;
+  displayName: string | null;
+  username: string | null;
+}
+
 interface PlungeCardProps {
   plunge: Plunge;
   bodyWeightLbs?: number;
@@ -38,6 +44,8 @@ interface PlungeCardProps {
   communityLocs?: UserLocation[];
   isPro?: boolean;
   avatarUrl?: string | null;
+  friends?: ChallengeFriend[];
+  onChallengeFriend?: (userId: number, displayName: string) => void;
 }
 
 function formatTime(totalSeconds: number) {
@@ -144,7 +152,7 @@ function resolveLocationDisplay(locId: string | null | undefined, locName: strin
   return null;
 }
 
-export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, homeLabel, communityLocs = [], isPro = false, avatarUrl }: PlungeCardProps) {
+export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, homeLabel, communityLocs = [], isPro = false, avatarUrl, friends = [], onChallengeFriend }: PlungeCardProps) {
   const deletePlunge = useDeletePlunge();
   const updatePlunge = useUpdatePlunge();
   const { toast } = useToast();
@@ -162,6 +170,9 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
   const [editTemp, setEditTemp] = useState(50);
   const [editDate, setEditDate] = useState("");
   const [editTime, setEditTime] = useState("");
+
+  const [showChallengePicker, setShowChallengePicker] = useState(false);
+  const [challengingFriendId, setChallengingFriendId] = useState<number | null>(null);
 
   const calories = plunge.calories ?? Math.round(estimateCalories(plunge.duration, plunge.temperature, bodyWeightLbs));
 
@@ -500,6 +511,20 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
 
           {/* Action buttons — icon only, right-aligned */}
           <div className="flex items-center gap-0.5 shrink-0">
+            {friends.length > 0 && onChallengeFriend && (
+              <button
+                data-testid={`button-challenge-picker-${plunge.id}`}
+                onClick={() => setShowChallengePicker((v) => !v)}
+                title="Challenge a friend"
+                className={`p-1.5 rounded-lg transition-all active:scale-95 ${
+                  showChallengePicker
+                    ? "text-orange-400 bg-orange-500/10"
+                    : "text-slate-500 hover:text-orange-400 hover:bg-orange-500/10"
+                }`}
+              >
+                <Zap className="w-4 h-4" />
+              </button>
+            )}
             <button
               data-testid={`button-share-plunge-${plunge.id}`}
               onClick={() => handleShare()}
@@ -545,6 +570,33 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, username, streak, home
             </button>
           </div>
         </div>
+
+        {/* Challenge friend picker */}
+        {showChallengePicker && friends.length > 0 && onChallengeFriend && (
+          <div className="relative z-10 mt-2 mb-1 flex flex-wrap gap-1.5">
+            {friends.map((f) => {
+              const name = f.displayName || f.username || "Friend";
+              const isSending = challengingFriendId === f.userId;
+              return (
+                <button
+                  key={f.userId}
+                  data-testid={`button-challenge-friend-${f.userId}-plunge-${plunge.id}`}
+                  disabled={isSending || challengingFriendId !== null}
+                  onClick={async () => {
+                    setChallengingFriendId(f.userId);
+                    await onChallengeFriend(f.userId, name);
+                    setChallengingFriendId(null);
+                    setShowChallengePicker(false);
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/15 border border-orange-500/30 text-orange-300 text-xs font-semibold hover:bg-orange-500/25 transition-all active:scale-95 disabled:opacity-40"
+                >
+                  <Zap className="w-3 h-3 shrink-0" />
+                  {isSending ? "…" : name}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Main info row */}
         <div className="relative z-10 flex items-center gap-3">

@@ -3890,7 +3890,23 @@ export default function Home() {
                 <div className="space-y-3">
                   {visible.map((plunge, idx) => (
                     <Fragment key={plunge.id}>
-                      <PlungeCard plunge={plunge} bodyWeightLbs={bodyWeightLbs} username={username} streak={streak} homeLabel={homeLabel} communityLocs={communityLocs} isPro={isPro} avatarUrl={ownAvatarUrl} />
+                      <PlungeCard
+                        plunge={plunge}
+                        bodyWeightLbs={bodyWeightLbs}
+                        username={username}
+                        streak={streak}
+                        homeLabel={homeLabel}
+                        communityLocs={communityLocs}
+                        isPro={isPro}
+                        avatarUrl={ownAvatarUrl}
+                        friends={friends.map((f) => ({ userId: f.userId, displayName: f.displayName, username: f.username }))}
+                        onChallengeFriend={async (userId, displayName) => {
+                          await sendFriendChallengeImpl(userId, displayName, {
+                            authFetch, navigate, toast,
+                            clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                          });
+                        }}
+                      />
                     </Fragment>
                   ))}
                   {locked.length > 0 && (
