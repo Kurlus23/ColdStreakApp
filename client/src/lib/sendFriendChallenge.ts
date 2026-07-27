@@ -6,7 +6,7 @@ export interface SendFriendChallengeDeps {
   authFetch: (url: string, opts?: RequestInit) => Promise<Response>;
   navigate: (path: string) => void;
   toast: (opts: { title: string; description?: string; variant?: string }) => void;
-  onSettled: () => void;
+  onSettled?: () => void;
   clearAuthToken: () => void;
 }
 
@@ -15,7 +15,7 @@ export async function sendFriendChallenge(
   displayName: string,
   deps: SendFriendChallengeDeps,
 ): Promise<void> {
-  const { authFetch, navigate, toast, onSettled, clearAuthToken } = deps;
+  const { authFetch, navigate, toast, onSettled = () => {}, clearAuthToken } = deps;
 
   try {
     const res = await authFetch(`/api/friends/challenge/${friendUserId}`, {

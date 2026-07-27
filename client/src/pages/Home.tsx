@@ -5187,8 +5187,12 @@ export default function Home() {
                                   setChallengingId(null);
                                 }}
                                 disabled={challengingId === f.userId}
-                                className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-300 text-[9px] font-bold hover:bg-orange-500/30 transition-colors active:scale-95 disabled:opacity-40 leading-none"
-                              >{challengingId === f.userId ? "…" : "⚡ Challenge"}</button>
+                                className={`absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[9px] font-bold transition-colors active:scale-95 disabled:opacity-40 leading-none ${
+                                  f.plungedToday && f.latestScore != null && todayScore > 0 && f.latestScore > todayScore
+                                    ? "bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/30"
+                                    : "bg-orange-500/20 border border-orange-500/40 text-orange-300 hover:bg-orange-500/30"
+                                }`}
+                              >{challengingId === f.userId ? "…" : (f.plungedToday && f.latestScore != null && todayScore > 0 && f.latestScore > todayScore ? "🏆 Winner" : "⚡ Challenge")}</button>
                             )}
                           </div>
                         );
