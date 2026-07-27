@@ -209,7 +209,7 @@ interface Nudge {
   bgClass:     string;
 }
 
-function deriveNudge(plunges: Plunge[]): Nudge | null {
+export function deriveNudge(plunges: Plunge[]): Nudge | null {
   if (plunges.length < 10) return null;
 
   // Suppress this card when WelcomeBackCard is already visible (7+ day gap)
