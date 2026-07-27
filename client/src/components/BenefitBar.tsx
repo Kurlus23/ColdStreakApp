@@ -21,11 +21,17 @@ interface BenefitBarProps {
   bodyHeightCm?: number;
   /**
    * Unix ms timestamp of when the last cold session ended.
-   * When provided (and isActive is false), completed segments decay their fill
-   * over each segment's halfLifeHours while keeping their achievement border.
+   * Used as a fallback decay anchor when todayPlungesData is not provided.
    * Pass undefined during an active session.
    */
   lastPlungeEndedAt?: number;
+  /**
+   * Today's logged plunges in chronological order (oldest first).
+   * When provided, each segment decays from the timestamp of the specific
+   * plunge that first earned it — so a short second session doesn't reset
+   * the decay timer on segments earned hours earlier.
+   */
+  todayPlungesData?: { duration: number; createdAt: string | Date }[];
 }
 
 export function BenefitBar({
@@ -36,6 +42,7 @@ export function BenefitBar({
   bodyWeightLbs = 150,
   bodyHeightCm = 175,
   lastPlungeEndedAt,
+  todayPlungesData,
 }: BenefitBarProps) {
   const tempFactor = useMemo(() => getTempFactor(tempF), [tempF]);
   const bmiFactor  = useMemo(() => getBmiFactor(bodyWeightLbs, bodyHeightCm), [bodyWeightLbs, bodyHeightCm]);
@@ -98,6 +105,30 @@ export function BenefitBar({
     return () => clearInterval(id);
   }, [isActive, lastPlungeEndedAt]);
 
+  // ── Per-segment earned-at timestamps ─────────────────────────────────────
+  // Each segment decays from when IT was first earned today, not from whenever
+  // the most recent plunge ended. This prevents a short second session from
+  // resetting the decay timer on segments earned hours earlier.
+  const segmentEarnedAt = useMemo((): (number | undefined)[] => {
+    if (!todayPlungesData || todayPlungesData.length === 0) {
+      return SEGMENTS.map(() => lastPlungeEndedAt);
+    }
+    const sorted = [...todayPlungesData].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+    let running = 0;
+    const earnedAt: (number | undefined)[] = SEGMENTS.map(() => undefined);
+    for (const p of sorted) {
+      running += p.duration;
+      const plungeEnd = new Date(p.createdAt).getTime() + p.duration * 1000;
+      SEGMENTS.forEach((_, i) => {
+        if (earnedAt[i] !== undefined) return; // already recorded
+        if (running >= cumulative[i]) earnedAt[i] = plungeEnd;
+      });
+    }
+    return earnedAt;
+  }, [todayPlungesData, cumulative, lastPlungeEndedAt]);
+
   // ── Raw fill (0–100) based on total cold exposure ─────────────────────────
   const rawFills = SEGMENTS.map((_, i) => {
     const start = i === 0 ? 0 : cumulative[i - 1];
@@ -110,13 +141,15 @@ export function BenefitBar({
   // achievedToday[i] = segment was fully earned this calendar day
   const achievedToday = rawFills.map(f => f >= 100);
 
-  // ── Decayed fill (Option C) ────────────────────────────────────────────────
-  // For completed segments when not actively plunging, the fill fades linearly
-  // over halfLifeHours. The achievement border stays regardless.
+  // ── Decayed fill ──────────────────────────────────────────────────────────
+  // Completed segments fade over their halfLifeHours from the moment they were
+  // individually earned. Achievement border stays regardless.
   const decayedFills = SEGMENTS.map((seg, i) => {
     if (rawFills[i] < 100) return rawFills[i]; // not done yet — no decay
-    if (isActive || !lastPlungeEndedAt) return 100; // live session — no decay
-    const msElapsed = now - lastPlungeEndedAt;
+    if (isActive) return 100;                  // live session — no decay
+    const anchor = segmentEarnedAt[i];
+    if (!anchor) return 100;
+    const msElapsed = now - anchor;
     return Math.max(0, 100 * (1 - msElapsed / (seg.halfLifeHours * 3600 * 1000)));
   });
 
