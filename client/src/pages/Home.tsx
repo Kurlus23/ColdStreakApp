@@ -3188,19 +3188,18 @@ export default function Home() {
               className="bg-blue-900/75 backdrop-blur-md rounded-2xl p-3.5 border border-blue-700/40 flex flex-col"
               data-testid="card-water-temp"
             >
-              <div className="relative mb-1">
+              <div className="flex items-center justify-between mb-1">
                 <div className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest">Water Temp</div>
-                {/* Absolutely positioned — takes zero vertical space so it can't shift the number down */}
-                {btConnected && (
+                {btConnected ? (
                   <button
                     onClick={() => { navTo("settings"); setTimeout(() => setSettingsTab('settings'), 50); }}
-                    className="absolute top-0 right-0 flex items-center gap-1"
+                    className="flex items-center gap-1"
                     data-testid="button-bt-status-header"
                   >
                     <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
                     <span className="text-green-400 text-[9px] font-semibold">Live</span>
                   </button>
-                )}
+                ) : <span className="w-1.5 h-1.5" />}
               </div>
 
               {/* Styled native select — looks like a big number, native picker on tap */}
