@@ -391,6 +391,7 @@ export default function Home() {
   const [selectedFriend, setSelectedFriend] = useState<FriendEntry | null>(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteSending, setInviteSending] = useState(false);
+  const [respondingId, setRespondingId] = useState<number | null>(null);
   // Badge shown on the Friends nav when a friend request resolves while the
   // user is on a different screen. Cleared when they navigate to the Friends
   // section (Settings → User tab) and the list re-fetches.
@@ -5487,22 +5488,38 @@ export default function Home() {
                           <div className="flex gap-2">
                             <button
                               data-testid={`button-accept-${req.friendshipId}`}
-                              onClick={async () => await respondFriendRequestImpl(req.friendshipId, 'accepted', {
-                                authFetch, navigate, toast,
-                                onSuccess: async () => { await loadFriends(); setFriendsView('friends'); },
-                                clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
-                              })}
-                              className="flex-1 py-2 rounded-xl bg-green-700/50 border border-green-600/50 text-green-200 text-xs font-bold hover:bg-green-700/70 transition-colors active:scale-[0.98]"
-                            >✓ Accept</button>
+                              disabled={respondingId === req.friendshipId}
+                              onClick={async () => {
+                                setRespondingId(req.friendshipId);
+                                try {
+                                  await respondFriendRequestImpl(req.friendshipId, 'accepted', {
+                                    authFetch, navigate, toast,
+                                    onSuccess: async () => { await loadFriends(); setFriendsView('friends'); },
+                                    clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                                  });
+                                } finally {
+                                  setRespondingId(null);
+                                }
+                              }}
+                              className="flex-1 py-2 rounded-xl bg-green-700/50 border border-green-600/50 text-green-200 text-xs font-bold hover:bg-green-700/70 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+                            >{respondingId === req.friendshipId ? "…" : "✓ Accept"}</button>
                             <button
                               data-testid={`button-decline-${req.friendshipId}`}
-                              onClick={async () => await respondFriendRequestImpl(req.friendshipId, 'declined', {
-                                authFetch, navigate, toast,
-                                onSuccess: async () => { await loadFriends(); },
-                                clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
-                              })}
-                              className="flex-1 py-2 rounded-xl bg-blue-900/50 border border-blue-700/40 text-blue-300 text-xs font-bold hover:bg-red-900/30 hover:border-red-700/40 hover:text-red-300 transition-colors active:scale-[0.98]"
-                            >✕ Decline</button>
+                              disabled={respondingId === req.friendshipId}
+                              onClick={async () => {
+                                setRespondingId(req.friendshipId);
+                                try {
+                                  await respondFriendRequestImpl(req.friendshipId, 'declined', {
+                                    authFetch, navigate, toast,
+                                    onSuccess: async () => { await loadFriends(); },
+                                    clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+                                  });
+                                } finally {
+                                  setRespondingId(null);
+                                }
+                              }}
+                              className="flex-1 py-2 rounded-xl bg-blue-900/50 border border-blue-700/40 text-blue-300 text-xs font-bold hover:bg-red-900/30 hover:border-red-700/40 hover:text-red-300 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+                            >{respondingId === req.friendshipId ? "…" : "✕ Decline"}</button>
                           </div>
                         </div>
                       ))}
