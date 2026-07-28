@@ -3,9 +3,9 @@ type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 export const modules: ModuleMap = {
   "./components/mockups/bg-compare/FrostLake.tsx": () => import("../components/mockups/bg-compare/FrostLake.tsx"),
   "./components/mockups/bg-compare/IceCave.tsx": () => import("../components/mockups/bg-compare/IceCave.tsx"),
+  "./components/mockups/biz-profile/VerifiedProfile.tsx": () => import("../components/mockups/biz-profile/VerifiedProfile.tsx"),
   "./components/mockups/benefit-position/OptionA.tsx": () => import("../components/mockups/benefit-position/OptionA.tsx"),
   "./components/mockups/benefit-position/OptionB.tsx": () => import("../components/mockups/benefit-position/OptionB.tsx"),
-  "./components/mockups/biz-profile/VerifiedProfile.tsx": () => import("../components/mockups/biz-profile/VerifiedProfile.tsx"),
   "./components/mockups/founding-badge/AchievementsCard.tsx": () => import("../components/mockups/founding-badge/AchievementsCard.tsx"),
   "./components/mockups/founding-badge/BadgeProfileHeader.tsx": () => import("../components/mockups/founding-badge/BadgeProfileHeader.tsx"),
   "./components/mockups/founding-badge/LeaderboardEntry.tsx": () => import("../components/mockups/founding-badge/LeaderboardEntry.tsx"),
