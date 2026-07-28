@@ -31,6 +31,8 @@ interface Props {
   authToken: string | null;
   /** Current screen the user is viewing (e.g. "history", "friends"). */
   screen?: string;
+  /** When true (active plunge in progress) the button is hidden entirely. */
+  isPlunging?: boolean;
 }
 
 // ── Chat history persistence ──────────────────────────────────────────────────
@@ -145,7 +147,7 @@ function defaultPos(): { x: number; y: number } {
   return { x: 16, y: safeTop };
 }
 
-export function CoachFAB({ authToken, screen }: Props) {
+export function CoachFAB({ authToken, screen, isPlunging }: Props) {
   const [open, setOpen]         = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory(authToken));
   const [loadedForToken, setLoadedForToken] = useState<string | null>(authToken);
@@ -331,6 +333,9 @@ export function CoachFAB({ authToken, screen }: Props) {
 
   const isEmpty = messages.length === 0;
 
+  // Hide entirely during an active plunge session
+  if (isPlunging) return null;
+
   return (
     <>
       {/* ── Floating Action Button ── */}
@@ -340,18 +345,25 @@ export function CoachFAB({ authToken, screen }: Props) {
         onContextMenu={(e) => e.preventDefault()}
         aria-label="Open coach"
         data-testid="coach-fab"
-        className="fixed z-40 rounded-full shadow-lg flex items-center justify-center touch-none select-none"
+        className="fixed z-40 rounded-full flex items-center justify-center touch-none select-none"
         style={{
           left: pos.x,
           top: pos.y,
           width: FAB_SIZE,
           height: FAB_SIZE,
-          boxShadow: "0 4px 20px rgba(14,165,233,0.45)",
           cursor: "grab",
           WebkitTouchCallout: "none",
           WebkitUserSelect: "none",
         }}
       >
+        {/* Pulsing glow ring */}
+        <span
+          className="absolute inset-0 rounded-full pointer-events-none"
+          style={{
+            boxShadow: "0 0 0 3px rgba(34,211,238,0.55), 0 0 18px rgba(14,165,233,0.6)",
+            animation: "coach-ring-pulse 2.4s ease-in-out infinite",
+          }}
+        />
         <img
           src="/icons/icon-192.png"
           alt="ColdStreak Coach"
@@ -361,6 +373,16 @@ export function CoachFAB({ authToken, screen }: Props) {
         />
         {hasUnread && (
           <span className="absolute top-0.5 right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-[#0a1628]" />
+        )}
+        {/* Small downward arrow hinting the panel opens below */}
+        {!open && (
+          <span
+            className="absolute -bottom-4 left-1/2 flex flex-col items-center pointer-events-none"
+            style={{ transform: "translateX(-50%)" }}
+          >
+            <span className="text-cyan-400/80 leading-none" style={{ fontSize: 9, lineHeight: 1, animation: "coach-arrow-bounce 1.6s ease-in-out infinite" }}>▾</span>
+            <span className="text-cyan-300/70 leading-none" style={{ fontSize: 8, lineHeight: 1, letterSpacing: "0.06em", fontWeight: 700 }}>AI</span>
+          </span>
         )}
       </button>
 
@@ -538,11 +560,19 @@ export function CoachFAB({ authToken, screen }: Props) {
         </>
       )}
 
-      {/* Dot-bounce animation */}
+      {/* Animations */}
       <style>{`
         @keyframes coach-dot-bounce {
           0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
           40%            { transform: translateY(-4px); opacity: 1; }
+        }
+        @keyframes coach-ring-pulse {
+          0%, 100% { box-shadow: 0 0 0 3px rgba(34,211,238,0.55), 0 0 18px rgba(14,165,233,0.6); }
+          50%       { box-shadow: 0 0 0 5px rgba(34,211,238,0.25), 0 0 28px rgba(14,165,233,0.35); }
+        }
+        @keyframes coach-arrow-bounce {
+          0%, 100% { transform: translateY(0); opacity: 0.7; }
+          50%       { transform: translateY(2px); opacity: 1; }
         }
       `}</style>
     </>
