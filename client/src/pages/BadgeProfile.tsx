@@ -868,6 +868,7 @@ export default function BadgeProfile() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-blue-500 text-[10px]">@{req.requesterUsername}</span>
                           {req.requesterStreak > 0 && <span className="text-orange-400 text-[10px] font-semibold">🔥 {req.requesterStreak}d</span>}
+                          {req.requesterPlungeCount > 0 && <span className="text-cyan-400 text-[10px] font-semibold">🧊 {req.requesterPlungeCount}</span>}
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
