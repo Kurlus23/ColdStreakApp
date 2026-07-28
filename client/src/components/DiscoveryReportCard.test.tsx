@@ -794,3 +794,172 @@ describe("DiscoveryReportCard — All-time tab never goes blank with many check-
     expect(screen.getByText(/Mood breakdown/i)).toBeInTheDocument();
   });
 });
+
+// ── All-time date range label tests ───────────────────────────────────────────
+//
+// These tests specifically verify the text of the date range label shown under
+// the period tabs when the All-time tab is active.
+//
+// Key rules from dateRangeLabel():
+//   • Cross-year earliest session  → "Since Mon D, YYYY"  (year suffix present)
+//   • Same-year earliest session   → "Mon D – Mon D"      (no year suffix)
+//
+// Time is frozen at 2025-06-15T12:00:00Z for both suites so offsets produce
+// deterministic calendar dates regardless of when the tests run.
+
+describe("DiscoveryReportCard — All-time date range label (cross-year: 'Since Mon D, YYYY')", () => {
+  // Frozen "today" = Jun 15, 2025
+  const FROZEN = new Date("2025-06-15T12:00:00Z");
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FROZEN);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /**
+   * Earliest plunge is 400 days before 2025-06-15 = 2024-05-11.
+   * 2024 ≠ 2025, so the label must use the "Since …" prefix with year.
+   *
+   * Expected: "Since May 11, 2024"
+   */
+  function crossYearAllTimePlunges(): Plunge[] {
+    return [
+      // Most recent — 60 days ago → 2025-04-16 (this year, outside 30-day window)
+      makePlunge({ id: 1, mood: 5, duration: 240, temperature: 48,
+        createdAt: new Date(FROZEN.getTime() - 60  * 24 * 60 * 60 * 1000).toISOString() as unknown as Date }),
+      makePlunge({ id: 2, mood: 5, duration: 240, temperature: 48,
+        createdAt: new Date(FROZEN.getTime() - 120 * 24 * 60 * 60 * 1000).toISOString() as unknown as Date }),
+      makePlunge({ id: 3, mood: 5, duration: 240, temperature: 48,
+        createdAt: new Date(FROZEN.getTime() - 200 * 24 * 60 * 60 * 1000).toISOString() as unknown as Date }),
+      makePlunge({ id: 4, mood: 5, duration: 240, temperature: 48,
+        createdAt: new Date(FROZEN.getTime() - 300 * 24 * 60 * 60 * 1000).toISOString() as unknown as Date }),
+      // Earliest — 400 days ago → 2024-05-11 (previous year)
+      makePlunge({ id: 5, mood: 5, duration: 240, temperature: 48,
+        createdAt: new Date(FROZEN.getTime() - 400 * 24 * 60 * 60 * 1000).toISOString() as unknown as Date }),
+    ];
+  }
+
+  it("All-time date range label starts with 'Since' when earliest session is from a previous year", () => {
+    render(<DiscoveryReportCard plunges={crossYearAllTimePlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    // The date range label element should exist and begin with "Since"
+    const labelEl = screen.getByText(/^Since /);
+    expect(labelEl).toBeInTheDocument();
+  });
+
+  it("All-time date range label includes the correct year when earliest session spans to a prior year", () => {
+    render(<DiscoveryReportCard plunges={crossYearAllTimePlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    // 400 days before 2025-06-15 = 2024-05-11 → "Since May 11, 2024"
+    expect(screen.getByText("Since May 11, 2024")).toBeInTheDocument();
+  });
+
+  it("All-time date range label does NOT use the 'Mon D – Mon D' format when earliest session is cross-year", () => {
+    render(<DiscoveryReportCard plunges={crossYearAllTimePlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    // The label must not contain " – " (range separator) for cross-year data
+    const labelEl = screen.getByText(/^Since /);
+    expect(labelEl.textContent).not.toContain(" – ");
+  });
+
+  it("All-time date range label is absent on the 7-day tab (rolling label, not 'Since')", () => {
+    render(<DiscoveryReportCard plunges={crossYearAllTimePlunges()} />);
+
+    // Default tab is 7-day — should not show a "Since …" label
+    expect(screen.queryByText(/^Since /)).not.toBeInTheDocument();
+  });
+
+  it("All-time date range label reverts after switching from All time back to 7 days", () => {
+    render(<DiscoveryReportCard plunges={crossYearAllTimePlunges()} />);
+
+    // Switch to All time → "Since May 11, 2024" visible
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+    expect(screen.getByText("Since May 11, 2024")).toBeInTheDocument();
+
+    // Switch back to 7 days → "Since" label must disappear
+    fireEvent.click(screen.getByRole("button", { name: /7 days/i }));
+    expect(screen.queryByText(/^Since /)).not.toBeInTheDocument();
+  });
+});
+
+describe("DiscoveryReportCard — All-time date range label (same year: 'Mon D – Mon D')", () => {
+  // Frozen "today" = Jun 15, 2025
+  const FROZEN = new Date("2025-06-15T12:00:00Z");
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FROZEN);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /**
+   * All plunges are within 2025 — the same year as the frozen "today".
+   * Earliest is 60 days before 2025-06-15 = 2025-04-16.
+   *
+   * Expected: "Apr 16 – Jun 15"  (no year suffix, no "Since" prefix)
+   */
+  function sameYearAllTimePlunges(): Plunge[] {
+    return [
+      // Earliest — 60 days ago → 2025-04-16
+      makePlunge({ id: 1, mood: 5, duration: 240, temperature: 48,
+        createdAt: new Date(FROZEN.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString() as unknown as Date }),
+      makePlunge({ id: 2, mood: 5, duration: 240, temperature: 48,
+        createdAt: new Date(FROZEN.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString() as unknown as Date }),
+      makePlunge({ id: 3, mood: 5, duration: 240, temperature: 48,
+        createdAt: new Date(FROZEN.getTime() - 40 * 24 * 60 * 60 * 1000).toISOString() as unknown as Date }),
+      makePlunge({ id: 4, mood: 5, duration: 240, temperature: 48,
+        createdAt: new Date(FROZEN.getTime() - 35 * 24 * 60 * 60 * 1000).toISOString() as unknown as Date }),
+      makePlunge({ id: 5, mood: 5, duration: 240, temperature: 48,
+        createdAt: new Date(FROZEN.getTime() - 32 * 24 * 60 * 60 * 1000).toISOString() as unknown as Date }),
+    ];
+  }
+
+  it("All-time date range label uses 'Mon D – Mon D' format when all sessions are within the current year", () => {
+    render(<DiscoveryReportCard plunges={sameYearAllTimePlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    // 60 days before 2025-06-15 = 2025-04-16 → "Apr 16 – Jun 15"
+    expect(screen.getByText("Apr 16 – Jun 15")).toBeInTheDocument();
+  });
+
+  it("All-time date range label does NOT include 'Since' when all sessions are within the current year", () => {
+    render(<DiscoveryReportCard plunges={sameYearAllTimePlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    expect(screen.queryByText(/^Since /)).not.toBeInTheDocument();
+  });
+
+  it("All-time date range label does NOT include a year suffix when all sessions are within the current year", () => {
+    render(<DiscoveryReportCard plunges={sameYearAllTimePlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    // The label must not contain ", 2025" or any year suffix
+    const labelEl = screen.getByText("Apr 16 – Jun 15");
+    expect(labelEl.textContent).not.toMatch(/\d{4}/);
+  });
+
+  it("All-time date range label ends with today's date ('Jun 15') for same-year data", () => {
+    render(<DiscoveryReportCard plunges={sameYearAllTimePlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    const labelEl = screen.getByText(/Jun 15/);
+    expect(labelEl).toBeInTheDocument();
+  });
+});
