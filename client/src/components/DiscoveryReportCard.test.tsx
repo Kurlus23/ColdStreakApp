@@ -535,3 +535,178 @@ describe("DiscoveryReportCard — switching periods updates rendered insights (c
     expect(screen.queryByText(/Your Current Sweet Spot/i)).not.toBeInTheDocument();
   });
 });
+
+// ── All-time tab tests ────────────────────────────────────────────────────────
+//
+// All suites below freeze time at 2025-06-15T12:00:00Z so sessions placed
+// 60–400+ days in the past span multiple calendar years and are definitively
+// outside both the 7-day and 30-day rolling windows.
+
+const FROZEN_ALL_TIME_NOW = new Date("2025-06-15T12:00:00Z");
+
+/** ISO timestamp N days before the all-time frozen "now". */
+function daysBeforeAllTimeISO(n: number): string {
+  return new Date(FROZEN_ALL_TIME_NOW.getTime() - n * 24 * 60 * 60 * 1000).toISOString();
+}
+
+describe("DiscoveryReportCard — All-time tab with plunges spanning multiple years", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FROZEN_ALL_TIME_NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /**
+   * 5 rated plunges spread across three different years:
+   *   60 days ago  → Apr 16, 2025  (this year, outside 30-day window)
+   *   120 days ago → Feb 15, 2025  (this year, well outside 30-day window)
+   *   200 days ago → Nov 27, 2024  (last year)
+   *   300 days ago → Aug 19, 2024  (last year)
+   *   400 days ago → May 11, 2024  (last year)
+   *
+   * None are in the 7-day or 30-day windows; all are in All-time.
+   */
+  function multiYearPlunges(): Plunge[] {
+    return [
+      makePlunge({ id: 1, mood: 5, duration: 240, temperature: 48, createdAt: daysBeforeAllTimeISO(60)  as unknown as Date }),
+      makePlunge({ id: 2, mood: 5, duration: 240, temperature: 48, createdAt: daysBeforeAllTimeISO(120) as unknown as Date }),
+      makePlunge({ id: 3, mood: 5, duration: 240, temperature: 48, createdAt: daysBeforeAllTimeISO(200) as unknown as Date }),
+      makePlunge({ id: 4, mood: 5, duration: 240, temperature: 48, createdAt: daysBeforeAllTimeISO(300) as unknown as Date }),
+      makePlunge({ id: 5, mood: 5, duration: 240, temperature: 48, createdAt: daysBeforeAllTimeISO(400) as unknown as Date }),
+    ];
+  }
+
+  it("7-day tab is blank when all sessions are older than 7 days", () => {
+    render(<DiscoveryReportCard plunges={multiYearPlunges()} />);
+    expect(screen.getByText(/No plunges with check-ins in the last 7 days/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Your Current Sweet Spot/i)).not.toBeInTheDocument();
+  });
+
+  it("30-day tab is blank when all sessions are older than 30 days", () => {
+    render(<DiscoveryReportCard plunges={multiYearPlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /30 days/i }));
+
+    expect(screen.getByText(/No plunges with check-ins in the last 30 days/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Your Current Sweet Spot/i)).not.toBeInTheDocument();
+  });
+
+  it("All-time tab shows the full sweet-spot card for sessions spread across years", () => {
+    render(<DiscoveryReportCard plunges={multiYearPlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    expect(screen.getByText(/Your Current Sweet Spot/i)).toBeInTheDocument();
+  });
+
+  it("All-time tab shows the correct temperature label for multi-year data", () => {
+    render(<DiscoveryReportCard plunges={multiYearPlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    expect(screen.getByText("45–50°F")).toBeInTheDocument();
+  });
+
+  it("All-time tab shows the correct duration label for multi-year data", () => {
+    render(<DiscoveryReportCard plunges={multiYearPlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    expect(screen.getByText("3–6 min")).toBeInTheDocument();
+  });
+
+  it("All-time tab shows 'How You Felt' with 5 check-ins across years", () => {
+    render(<DiscoveryReportCard plunges={multiYearPlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    expect(screen.getByText(/How You Felt After Plunging/i)).toBeInTheDocument();
+    expect(screen.getByText(/5 check-ins/i)).toBeInTheDocument();
+  });
+
+  it("All-time tab does NOT show the 'No plunges with check-ins yet' empty state when rated sessions exist", () => {
+    render(<DiscoveryReportCard plunges={multiYearPlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    expect(screen.queryByText(/No plunges with check-ins yet/i)).not.toBeInTheDocument();
+  });
+
+  it("switching from All-time back to 7-day tab returns to blank state", () => {
+    render(<DiscoveryReportCard plunges={multiYearPlunges()} />);
+
+    // Switch to All time → sweet spot visible
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+    expect(screen.getByText(/Your Current Sweet Spot/i)).toBeInTheDocument();
+
+    // Switch back to 7 days → blank again
+    fireEvent.click(screen.getByRole("button", { name: /7 days/i }));
+    expect(screen.getByText(/No plunges with check-ins in the last 7 days/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Your Current Sweet Spot/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("DiscoveryReportCard — All-time tab never goes blank with many check-ins across years", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FROZEN_ALL_TIME_NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /**
+   * A more realistic dataset: 12 rated plunges spread irregularly across
+   * two full years, simulating a long-term user with monthly cadence.
+   * Every plunge is > 30 days old so it only appears in the All-time window.
+   */
+  function manyYearsPlunges(): Plunge[] {
+    // Offsets: roughly monthly for 12 months, ranging from 35 to 395 days ago
+    const offsets = [35, 65, 95, 130, 160, 195, 225, 260, 290, 325, 355, 395];
+    return offsets.map((offset, i) =>
+      makePlunge({
+        id: i + 1,
+        mood: (i % 3 === 0) ? 5 : (i % 3 === 1) ? 4 : 3,
+        duration: 240,
+        temperature: 48,
+        createdAt: daysBeforeAllTimeISO(offset) as unknown as Date,
+      }),
+    );
+  }
+
+  it("All-time tab shows the sweet-spot card for 12 sessions spread over two years", () => {
+    render(<DiscoveryReportCard plunges={manyYearsPlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    expect(screen.getByText(/Your Current Sweet Spot/i)).toBeInTheDocument();
+  });
+
+  it("All-time tab never shows the 'No plunges with check-ins yet' message when 12 rated sessions exist", () => {
+    render(<DiscoveryReportCard plunges={manyYearsPlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    expect(screen.queryByText(/No plunges with check-ins yet/i)).not.toBeInTheDocument();
+  });
+
+  it("All-time tab shows 12 check-ins in the subtitle for a 2-year dataset", () => {
+    render(<DiscoveryReportCard plunges={manyYearsPlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    expect(screen.getByText(/12 check-ins/i)).toBeInTheDocument();
+  });
+
+  it("All-time tab shows mood distribution bars for a 2-year dataset", () => {
+    render(<DiscoveryReportCard plunges={manyYearsPlunges()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /All time/i }));
+
+    expect(screen.getByText(/Mood breakdown/i)).toBeInTheDocument();
+  });
+});
