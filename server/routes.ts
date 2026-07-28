@@ -1518,8 +1518,9 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
             }
           }
         }
+        const sentDate = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
         const statLine = streak > 0
-          ? `🔥 ${streak}d streak · `
+          ? `🔥 ${streak}d streak as of ${sentDate} · `
           : plungeCount > 0
           ? `🧊 ${plungeCount} plunge${plungeCount === 1 ? "" : "s"} · `
           : "";
