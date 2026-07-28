@@ -9,7 +9,7 @@ import { getPhoto, deletePhoto } from "@/lib/photoStore";
 import { buildShareImage, dataUrlToBlob } from "@/lib/shareImage";
 import { shareContent, logShareEvent } from "@/lib/share";
 import { isNative, nativeShare } from "@/lib/nativeShare";
-import { computeEarnedSegments, SEGMENTS } from "@/lib/benefitSegments";
+import { computeEarnedSegments, SEGMENTS, getCompositionFactor } from "@/lib/benefitSegments";
 
 function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
   const durationMin = durationSeconds / 60;
@@ -19,16 +19,6 @@ function estimateCalories(durationSeconds: number, tempF: number, weightLbs: num
   return Math.max(0, durationMin * deltaT * weightKg * 0.0077);
 }
 
-function calcScore(durationSeconds: number, tempF: number): number {
-  const minutes = durationSeconds / 60;
-  let coldFactor = 1;
-  if (tempF <= 55) coldFactor = 1.2;
-  if (tempF <= 50) coldFactor = 1.5;
-  if (tempF <= 45) coldFactor = 1.9;
-  if (tempF <= 40) coldFactor = 2.5;
-  if (tempF <= 35) coldFactor = 3.2;
-  return Math.round(Math.sqrt(minutes) * coldFactor * 10) / 10;
-}
 
 export interface ChallengeFriend {
   userId: number;
@@ -383,7 +373,14 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
 
     const duration = Math.max(1, editMins * 60 + editSecs);
     const temperature = Math.min(75, Math.max(32, editTemp));
-    const score = String(calcScore(duration, temperature));
+    const minutes = duration / 60;
+    let coldFactor = 1;
+    if (temperature <= 55) coldFactor = 1.2;
+    if (temperature <= 50) coldFactor = 1.5;
+    if (temperature <= 45) coldFactor = 1.9;
+    if (temperature <= 40) coldFactor = 2.3;
+    const compositionFactor = getCompositionFactor(bodyFatPct, bodyWeightLbs, bodyHeightCm);
+    const score = String(Number((minutes * coldFactor * compositionFactor).toFixed(2)));
     const createdAt = new Date(`${editDate}T${editTime}:00`).toISOString();
 
     updatePlunge.mutate(
