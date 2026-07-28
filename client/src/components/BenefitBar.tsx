@@ -208,7 +208,7 @@ export function BenefitBar({
 
               {/* Label — full colour when achieved (border earned), dim otherwise */}
               <p
-                className="text-center text-[9px] font-semibold leading-none truncate"
+                className="text-center text-[9px] font-semibold leading-normal overflow-hidden whitespace-nowrap text-ellipsis"
                 style={{
                   color: achieved
                     ? seg.barColor          // achievement colour stays
