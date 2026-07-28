@@ -252,6 +252,7 @@ export default function Home() {
   const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
   const [showFirstOpenWalkthrough, setShowFirstOpenWalkthrough] = useState(false);
   const [showPostPlungeWalkthrough, setShowPostPlungeWalkthrough] = useState(false);
+  const [pendingReplayWalkthrough, setPendingReplayWalkthrough] = useState(false);
   const [showProfileTip, setShowProfileTip] = useState(false);
   const [showFriendsTip, setShowFriendsTip] = useState(false);
   const [showChallengeTip, setShowChallengeTip] = useState(false);
@@ -1254,6 +1255,20 @@ export default function Home() {
     return () => clearTimeout(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.user, plunges.length]);
+
+  // Replay walkthrough: triggered from Settings → clears flags → navigates to timer.
+  // Fires 800 ms after the settings sheet is fully dismissed.
+  // NOTE: pendingReplayWalkthrough is cleared inside the callback (not before) so
+  // the state change doesn't trigger a cleanup that cancels the timeout.
+  useEffect(() => {
+    if (!pendingReplayWalkthrough) return;
+    if (screen !== "timer") return;
+    const id = setTimeout(() => {
+      setPendingReplayWalkthrough(false);
+      setShowFirstOpenWalkthrough(true);
+    }, 800);
+    return () => clearTimeout(id);
+  }, [pendingReplayWalkthrough, screen]);
 
   // Profile tip: first time user opens the Profile (achievements) screen.
   useEffect(() => {
@@ -4261,6 +4276,29 @@ export default function Home() {
             </>)}
 
             {settingsTab === 'settings' && (<>
+
+            {/* Replay app tour */}
+            <div className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40">
+              <div className="flex items-center gap-2">
+                <Compass className="w-4 h-4 text-cyan-400" />
+                <div>
+                  <span className="text-white font-semibold text-sm">Replay app tour</span>
+                  <p className="text-blue-400 text-xs">Walk through the key features again</p>
+                </div>
+              </div>
+              <button
+                data-testid="button-replay-walkthrough"
+                onClick={() => {
+                  localStorage.removeItem(FIRST_OPEN_KEY);
+                  localStorage.removeItem(POST_PLUNGE_KEY);
+                  setPendingReplayWalkthrough(true);
+                  navTo("timer");
+                }}
+                className="shrink-0 px-3 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all active:scale-95"
+              >
+                Replay
+              </button>
+            </div>
 
             {/* Intro Video Toggle — shown after user has seen it once */}
             {introSeen && (
