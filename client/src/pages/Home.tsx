@@ -393,7 +393,9 @@ export default function Home() {
   // Badge shown on the Friends nav when a friend request resolves while the
   // user is on a different screen. Cleared when they navigate to the Friends
   // section (Settings → User tab) and the list re-fetches.
-  const [friendsBadge, setFriendsBadge] = useState(false);
+  const [friendsBadge, setFriendsBadge] = useState(
+    () => localStorage.getItem("coldstreak-friends-badge") === "1"
+  );
   // Ref so the service-worker message handler can read the current screen
   // without being stale — avoids showing a badge when already on friends.
   const isOnFriendsScreenRef = useRef(false);
@@ -431,6 +433,7 @@ export default function Home() {
       } else if (event.data?.type === "friend-request-resolved") {
         loadFriends();
         if (!isOnFriendsScreenRef.current) {
+          localStorage.setItem("coldstreak-friends-badge", "1");
           setFriendsBadge(true);
         }
       } else if (event.data?.type === "friend-action-failed") {
@@ -737,6 +740,7 @@ export default function Home() {
   useEffect(() => {
     if (screen === "friends" && auth.user) {
       loadFriends();
+      localStorage.removeItem("coldstreak-friends-badge");
       setFriendsBadge(false);
     }
   }, [screen, auth.user, loadFriends]);
