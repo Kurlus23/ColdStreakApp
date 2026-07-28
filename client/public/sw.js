@@ -1,4 +1,4 @@
-const CACHE_NAME = "coldstreak-v11";
+const CACHE_NAME = "coldstreak-v12";
 const OFFLINE_URL = "/offline.html";
 
 // Assets to pre-cache on install so they're instant on first use
