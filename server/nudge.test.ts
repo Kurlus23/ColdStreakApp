@@ -255,6 +255,132 @@ describe("nudge message parity — trending-up generic copy", () => {
   });
 });
 
+// ── mixed rated/unrated plunges ───────────────────────────────────────────────
+
+describe("deriveNudgeForPush — mixed rated/unrated plunges", () => {
+  /**
+   * These tests verify that:
+   *   1. The initial gate is on *total* plunge count, not rated count.
+   *   2. Trend direction is computed using only the rated subset.
+   *   3. Unrated plunges don't distort or suppress the nudge when rated data
+   *      is sufficient.
+   *   4. When every plunge is unrated the function correctly returns null.
+   */
+
+  it("gate uses total plunge count, not rated count (10 total, 8 unrated)", () => {
+    // 2 rated plunges spread across two calendar months → trend delta computable.
+    // 8 unrated plunges (mood: null) pad the total to 10.
+    // Most-recent plunge is today so the 7-day suppression doesn't fire.
+    const now = new Date();
+    const plunges: Plunge[] = [
+      // Rated: Jan → low mood, Feb → high mood  (delta > 0.05 → trending-up)
+      makePlunge({ id: 1, createdAt: new Date("2026-01-15T12:00:00Z"), mood: 1 }),
+      makePlunge({ id: 2, createdAt: new Date("2026-02-15T12:00:00Z"), mood: 5 }),
+      // 7 unrated plunges in the recent past
+      ...Array.from({ length: 7 }, (_, i) =>
+        makePlunge({
+          id:        i + 3,
+          createdAt: new Date(now.getTime() - (i + 2) * 24 * 60 * 60 * 1000),
+          // mood stays null (default in makePlunge)
+        }),
+      ),
+      // Most-recent unrated plunge is today
+      makePlunge({ id: 10, createdAt: now }),
+    ];
+
+    const result = deriveNudgeForPush(plunges);
+    expect(result).not.toBeNull();
+    expect(result!.title).toContain(NUDGE_MESSAGES.trendingUp.title);
+  });
+
+  it("9 total plunges → null even when all are rated", () => {
+    const now = new Date();
+    const plunges = Array.from({ length: 9 }, (_, i) =>
+      makePlunge({
+        id:        i + 1,
+        createdAt: new Date(now.getTime() - i * 24 * 60 * 60 * 1000),
+        mood:      5,
+      }),
+    );
+    expect(deriveNudgeForPush(plunges)).toBeNull();
+  });
+
+  it("trend direction is driven by rated plunges only; unrated are ignored", () => {
+    // 14 total plunges: alternating rated/unrated.
+    // Rated entries: first-month mood=1, second-month mood=5 → trending-up.
+    // The 7 unrated entries (mood=null) must not change the result.
+    const half = 7;
+    const result: Plunge[] = [];
+    for (let i = 0; i < 14; i++) {
+      const isSecondMonth = i >= half;
+      const date = new Date(BASE_DATE);
+      date.setUTCMonth(isSecondMonth ? 1 : 0);
+      date.setUTCDate(i + 1);
+      const isRated = i % 2 === 0; // even-index entries are rated
+      result.push(
+        makePlunge({
+          id:        i + 1,
+          createdAt: date,
+          mood:      isRated ? (isSecondMonth ? 5 : 1) : null,
+        }),
+      );
+    }
+    // Pin the last entry to today so the 7-day suppression doesn't fire
+    result[result.length - 1] = makePlunge({
+      ...result[result.length - 1],
+      createdAt: new Date(),
+    });
+
+    const push = deriveNudgeForPush(result);
+    expect(push).not.toBeNull();
+    expect(push!.title).toContain(NUDGE_MESSAGES.trendingUp.title);
+    expect(push!.body).toBe(NUDGE_MESSAGES.trendingUp.body);
+  });
+
+  it("trending-down with mixed entries: unrated don't suppress the signal", () => {
+    // Same structure as above but rated entries show declining mood.
+    const half = 7;
+    const result: Plunge[] = [];
+    for (let i = 0; i < 14; i++) {
+      const isSecondMonth = i >= half;
+      const date = new Date(BASE_DATE);
+      date.setUTCMonth(isSecondMonth ? 1 : 0);
+      date.setUTCDate(i + 1);
+      const isRated = i % 2 === 0;
+      result.push(
+        makePlunge({
+          id:        i + 1,
+          createdAt: date,
+          mood:      isRated ? (isSecondMonth ? 1 : 5) : null,
+        }),
+      );
+    }
+    result[result.length - 1] = makePlunge({
+      ...result[result.length - 1],
+      createdAt: new Date(),
+    });
+
+    const push = deriveNudgeForPush(result);
+    expect(push).not.toBeNull();
+    expect(push!.title).toContain(NUDGE_MESSAGES.trendingDown.title);
+    expect(push!.body).toBe(NUDGE_MESSAGES.trendingDown.body);
+  });
+
+  it("returns null when total >= 10 but every plunge is unrated", () => {
+    // All 12 plunges have mood=null → computeMonthTrendDelta returns null,
+    // bestBucket also returns null (needs rated entries) → overall null.
+    const now = new Date();
+    const plunges = Array.from({ length: 12 }, (_, i) =>
+      makePlunge({
+        id:        i + 1,
+        createdAt: new Date(now.getTime() - i * 24 * 60 * 60 * 1000),
+        // mood stays null
+      }),
+    );
+    expect(deriveNudgeForPush(plunges)).toBeNull();
+  });
+});
+
 // ── 7-day absence guard ───────────────────────────────────────────────────────
 
 describe("deriveNudgeForPush — 7-day absence guard", () => {
