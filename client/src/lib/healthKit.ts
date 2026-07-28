@@ -24,7 +24,10 @@ const HealthKit = registerPlugin<HealthKitPlugin>("HealthKit");
 const AUTH_REQUESTED_KEY = "coldstreak-healthkit-asked";
 
 export function isHealthKitPossible(): boolean {
-  return Capacitor.getPlatform() === "ios" && Capacitor.isNativePlatform();
+  // Disabled until HealthKit is re-wired in the Xcode project (v31 rebuild).
+  // Restore by removing the early return below.
+  return false;
+  return Capacitor.getPlatform() === "ios" && Capacitor.isNativePlatform(); // eslint-disable-line no-unreachable
 }
 
 /**
