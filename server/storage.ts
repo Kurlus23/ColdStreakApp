@@ -550,7 +550,7 @@ export class DatabaseStorage implements IStorage {
   async createUser(
     email: string,
     passwordHash: string,
-    opts?: { username?: string; displayName?: string; bodyWeight?: number },
+    opts?: { username?: string; displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number },
   ): Promise<User> {
     const [user] = await db
       .insert(users)
@@ -561,6 +561,12 @@ export class DatabaseStorage implements IStorage {
         ...(opts?.displayName ? { displayName: opts.displayName } : {}),
         ...(typeof opts?.bodyWeight === "number" && opts.bodyWeight > 0
           ? { bodyWeight: Math.round(opts.bodyWeight) }
+          : {}),
+        ...(typeof opts?.bodyHeight === "number" && opts.bodyHeight > 0
+          ? { bodyHeight: Math.round(opts.bodyHeight) }
+          : {}),
+        ...(typeof opts?.bodyFat === "number" && opts.bodyFat > 0
+          ? { bodyFat: Math.round(opts.bodyFat) }
           : {}),
       })
       .returning();
@@ -663,7 +669,7 @@ export class DatabaseStorage implements IStorage {
     return updated ?? null;
   }
 
-  async updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; username?: string }): Promise<User> {
+  async updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number; username?: string }): Promise<User> {
     const [updated] = await db.update(users)
       .set(patch)
       .where(eq(users.id, id))

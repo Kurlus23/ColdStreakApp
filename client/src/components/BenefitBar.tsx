@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { SEGMENTS, getTempFactor, getBmiFactor } from "@/lib/benefitSegments";
+import { SEGMENTS, getTempFactor, getCompositionFactor } from "@/lib/benefitSegments";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 interface BenefitBarProps {
@@ -19,6 +19,8 @@ interface BenefitBarProps {
   bodyWeightLbs?: number;
   /** User's height in cm. Defaults to 175 (≈ 5 ft 9 in). */
   bodyHeightCm?: number;
+  /** Body fat percentage (e.g. 19.9). When set, takes priority over height+weight BMI. */
+  bodyFatPct?: number | null;
   /**
    * Unix ms timestamp of when the last cold session ended.
    * Used as a fallback decay anchor when todayPlungesData is not provided.
@@ -41,20 +43,24 @@ export function BenefitBar({
   todayLoggedSeconds = 0,
   bodyWeightLbs = 150,
   bodyHeightCm = 175,
+  bodyFatPct,
   lastPlungeEndedAt,
   todayPlungesData,
 }: BenefitBarProps) {
   const tempFactor = useMemo(() => getTempFactor(tempF), [tempF]);
-  const bmiFactor  = useMemo(() => getBmiFactor(bodyWeightLbs, bodyHeightCm), [bodyWeightLbs, bodyHeightCm]);
+  const compFactor = useMemo(
+    () => getCompositionFactor(bodyFatPct, bodyWeightLbs, bodyHeightCm),
+    [bodyFatPct, bodyWeightLbs, bodyHeightCm],
+  );
 
   // Cumulative seconds at which each segment completes
   const cumulative = useMemo(() => {
     let total = 0;
     return SEGMENTS.map((seg) => {
-      total += Math.round(seg.baseDuration * tempFactor * bmiFactor);
+      total += Math.round(seg.baseDuration * tempFactor * compFactor);
       return total;
     });
-  }, [tempFactor, bmiFactor]);
+  }, [tempFactor, compFactor]);
 
   // Total cold exposure today: prior logged sessions + current live session
   const totalElapsed = todayLoggedSeconds + elapsedSeconds;
@@ -64,7 +70,7 @@ export function BenefitBar({
   if (announcedRef.current === null) {
     let t = 0;
     const initCum = SEGMENTS.map((seg) => {
-      t += Math.round(seg.baseDuration * getTempFactor(tempF) * getBmiFactor(bodyWeightLbs, bodyHeightCm));
+      t += Math.round(seg.baseDuration * getTempFactor(tempF) * getCompositionFactor(bodyFatPct, bodyWeightLbs, bodyHeightCm));
       return t;
     });
     announcedRef.current = new Set(

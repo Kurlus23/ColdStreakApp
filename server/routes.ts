@@ -218,12 +218,14 @@ export async function registerRoutes(
 
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { email, password, username, displayName, bodyWeight } = z.object({
+      const { email, password, username, displayName, bodyWeight, bodyHeight, bodyFat } = z.object({
         email: z.string().email(),
         password: z.string().min(6, "Password must be at least 6 characters"),
         username: usernameSchema.optional(),
         displayName: z.string().trim().max(32).optional(),
         bodyWeight: z.number().positive().optional(),
+        bodyHeight: z.number().positive().optional(),
+        bodyFat:    z.number().min(1).max(70).optional(), // stored as tenths (199 = 19.9%)
       }).parse(req.body);
 
       const existing = await storage.getUserByEmail(email);
@@ -240,6 +242,8 @@ export async function registerRoutes(
         username,
         displayName: displayName || username,
         bodyWeight,
+        bodyHeight,
+        bodyFat,
       });
       const token = signToken({ userId: user.id, email: user.email });
 
@@ -350,7 +354,7 @@ export async function registerRoutes(
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUserById(payload.userId);
     if (!user) return res.status(401).json({ message: "User not found" });
-    res.json({ username: user.username ?? null, displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null, bodyHeight: user.bodyHeight ?? null });
+    res.json({ username: user.username ?? null, displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null, bodyHeight: user.bodyHeight ?? null, bodyFat: user.bodyFat ?? null });
   });
 
   app.patch("/api/auth/profile", async (req, res) => {
@@ -358,11 +362,12 @@ export async function registerRoutes(
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
     const existing = await storage.getUserById(payload.userId);
     if (!existing) return res.status(401).json({ message: "User not found" });
-    const { displayName, bodyWeight, bodyHeight, username } = req.body;
-    const patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; username?: string } = {};
+    const { displayName, bodyWeight, bodyHeight, bodyFat, username } = req.body;
+    const patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number; username?: string } = {};
     if (typeof displayName === "string") patch.displayName = displayName.trim().slice(0, 32);
     if (typeof bodyWeight === "number" && bodyWeight > 0) patch.bodyWeight = Math.round(bodyWeight);
     if (typeof bodyHeight === "number" && bodyHeight > 0) patch.bodyHeight = Math.round(bodyHeight);
+    if (typeof bodyFat   === "number" && bodyFat   > 0) patch.bodyFat   = Math.round(bodyFat);
     if (typeof username === "string") {
       const parsed = usernameSchema.safeParse(username);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0].message });
@@ -376,7 +381,7 @@ export async function registerRoutes(
       patch.username = parsed.data;
     }
     const user = await storage.updateUserProfile(payload.userId, patch);
-    res.json({ username: user.username ?? null, displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null, bodyHeight: user.bodyHeight ?? null });
+    res.json({ username: user.username ?? null, displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null, bodyHeight: user.bodyHeight ?? null, bodyFat: user.bodyFat ?? null });
   });
 
   app.delete("/api/auth/account", async (req, res) => {

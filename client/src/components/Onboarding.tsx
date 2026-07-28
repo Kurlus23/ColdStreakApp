@@ -11,7 +11,7 @@ export function hasCompletedOnboarding() {
 
 interface OnboardingProps {
   onComplete: (skipped: boolean) => void;
-  onRegister: (args: { email: string; password: string; username: string; bodyWeight?: number; bodyHeight?: number }) => Promise<{ ok: boolean; error?: string }>;
+  onRegister: (args: { email: string; password: string; username: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number }) => Promise<{ ok: boolean; error?: string }>;
   onImportWeight: () => Promise<{ lbs: number | null; message?: string }>;
   healthKitAvailable: boolean;
 }
@@ -71,6 +71,7 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
   const [weight, setWeight] = useState("");
   const [heightFt, setHeightFt] = useState("");
   const [heightIn, setHeightIn] = useState("");
+  const [bodyFat, setBodyFat] = useState("");
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
   const [usernameMsg, setUsernameMsg] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
@@ -168,9 +169,16 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
     }
     const h = hasHeight ? Math.round((ftVal * 12 + inVal) * 2.54) : undefined;
 
+    // Body fat %: stored as tenths (19.9 → 199) so the server keeps it as integer
+    const bfRaw = bodyFat.trim() ? Number(bodyFat) : undefined;
+    if (bfRaw !== undefined && (isNaN(bfRaw) || bfRaw < 3 || bfRaw > 60)) {
+      setFormError("Enter a body fat % between 3 and 60."); return;
+    }
+    const bf = bfRaw !== undefined ? Math.round(bfRaw * 10) : undefined;
+
     setSubmitting(true);
     try {
-      const result = await onRegister({ email: e, password, username: parsed.data, bodyWeight: w, bodyHeight: h });
+      const result = await onRegister({ email: e, password, username: parsed.data, bodyWeight: w, bodyHeight: h, bodyFat: bf });
       if (result.ok) {
         finish(false);
       } else {
@@ -325,10 +333,23 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
               {importMsg && <p className="text-blue-300 text-xs mt-1 px-1">{importMsg}</p>}
             </div>
 
+            {/* Body fat % — optional, overrides BMI */}
+            <div>
+              <input
+                data-testid="input-onboarding-bodyfat"
+                type="number"
+                inputMode="decimal"
+                placeholder="Body fat % (optional — overrides BMI)"
+                value={bodyFat}
+                onChange={(e) => setBodyFat(e.target.value)}
+                className="w-full bg-blue-900/70 border border-blue-700 rounded-xl px-3 py-3 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+              />
+            </div>
+
             {/* Why we ask */}
             <div className="bg-blue-900/50 border border-blue-700/40 rounded-xl px-3 py-2.5">
               <p className="text-blue-200 text-xs leading-relaxed">
-                Height + weight let us personalise your <span className="font-semibold text-white">Cold Score</span>, <span className="font-semibold text-white">Benefit Bar</span> timing, and calorie estimates using your actual BMI — you can update these anytime in Settings.
+                These personalise your <span className="font-semibold text-white">Cold Score</span> and <span className="font-semibold text-white">Benefit Bar</span> timing. Body fat % is most accurate — check your smart scale. Height + weight are used as a fallback. All optional, editable anytime in Settings.
               </p>
             </div>
 

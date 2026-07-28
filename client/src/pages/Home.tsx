@@ -165,24 +165,22 @@ function playAlarm(url: string, label: string, isCustom: boolean, stopAfterMs?: 
 type Screen = "timer" | "history" | "explore" | "gear" | "settings" | "legal" | "achievements" | "friends";
 
 
-// Leaner body = less insulation = cold hits harder = slightly higher score.
-// Neutral anchor: BMI 22 (factor 1.0). Clamped to ±10% so it's meaningful but not wild.
-function _plungeBmiFactor(weightLbs: number, heightCm: number): number {
-  if (heightCm <= 0 || weightLbs <= 0) return 1.0;
-  const weightKg = weightLbs / 2.205;
-  const heightM  = heightCm / 100;
-  const bmi = weightKg / (heightM * heightM);
-  return Math.min(1.10, Math.max(0.90, 22 / bmi));
-}
+import { getCompositionFactor } from "@/lib/benefitSegments";
 
-function plungeScore(durationSeconds: number, tempF: number, weightLbs = 150, heightCm = 175): number {
+function plungeScore(
+  durationSeconds: number,
+  tempF: number,
+  weightLbs  = 150,
+  heightCm   = 175,
+  bodyFatPct?: number | null,
+): number {
   const minutes = durationSeconds / 60;
   let coldFactor = 1;
   if (tempF <= 55) coldFactor = 1.2;
   if (tempF <= 50) coldFactor = 1.5;
   if (tempF <= 45) coldFactor = 1.9;
   if (tempF <= 40) coldFactor = 2.3;
-  return Number((minutes * coldFactor * _plungeBmiFactor(weightLbs, heightCm)).toFixed(2));
+  return Number((minutes * coldFactor * getCompositionFactor(bodyFatPct, weightLbs, heightCm)).toFixed(2));
 }
 
 function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
@@ -1099,6 +1097,11 @@ export default function Home() {
   const [bodyHeightCm, setBodyHeightCm] = useState<number>(() =>
     Number(localStorage.getItem("coldstreak-body-height") || 175)
   );
+  // Body fat % — null when not set; takes priority over height+weight BMI when present
+  const [bodyFatPct, setBodyFatPct] = useState<number | null>(() => {
+    const v = localStorage.getItem("coldstreak-body-fat");
+    return v ? Number(v) : null;
+  });
   const [heightUnit, setHeightUnit] = useState<"imperial" | "metric">(() =>
     (localStorage.getItem("coldstreak-height-unit") as "imperial" | "metric") || "imperial"
   );
@@ -1431,10 +1434,10 @@ export default function Home() {
     fetch("/api/auth/profile", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((data) => {
-        const localName = localStorage.getItem("coldstreak-username") || "";
+        const localName   = localStorage.getItem("coldstreak-username") || "";
         const localWeight = Number(localStorage.getItem("coldstreak-body-weight")) || 0;
         const localHeight = Number(localStorage.getItem("coldstreak-body-height")) || 0;
-        const patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number } = {};
+        const patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number } = {};
 
         if (data.username) {
           setAccountUsername(data.username);
@@ -1460,6 +1463,13 @@ export default function Home() {
           localStorage.setItem("coldstreak-body-height", String(data.bodyHeight));
         } else if (localHeight > 0) {
           patch.bodyHeight = localHeight;
+        }
+
+        // bodyFat stored as tenths server-side (199 = 19.9%); convert back to pct
+        if (data.bodyFat && data.bodyFat > 0) {
+          const pct = data.bodyFat / 10;
+          setBodyFatPct(pct);
+          localStorage.setItem("coldstreak-body-fat", String(pct));
         }
 
         if (Object.keys(patch).length > 0) {
@@ -1544,12 +1554,13 @@ export default function Home() {
   };
 
   // Onboarding account creation — registers, stores handle/name/weight, then syncs.
-  const handleOnboardingRegister = async (args: { email: string; password: string; username: string; bodyWeight?: number; bodyHeight?: number }) => {
+  const handleOnboardingRegister = async (args: { email: string; password: string; username: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number }) => {
     const result = await auth.register(args.email, args.password, {
       username: args.username,
       displayName: args.username,
       bodyWeight: args.bodyWeight,
       bodyHeight: args.bodyHeight,
+      bodyFat:    args.bodyFat,
     });
     if (!result.ok) return { ok: false, error: result.error };
     setAccountUsername(args.username);
@@ -1565,6 +1576,11 @@ export default function Home() {
       const cm = Math.round(args.bodyHeight);
       setBodyHeightCm(cm);
       localStorage.setItem("coldstreak-body-height", String(cm));
+    }
+    if (args.bodyFat && args.bodyFat > 0) {
+      const pct = args.bodyFat / 10; // convert tenths back to pct for local state
+      setBodyFatPct(pct);
+      localStorage.setItem("coldstreak-body-fat", String(pct));
     }
     verifyProForEmail(args.email);
     backgroundSync();
@@ -2653,7 +2669,7 @@ export default function Home() {
   // ─────────────────────────────────────────────────────────────────────────
 
   const doLogPlunge = useCallback(async (durationSec: number, startedAtOverride?: Date, challenger?: { userId: number; score: number }) => {
-    const score = plungeScore(durationSec, temperature, bodyWeightLbs, bodyHeightCm);
+    const score = plungeScore(durationSec, temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct);
     const weightAtLogTime = Number(localStorage.getItem("coldstreak-body-weight") || 150);
     const caloriesAtLogTime = Math.round(estimateCalories(durationSec, temperature, weightAtLogTime));
 
@@ -3098,7 +3114,7 @@ export default function Home() {
     ? undefined
     : new Date(lastTodayPlunge.createdAt).getTime() + lastTodayPlunge.duration * 1000;
   const elapsedSeconds = countdownMode ? countdownElapsed : seconds;
-  const displayScore = isActive && displaySeconds > 0 ? plungeScore(elapsedSeconds, temperature, bodyWeightLbs, bodyHeightCm) : todayScore;
+  const displayScore = isActive && displaySeconds > 0 ? plungeScore(elapsedSeconds, temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct) : todayScore;
 
   const tempDisplay = useCelsius
     ? `${Math.round((temperature - 32) * 5 / 9)}°C`
@@ -3530,6 +3546,7 @@ export default function Home() {
               todayLoggedSeconds={todayTotalSec}
               bodyWeightLbs={bodyWeightLbs}
               bodyHeightCm={bodyHeightCm}
+              bodyFatPct={bodyFatPct}
               lastPlungeEndedAt={lastPlungeEndedAt}
             />
           </div>
@@ -3944,7 +3961,7 @@ export default function Home() {
                     const durationSec = manualMins * 60 + manualSecs;
                     if (durationSec === 0) return;
                     const isoDate = new Date(`${manualDate}T${manualTime}:00`).toISOString();
-                    const score = plungeScore(durationSec, manualTempF, bodyWeightLbs, bodyHeightCm);
+                    const score = plungeScore(durationSec, manualTempF, bodyWeightLbs, bodyHeightCm, bodyFatPct);
                     const finalLocId = manualLocSel === "home" ? "home" : manualLocSel.startsWith("community-") ? manualLocSel : undefined;
                     const finalLocName = manualLocSel === "home"
                       ? (homeLabel || "Home")
@@ -4124,6 +4141,7 @@ export default function Home() {
                         plunge={plunge}
                         bodyWeightLbs={bodyWeightLbs}
                         bodyHeightCm={bodyHeightCm}
+                        bodyFatPct={bodyFatPct}
                         username={username}
                         streak={streak}
                         homeLabel={homeLabel}

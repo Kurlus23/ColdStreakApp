@@ -32,9 +32,24 @@ export function getTempFactor(tempF: number): number {
   return 1.0;
 }
 
-// ─── BMI factor ───────────────────────────────────────────────────────────────
-const NEUTRAL_BMI = 22;
+// ─── Body-composition factor ──────────────────────────────────────────────────
+// Body fat % is the preferred input: it directly measures insulation/thermal
+// mass without the muscle-mass distortion that makes BMI inaccurate for lean,
+// muscular users.  Falls back to BMI derived from height+weight when not set.
+//
+// Neutral reference: 20 % body fat (average fit adult).
+// Factor range clamped to [0.75, 1.35] in both paths.
 
+const NEUTRAL_BODY_FAT = 20; // %
+const NEUTRAL_BMI      = 22;
+
+/** Preferred: use body fat % directly. */
+export function getBodyFatFactor(bodyFatPct: number): number {
+  if (bodyFatPct <= 0) return 1.0;
+  return Math.min(1.35, Math.max(0.75, bodyFatPct / NEUTRAL_BODY_FAT));
+}
+
+/** Fallback: derive factor from BMI when body fat % is unknown. */
 export function getBmiFactor(weightLbs: number, heightCm: number): number {
   if (heightCm <= 0 || weightLbs <= 0) return 1.0;
   const weightKg = weightLbs / 2.205;
@@ -43,15 +58,33 @@ export function getBmiFactor(weightLbs: number, heightCm: number): number {
   return Math.min(1.35, Math.max(0.75, bmi / NEUTRAL_BMI));
 }
 
+/**
+ * Returns the body-composition factor using body fat % when available,
+ * otherwise falls back to the BMI-derived factor.
+ */
+export function getCompositionFactor(
+  bodyFatPct: number | null | undefined,
+  weightLbs: number,
+  heightCm: number,
+): number {
+  if (bodyFatPct != null && bodyFatPct > 0) return getBodyFatFactor(bodyFatPct);
+  return getBmiFactor(weightLbs, heightCm);
+}
+
 // ─── Threshold & earned computation ──────────────────────────────────────────
 
 /**
  * Returns the cumulative second-thresholds at which each segment unlocks,
  * adjusted for temperature and body composition.
  */
-export function computeThresholds(tempF: number, weightLbs = 150, heightCm = 175): number[] {
+export function computeThresholds(
+  tempF: number,
+  weightLbs = 150,
+  heightCm  = 175,
+  bodyFatPct?: number | null,
+): number[] {
   const tf = getTempFactor(tempF);
-  const bf = getBmiFactor(weightLbs, heightCm);
+  const bf = getCompositionFactor(bodyFatPct, weightLbs, heightCm);
   let t = 0;
   return SEGMENTS.map((seg) => {
     t += Math.round(seg.baseDuration * tf * bf);
@@ -66,10 +99,11 @@ export function computeThresholds(tempF: number, weightLbs = 150, heightCm = 175
 export function computeEarnedSegments(
   durationSec: number,
   tempF: number,
-  weightLbs = 150,
-  heightCm = 175,
+  weightLbs  = 150,
+  heightCm   = 175,
+  bodyFatPct?: number | null,
 ): SegmentId[] {
-  const thresholds = computeThresholds(tempF, weightLbs, heightCm);
+  const thresholds = computeThresholds(tempF, weightLbs, heightCm, bodyFatPct);
   return SEGMENTS
     .filter((_, i) => durationSec >= thresholds[i])
     .map((s) => s.id);

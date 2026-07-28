@@ -40,6 +40,7 @@ interface PlungeCardProps {
   plunge: Plunge;
   bodyWeightLbs?: number;
   bodyHeightCm?: number;
+  bodyFatPct?: number | null;
   username?: string;
   streak?: number;
   homeLabel?: string;
@@ -174,7 +175,7 @@ function resolveLocationDisplay(locId: string | null | undefined, locName: strin
   return null;
 }
 
-export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, username, streak, homeLabel, communityLocs = [], isPro = false, avatarUrl, friends = [], onChallengeFriend }: PlungeCardProps) {
+export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bodyFatPct, username, streak, homeLabel, communityLocs = [], isPro = false, avatarUrl, friends = [], onChallengeFriend }: PlungeCardProps) {
   const deletePlunge = useDeletePlunge();
   const updatePlunge = useUpdatePlunge();
   const { toast } = useToast();
@@ -679,7 +680,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, us
 
         {/* ── Mini benefit bar + check-in ratings ── */}
         {(() => {
-          const earned     = computeEarnedSegments(plunge.duration, plunge.temperature, bodyWeightLbs, bodyHeightCm);
+          const earned     = computeEarnedSegments(plunge.duration, plunge.temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct);
           const mood       = plunge.mood       != null ? MOOD_META[plunge.mood]         : null;
           const energy     = plunge.moodEnergy != null ? ENERGY_META[plunge.moodEnergy] : null;
           const focus      = plunge.moodFocus  != null ? FOCUS_META[plunge.moodFocus]   : null;

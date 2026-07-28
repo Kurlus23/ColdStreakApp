@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   displayName: text("display_name"),
   bodyWeight: integer("body_weight"),
   bodyHeight: integer("body_height"), // stored in cm
+  bodyFat:   integer("body_fat"),    // stored as tenths of a percent (199 = 19.9%)
   isAdmin: boolean("is_admin").default(false).notNull(),
   isDisabled: boolean("is_disabled").default(false).notNull(),
   timezone: text("timezone"), // IANA tz from client (e.g., "America/Los_Angeles")
