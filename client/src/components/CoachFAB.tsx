@@ -159,58 +159,73 @@ export function CoachFAB({ authToken, screen }: Props) {
   // ── Drag state ──────────────────────────────────────────────────────────────
   const [pos, setPos] = useState<{ x: number; y: number }>(() => loadPos() ?? defaultPos());
   // drag.current holds live drag state; wasDrag tracks whether the last
-  // pointerdown ended as a drag (so onClick can ignore it).
+  // touch ended as a drag (so onClick can ignore it).
   const drag = useRef<{
     startX: number; startY: number;
     originX: number; originY: number;
     moved: boolean;
   } | null>(null);
   const wasDrag = useRef(false);
+  // Stable ref to pos so native touch handlers always see the latest value.
+  const posRef = useRef(pos);
+  useEffect(() => { posRef.current = pos; }, [pos]);
+  // Ref to the FAB button element for attaching non-passive native listeners.
+  const fabRef = useRef<HTMLButtonElement>(null);
 
-  const onPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
-    // Only primary button / first touch
-    if (e.button !== 0 && e.pointerType === "mouse") return;
-    e.preventDefault();
-    wasDrag.current = false;
+  useEffect(() => {
+    const el = fabRef.current;
+    if (!el) return;
 
-    // Snapshot current position into the drag record
-    const origin = { x: pos.x, y: pos.y };
-    drag.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      originX: origin.x,
-      originY: origin.y,
-      moved: false,
+    const onTouchStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      wasDrag.current = false;
+      drag.current = {
+        startX: t.clientX,
+        startY: t.clientY,
+        originX: posRef.current.x,
+        originY: posRef.current.y,
+        moved: false,
+      };
     };
 
-    // Attach global listeners so iOS doesn't lose the drag when the finger
-    // moves outside the element (avoids setPointerCapture issues in WebView).
-    const onMove = (ev: PointerEvent) => {
+    const onTouchMove = (e: TouchEvent) => {
       const d = drag.current;
       if (!d) return;
-      const dx = ev.clientX - d.startX;
-      const dy = ev.clientY - d.startY;
+      // non-passive listener means this actually prevents page scroll
+      e.preventDefault();
+      const t = e.touches[0];
+      const dx = t.clientX - d.startX;
+      const dy = t.clientY - d.startY;
       if (!d.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
       d.moved = true;
       wasDrag.current = true;
       setPos(clampPos(d.originX + dx, d.originY + dy));
     };
 
-    const onUp = (ev: PointerEvent) => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
+    const onTouchEnd = (e: TouchEvent) => {
       const d = drag.current;
       drag.current = null;
-      if (d?.moved) {
-        const next = clampPos(d.originX + (ev.clientX - d.startX), d.originY + (ev.clientY - d.startY));
-        setPos(next);
-        try { localStorage.setItem(POS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
-      }
+      if (!d?.moved) return;
+      const t = e.changedTouches[0];
+      const next = clampPos(
+        d.originX + (t.clientX - d.startX),
+        d.originY + (t.clientY - d.startY),
+      );
+      setPos(next);
+      try { localStorage.setItem(POS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
     };
 
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  }, [pos]);
+    el.addEventListener("touchstart",  onTouchStart, { passive: true });
+    el.addEventListener("touchmove",   onTouchMove,  { passive: false }); // ← key: non-passive
+    el.addEventListener("touchend",    onTouchEnd,   { passive: true });
+
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove",  onTouchMove);
+      el.removeEventListener("touchend",   onTouchEnd);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally empty — all mutable state accessed via refs
 
   // When authToken changes (e.g. null → real JWT after auth hydration, or
   // account switch), load the correct history for the new user.  Both setters
@@ -320,7 +335,7 @@ export function CoachFAB({ authToken, screen }: Props) {
     <>
       {/* ── Floating Action Button ── */}
       <button
-        onPointerDown={onPointerDown}
+        ref={fabRef}
         onClick={() => { if (!wasDrag.current) openPanel(); }}
         onContextMenu={(e) => e.preventDefault()}
         aria-label="Open coach"
