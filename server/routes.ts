@@ -1548,6 +1548,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
               ]
             : undefined,
           actionToken: actionToken ?? undefined,
+          requesterDisplayName: name,
         });
         for (const sub of subs) {
           try {

@@ -432,6 +432,16 @@ export default function Home() {
         if (id) setActiveChallengerUserId(id);
       } else if (event.data?.type === "friend-request-resolved") {
         loadFriends();
+        // Show a named toast so the user knows what changed without opening Friends
+        const requesterName: string | null = event.data.requesterName ?? null;
+        const resolution: string | null = event.data.resolution ?? null;
+        if (requesterName && resolution) {
+          const verb = resolution === "accepted" ? "accepted" : "declined";
+          toast({
+            title: resolution === "accepted" ? "🎉 Friend request accepted" : "Friend request declined",
+            description: `${requesterName} ${verb} your friend request.`,
+          });
+        }
         if (!isOnFriendsScreenRef.current) {
           localStorage.setItem("coldstreak-friends-badge", "1");
           setFriendsBadge(true);

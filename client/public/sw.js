@@ -102,7 +102,7 @@ self.addEventListener("push", (e) => {
     badge: "/icons/icon-72.png",
     tag: data.tag || "streak-reminder",
     renotify: true,
-    data: { url: data.url, actionToken: data.actionToken || null },
+    data: { url: data.url, actionToken: data.actionToken || null, requesterDisplayName: data.requesterDisplayName || null },
   };
   // Attach action buttons when the push payload includes them
   if (Array.isArray(data.actions) && data.actions.length > 0) {
@@ -137,7 +137,11 @@ self.addEventListener("notificationclick", (e) => {
 
           if (response.ok) {
             // Tell any open app windows to refresh their friends list
-            return broadcastToClients({ type: "friend-request-resolved" });
+            return broadcastToClients({
+              type: "friend-request-resolved",
+              requesterName: notifData.requesterDisplayName || null,
+              resolution: status, // "accepted" | "declined"
+            });
           }
 
           // The request was already handled (duplicate tap or stale notification)
