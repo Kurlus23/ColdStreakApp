@@ -242,8 +242,9 @@ export function CoachFAB({ authToken, screen }: Props) {
         onClick={openPanel}
         aria-label="Open coach"
         data-testid="coach-fab"
-        className="fixed left-4 z-40 w-13 h-13 rounded-full shadow-lg flex items-center justify-center transition-transform active:scale-95" style={{ top: "calc(env(safe-area-inset-top, 0px) + 56px)" }}
+        className="fixed left-4 z-40 rounded-full shadow-lg flex items-center justify-center transition-transform active:scale-95"
         style={{
+          top: "calc(env(safe-area-inset-top, 0px) + 56px)",
           width: 52,
           height: 52,
           background: "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)",
