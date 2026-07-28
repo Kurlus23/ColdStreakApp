@@ -5903,7 +5903,7 @@ export default function Home() {
                         </div>
                       );
                     })()}
-                    <p className="text-blue-500 text-xs mt-1">Used with height to personalize benefit timing and estimate calories.</p>
+                    <p className="text-blue-500 text-xs mt-1">Used with height to estimate calories burned.</p>
                   </div>
 
                   {/* Body height */}
@@ -5958,6 +5958,64 @@ export default function Home() {
                           <div className={`w-20 ${valCls}`}>{bodyHeightCm} cm</div>
                           <button onClick={() => saveHeight(bodyHeightCm + 1)} className={btnCls}>+</button>
                           <span className="text-blue-500 text-xs">{feet} ft {inches} in</span>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Body fat % — overrides BMI, with accuracy callout */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-blue-400 text-xs uppercase tracking-wide">Body Fat %</label>
+                      {bodyFatPct !== null && (
+                        <button
+                          onClick={() => {
+                            setBodyFatPct(null);
+                            localStorage.removeItem("coldstreak-body-fat");
+                            const tok = localStorage.getItem("coldstreak-auth-token");
+                            if (tok) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bodyFat: 0 }) }).catch(() => {});
+                          }}
+                          className="text-[10px] text-slate-500 hover:text-red-400 transition-colors"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+
+                    {/* BMI accuracy note */}
+                    <div className="bg-blue-950/60 border border-blue-800/50 rounded-xl px-3 py-2.5 text-xs text-blue-300 leading-relaxed">
+                      ⚠️ Height + weight gives a <span className="text-white font-semibold">rough BMI estimate</span> — it can't account for muscle mass. If you know your body fat %, entering it here makes your Cold Score and Benefit Bar more accurate.{" "}
+                      <button
+                        onClick={() => { setScreen("gear"); setGearCategory("devices"); }}
+                        className="text-cyan-400 underline underline-offset-2"
+                      >
+                        A smart scale can measure it.
+                      </button>
+                    </div>
+
+                    {/* Stepper */}
+                    {(() => {
+                      const pct = bodyFatPct ?? 20;
+                      const saveFat = (val: number) => {
+                        const clamped = Math.round(Math.min(60, Math.max(3, val)) * 10) / 10;
+                        setBodyFatPct(clamped);
+                        localStorage.setItem("coldstreak-body-fat", String(clamped));
+                        const tok = localStorage.getItem("coldstreak-auth-token");
+                        // stored as tenths server-side (19.9 → 199)
+                        if (tok) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bodyFat: Math.round(clamped * 10) }) }).catch(() => {});
+                      };
+                      const btnCls = "w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none";
+                      const valCls = "w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none";
+                      return (
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => saveFat(pct - 0.5)} className={btnCls}>−</button>
+                          <div className={valCls}>{pct.toFixed(1)}%</div>
+                          <button onClick={() => saveFat(pct + 0.5)} className={btnCls}>+</button>
+                          {bodyFatPct !== null ? (
+                            <span className="text-cyan-400 text-xs font-semibold">✓ Active — overrides BMI</span>
+                          ) : (
+                            <span className="text-blue-500 text-xs">Not set — using BMI</span>
+                          )}
                         </div>
                       );
                     })()}
