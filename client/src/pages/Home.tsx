@@ -3392,7 +3392,7 @@ export default function Home() {
                           : (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
                         }
                       </span>
-                      <span className="text-blue-500/50 text-[8px] mt-1.5">
+                      <span className={`text-[8px] mt-1.5 ${isActive && scoreView === "today" ? "text-green-400 animate-pulse" : "text-blue-500/50"}`}>
                         {scoreView === "today" ? (isActive ? "live" : "today") : "this week"}
                       </span>
                     </>
@@ -3436,10 +3436,10 @@ export default function Home() {
                   data-testid="button-bt-status-header"
                 >
                   <span
-                    className={`w-2 h-2 rounded-full ${btConnected ? "bg-green-400 animate-pulse" : "bg-blue-700/60"}`}
+                    className={`w-2 h-2 rounded-full ${btConnected ? "bg-green-400" : "bg-blue-700/60"}`}
                   />
                   <span
-                    className={`text-[9px] font-bold uppercase tracking-widest ${btConnected ? "text-green-400" : "text-blue-700/60"}`}
+                    className={`text-[9px] font-bold uppercase tracking-widest ${btConnected ? "text-green-400 animate-pulse" : "text-blue-700/60"}`}
                   >Live</span>
                 </button>
                 <div className="absolute right-0 top-2 bottom-2 w-px bg-blue-800/50" />
