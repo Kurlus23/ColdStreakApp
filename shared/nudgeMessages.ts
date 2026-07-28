@@ -6,15 +6,15 @@
  * Keeping both sides in this file means any copy change is made once and any
  * accidental divergence fails to compile rather than silently reaching users.
  *
- * Note on trending-up: the client renders a temperature-aware personalised
- * nudge via trendingUpNudge().  The server push uses the generic fallback
- * below.  This intentional difference is acceptable; the personalised copy is
- * additional context, not a contradiction of the push content.
+ * Note on trending-up: both the server push and the client card now compute
+ * temperature-aware personalised copy via the shared trendingUpNudge() logic.
+ * The generic copy below is used as a fallback on both sides when recent
+ * averages are unavailable.
  */
 
 export const NUDGE_MESSAGES = {
-  /** Generic trending-up copy — used by the server push and as the client
-   *  fallback when recent averages are unavailable. */
+  /** Generic trending-up copy — fallback for both the server push and the
+   *  client card when recent plunge averages are unavailable. */
   trendingUp: {
     title: "Ready for a challenge",
     body:  "Your check-in scores are trending up — consider dropping 2–3°F or adding 30 seconds to your next session and see how you feel.",

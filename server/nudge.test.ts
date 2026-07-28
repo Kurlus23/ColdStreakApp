@@ -23,8 +23,6 @@ import { type Plunge } from "../shared/schema";
 
 // ── Fixture helpers ───────────────────────────────────────────────────────────
 
-const BASE_DATE = new Date("2026-06-15T12:00:00Z");
-
 /**
  * Build a minimal Plunge object.  Only the fields that affect nudge derivation
  * need values; everything else gets harmless defaults.
@@ -49,6 +47,12 @@ function makePlunge(overrides: Partial<Plunge> & { createdAt: Date }): Plunge {
  * Produce `count` plunges spread across two calendar months so that
  * computeMonthTrendDelta can return a non-null value.
  *
+ * Uses the current month and the previous month so the last plunge (pinned to
+ * today for the 7-day suppression guard) always lands in the same calendar
+ * month as the rest of the second-half plunges.  Hardcoding January/February
+ * caused the last plunge (overridden to today) to fall into a third, sparse
+ * month, making the client's MIN_RATED_PER_MONTH=2 check return null.
+ *
  * The caller supplies a `moodFn` to control the composite score direction.
  */
 function makeTwoMonthPlunges(
@@ -59,12 +63,16 @@ function makeTwoMonthPlunges(
   const result: Plunge[] = [];
   const half = Math.floor(count / 2);
 
+  const now = new Date();
+  // thisMonth: 1st of the current month; prevMonth: 1st of the prior month
+  const thisMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const prevMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+
   for (let i = 0; i < count; i++) {
     const isSecondMonth = i >= half;
-    const date = new Date(BASE_DATE);
-    // First half → January 2026; second half → February 2026
-    date.setUTCMonth(isSecondMonth ? 1 : 0);
-    date.setUTCDate(i + 1);
+    const base = isSecondMonth ? thisMonth : prevMonth;
+    const date = new Date(base);
+    date.setUTCDate(i + 1); // spread entries across different days
 
     result.push(
       makePlunge({
@@ -77,10 +85,12 @@ function makeTwoMonthPlunges(
     );
   }
 
-  // Most recent plunge is today so the 7-day suppression doesn't fire
+  // Most recent plunge is today so the 7-day suppression doesn't fire.
+  // This stays within the current month (thisMonth) so it doesn't create a
+  // third sparse month that would defeat MIN_RATED_PER_MONTH.
   result[result.length - 1] = makePlunge({
     ...result[result.length - 1],
-    createdAt: new Date(),
+    createdAt: now,
   });
 
   return result;
@@ -218,40 +228,49 @@ describe("nudge message parity — sweet-spot", () => {
   });
 });
 
-// ── trending-up (generic fallback path) ──────────────────────────────────────
+// ── trending-up (personalised path) ──────────────────────────────────────────
 
-describe("nudge message parity — trending-up generic copy", () => {
+describe("nudge message parity — trending-up personalised copy", () => {
   /**
-   * The client's trendingUpNudge() generates temperature-aware personalised
-   * copy which is intentionally different from the server push.  This test
-   * focuses on the shared string constants used by both sides, verifying that
-   * the NUDGE_MESSAGES.trendingUp values themselves are consistent between what
-   * the server emits and what the client would fall back to when no recent
-   * averages are available.
+   * Both the server push and the in-app card now compute temperature-aware
+   * personalised copy via the same trendingUpNudge() logic.  The fixture uses
+   * 55 °F / 120 s plunges, which land in the "Warmer tier (52 °F+)" branch:
+   *   title → "Time to nudge it colder"
+   *   body  → "You've been plunging around 55°F … Try 52°F …"
    *
-   * The server always uses the generic copy, so we verify that directly.
+   * The generic NUDGE_MESSAGES.trendingUp strings remain as a shared fallback
+   * when recent averages are unavailable; that path is verified separately
+   * in the mixed-rated-plunges suite below.
    */
 
-  // Scores rise in the second month (delta >> 0.05)
+  // Scores rise in the second month (delta >> 0.05); default temp=55, dur=120
   const plunges = makeTwoMonthPlunges(14, (_, isSecondMonth) =>
     isSecondMonth ? 5 : 1,
   );
 
-  it("server body matches shared constant", () => {
-    const push = deriveNudgeForPush(plunges);
+  it("server and client bodies are identical", () => {
+    const push = deriveNudgeForPush(plunges)!;
+    const card = deriveNudge(plunges)!;
     expect(push).not.toBeNull();
-    expect(push!.body).toBe(NUDGE_MESSAGES.trendingUp.body);
+    expect(card).not.toBeNull();
+    expect(push.body).toBe(card.body);
   });
 
-  it("server title (stripped of emoji) matches shared constant title", () => {
+  it("server title (stripped of emoji) matches client title", () => {
     const push = deriveNudgeForPush(plunges)!;
-    expect(stripEmoji(push.title)).toBe(NUDGE_MESSAGES.trendingUp.title);
+    const card = deriveNudge(plunges)!;
+    expect(stripEmoji(push.title)).toBe(card.title);
   });
 
   it("client emits trending-up kind", () => {
     const card = deriveNudge(plunges);
     expect(card).not.toBeNull();
     expect(card!.kind).toBe("trending-up");
+  });
+
+  it("personalised body contains the user's actual temperature", () => {
+    const push = deriveNudgeForPush(plunges)!;
+    expect(push.body).toContain("55°F");
   });
 });
 
@@ -290,7 +309,9 @@ describe("deriveNudgeForPush — mixed rated/unrated plunges", () => {
 
     const result = deriveNudgeForPush(plunges);
     expect(result).not.toBeNull();
-    expect(result!.title).toContain(NUDGE_MESSAGES.trendingUp.title);
+    // Trending-up fires — server now emits personalised copy so verify the
+    // emoji prefix that marks the trending-up branch rather than a fixed string.
+    expect(result!.title).toMatch(/^(📈|🏆)/);
   });
 
   it("9 total plunges → null even when all are rated", () => {
@@ -309,12 +330,15 @@ describe("deriveNudgeForPush — mixed rated/unrated plunges", () => {
     // 14 total plunges: alternating rated/unrated.
     // Rated entries: first-month mood=1, second-month mood=5 → trending-up.
     // The 7 unrated entries (mood=null) must not change the result.
+    const now = new Date();
+    const thisMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const prevMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
     const half = 7;
     const result: Plunge[] = [];
     for (let i = 0; i < 14; i++) {
       const isSecondMonth = i >= half;
-      const date = new Date(BASE_DATE);
-      date.setUTCMonth(isSecondMonth ? 1 : 0);
+      const base = isSecondMonth ? thisMonth : prevMonth;
+      const date = new Date(base);
       date.setUTCDate(i + 1);
       const isRated = i % 2 === 0; // even-index entries are rated
       result.push(
@@ -325,26 +349,32 @@ describe("deriveNudgeForPush — mixed rated/unrated plunges", () => {
         }),
       );
     }
-    // Pin the last entry to today so the 7-day suppression doesn't fire
+    // Pin the last entry to today (stays within thisMonth)
     result[result.length - 1] = makePlunge({
       ...result[result.length - 1],
-      createdAt: new Date(),
+      createdAt: now,
     });
 
     const push = deriveNudgeForPush(result);
     expect(push).not.toBeNull();
-    expect(push!.title).toContain(NUDGE_MESSAGES.trendingUp.title);
-    expect(push!.body).toBe(NUDGE_MESSAGES.trendingUp.body);
+    // Trending-up fires — server now emits personalised copy for the 55 °F / 120 s
+    // fixture, so verify the emoji prefix rather than the generic string constant.
+    expect(push!.title).toMatch(/^(📈|🏆)/);
+    // Body is the personalised variant (55 °F warmer-tier path)
+    expect(push!.body).toContain("55°F");
   });
 
   it("trending-down with mixed entries: unrated don't suppress the signal", () => {
     // Same structure as above but rated entries show declining mood.
+    const now = new Date();
+    const thisMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const prevMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
     const half = 7;
     const result: Plunge[] = [];
     for (let i = 0; i < 14; i++) {
       const isSecondMonth = i >= half;
-      const date = new Date(BASE_DATE);
-      date.setUTCMonth(isSecondMonth ? 1 : 0);
+      const base = isSecondMonth ? thisMonth : prevMonth;
+      const date = new Date(base);
       date.setUTCDate(i + 1);
       const isRated = i % 2 === 0;
       result.push(
@@ -357,7 +387,7 @@ describe("deriveNudgeForPush — mixed rated/unrated plunges", () => {
     }
     result[result.length - 1] = makePlunge({
       ...result[result.length - 1],
-      createdAt: new Date(),
+      createdAt: now,
     });
 
     const push = deriveNudgeForPush(result);
