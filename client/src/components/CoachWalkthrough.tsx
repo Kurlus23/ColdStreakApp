@@ -110,9 +110,7 @@ const CHALLENGE_TIP_STEPS: Step[] = [
   {
     icon: "⚡",
     title: "Challenge a friend",
-    body: "Tap ⚡ Challenge on any friend to send them a head-to-head plunge challenge.",
-    highlight: '[data-testid^="button-challenge-"]',
-    hint: "↓ tap any friend card",
+    body: "Once a friend plunges today, tap their card and hit ⚡ Challenge to race their score.",
   },
 ];
 
@@ -175,6 +173,9 @@ const STEPS_BY_TYPE = {
   "friends-tip":   FRIENDS_TIP_STEPS,
   "challenge-tip": CHALLENGE_TIP_STEPS,
 };
+
+/** Tours shown over full-content screens sit near the top so they don't cover the list */
+const TOP_POSITIONED = new Set(["profile-tip", "friends-tip", "challenge-tip"]);
 
 const KEY_BY_TYPE = {
   "first-open":    FIRST_OPEN_KEY,
@@ -246,7 +247,7 @@ export function CoachWalkthrough({ tourType, onComplete }: Props) {
       <div
         className="fixed z-[61] rounded-2xl border border-blue-700/60 bg-[#0c1e3a]/95 shadow-2xl"
         style={{
-          top: "32%",
+          top: TOP_POSITIONED.has(tourType) ? "calc(env(safe-area-inset-top, 0px) + 72px)" : "32%",
           left: "5%",
           right: "5%",
           transform: visible ? "translateY(0)" : "translateY(-12px)",
