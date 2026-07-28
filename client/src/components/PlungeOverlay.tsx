@@ -107,6 +107,7 @@ interface PlungeOverlayProps {
   plungesCount: number;
   bodyWeightLbs: number;
   bodyHeightCm: number;
+  bodyFatPct?: number | null;
   btConnected: boolean;
   onStop: () => void;
   onDismissChallenger: () => void;
@@ -132,6 +133,7 @@ export function PlungeOverlay({
   plungesCount,
   bodyWeightLbs,
   bodyHeightCm,
+  bodyFatPct,
   btConnected,
   onStop,
   onDismissChallenger,
@@ -296,6 +298,7 @@ export function PlungeOverlay({
           todayLoggedSeconds={benefitCarryOver}
           bodyWeightLbs={bodyWeightLbs}
           bodyHeightCm={bodyHeightCm}
+          bodyFatPct={bodyFatPct}
         />
 
         {/* Music transport — its own floating card */}

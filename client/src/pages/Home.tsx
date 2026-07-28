@@ -7880,6 +7880,7 @@ export default function Home() {
           plungesCount={plunges.length}
           bodyWeightLbs={bodyWeightLbs}
           bodyHeightCm={bodyHeightCm}
+          bodyFatPct={bodyFatPct}
           btConnected={btConnected}
           onStop={handleStop}
           onDismissChallenger={() => setActiveChallengerUserId(null)}

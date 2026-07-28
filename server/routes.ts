@@ -363,11 +363,12 @@ export async function registerRoutes(
     const existing = await storage.getUserById(payload.userId);
     if (!existing) return res.status(401).json({ message: "User not found" });
     const { displayName, bodyWeight, bodyHeight, bodyFat, username } = req.body;
-    const patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number; username?: string } = {};
+    const patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number | null; username?: string } = {};
     if (typeof displayName === "string") patch.displayName = displayName.trim().slice(0, 32);
     if (typeof bodyWeight === "number" && bodyWeight > 0) patch.bodyWeight = Math.round(bodyWeight);
     if (typeof bodyHeight === "number" && bodyHeight > 0) patch.bodyHeight = Math.round(bodyHeight);
-    if (typeof bodyFat   === "number" && bodyFat   > 0) patch.bodyFat   = Math.round(bodyFat);
+    // bodyFat === 0 is the client's "clear" signal; treat as null so BMI fallback kicks in.
+    if (typeof bodyFat === "number") patch.bodyFat = bodyFat > 0 ? Math.round(bodyFat) : null;
     if (typeof username === "string") {
       const parsed = usernameSchema.safeParse(username);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0].message });
