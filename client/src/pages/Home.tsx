@@ -3286,7 +3286,7 @@ export default function Home() {
                     }
                   </select>
                   <span
-                    className={`text-[2.4rem] font-bold leading-none pointer-events-none transition-all ${btConnected ? "text-cyan-300 animate-pulse" : "text-white"}`}
+                    className={`text-[2.4rem] font-bold leading-none pointer-events-none transition-all ${btConnected ? "text-cyan-300" : "text-white"}`}
                     style={btConnected ? { textShadow: "0 0 18px rgba(34,211,238,0.55)" } : undefined}
                   >{tempDisplay}</span>
                 </div>
