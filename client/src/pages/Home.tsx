@@ -1102,6 +1102,10 @@ export default function Home() {
     const v = localStorage.getItem("coldstreak-body-fat");
     return v ? Number(v) : null;
   });
+  const HEIGHT_NUDGE_KEY = "coldstreak-height-nudge-dismissed";
+  const [heightNudgeDismissed, setHeightNudgeDismissed] = useState<boolean>(() => {
+    try { return localStorage.getItem(HEIGHT_NUDGE_KEY) === "1"; } catch { return false; }
+  });
   const [heightUnit, setHeightUnit] = useState<"imperial" | "metric">(() =>
     (localStorage.getItem("coldstreak-height-unit") as "imperial" | "metric") || "imperial"
   );
@@ -3551,6 +3555,38 @@ export default function Home() {
             />
           </div>
 
+          {/* ── Height nudge banner ── */}
+          {auth.user && !heightNudgeDismissed && !localStorage.getItem("coldstreak-body-height") && (
+            <div
+              data-testid="banner-height-nudge"
+              className="mt-2 flex items-center gap-2.5 rounded-2xl bg-cyan-900/60 border border-cyan-600/50 px-3 py-2.5 backdrop-blur-sm"
+            >
+              <span className="text-lg shrink-0">📏</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-cyan-100 text-xs font-semibold leading-tight">Add your height for accurate scores</p>
+                <p className="text-cyan-300/80 text-[10px] leading-tight mt-0.5">Personalises your Cold Score &amp; Benefit Bar using your BMI</p>
+              </div>
+              <button
+                data-testid="button-height-nudge-open"
+                onClick={() => { navTo("settings"); setTimeout(() => setSettingsTab("settings"), 50); }}
+                className="shrink-0 px-2.5 py-1 rounded-xl bg-cyan-500 hover:bg-cyan-400 active:scale-95 transition-all text-blue-950 text-[10px] font-bold"
+              >
+                Add
+              </button>
+              <button
+                data-testid="button-height-nudge-dismiss"
+                onClick={() => {
+                  try { localStorage.setItem(HEIGHT_NUDGE_KEY, "1"); } catch {}
+                  setHeightNudgeDismissed(true);
+                }}
+                className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-blue-900/60 text-blue-400 hover:text-white hover:bg-blue-700/60 transition-colors text-sm"
+                aria-label="Dismiss"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
         </div>
       )}
 
@@ -5927,6 +5963,9 @@ export default function Home() {
                         const clamped = Math.min(250, Math.max(100, Math.round(cm)));
                         setBodyHeightCm(clamped);
                         localStorage.setItem("coldstreak-body-height", String(clamped));
+                        // Auto-dismiss the height nudge once the user sets their height
+                        try { localStorage.setItem(HEIGHT_NUDGE_KEY, "1"); } catch {}
+                        setHeightNudgeDismissed(true);
                         const tok = localStorage.getItem("coldstreak-auth-token");
                         if (tok) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bodyHeight: clamped }) }).catch(() => {});
                       };
