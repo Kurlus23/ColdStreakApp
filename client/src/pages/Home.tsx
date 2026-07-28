@@ -1102,6 +1102,11 @@ export default function Home() {
     const v = localStorage.getItem("coldstreak-body-fat");
     return v ? Number(v) : null;
   });
+  // Epoch ms of the Apple Health reading that populated bodyFatPct (null = not from AH or unknown)
+  const [bodyFatRecordedAt, setBodyFatRecordedAt] = useState<number | null>(() => {
+    const v = localStorage.getItem("coldstreak-body-fat-recorded-at");
+    return v ? Number(v) : null;
+  });
   const HEIGHT_NUDGE_KEY = "coldstreak-height-nudge-dismissed";
   const [heightNudgeDismissed, setHeightNudgeDismissed] = useState<boolean>(() => {
     try { return localStorage.getItem(HEIGHT_NUDGE_KEY) === "1"; } catch { return false; }
@@ -6010,7 +6015,9 @@ export default function Home() {
                         <button
                           onClick={() => {
                             setBodyFatPct(null);
+                            setBodyFatRecordedAt(null);
                             localStorage.removeItem("coldstreak-body-fat");
+                            localStorage.removeItem("coldstreak-body-fat-recorded-at");
                             const tok = localStorage.getItem("coldstreak-auth-token");
                             if (tok) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bodyFat: 0 }) }).catch(() => {});
                           }}
@@ -6044,7 +6051,9 @@ export default function Home() {
                           const pct = result.pct;
                           const clamped = Math.round(Math.min(60, Math.max(3, pct)) * 10) / 10;
                           setBodyFatPct(clamped);
+                          setBodyFatRecordedAt(result.recordedAt);
                           localStorage.setItem("coldstreak-body-fat", String(clamped));
+                          localStorage.setItem("coldstreak-body-fat-recorded-at", String(result.recordedAt));
                           const tok = localStorage.getItem("coldstreak-auth-token");
                           if (tok) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bodyFat: Math.round(clamped * 10) }) }).catch(() => {});
                           toast({ title: `Body fat set to ${clamped.toFixed(1)}%`, description: "Pulled from Apple Health." });
@@ -6062,22 +6071,48 @@ export default function Home() {
                       const saveFat = (val: number) => {
                         const clamped = Math.round(Math.min(60, Math.max(3, val)) * 10) / 10;
                         setBodyFatPct(clamped);
+                        // Manually editing clears the Apple Health provenance
+                        setBodyFatRecordedAt(null);
                         localStorage.setItem("coldstreak-body-fat", String(clamped));
+                        localStorage.removeItem("coldstreak-body-fat-recorded-at");
                         const tok = localStorage.getItem("coldstreak-auth-token");
                         // stored as tenths server-side (19.9 → 199)
                         if (tok) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bodyFat: Math.round(clamped * 10) }) }).catch(() => {});
                       };
                       const btnCls = "w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none";
                       const valCls = "w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none";
+
+                      // Build the Apple Health age label when a recordedAt timestamp exists
+                      const ahLabel = (() => {
+                        if (!bodyFatRecordedAt) return null;
+                        const diffMs = Date.now() - bodyFatRecordedAt;
+                        const diffDays = Math.floor(diffMs / 86_400_000);
+                        const diffHours = Math.floor(diffMs / 3_600_000);
+                        let age: string;
+                        if (diffDays === 0) age = diffHours <= 1 ? "just now" : `${diffHours}h ago`;
+                        else if (diffDays === 1) age = "yesterday";
+                        else age = `${diffDays} days ago`;
+                        const stale = diffDays >= 14;
+                        return { age, stale };
+                      })();
+
                       return (
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => saveFat(pct - 0.5)} className={btnCls}>−</button>
-                          <div className={valCls}>{pct.toFixed(1)}%</div>
-                          <button onClick={() => saveFat(pct + 0.5)} className={btnCls}>+</button>
-                          {bodyFatPct !== null ? (
-                            <span className="text-cyan-400 text-xs font-semibold">✓ Active — overrides BMI</span>
-                          ) : (
-                            <span className="text-blue-500 text-xs">Not set — using BMI</span>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => saveFat(pct - 0.5)} className={btnCls}>−</button>
+                            <div className={valCls}>{pct.toFixed(1)}%</div>
+                            <button onClick={() => saveFat(pct + 0.5)} className={btnCls}>+</button>
+                            {bodyFatPct !== null ? (
+                              <span className="text-cyan-400 text-xs font-semibold">✓ Active — overrides BMI</span>
+                            ) : (
+                              <span className="text-blue-500 text-xs">Not set — using BMI</span>
+                            )}
+                          </div>
+                          {ahLabel && (
+                            <p className={`text-xs pl-1 ${ahLabel.stale ? "text-amber-400" : "text-blue-400"}`}>
+                              From Apple Health · {ahLabel.age}
+                              {ahLabel.stale && " · may be outdated"}
+                            </p>
                           )}
                         </div>
                       );
