@@ -4,7 +4,7 @@
  * • Fixed in the bottom-right corner, above the navigation bar.
  * • Badge indicator when there are unseen feature announcements.
  * • On open, injects unseen announcements as coach messages then marks them seen.
- * • Chat history is kept in component state (not persisted) — starts fresh each session.
+ * • Chat history is persisted to localStorage (last 20 messages), keyed per user.
  * • Calls POST /api/coach/chat with message + history; falls back gracefully on error.
  *
  * Suggested quick-question chips are shown when the conversation is empty.
@@ -27,6 +27,56 @@ interface ChatMessage {
 interface Props {
   /** JWT token for the API call. */
   authToken: string | null;
+}
+
+// ── Chat history persistence ──────────────────────────────────────────────────
+
+const MAX_HISTORY = 20;
+
+/** Derive a stable per-user localStorage key from the JWT token.
+ *  Decodes the payload to extract the user ID; falls back to a hash of the
+ *  token prefix so shared devices don't bleed history between accounts.
+ */
+function getStorageKey(token: string | null): string {
+  if (!token) return "coach-chat-history";
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const userId = payload.userId ?? payload.sub ?? payload.id;
+    if (userId) return `coach-chat-history:${userId}`;
+  } catch {
+    // malformed JWT — fall through to prefix-based key
+  }
+  // Use first 16 chars of the token as a cheap discriminator
+  return `coach-chat-history:${token.slice(0, 16)}`;
+}
+
+function loadHistory(token: string | null): ChatMessage[] {
+  try {
+    const raw = localStorage.getItem(getStorageKey(token));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed as ChatMessage[];
+  } catch {
+    // ignore parse errors
+  }
+  return [];
+}
+
+function saveHistory(token: string | null, messages: ChatMessage[]): void {
+  try {
+    const trimmed = messages.slice(-MAX_HISTORY);
+    localStorage.setItem(getStorageKey(token), JSON.stringify(trimmed));
+  } catch {
+    // ignore storage errors (private mode, quota exceeded, etc.)
+  }
+}
+
+function clearHistory(token: string | null): void {
+  try {
+    localStorage.removeItem(getStorageKey(token));
+  } catch {
+    // ignore
+  }
 }
 
 // ── Quick-question chips ──────────────────────────────────────────────────────
@@ -64,13 +114,25 @@ async function sendMessage(
 
 export function CoachFAB({ authToken }: Props) {
   const [open, setOpen]         = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // `loadedForToken` tracks which token's history is currently in `messages`.
+  // Initialised together so the first render already shows the right history.
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory(authToken));
+  const [loadedForToken, setLoadedForToken] = useState<string | null>(authToken);
   const [input, setInput]       = useState("");
   const [loading, setLoading]   = useState(false);
   const [hasUnread, setHasUnread] = useState(() => getUnseenAnnouncements().length > 0);
   const [panelVisible, setPanelVisible] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef       = useRef<HTMLTextAreaElement>(null);
+
+  // When authToken changes (e.g. null → real JWT after auth hydration, or
+  // account switch), load the correct history for the new user.  Both setters
+  // batch into one re-render so the save effect below never sees a mismatch.
+  useEffect(() => {
+    if (authToken === loadedForToken) return;
+    setLoadedForToken(authToken);
+    setMessages(loadHistory(authToken));
+  }, [authToken, loadedForToken]);
 
   // Animate panel in/out
   useEffect(() => {
@@ -82,10 +144,23 @@ export function CoachFAB({ authToken }: Props) {
     }
   }, [open]);
 
+  // Persist messages to localStorage, but only once the correct user's history
+  // is loaded (i.e. loadedForToken matches authToken).  This prevents carrying
+  // over stale messages into a different user's key during token transitions.
+  useEffect(() => {
+    if (loadedForToken !== authToken) return;
+    saveHistory(authToken, messages);
+  }, [authToken, loadedForToken, messages]);
+
   // Scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  const clearChat = useCallback(() => {
+    clearHistory(authToken);
+    setMessages([]);
+  }, [authToken]);
 
   const openPanel = useCallback(() => {
     setOpen(true);
@@ -215,12 +290,23 @@ export function CoachFAB({ authToken }: Props) {
                   <p className="text-cyan-500 text-[10px] leading-tight">Powered by AI · Always here</p>
                 </div>
               </div>
-              <button
-                onClick={closePanel}
-                className="w-7 h-7 rounded-full bg-blue-900/60 flex items-center justify-center text-slate-400 hover:text-white transition-colors text-sm"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-2">
+                {messages.length > 0 && (
+                  <button
+                    onClick={clearChat}
+                    className="text-[11px] text-slate-400 hover:text-cyan-400 transition-colors px-2 py-1 rounded-lg hover:bg-blue-900/60"
+                    aria-label="Clear chat history"
+                  >
+                    Clear chat
+                  </button>
+                )}
+                <button
+                  onClick={closePanel}
+                  className="w-7 h-7 rounded-full bg-blue-900/60 flex items-center justify-center text-slate-400 hover:text-white transition-colors text-sm"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             {/* Messages */}
