@@ -22,6 +22,8 @@ import {
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  /** True for transient error/fallback messages that should not be persisted. */
+  isError?: boolean;
 }
 
 interface Props {
@@ -66,7 +68,8 @@ function loadHistory(token: string | null): ChatMessage[] {
 
 function saveHistory(token: string | null, messages: ChatMessage[]): void {
   try {
-    const trimmed = messages.slice(-MAX_HISTORY);
+    const persistent = messages.filter((m) => !m.isError);
+    const trimmed = persistent.slice(-MAX_HISTORY);
     localStorage.setItem(getStorageKey(token), JSON.stringify(trimmed));
   } catch {
     // ignore storage errors (private mode, quota exceeded, etc.)
@@ -214,6 +217,7 @@ export function CoachFAB({ authToken, screen }: Props) {
           {
             role: "assistant",
             content: "Sorry, I couldn't reach the server right now. Try again in a moment.",
+            isError: true,
           },
         ]);
       } finally {
