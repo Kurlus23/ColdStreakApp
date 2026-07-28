@@ -315,6 +315,7 @@ export function CoachFAB({ authToken, screen }: Props) {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onClick={() => { if (!drag.current?.moved) openPanel(); }}
+        onContextMenu={(e) => e.preventDefault()}
         aria-label="Open coach"
         data-testid="coach-fab"
         className="fixed z-40 rounded-full shadow-lg flex items-center justify-center touch-none select-none"
@@ -325,13 +326,16 @@ export function CoachFAB({ authToken, screen }: Props) {
           height: FAB_SIZE,
           boxShadow: "0 4px 20px rgba(14,165,233,0.45)",
           cursor: "grab",
+          WebkitTouchCallout: "none",
+          WebkitUserSelect: "none",
         }}
       >
         <img
           src="/icons/icon-192.png"
           alt="ColdStreak Coach"
-          className="w-full h-full rounded-full object-cover"
+          className="w-full h-full rounded-full object-cover pointer-events-none"
           draggable={false}
+          style={{ WebkitTouchCallout: "none", userSelect: "none" }}
         />
         {hasUnread && (
           <span className="absolute top-0.5 right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-[#0a1628]" />
