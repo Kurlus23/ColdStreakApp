@@ -21,6 +21,9 @@ import { useState, useEffect, useCallback } from "react";
 
 export const FIRST_OPEN_KEY   = "coach-walkthrough-first-open-v1";
 export const POST_PLUNGE_KEY  = "coach-walkthrough-post-plunge-v1";
+export const PROFILE_TIP_KEY  = "coach-tip-profile-v1";
+export const FRIENDS_TIP_KEY  = "coach-tip-friends-v1";
+export const CHALLENGE_TIP_KEY = "coach-tip-challenge-v1";
 
 // ── Step definitions ──────────────────────────────────────────────────────────
 
@@ -76,6 +79,43 @@ const FIRST_OPEN_STEPS: Step[] = [
   },
 ];
 
+const PROFILE_TIP_STEPS: Step[] = [
+  {
+    icon: "👤",
+    title: "Set up your profile",
+    body: "Add a username so friends can find and challenge you.",
+    highlight: '[data-testid="input-account-username"]',
+    hint: "↓ below",
+  },
+  {
+    icon: "🏅",
+    title: "Your public badge page",
+    body: "Tap 'View My Profile' to see the page you can share with friends.",
+    highlight: '[data-testid="button-view-badge-profile"]',
+    hint: "↓ below",
+  },
+];
+
+const FRIENDS_TIP_STEPS: Step[] = [
+  {
+    icon: "🔍",
+    title: "Find friends",
+    body: "Search by @username or display name to send a friend request.",
+    highlight: '[data-testid="input-friend-search"]',
+    hint: "↓ below",
+  },
+];
+
+const CHALLENGE_TIP_STEPS: Step[] = [
+  {
+    icon: "⚡",
+    title: "Challenge a friend",
+    body: "Tap ⚡ Challenge on any friend to send them a head-to-head plunge challenge.",
+    highlight: '[data-testid^="button-challenge-"]',
+    hint: "↓ tap any friend card",
+  },
+];
+
 const POST_PLUNGE_STEPS: Step[] = [
   {
     icon: "🎉",
@@ -124,12 +164,28 @@ function clearHighlight() {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface Props {
-  tourType: "first-open" | "post-plunge";
+  tourType: "first-open" | "post-plunge" | "profile-tip" | "friends-tip" | "challenge-tip";
   onComplete: () => void;
 }
 
+const STEPS_BY_TYPE = {
+  "first-open":    FIRST_OPEN_STEPS,
+  "post-plunge":   POST_PLUNGE_STEPS,
+  "profile-tip":   PROFILE_TIP_STEPS,
+  "friends-tip":   FRIENDS_TIP_STEPS,
+  "challenge-tip": CHALLENGE_TIP_STEPS,
+};
+
+const KEY_BY_TYPE = {
+  "first-open":    FIRST_OPEN_KEY,
+  "post-plunge":   POST_PLUNGE_KEY,
+  "profile-tip":   PROFILE_TIP_KEY,
+  "friends-tip":   FRIENDS_TIP_KEY,
+  "challenge-tip": CHALLENGE_TIP_KEY,
+};
+
 export function CoachWalkthrough({ tourType, onComplete }: Props) {
-  const steps = tourType === "first-open" ? FIRST_OPEN_STEPS : POST_PLUNGE_STEPS;
+  const steps = STEPS_BY_TYPE[tourType];
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(false);
 
@@ -150,8 +206,7 @@ export function CoachWalkthrough({ tourType, onComplete }: Props) {
 
   const complete = useCallback(() => {
     clearHighlight();
-    const key = tourType === "first-open" ? FIRST_OPEN_KEY : POST_PLUNGE_KEY;
-    localStorage.setItem(key, "1");
+    localStorage.setItem(KEY_BY_TYPE[tourType], "1");
     onComplete();
   }, [tourType, onComplete]);
 

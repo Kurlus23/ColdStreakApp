@@ -32,7 +32,7 @@ import { ChallengeResultCard, type ChallengeResult } from "@/components/Challeng
 import { MusicWidget, MusicTransportMini, openMusic, shouldAutoPlay } from "@/components/MusicWidget";
 import { BenefitBar } from "@/components/BenefitBar";
 import { CoachFAB } from "@/components/CoachFAB";
-import { CoachWalkthrough, FIRST_OPEN_KEY, POST_PLUNGE_KEY } from "@/components/CoachWalkthrough";
+import { CoachWalkthrough, FIRST_OPEN_KEY, POST_PLUNGE_KEY, PROFILE_TIP_KEY, FRIENDS_TIP_KEY, CHALLENGE_TIP_KEY } from "@/components/CoachWalkthrough";
 import Onboarding, { hasCompletedOnboarding } from "@/components/Onboarding";
 import { Analytics } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
@@ -252,6 +252,9 @@ export default function Home() {
   const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
   const [showFirstOpenWalkthrough, setShowFirstOpenWalkthrough] = useState(false);
   const [showPostPlungeWalkthrough, setShowPostPlungeWalkthrough] = useState(false);
+  const [showProfileTip, setShowProfileTip] = useState(false);
+  const [showFriendsTip, setShowFriendsTip] = useState(false);
+  const [showChallengeTip, setShowChallengeTip] = useState(false);
   const auth = useAuth();
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [rememberEmail, setRememberEmail] = useState<boolean>(() => localStorage.getItem("coldstreak-remember-email") === "true");
@@ -1251,6 +1254,38 @@ export default function Home() {
     return () => clearTimeout(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.user, plunges.length]);
+
+  // Profile tip: first time user opens the Profile (achievements) screen.
+  useEffect(() => {
+    if (!auth.user) return;
+    if (screen !== "achievements") return;
+    if (localStorage.getItem(PROFILE_TIP_KEY)) return;
+    localStorage.setItem(PROFILE_TIP_KEY, "1");
+    const id = setTimeout(() => setShowProfileTip(true), 600);
+    return () => clearTimeout(id);
+  }, [auth.user, screen]);
+
+  // Friends tip: first time user opens the Friends screen.
+  useEffect(() => {
+    if (!auth.user) return;
+    if (screen !== "friends") return;
+    if (localStorage.getItem(FRIENDS_TIP_KEY)) return;
+    localStorage.setItem(FRIENDS_TIP_KEY, "1");
+    const id = setTimeout(() => setShowFriendsTip(true), 600);
+    return () => clearTimeout(id);
+  }, [auth.user, screen]);
+
+  // Challenge tip: first time user is on the Friends screen with at least one friend.
+  useEffect(() => {
+    if (!auth.user) return;
+    if (screen !== "friends") return;
+    if (friends.length < 1) return;
+    if (localStorage.getItem(CHALLENGE_TIP_KEY)) return;
+    localStorage.setItem(CHALLENGE_TIP_KEY, "1");
+    const id = setTimeout(() => setShowChallengeTip(true), 800);
+    return () => clearTimeout(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.user, screen, friends.length]);
 
   const createPlunge = useCreatePlunge();
   const updatePlunge = useUpdatePlunge();
@@ -8400,6 +8435,24 @@ export default function Home() {
             <CoachWalkthrough
               tourType="post-plunge"
               onComplete={() => setShowPostPlungeWalkthrough(false)}
+            />
+          )}
+          {showProfileTip && (
+            <CoachWalkthrough
+              tourType="profile-tip"
+              onComplete={() => setShowProfileTip(false)}
+            />
+          )}
+          {showFriendsTip && (
+            <CoachWalkthrough
+              tourType="friends-tip"
+              onComplete={() => setShowFriendsTip(false)}
+            />
+          )}
+          {showChallengeTip && (
+            <CoachWalkthrough
+              tourType="challenge-tip"
+              onComplete={() => setShowChallengeTip(false)}
             />
           )}
         </>
