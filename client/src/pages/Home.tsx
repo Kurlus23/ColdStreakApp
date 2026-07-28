@@ -8684,7 +8684,7 @@ export default function Home() {
       {/* ── AI Coach ── */}
       {auth.user && (
         <>
-          <CoachFAB authToken={localStorage.getItem("coldstreak-auth-token")} screen={screen} isPlunging={(isActive && screen === "timer") || photoPromptId !== null} />
+          <CoachFAB authToken={localStorage.getItem("coldstreak-auth-token")} screen={screen} isPlunging={screen === "timer" || photoPromptId !== null} />
           {showFirstOpenWalkthrough && (
             <CoachWalkthrough
               tourType="first-open"
