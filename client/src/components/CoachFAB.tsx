@@ -158,50 +158,59 @@ export function CoachFAB({ authToken, screen }: Props) {
 
   // ── Drag state ──────────────────────────────────────────────────────────────
   const [pos, setPos] = useState<{ x: number; y: number }>(() => loadPos() ?? defaultPos());
+  // drag.current holds live drag state; wasDrag tracks whether the last
+  // pointerdown ended as a drag (so onClick can ignore it).
   const drag = useRef<{
-    active: boolean;
-    startX: number; startY: number;   // pointer start
-    originX: number; originY: number; // button start
+    startX: number; startY: number;
+    originX: number; originY: number;
     moved: boolean;
   } | null>(null);
+  const wasDrag = useRef(false);
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
+    // Only primary button / first touch
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    e.preventDefault();
+    wasDrag.current = false;
+
+    // Snapshot current position into the drag record
+    const origin = { x: pos.x, y: pos.y };
     drag.current = {
-      active: true,
       startX: e.clientX,
       startY: e.clientY,
-      originX: pos.x,
-      originY: pos.y,
+      originX: origin.x,
+      originY: origin.y,
       moved: false,
     };
+
+    // Attach global listeners so iOS doesn't lose the drag when the finger
+    // moves outside the element (avoids setPointerCapture issues in WebView).
+    const onMove = (ev: PointerEvent) => {
+      const d = drag.current;
+      if (!d) return;
+      const dx = ev.clientX - d.startX;
+      const dy = ev.clientY - d.startY;
+      if (!d.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      d.moved = true;
+      wasDrag.current = true;
+      setPos(clampPos(d.originX + dx, d.originY + dy));
+    };
+
+    const onUp = (ev: PointerEvent) => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      const d = drag.current;
+      drag.current = null;
+      if (d?.moved) {
+        const next = clampPos(d.originX + (ev.clientX - d.startX), d.originY + (ev.clientY - d.startY));
+        setPos(next);
+        try { localStorage.setItem(POS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      }
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
   }, [pos]);
-
-  const onPointerMove = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
-    const d = drag.current;
-    if (!d?.active) return;
-    const dx = e.clientX - d.startX;
-    const dy = e.clientY - d.startY;
-    if (!d.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-    d.moved = true;
-    const next = clampPos(d.originX + dx, d.originY + dy);
-    setPos(next);
-  }, []);
-
-  const onPointerUp = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
-    const d = drag.current;
-    if (!d) return;
-    drag.current = null;
-    if (d.moved) {
-      // Snap final clamped position and persist
-      const dx = e.clientX - d.startX;
-      const dy = e.clientY - d.startY;
-      const next = clampPos(d.originX + dx, d.originY + dy);
-      setPos(next);
-      try { localStorage.setItem(POS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
-    }
-    // If not moved enough → treat as tap (click fires naturally)
-  }, []);
 
   // When authToken changes (e.g. null → real JWT after auth hydration, or
   // account switch), load the correct history for the new user.  Both setters
@@ -312,9 +321,7 @@ export function CoachFAB({ authToken, screen }: Props) {
       {/* ── Floating Action Button ── */}
       <button
         onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onClick={() => { if (!drag.current?.moved) openPanel(); }}
+        onClick={() => { if (!wasDrag.current) openPanel(); }}
         onContextMenu={(e) => e.preventDefault()}
         aria-label="Open coach"
         data-testid="coach-fab"
@@ -372,12 +379,12 @@ export function CoachFAB({ authToken, screen }: Props) {
             {/* Header */}
             <div className="flex items-center justify-between px-4 pb-3 border-b border-blue-900/60 shrink-0">
               <div className="flex items-center gap-2">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-base shrink-0"
-                  style={{ background: "linear-gradient(135deg,#0ea5e9,#0369a1)" }}
-                >
-                  ❄️
-                </div>
+                <img
+                  src="/icons/icon-192.png"
+                  alt="ColdStreak Coach"
+                  className="w-8 h-8 rounded-full object-cover shrink-0"
+                  draggable={false}
+                />
                 <div>
                   <p className="text-white text-sm font-bold leading-tight">ColdStreak Coach</p>
                   <p className="text-cyan-500 text-[10px] leading-tight">Powered by AI · Always here</p>
@@ -408,9 +415,7 @@ export function CoachFAB({ authToken, screen }: Props) {
                 <div className="space-y-3">
                   {/* Welcome */}
                   <div className="flex gap-2 items-start">
-                    <div className="w-6 h-6 rounded-full bg-cyan-900/60 flex items-center justify-center text-xs shrink-0 mt-0.5">
-                      ❄️
-                    </div>
+                    <img src="/icons/icon-192.png" alt="" className="w-6 h-6 rounded-full object-cover shrink-0 mt-0.5" draggable={false} />
                     <div className="bg-blue-900/40 rounded-2xl rounded-tl-sm px-3.5 py-2.5 max-w-[85%]">
                       <p className="text-blue-100 text-sm leading-relaxed">
                         Hey! I'm your ColdStreak Coach. Ask me anything about the app, your stats,
@@ -445,9 +450,7 @@ export function CoachFAB({ authToken, screen }: Props) {
                   className={`flex gap-2 items-start ${msg.role === "user" ? "flex-row-reverse" : ""}`}
                 >
                   {msg.role === "assistant" && (
-                    <div className="w-6 h-6 rounded-full bg-cyan-900/60 flex items-center justify-center text-xs shrink-0 mt-0.5">
-                      ❄️
-                    </div>
+                    <img src="/icons/icon-192.png" alt="" className="w-6 h-6 rounded-full object-cover shrink-0 mt-0.5" draggable={false} />
                   )}
                   <div
                     className={`rounded-2xl px-3.5 py-2.5 max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap ${
@@ -470,9 +473,7 @@ export function CoachFAB({ authToken, screen }: Props) {
 
               {loading && (
                 <div className="flex gap-2 items-start">
-                  <div className="w-6 h-6 rounded-full bg-cyan-900/60 flex items-center justify-center text-xs shrink-0">
-                    ❄️
-                  </div>
+                  <img src="/icons/icon-192.png" alt="" className="w-6 h-6 rounded-full object-cover shrink-0" draggable={false} />
                   <div className="bg-blue-900/40 rounded-2xl rounded-tl-sm px-3.5 py-2.5">
                     <div className="flex gap-1 items-center h-4">
                       {[0, 1, 2].map((i) => (
