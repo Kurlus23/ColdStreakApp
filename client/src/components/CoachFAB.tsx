@@ -122,10 +122,31 @@ async function sendMessage(
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+const FAB_SIZE = 52;
+const DRAG_THRESHOLD = 6; // px — below this = tap, above = drag
+const POS_KEY = "coach-fab-position";
+
+function loadPos(): { x: number; y: number } | null {
+  try {
+    const raw = localStorage.getItem(POS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return null;
+}
+
+function clampPos(x: number, y: number): { x: number; y: number } {
+  const maxX = window.innerWidth  - FAB_SIZE - 8;
+  const maxY = window.innerHeight - FAB_SIZE - 8;
+  return { x: Math.max(8, Math.min(x, maxX)), y: Math.max(8, Math.min(y, maxY)) };
+}
+
+function defaultPos(): { x: number; y: number } {
+  const safeTop = 56; // approx status-bar + a bit
+  return { x: 16, y: safeTop };
+}
+
 export function CoachFAB({ authToken, screen }: Props) {
   const [open, setOpen]         = useState(false);
-  // `loadedForToken` tracks which token's history is currently in `messages`.
-  // Initialised together so the first render already shows the right history.
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory(authToken));
   const [loadedForToken, setLoadedForToken] = useState<string | null>(authToken);
   const [input, setInput]       = useState("");
@@ -134,6 +155,53 @@ export function CoachFAB({ authToken, screen }: Props) {
   const [panelVisible, setPanelVisible] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef       = useRef<HTMLTextAreaElement>(null);
+
+  // ── Drag state ──────────────────────────────────────────────────────────────
+  const [pos, setPos] = useState<{ x: number; y: number }>(() => loadPos() ?? defaultPos());
+  const drag = useRef<{
+    active: boolean;
+    startX: number; startY: number;   // pointer start
+    originX: number; originY: number; // button start
+    moved: boolean;
+  } | null>(null);
+
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drag.current = {
+      active: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: pos.x,
+      originY: pos.y,
+      moved: false,
+    };
+  }, [pos]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = drag.current;
+    if (!d?.active) return;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    if (!d.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+    d.moved = true;
+    const next = clampPos(d.originX + dx, d.originY + dy);
+    setPos(next);
+  }, []);
+
+  const onPointerUp = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    drag.current = null;
+    if (d.moved) {
+      // Snap final clamped position and persist
+      const dx = e.clientX - d.startX;
+      const dy = e.clientY - d.startY;
+      const next = clampPos(d.originX + dx, d.originY + dy);
+      setPos(next);
+      try { localStorage.setItem(POS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+    }
+    // If not moved enough → treat as tap (click fires naturally)
+  }, []);
 
   // When authToken changes (e.g. null → real JWT after auth hydration, or
   // account switch), load the correct history for the new user.  Both setters
@@ -243,19 +311,28 @@ export function CoachFAB({ authToken, screen }: Props) {
     <>
       {/* ── Floating Action Button ── */}
       <button
-        onClick={openPanel}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onClick={() => { if (!drag.current?.moved) openPanel(); }}
         aria-label="Open coach"
         data-testid="coach-fab"
-        className="fixed left-4 z-40 rounded-full shadow-lg flex items-center justify-center transition-transform active:scale-95"
+        className="fixed z-40 rounded-full shadow-lg flex items-center justify-center touch-none select-none"
         style={{
-          top: "calc(env(safe-area-inset-top, 0px) + 56px)",
-          width: 52,
-          height: 52,
-          background: "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)",
+          left: pos.x,
+          top: pos.y,
+          width: FAB_SIZE,
+          height: FAB_SIZE,
           boxShadow: "0 4px 20px rgba(14,165,233,0.45)",
+          cursor: "grab",
         }}
       >
-        <span className="text-2xl leading-none select-none">❄️</span>
+        <img
+          src="/icons/icon-192.png"
+          alt="ColdStreak Coach"
+          className="w-full h-full rounded-full object-cover"
+          draggable={false}
+        />
         {hasUnread && (
           <span className="absolute top-0.5 right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-[#0a1628]" />
         )}
