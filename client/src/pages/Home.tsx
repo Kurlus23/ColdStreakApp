@@ -1479,6 +1479,11 @@ export default function Home() {
           const pct = data.bodyFat / 10;
           setBodyFatPct(pct);
           localStorage.setItem("coldstreak-body-fat", String(pct));
+        } else {
+          // Server explicitly has no body fat — clear any stale local value so
+          // a "Clear" action on one device propagates to all other devices.
+          setBodyFatPct(null);
+          localStorage.removeItem("coldstreak-body-fat");
         }
 
         if (Object.keys(patch).length > 0) {
