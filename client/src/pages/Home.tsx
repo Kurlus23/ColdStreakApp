@@ -42,7 +42,7 @@ import { isNative, nativeShare } from "@/lib/nativeShare";
 import { shareContent } from "@/lib/share";
 import { saveCustomAlarmUrl, loadCustomAlarmUrl, clearCustomAlarmUrl } from "@/lib/alarm-storage";
 import { drainWatchQueue, startWatchListener, stopWatchListener } from "@/lib/watchSync";
-import { ensureHealthKitAuth, connectHealthKit, fetchHrAvgForWindow, fetchLatestBodyWeightLbs, isHealthKitPossible } from "@/lib/healthKit";
+import { ensureHealthKitAuth, connectHealthKit, fetchHrAvgForWindow, fetchLatestBodyWeightLbs, fetchLatestBodyFatPct, isHealthKitPossible } from "@/lib/healthKit";
 import { Explore, GEAR_ITEMS, type GearCategory } from "@/pages/Explore";
 import {
   PASSPORT_LOCATIONS, usePassportBadges, distanceMiles,
@@ -6031,6 +6031,30 @@ export default function Home() {
                         A smart scale can measure it.
                       </button>
                     </div>
+
+                    {/* Apple Health import — only shown on iOS native builds */}
+                    {isHealthKitPossible() && (
+                      <button
+                        onClick={async () => {
+                          const result = await fetchLatestBodyFatPct();
+                          if (!result) {
+                            toast({ title: "No body fat % found", description: "Make sure your scale syncs to Apple Health and you've weighed in recently." });
+                            return;
+                          }
+                          const pct = result.pct;
+                          const clamped = Math.round(Math.min(60, Math.max(3, pct)) * 10) / 10;
+                          setBodyFatPct(clamped);
+                          localStorage.setItem("coldstreak-body-fat", String(clamped));
+                          const tok = localStorage.getItem("coldstreak-auth-token");
+                          if (tok) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bodyFat: Math.round(clamped * 10) }) }).catch(() => {});
+                          toast({ title: `Body fat set to ${clamped.toFixed(1)}%`, description: "Pulled from Apple Health." });
+                        }}
+                        className="w-full py-2 rounded-xl bg-blue-800/60 border border-blue-600 text-blue-100 text-xs font-semibold flex items-center justify-center gap-2 active:scale-[0.98] hover:border-cyan-400 transition-colors"
+                      >
+                        <Heart className="w-3.5 h-3.5 text-red-400" />
+                        Import from Apple Health
+                      </button>
+                    )}
 
                     {/* Stepper */}
                     {(() => {

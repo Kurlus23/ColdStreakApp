@@ -11,11 +11,12 @@ import { registerPlugin, Capacitor } from "@capacitor/core";
  */
 
 interface HealthKitPlugin {
-  isAvailable: () => Promise<{ available: boolean }>;
-  requestAuth: () => Promise<{ granted: boolean }>;
-  getHrAvg: (opts: { startMs: number; endMs: number }) => Promise<{ avg: number | null; samples: number }>;
-  getRecentHrv: (opts: { lookbackMinutes: number }) => Promise<{ avgMs: number | null; samples: number }>;
-  getBodyMass: () => Promise<{ lbs: number | null; recordedAt: number | null }>;
+  isAvailable:   () => Promise<{ available: boolean }>;
+  requestAuth:   () => Promise<{ granted: boolean }>;
+  getHrAvg:      (opts: { startMs: number; endMs: number }) => Promise<{ avg: number | null; samples: number }>;
+  getRecentHrv:  (opts: { lookbackMinutes: number }) => Promise<{ avgMs: number | null; samples: number }>;
+  getBodyMass:   () => Promise<{ lbs: number | null; recordedAt: number | null }>;
+  getBodyFatPct: () => Promise<{ pct: number | null; recordedAt: number | null }>;
 }
 
 const HealthKit = registerPlugin<HealthKitPlugin>("HealthKit");
@@ -109,6 +110,22 @@ export async function fetchLatestBodyWeightLbs(): Promise<{ lbs: number; recorde
     return { lbs, recordedAt };
   } catch (err) {
     console.warn("[healthKit] getBodyMass failed:", err);
+    return null;
+  }
+}
+
+/**
+ * Returns the most recent body fat % synced to Apple Health (e.g. from a Wyze Scale
+ * or any other smart scale). Returns null when unavailable or not authorised.
+ */
+export async function fetchLatestBodyFatPct(): Promise<{ pct: number; recordedAt: number } | null> {
+  if (!isHealthKitPossible()) return null;
+  try {
+    const { pct, recordedAt } = await HealthKit.getBodyFatPct();
+    if (pct == null || recordedAt == null) return null;
+    return { pct, recordedAt };
+  } catch (err) {
+    console.warn("[healthKit] getBodyFatPct failed:", err);
     return null;
   }
 }

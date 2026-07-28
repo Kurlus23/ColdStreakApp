@@ -28,11 +28,12 @@ public class HealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "HealthKitPlugin"
     public let jsName = "HealthKit"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "isAvailable", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "requestAuth", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getHrAvg", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getRecentHrv", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getBodyMass", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "isAvailable",   returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "requestAuth",   returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getHrAvg",      returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getRecentHrv",  returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getBodyMass",   returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getBodyFatPct", returnType: CAPPluginReturnPromise),
     ]
 
     private let store = HKHealthStore()
@@ -50,6 +51,7 @@ public class HealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
             HKObjectType.quantityType(forIdentifier: .heartRate)!,
             HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
             HKObjectType.quantityType(forIdentifier: .bodyMass)!,
+            HKObjectType.quantityType(forIdentifier: .bodyFatPercentage)!,
         ]
         store.requestAuthorization(toShare: nil, read: read) { success, _ in
             call.resolve(["granted": success])
@@ -115,6 +117,35 @@ public class HealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
             let ms = samples.map { $0.quantity.doubleValue(for: unit) }
             let avg = ms.reduce(0, +) / Double(ms.count)
             call.resolve(["avgMs": avg.rounded(), "samples": ms.count])
+        }
+        store.execute(q)
+    }
+
+    /// Returns the user's most recent body fat percentage sample from Apple Health.
+    /// The Wyze Scale (and any other scale that syncs to Apple Health) writes its
+    /// body fat reading here automatically after each weigh-in.
+    @objc func getBodyFatPct(_ call: CAPPluginCall) {
+        guard let bfType = HKObjectType.quantityType(forIdentifier: .bodyFatPercentage) else {
+            call.resolve(["pct": NSNull(), "recordedAt": NSNull()])
+            return
+        }
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+        let q = HKSampleQuery(
+            sampleType: bfType,
+            predicate: nil,
+            limit: 1,
+            sortDescriptors: [sort]
+        ) { _, samples, _ in
+            guard let sample = samples?.first as? HKQuantitySample else {
+                call.resolve(["pct": NSNull(), "recordedAt": NSNull()])
+                return
+            }
+            // Apple stores body fat as a fraction (0–1); multiply by 100 for %
+            let pct = sample.quantity.doubleValue(for: HKUnit.percent()) * 100.0
+            call.resolve([
+                "pct": (pct * 10).rounded() / 10, // one decimal place
+                "recordedAt": sample.endDate.timeIntervalSince1970 * 1000.0,
+            ])
         }
         store.execute(q)
     }
