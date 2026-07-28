@@ -100,7 +100,7 @@ This covers users whose tracker syncs to Apple Health but isn't an Apple Watch �
 3. Open the iOS app's `Info.plist` and add this row (right-click → Add Row):
    - **Key:** `NSHealthShareUsageDescription`
    - **Type:** String
-   - **Value:** `ColdStreak reads heart rate and HRV during your plunges to estimate strain and recovery.`
+   - **Value:** `ColdStreak reads heart rate, HRV, and body composition (weight and body fat %) during your plunges to estimate strain, recovery, and your personalised Cold Score.`
 
 ### JS side — already wired up
 
