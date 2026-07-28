@@ -374,12 +374,15 @@ export function CoachFAB({ authToken, screen, isPlunging }: Props) {
         {hasUnread && (
           <span className="absolute top-0.5 right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-[#0a1628]" />
         )}
-        {/* Small downward chevron — tucked inside the button footprint */}
+        {/* Small downward arrow hinting the panel opens below */}
         {!open && (
           <span
-            className="absolute -bottom-2.5 left-1/2 pointer-events-none text-cyan-400/80"
-            style={{ transform: "translateX(-50%)", fontSize: 8, lineHeight: 1, animation: "coach-arrow-bounce 1.6s ease-in-out infinite" }}
-          >▾</span>
+            className="absolute -bottom-4 left-1/2 flex flex-col items-center pointer-events-none"
+            style={{ transform: "translateX(-50%)" }}
+          >
+            <span className="text-cyan-400/80 leading-none" style={{ fontSize: 9, lineHeight: 1, animation: "coach-arrow-bounce 1.6s ease-in-out infinite" }}>▾</span>
+            <span className="text-cyan-300/70 leading-none" style={{ fontSize: 8, lineHeight: 1, letterSpacing: "0.06em", fontWeight: 700 }}>AI</span>
+          </span>
         )}
       </button>
 
