@@ -8480,7 +8480,7 @@ export default function Home() {
       {/* ── AI Coach ── */}
       {auth.user && (
         <>
-          <CoachFAB authToken={localStorage.getItem("coldstreak-auth-token")} />
+          <CoachFAB authToken={localStorage.getItem("coldstreak-auth-token")} screen={screen} />
           {showFirstOpenWalkthrough && (
             <CoachWalkthrough
               tourType="first-open"

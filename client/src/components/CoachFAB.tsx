@@ -27,6 +27,8 @@ interface ChatMessage {
 interface Props {
   /** JWT token for the API call. */
   authToken: string | null;
+  /** Current screen the user is viewing (e.g. "history", "friends"). */
+  screen?: string;
 }
 
 // ── Chat history persistence ──────────────────────────────────────────────────
@@ -96,6 +98,7 @@ async function sendMessage(
   token: string,
   message: string,
   history: ChatMessage[],
+  screen?: string,
 ): Promise<string> {
   const res = await fetch("/api/coach/chat", {
     method: "POST",
@@ -103,7 +106,11 @@ async function sendMessage(
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ message, history }),
+    body: JSON.stringify({
+      message,
+      history,
+      ...(screen ? { context: { screen } } : {}),
+    }),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = (await res.json()) as { reply: string };
@@ -112,7 +119,7 @@ async function sendMessage(
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function CoachFAB({ authToken }: Props) {
+export function CoachFAB({ authToken, screen }: Props) {
   const [open, setOpen]         = useState(false);
   // `loadedForToken` tracks which token's history is currently in `messages`.
   // Initialised together so the first render already shows the right history.
@@ -199,7 +206,7 @@ export function CoachFAB({ authToken }: Props) {
       setLoading(true);
 
       try {
-        const reply = await sendMessage(authToken, trimmed, messages.concat(userMsg));
+        const reply = await sendMessage(authToken, trimmed, messages.concat(userMsg), screen);
         setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
       } catch {
         setMessages((prev) => [
@@ -213,7 +220,7 @@ export function CoachFAB({ authToken }: Props) {
         setLoading(false);
       }
     },
-    [loading, authToken, messages],
+    [loading, authToken, messages, screen],
   );
 
   const handleKeyDown = useCallback(

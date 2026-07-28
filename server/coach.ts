@@ -58,10 +58,24 @@ Always answer from the app's perspective. If unsure, be honest. Never make up st
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
+// ── Screen labels shown to the coach ─────────────────────────────────────────
+
+const SCREEN_LABELS: Record<string, string> = {
+  timer:        "Timer (home screen — start/stop plunge)",
+  history:      "History tab (past plunges, Sweet Spot, Cold Adaptation, Try This Next)",
+  friends:      "Friends tab (friend streaks, challenges, pending requests)",
+  explore:      "Explore tab (nearby cold plunge spots)",
+  gear:         "Gear tab (equipment browsing)",
+  settings:     "Settings / Profile screen",
+  achievements: "Achievements screen (badges, passport)",
+  legal:        "Legal / Terms screen",
+};
+
 export async function coachChat(
   userId: number,
   message: string,
   history: ChatMessage[],
+  screenContext?: string,
 ): Promise<string> {
   if (!process.env.OPENAI_API_KEY) {
     return (
@@ -92,6 +106,13 @@ export async function coachChat(
 
   const ratedCount = recentPlunges.filter((p) => p.mood != null).length;
 
+  const screenLine =
+    screenContext && SCREEN_LABELS[screenContext]
+      ? `• Current screen: ${SCREEN_LABELS[screenContext]}`
+      : screenContext
+        ? `• Current screen: ${screenContext}`
+        : null;
+
   const userContext = `
 CURRENT USER:
 • Username: ${user?.username ?? "unknown"}
@@ -99,7 +120,7 @@ CURRENT USER:
 • Recent avg temp (last 5): ${avgTemp != null ? `${avgTemp}°F` : "no plunges yet"}
 • Rated plunges (last 5): ${ratedCount} / ${recentPlunges.length}
 • Height: ${user?.bodyHeight ? `${user.bodyHeight} cm` : "not set"}
-• Weight: ${user?.bodyWeight ? `${user.bodyWeight} lbs` : "not set"}
+• Weight: ${user?.bodyWeight ? `${user.bodyWeight} lbs` : "not set"}${screenLine ? `\n${screenLine}` : ""}
 `.trim();
 
   // ── Call OpenAI ─────────────────────────────────────────────────────────
