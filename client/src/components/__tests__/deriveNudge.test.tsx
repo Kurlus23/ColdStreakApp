@@ -481,4 +481,40 @@ describe("TryThisNextCard dismiss-key behaviour", () => {
     rerender(<TryThisNextCard plunges={plunges} />);
     expect(screen.queryByTestId("try-this-next-card")).not.toBeInTheDocument();
   });
+
+  it("shows the card again when a sync delivers a plunge with a higher id than the stored dismiss key", () => {
+    // Simulate: user dismissed against plunge id=42 (stored in localStorage from a
+    // previous session or device), then a sync arrives carrying plunge id=43.
+    // The dismiss key no longer matches the new latest id, so the card must reappear.
+    const beforeSync = recentRatedPlunges(10, 33); // ids 33..42; latest = 42
+    localStorage.setItem(DISMISS_KEY, "42");
+
+    const { rerender } = render(<TryThisNextCard plunges={beforeSync} />);
+    // Card is hidden because stored key matches latest id (42 === 42)
+    expect(screen.queryByTestId("try-this-next-card")).not.toBeInTheDocument();
+
+    // Sync delivers a new plunge with id=43 (higher than the stored dismiss key)
+    const afterSync = [
+      ...beforeSync,
+      makePlunge({ id: 43, createdAt: new Date(Date.now() - 30_000), mood: 4, temperature: 50, duration: 240 }),
+    ];
+    rerender(<TryThisNextCard plunges={afterSync} />);
+
+    // Latest id is now 43, which no longer matches the stored dismiss key (42)
+    expect(screen.getByTestId("try-this-next-card")).toBeInTheDocument();
+  });
+
+  it("stays hidden when the plunge list is refreshed but the latest id is unchanged", () => {
+    // Simulate a background data refresh (e.g. React Query re-fetch) that returns
+    // the same plunges — the dismiss key must still suppress the card.
+    const plunges = recentRatedPlunges(10, 33); // ids 33..42; latest = 42
+    localStorage.setItem(DISMISS_KEY, "42");
+
+    const { rerender } = render(<TryThisNextCard plunges={plunges} />);
+    expect(screen.queryByTestId("try-this-next-card")).not.toBeInTheDocument();
+
+    // Re-render with a fresh array reference but identical content (same latest id)
+    rerender(<TryThisNextCard plunges={[...plunges]} />);
+    expect(screen.queryByTestId("try-this-next-card")).not.toBeInTheDocument();
+  });
 });
