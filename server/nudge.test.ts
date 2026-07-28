@@ -411,6 +411,55 @@ describe("deriveNudgeForPush — mixed rated/unrated plunges", () => {
   });
 });
 
+// ── sweet-spot: rated-count gate ─────────────────────────────────────────────
+
+describe("bestBucket rated-count gate — sweet-spot is skipped when rated < 10", () => {
+  /**
+   * Both fixtures have 20 total plunges all within the same calendar month so
+   * that computeMonthTrendDelta returns null (only 1 month of data).  That
+   * forces deriveNudgeForPush to fall through to the bestBucket path.
+   *
+   * The only difference between the two fixtures is whether bestBucket's own
+   * "rated.length < 10" guard fires (9 rated → null; 10 rated → sweet-spot).
+   *
+   * All rated plunges share the same temp (55 °F) and duration (120 s) so they
+   * land in the same bucket and bestBucket can return a result when there are
+   * enough of them.
+   */
+
+  function makeSameMonthPlunges(totalCount: number, ratedCount: number): Plunge[] {
+    const now = new Date();
+    return Array.from({ length: totalCount }, (_, i) => {
+      const d = new Date(now);
+      d.setUTCHours(now.getUTCHours() - i * 2); // spread within the same month
+      const isRated = i < ratedCount;
+      return makePlunge({
+        id:          i + 1,
+        createdAt:   d,
+        mood:        isRated ? 4 : null,
+        moodEnergy:  isRated ? 3 : null,
+        temperature: 55,
+        duration:    120,
+      });
+    });
+  }
+
+  it("20 total, 9 rated → deriveNudgeForPush returns null (sweet-spot bucket skipped)", () => {
+    const plunges = makeSameMonthPlunges(20, 9);
+    expect(deriveNudgeForPush(plunges)).toBeNull();
+  });
+
+  it("20 total, 10 rated → deriveNudgeForPush returns sweet-spot", () => {
+    const plunges = makeSameMonthPlunges(20, 10);
+    const result = deriveNudgeForPush(plunges);
+    expect(result).not.toBeNull();
+    expect(result!.title).toContain(NUDGE_MESSAGES.sweetSpot.title);
+    expect(result!.body).toBe(
+      NUDGE_MESSAGES.sweetSpot.bodyTemplate("55–60°F", "1.5–3 min"),
+    );
+  });
+});
+
 // ── 7-day absence guard ───────────────────────────────────────────────────────
 
 // ── WelcomeBack push ──────────────────────────────────────────────────────────
