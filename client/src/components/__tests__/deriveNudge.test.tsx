@@ -320,38 +320,65 @@ describe("deriveNudge", () => {
 
   // ── computeMonthTrendDelta per-month minimum threshold ───────────────────
   //
-  // These tests document the intentional minimum: a single rated plunge in each
-  // of two calendar months is sufficient to produce a delta.  They make the
-  // implicit floor explicit so that future refactors can't accidentally raise or
-  // lower the bar without a failing test.
+  // MIN_RATED_PER_MONTH = 2: both participating months must have at least 2
+  // rated plunges for the delta to be considered meaningful.  A sample size of
+  // 1 is too sparse (could be an outlier) and must produce null so the card
+  // falls through to the sweet-spot fallback or returns null entirely.
 
-  it("produces a valid trending-up nudge with exactly 1 rated plunge per month (minimum threshold)", () => {
-    // 8 unrated recent plunges pass the total-count (≥10) gate without adding
-    // months of rated data; the two rated entries — one per calendar month —
-    // are enough for computeMonthTrendDelta to return a non-null delta.
+  it("returns null (not trending-up) when each month has only 1 rated plunge", () => {
+    // 8 unrated recent plunges pass the total-count (≥10) gate.
+    // Each calendar month has exactly 1 rated entry → below MIN_RATED_PER_MONTH
+    // → computeMonthTrendDelta must return null → no trend nudge shown.
+    // bestBucket also returns null (rated.length=2 < 10) → null overall.
     //
-    // month1 (60 days ago): mood=2  → composite ≈ 0.25
-    // month2 (1 day ago):   mood=5  → composite = 1.00
-    // delta ≈ +0.75  →  trending-up
+    // month1 (60 days ago): mood=2  (1 rated)
+    // month2 (1 day ago):   mood=5  (1 rated)
     const unrated = makePlunges(8, 1,  { mood: null, idStart: 1 });
     const rated1  = makePlunges(1, 60, { mood: 2,    idStart: 9 });
     const rated2  = makePlunges(1, 1,  { mood: 5,    idStart: 10 });
+    const nudge   = deriveNudge([...unrated, ...rated1, ...rated2]);
+    expect(nudge).toBeNull();
+  });
+
+  it("returns null (not holding-steady) when each month has only 1 rated plunge", () => {
+    // Identical mood in both months would normally yield delta=0 → holding-steady,
+    // but with only 1 rated entry per month computeMonthTrendDelta must return null.
+    // bestBucket also returns null (rated.length=2 < 10) → null overall.
+    //
+    // month1 (60 days ago): mood=3  (1 rated)
+    // month2 (1 day ago):   mood=3  (1 rated)
+    const unrated = makePlunges(8, 1,  { mood: null, idStart: 1 });
+    const rated1  = makePlunges(1, 60, { mood: 3,    idStart: 9 });
+    const rated2  = makePlunges(1, 1,  { mood: 3,    idStart: 10 });
+    const nudge   = deriveNudge([...unrated, ...rated1, ...rated2]);
+    expect(nudge).toBeNull();
+  });
+
+  it("produces a valid trending-up nudge with exactly 2 rated plunges per month (minimum threshold)", () => {
+    // 2 rated entries per month meets MIN_RATED_PER_MONTH exactly.
+    // 6 unrated recent plunges fill out the total-count (≥10) gate.
+    //
+    // month1 (60 days ago): 2× mood=2  → composite ≈ 0.25
+    // month2 (1 day ago):   2× mood=5  → composite = 1.00
+    // delta ≈ +0.75  →  trending-up
+    const unrated = makePlunges(6, 1,  { mood: null, idStart: 1 });
+    const rated1  = makePlunges(2, 60, { mood: 2,    idStart: 7 });
+    const rated2  = makePlunges(2, 1,  { mood: 5,    idStart: 9 });
     const nudge   = deriveNudge([...unrated, ...rated1, ...rated2]);
     expect(nudge).not.toBeNull();
     expect(nudge!.kind).toBe("trending-up");
   });
 
-  it("months with a single rated entry still produce a valid (not suppressed) delta — intentional behaviour", () => {
-    // Identical mood in both months → delta = 0 → holding-steady.
-    // This confirms that computeMonthTrendDelta does NOT suppress thin per-month
-    // data: one rated plunge per month is enough to produce a result (not null).
+  it("produces a valid holding-steady nudge with exactly 2 rated plunges per month", () => {
+    // 2 rated entries per month meets MIN_RATED_PER_MONTH exactly.
+    // Identical mood → delta = 0 → holding-steady.
     //
-    // month1 (60 days ago): mood=3  → composite = 0.50
-    // month2 (1 day ago):   mood=3  → composite = 0.50
+    // month1 (60 days ago): 2× mood=3  → composite = 0.50
+    // month2 (1 day ago):   2× mood=3  → composite = 0.50
     // delta = 0.00  →  |delta| ≤ 0.05  →  holding-steady
-    const unrated = makePlunges(8, 1,  { mood: null, idStart: 1 });
-    const rated1  = makePlunges(1, 60, { mood: 3,    idStart: 9 });
-    const rated2  = makePlunges(1, 1,  { mood: 3,    idStart: 10 });
+    const unrated = makePlunges(6, 1,  { mood: null, idStart: 1 });
+    const rated1  = makePlunges(2, 60, { mood: 3,    idStart: 7 });
+    const rated2  = makePlunges(2, 1,  { mood: 3,    idStart: 9 });
     const nudge   = deriveNudge([...unrated, ...rated1, ...rated2]);
     expect(nudge).not.toBeNull();
     expect(nudge!.kind).toBe("holding-steady");

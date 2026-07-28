@@ -32,9 +32,13 @@ export const DISMISS_KEY = "coldstreak-try-next-dismissed-plunge";
 
 // ── Trend delta (mirrors ColdAdaptationCard composite logic) ──────────────────
 
+/** Minimum number of rated plunges required in each participating month. */
+const MIN_RATED_PER_MONTH = 2;
+
 /**
  * Returns the month-over-month composite delta (last month − first month).
- * Null means fewer than 2 months of rated data.
+ * Null means fewer than 2 months of rated data, or any month has fewer than
+ * MIN_RATED_PER_MONTH rated plunges (too sparse to be meaningful).
  */
 function computeMonthTrendDelta(plunges: Plunge[]): number | null {
   const rated = plunges.filter((p) => p.mood != null);
@@ -55,6 +59,14 @@ function computeMonthTrendDelta(plunges: Plunge[]): number | null {
 
   const months = Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   if (months.length < 2) return null;
+
+  // Reject any month that doesn't meet the minimum rated-plunge count.
+  // A sample size of 1 is too sparse to produce a reliable composite score.
+  const firstMonth = months[0];
+  const lastMonth  = months[months.length - 1];
+  const firstCount = Math.max(firstMonth[1].moodC, firstMonth[1].energyC, firstMonth[1].focusC);
+  const lastCount  = Math.max(lastMonth[1].moodC,  lastMonth[1].energyC,  lastMonth[1].focusC);
+  if (firstCount < MIN_RATED_PER_MONTH || lastCount < MIN_RATED_PER_MONTH) return null;
 
   const composite = ([, s]: [string, MonthAcc]) => {
     const parts: number[] = [];
