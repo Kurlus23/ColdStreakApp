@@ -11,7 +11,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail, sendAdminSecurityAlert, sendSupportEmail, sendAdminReplyEmail, sendCoManagerInviteEmail, sendFriendInviteEmail, sendBroadcastEmail } from "./email";
 import webpush from "web-push";
-import { deriveNudgeForPush } from "./nudge";
+import { deriveNudgeForPush, deriveWelcomeBackForPush } from "./nudge";
 
 webpush.setVapidDetails(
   "mailto:ColdStreakApp17@gmail.com",
@@ -505,6 +505,18 @@ export async function registerRoutes(
       if (typeof tzHeader === "string" && tzHeader.length > 0 && tzHeader.length <= 64) {
         plungeData.timezone = tzHeader;
       }
+
+      // Fetch history and subscriptions BEFORE inserting the new plunge so that
+      // WelcomeBack eligibility is evaluated against the pre-insert gap.  If we
+      // fetched after createPlunge, the new plunge would appear as "just now",
+      // making daysSince = 0 and suppressing the 7+ day trigger.
+      const [priorPlunges, pushSubs] = authUser
+        ? await Promise.all([
+            storage.getPlunges(undefined, authUser.userId),
+            storage.getPushSubscriptionsByUser(authUser.userId),
+          ])
+        : [[] as import("@shared/schema").Plunge[], []];
+
       const newPlunge = await storage.createPlunge(plungeData);
 
       // ── Challenge resolution ────────────────────────────────────────────────
@@ -556,55 +568,94 @@ export async function registerRoutes(
         challengeResult = { won: iWon, myScore, theirScore, opponentName: theirName, opponentId: challengerUserId };
       }
 
-      // ── "Try this next" nudge notification ─────────────────────────────────
-      // Synchronously derive the nudge so we can include nudgeSent in the
-      // response — the client uses it to auto-dismiss the in-app card and
-      // avoid showing the same advice twice.  The actual push sends are still
-      // fire-and-forget (external HTTP calls shouldn't block the response).
+      // ── Push notification after plunge ──────────────────────────────────────
+      // Priority 1: WelcomeBack (user returning after 7+ day gap)
+      // Priority 2: "Try this next" nudge (active users)
+      //
+      // WelcomeBack uses priorPlunges (fetched before the insert) so daysSince
+      // reflects the actual gap before this new session.  The nudge uses the
+      // full post-insert history (priorPlunges + newPlunge) so the new plunge
+      // contributes to the month-over-month trend.
+      //
+      // Synchronously derive the payload so we can include nudgeSent /
+      // welcomeBackSent in the response — the client uses them to auto-dismiss
+      // in-app cards and avoid showing the same advice twice.  The actual push
+      // sends are still fire-and-forget.
       let nudgeSent = false;
+      let welcomeBackSent = false;
       if (authUser) {
         try {
-          const [userPlunges, subs] = await Promise.all([
-            storage.getPlunges(undefined, authUser.userId),
-            storage.getPushSubscriptionsByUser(authUser.userId),
-          ]);
-          const nudge = deriveNudgeForPush(userPlunges);
-          // Only set nudgeSent when there is a nudge to send AND at least one
-          // subscription to deliver it to.  Users with no subscriptions never
-          // receive a push, so their in-app card must remain visible.
-          if (nudge && subs.length > 0) {
-            nudgeSent = true;
-            // Fire-and-forget: only the external push delivery is async.
-            const nudgePayload = JSON.stringify({
-              title: nudge.title,
-              body:  nudge.body,
-              tag:   "try-this-next",
-            });
-            (async () => {
-              try {
-                for (const sub of subs) {
-                  try {
-                    await webpush.sendNotification(
-                      { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-                      nudgePayload,
-                    );
-                  } catch (err: any) {
-                    if (err.statusCode === 410 || err.statusCode === 404) {
-                      await storage.deletePushSubscription(sub.endpoint);
+          const subs = pushSubs; // already fetched before createPlunge
+
+          if (subs.length > 0) {
+            // Check WelcomeBack first using PRE-insert history so the new
+            // plunge doesn't collapse the gap to 0 days.
+            const welcomeBack = deriveWelcomeBackForPush(priorPlunges);
+            if (welcomeBack) {
+              welcomeBackSent = true;
+              const wbPayload = JSON.stringify({
+                title: welcomeBack.title,
+                body:  welcomeBack.body,
+                tag:   "welcome-back",
+              });
+              (async () => {
+                try {
+                  for (const sub of subs) {
+                    try {
+                      await webpush.sendNotification(
+                        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                        wbPayload,
+                      );
+                    } catch (err: any) {
+                      if (err.statusCode === 410 || err.statusCode === 404) {
+                        await storage.deletePushSubscription(sub.endpoint);
+                      }
                     }
                   }
+                } catch (err) {
+                  console.error("[welcome-back] push notification error:", err);
                 }
-              } catch (err) {
-                console.error("[nudge] push notification error:", err);
+              })();
+            } else {
+              // Use post-insert history (includes new plunge) for the nudge so
+              // the new plunge's mood data contributes to the trend computation.
+              const allPlunges = [...priorPlunges, newPlunge];
+              const nudge = deriveNudgeForPush(allPlunges);
+              // Only set nudgeSent when there is a nudge to send.
+              if (nudge) {
+                nudgeSent = true;
+                const nudgePayload = JSON.stringify({
+                  title: nudge.title,
+                  body:  nudge.body,
+                  tag:   "try-this-next",
+                });
+                (async () => {
+                  try {
+                    for (const sub of subs) {
+                      try {
+                        await webpush.sendNotification(
+                          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                          nudgePayload,
+                        );
+                      } catch (err: any) {
+                        if (err.statusCode === 410 || err.statusCode === 404) {
+                          await storage.deletePushSubscription(sub.endpoint);
+                        }
+                      }
+                    }
+                  } catch (err) {
+                    console.error("[nudge] push notification error:", err);
+                  }
+                })();
               }
-            })();
+            }
           }
         } catch (err) {
           console.error("[nudge] derivation error:", err);
         }
       }
 
-      res.status(201).json({ ...newPlunge, challengeResult, nudgeSent });
+      res.status(201).json({ ...newPlunge, challengeResult, nudgeSent, welcomeBackSent });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join('.') });

@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { deriveNudgeForPush } from "./nudge";
+import { deriveNudgeForPush, deriveWelcomeBackForPush } from "./nudge";
 import { deriveNudge } from "../client/src/components/TryThisNextCard";
 import { NUDGE_MESSAGES } from "../shared/nudgeMessages";
 import { type Plunge } from "../shared/schema";
@@ -412,6 +412,94 @@ describe("deriveNudgeForPush — mixed rated/unrated plunges", () => {
 });
 
 // ── 7-day absence guard ───────────────────────────────────────────────────────
+
+// ── WelcomeBack push ──────────────────────────────────────────────────────────
+
+describe("deriveWelcomeBackForPush — 7-day absence trigger", () => {
+  /**
+   * Build a minimal plunge list with the most-recent plunge pinned to
+   * `daysAgo` days in the past.  A single plunge is enough — the function
+   * only needs plunges.length > 0 and the most-recent createdAt.
+   */
+  function makePlungesWithLastDaysAgo(daysAgo: number): Plunge[] {
+    const mostRecent = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+    return [makePlunge({ id: 1, createdAt: mostRecent })];
+  }
+
+  it("returns null when there are no plunges", () => {
+    expect(deriveWelcomeBackForPush([])).toBeNull();
+  });
+
+  it("returns null when the most-recent plunge is 6 days ago (nudge territory)", () => {
+    expect(deriveWelcomeBackForPush(makePlungesWithLastDaysAgo(6))).toBeNull();
+  });
+
+  it("returns null when the most-recent plunge is today", () => {
+    expect(deriveWelcomeBackForPush(makePlungesWithLastDaysAgo(0))).toBeNull();
+  });
+
+  it("returns a payload when the most-recent plunge is exactly 7 days ago", () => {
+    const result = deriveWelcomeBackForPush(makePlungesWithLastDaysAgo(7));
+    expect(result).not.toBeNull();
+    expect(result!.title).toBe("Welcome back ❄️");
+    expect(result!.body).toContain("7 days");
+    expect(result!.body).toContain("Your body may feel the cold a little more intensely today");
+  });
+
+  it("returns a payload when the most-recent plunge is 10 days ago", () => {
+    const result = deriveWelcomeBackForPush(makePlungesWithLastDaysAgo(10));
+    expect(result).not.toBeNull();
+    expect(result!.title).toBe("Welcome back ❄️");
+    expect(result!.body).toContain("10 days");
+    expect(result!.body).toContain("Your body may feel the cold a little more intensely today");
+  });
+
+  it("uses 'Good to see you again' copy for a 14-day absence", () => {
+    const result = deriveWelcomeBackForPush(makePlungesWithLastDaysAgo(14));
+    expect(result).not.toBeNull();
+    expect(result!.title).toBe("Good to see you again ❄️");
+    expect(result!.body).toContain("14 days");
+    expect(result!.body).toContain("You haven't lost your progress");
+  });
+
+  it("uses 'Good to see you again' copy for a 20-day absence", () => {
+    const result = deriveWelcomeBackForPush(makePlungesWithLastDaysAgo(20));
+    expect(result).not.toBeNull();
+    expect(result!.title).toBe("Good to see you again ❄️");
+    expect(result!.body).toContain("20 days");
+  });
+
+  it("uses 'Welcome back to the cold' copy for a 30-day absence", () => {
+    const result = deriveWelcomeBackForPush(makePlungesWithLastDaysAgo(30));
+    expect(result).not.toBeNull();
+    expect(result!.title).toBe("Welcome back to the cold ❄️");
+    expect(result!.body).toContain("30 days");
+    expect(result!.body).toContain("The hardest part is always getting back in");
+  });
+
+  it("uses 'Welcome back to the cold' copy for a 60-day absence", () => {
+    const result = deriveWelcomeBackForPush(makePlungesWithLastDaysAgo(60));
+    expect(result).not.toBeNull();
+    expect(result!.title).toBe("Welcome back to the cold ❄️");
+    expect(result!.body).toContain("60 days");
+  });
+
+  it("boundary: 6 days → null, 7 days → payload", () => {
+    expect(deriveWelcomeBackForPush(makePlungesWithLastDaysAgo(6))).toBeNull();
+    expect(deriveWelcomeBackForPush(makePlungesWithLastDaysAgo(7))).not.toBeNull();
+  });
+
+  it("picks the most-recent plunge from an unsorted list", () => {
+    // Provide an older plunge first, then a more-recent one
+    const older  = makePlunge({ id: 1, createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000) });
+    const recent = makePlunge({ id: 2, createdAt: new Date(Date.now() -  9 * 24 * 60 * 60 * 1000) });
+    const result = deriveWelcomeBackForPush([older, recent]);
+    // Should use the 9-day-old plunge, not the 20-day-old one
+    expect(result).not.toBeNull();
+    expect(result!.title).toBe("Welcome back ❄️");
+    expect(result!.body).toContain("9 days");
+  });
+});
 
 describe("deriveNudgeForPush — 7-day absence guard", () => {
   /**

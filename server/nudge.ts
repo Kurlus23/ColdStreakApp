@@ -193,6 +193,45 @@ export interface NudgePayload {
 }
 
 /**
+ * Derive the WelcomeBack push payload for a user who has been away ≥7 days.
+ *
+ * Returns null when:
+ *   - there are no plunges
+ *   - the most-recent plunge is less than 7 days ago (nudge territory)
+ *
+ * The copy mirrors WelcomeBackCard.tsx so the push and in-app messages stay in sync.
+ */
+export function deriveWelcomeBackForPush(plunges: Plunge[]): NudgePayload | null {
+  if (plunges.length === 0) return null;
+
+  const sorted = [...plunges].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+  const daysSince = Math.floor(
+    (Date.now() - new Date(sorted[0].createdAt).getTime()) / (1000 * 60 * 60 * 24),
+  );
+
+  if (daysSince < 7) return null;
+
+  if (daysSince < 14) {
+    return {
+      title: "Welcome back ❄️",
+      body:  `It's been ${daysSince} days since your last plunge. Your body may feel the cold a little more intensely today — that's completely normal.`,
+    };
+  }
+  if (daysSince < 30) {
+    return {
+      title: "Good to see you again ❄️",
+      body:  `It's been ${daysSince} days. You haven't lost your progress — a few sessions will have you back at your previous cold response. Take it at your own pace.`,
+    };
+  }
+  return {
+    title: "Welcome back to the cold ❄️",
+    body:  `It's been ${daysSince} days. Start with a comfortable temperature and duration — your body will re-adapt quickly. The hardest part is always getting back in.`,
+  };
+}
+
+/**
  * Derive the "Try this next" nudge for the given plunge history.
  *
  * Returns null when there isn't enough data or the user has been away 7+ days
