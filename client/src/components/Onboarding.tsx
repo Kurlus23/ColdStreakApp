@@ -11,7 +11,7 @@ export function hasCompletedOnboarding() {
 
 interface OnboardingProps {
   onComplete: (skipped: boolean) => void;
-  onRegister: (args: { email: string; password: string; username: string; bodyWeight?: number }) => Promise<{ ok: boolean; error?: string }>;
+  onRegister: (args: { email: string; password: string; username: string; bodyWeight?: number; bodyHeight?: number }) => Promise<{ ok: boolean; error?: string }>;
   onImportWeight: () => Promise<{ lbs: number | null; message?: string }>;
   healthKitAvailable: boolean;
 }
@@ -69,6 +69,8 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [weight, setWeight] = useState("");
+  const [heightFt, setHeightFt] = useState("");
+  const [heightIn, setHeightIn] = useState("");
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
   const [usernameMsg, setUsernameMsg] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
@@ -157,9 +159,18 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
     const w = weight.trim() ? Number(weight) : undefined;
     if (w !== undefined && (isNaN(w) || w < 60 || w > 500)) { setFormError("Enter a weight between 60 and 500 lbs."); return; }
 
+    // Height: convert ft + in → cm
+    const ftVal = heightFt.trim() ? Number(heightFt) : 0;
+    const inVal = heightIn.trim() ? Number(heightIn) : 0;
+    const hasHeight = heightFt.trim() !== "" || heightIn.trim() !== "";
+    if (hasHeight && (isNaN(ftVal) || isNaN(inVal) || ftVal < 3 || ftVal > 8 || inVal < 0 || inVal > 11)) {
+      setFormError("Enter a valid height (e.g. 5 ft 10 in)."); return;
+    }
+    const h = hasHeight ? Math.round((ftVal * 12 + inVal) * 2.54) : undefined;
+
     setSubmitting(true);
     try {
-      const result = await onRegister({ email: e, password, username: parsed.data, bodyWeight: w });
+      const result = await onRegister({ email: e, password, username: parsed.data, bodyWeight: w, bodyHeight: h });
       if (result.ok) {
         finish(false);
       } else {
@@ -259,14 +270,41 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
               )}
             </div>
 
-            {/* Body weight */}
-            <div>
+            {/* Height + Weight */}
+            <div className="space-y-2">
+              {/* Height */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    data-testid="input-onboarding-height-ft"
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="Height (ft)"
+                    value={heightFt}
+                    onChange={(e) => setHeightFt(e.target.value)}
+                    className="w-full bg-blue-900/70 border border-blue-700 rounded-xl px-3 py-3 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+                <div className="relative flex-1">
+                  <input
+                    data-testid="input-onboarding-height-in"
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="Height (in)"
+                    value={heightIn}
+                    onChange={(e) => setHeightIn(e.target.value)}
+                    className="w-full bg-blue-900/70 border border-blue-700 rounded-xl px-3 py-3 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+              </div>
+
+              {/* Weight */}
               <div className="flex gap-2">
                 <input
                   data-testid="input-onboarding-weight"
                   type="number"
                   inputMode="numeric"
-                  placeholder="Body weight (lbs)"
+                  placeholder="Weight (lbs)"
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
                   className="flex-1 bg-blue-900/70 border border-blue-700 rounded-xl px-3 py-3 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
@@ -287,10 +325,10 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
               {importMsg && <p className="text-blue-300 text-xs mt-1 px-1">{importMsg}</p>}
             </div>
 
-            {/* Cold Score / calories reminder — accurate phrasing */}
+            {/* Why we ask */}
             <div className="bg-blue-900/50 border border-blue-700/40 rounded-xl px-3 py-2.5">
               <p className="text-blue-200 text-xs leading-relaxed">
-                Your <span className="font-semibold text-white">Cold Score</span> is based on time + water temperature. Adding your weight unlocks accurate <span className="font-semibold text-white">calorie</span> estimates — you can change it anytime.
+                Height + weight let us personalise your <span className="font-semibold text-white">Cold Score</span>, <span className="font-semibold text-white">Benefit Bar</span> timing, and calorie estimates using your actual BMI — you can update these anytime in Settings.
               </p>
             </div>
 

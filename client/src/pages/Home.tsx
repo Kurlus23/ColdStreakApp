@@ -1544,11 +1544,12 @@ export default function Home() {
   };
 
   // Onboarding account creation — registers, stores handle/name/weight, then syncs.
-  const handleOnboardingRegister = async (args: { email: string; password: string; username: string; bodyWeight?: number }) => {
+  const handleOnboardingRegister = async (args: { email: string; password: string; username: string; bodyWeight?: number; bodyHeight?: number }) => {
     const result = await auth.register(args.email, args.password, {
       username: args.username,
       displayName: args.username,
       bodyWeight: args.bodyWeight,
+      bodyHeight: args.bodyHeight,
     });
     if (!result.ok) return { ok: false, error: result.error };
     setAccountUsername(args.username);
@@ -1559,6 +1560,11 @@ export default function Home() {
       const lbs = Math.round(args.bodyWeight);
       setBodyWeightLbs(lbs);
       localStorage.setItem("coldstreak-body-weight", String(lbs));
+    }
+    if (args.bodyHeight && args.bodyHeight > 0) {
+      const cm = Math.round(args.bodyHeight);
+      setBodyHeightCm(cm);
+      localStorage.setItem("coldstreak-body-height", String(cm));
     }
     verifyProForEmail(args.email);
     backgroundSync();
