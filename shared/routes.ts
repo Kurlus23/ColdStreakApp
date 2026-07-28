@@ -34,6 +34,11 @@ export const api = {
         // Challenge resolution — stripped server-side before DB insert
         challengerUserId: z.number().int().optional(),
         challengerScore: z.string().or(z.number()).optional(),
+        // Client-side dismiss state: the ID of the plunge for which the user
+        // already dismissed the in-app TryThisNextCard.  When this matches the
+        // most-recent prior plunge the server skips the nudge push so the user
+        // doesn't receive a push for advice they already saw and dismissed.
+        dismissedNudgePlungeId: z.number().int().optional(),
       }),
       responses: {
         201: z.custom<typeof plunges.$inferSelect>(),

@@ -497,7 +497,7 @@ export async function registerRoutes(
   app.post(api.plunges.create.path, async (req, res) => {
     try {
       const authUser = extractUser(req);
-      const { createdAt: customDateStr, challengerUserId, challengerScore, ...input } = api.plunges.create.input.parse(req.body);
+      const { createdAt: customDateStr, challengerUserId, challengerScore, dismissedNudgePlungeId, ...input } = api.plunges.create.input.parse(req.body);
       const plungeData: any = { ...input, score: String(input.score) };
       if (customDateStr) plungeData.createdAt = new Date(customDateStr);
       if (authUser) plungeData.userId = authUser.userId;
@@ -621,8 +621,18 @@ export async function registerRoutes(
               // the new plunge's mood data contributes to the trend computation.
               const allPlunges = [...priorPlunges, newPlunge];
               const nudge = deriveNudgeForPush(allPlunges);
-              // Only set nudgeSent when there is a nudge to send.
-              if (nudge) {
+              // Skip the push if the user already dismissed the in-app
+              // TryThisNextCard for the same nudge epoch (i.e. their most-recent
+              // prior plunge is the one they dismissed).  priorPlunges is sorted
+              // newest-first, so priorPlunges[0] is the epoch anchor.
+              const latestPriorId = priorPlunges[0]?.id ?? null;
+              const userAlreadyDismissed =
+                dismissedNudgePlungeId != null &&
+                latestPriorId != null &&
+                dismissedNudgePlungeId === latestPriorId;
+              // Only set nudgeSent when there is a nudge to send and the user
+              // has not already dismissed the in-app card for this epoch.
+              if (nudge && !userAlreadyDismissed) {
                 nudgeSent = true;
                 const nudgePayload = JSON.stringify({
                   title: nudge.title,

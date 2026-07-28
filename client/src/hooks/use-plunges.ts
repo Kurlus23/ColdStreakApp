@@ -65,7 +65,17 @@ export function useCreatePlunge() {
   return useMutation({
     mutationFn: async (data: PlungeInput) => {
       const clientId = getClientId();
-      const validated = api.plunges.create.input.parse({ ...data, clientId });
+      // Include any in-app dismiss state so the server can skip the nudge push
+      // when the user already dismissed the TryThisNextCard for the same epoch.
+      const rawDismissed = localStorage.getItem(DISMISS_KEY);
+      const dismissedNudgePlungeId = rawDismissed != null ? Number(rawDismissed) : undefined;
+      const validated = api.plunges.create.input.parse({
+        ...data,
+        clientId,
+        ...(dismissedNudgePlungeId != null && !isNaN(dismissedNudgePlungeId)
+          ? { dismissedNudgePlungeId }
+          : {}),
+      });
       const res = await fetch(api.plunges.create.path, {
         method: api.plunges.create.method,
         headers: buildHeaders({ "Content-Type": "application/json" }),
