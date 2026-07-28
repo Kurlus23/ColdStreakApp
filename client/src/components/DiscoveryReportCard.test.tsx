@@ -649,6 +649,90 @@ describe("DiscoveryReportCard — All-time tab with plunges spanning multiple ye
   });
 });
 
+// ── Midnight-boundary test ─────────────────────────────────────────────────────
+//
+// The `dateRangeLabel` helper calls `new Date()` inline in JSX on every render,
+// so the label always reflects the clock at the time of the latest render.
+// If the component re-renders after midnight (e.g. a prop update, period switch,
+// or any state change) the "today" end of the label will be up-to-date.
+//
+// Known limitation: if the component stays mounted with NO re-render across a
+// midnight boundary (e.g. the user leaves the app open overnight and never
+// interacts), the label will remain stale until the next render. Because the
+// label is purely cosmetic and every interaction (tab switch, collapse toggle,
+// new plunge data) triggers a re-render, this is accepted as an extremely low
+// impact edge case and no interval timer is used to avoid unnecessary overhead.
+
+describe("DiscoveryReportCard — date range label refreshes after midnight on re-render", () => {
+  // Freeze just before midnight on Jan 15 so we start with "Jan 15" as "today"
+  const BEFORE_MIDNIGHT = new Date("2025-01-15T23:59:59Z");
+  const AFTER_MIDNIGHT  = new Date("2025-01-16T00:00:01Z");
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(BEFORE_MIDNIGHT);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** One plunge well inside both rolling windows so the card renders fully. */
+  function singleRecentPlunge(): Plunge {
+    return makePlunge({
+      id: 1,
+      mood: 5,
+      duration: 240,
+      temperature: 48,
+      // 1 day ago — safely inside the 7-day window
+      createdAt: new Date(BEFORE_MIDNIGHT.getTime() - 24 * 60 * 60 * 1000).toISOString() as unknown as Date,
+    });
+  }
+
+  it("shows the pre-midnight date in the label before midnight", () => {
+    render(<DiscoveryReportCard plunges={[singleRecentPlunge()]} />);
+    // The 7-day label ends with today's date; before midnight that is Jan 15
+    const label = screen.getByText(/Jan 15/);
+    expect(label).toBeInTheDocument();
+  });
+
+  it("updates the label to the new date when the component re-renders after midnight", () => {
+    const { rerender } = render(<DiscoveryReportCard plunges={[singleRecentPlunge()]} />);
+
+    // Confirm the label says Jan 15 before midnight
+    expect(screen.getByText(/Jan 15/)).toBeInTheDocument();
+
+    // Advance the clock past midnight
+    vi.setSystemTime(AFTER_MIDNIGHT);
+
+    // Trigger a re-render (simulates any prop update, e.g. a new plunge arriving)
+    rerender(<DiscoveryReportCard plunges={[singleRecentPlunge()]} />);
+
+    // The label must now end with Jan 16 (the new "today")
+    expect(screen.getByText(/Jan 16/)).toBeInTheDocument();
+    // And Jan 15 must no longer appear as today's end date in the label
+    // (it may still appear as the cutoff start, so we check the full label text)
+    const labelEl = screen.getByText(/Jan 9 – Jan 16/);
+    expect(labelEl).toBeInTheDocument();
+  });
+
+  it("label end date advances by one day after midnight re-render on the 30-day tab", () => {
+    const { rerender } = render(<DiscoveryReportCard plunges={[singleRecentPlunge()]} />);
+
+    // Switch to 30-day tab before midnight
+    fireEvent.click(screen.getByRole("button", { name: /30 days/i }));
+    // Label ends with Jan 15
+    expect(screen.getByText(/Jan 15/)).toBeInTheDocument();
+
+    // Advance past midnight and re-render
+    vi.setSystemTime(AFTER_MIDNIGHT);
+    rerender(<DiscoveryReportCard plunges={[singleRecentPlunge()]} />);
+
+    // The 30-day label should now end with Jan 16
+    expect(screen.getByText(/Jan 16/)).toBeInTheDocument();
+  });
+});
+
 describe("DiscoveryReportCard — All-time tab never goes blank with many check-ins across years", () => {
   beforeEach(() => {
     vi.useFakeTimers();
