@@ -124,7 +124,7 @@ async function sendMessage(
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-const FAB_SIZE = 32;
+const FAB_SIZE = 40;
 const DRAG_THRESHOLD = 6; // px — below this = tap, above = drag
 const POS_KEY = "coach-fab-position";
 
