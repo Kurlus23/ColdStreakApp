@@ -1254,8 +1254,16 @@ export default function Home() {
   // Fires 800 ms after the settings sheet is fully dismissed.
   // NOTE: pendingReplayWalkthrough is cleared inside the callback (not before) so
   // the state change doesn't trigger a cleanup that cancels the timeout.
+  //
+  // Guard: if the user navigates back to Settings while the flag is still pending
+  // (i.e. before the 800 ms fires), cancel the replay so it doesn't fire
+  // unexpectedly on their next timer visit.
   useEffect(() => {
     if (!pendingReplayWalkthrough) return;
+    if (screen === "settings") {
+      setPendingReplayWalkthrough(false);
+      return;
+    }
     if (screen !== "timer") return;
     const id = setTimeout(() => {
       setPendingReplayWalkthrough(false);
