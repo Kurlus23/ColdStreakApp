@@ -1044,7 +1044,7 @@ export default function Home() {
   const [showAchievements, setShowAchievements] = useState(() => {
     return localStorage.getItem("coldstreak-achievements-open") !== "false";
   });
-  const [scoreView, setScoreView] = useState<"today" | "week" | "kcal" | "kcal-week">("today");
+  const [scoreView, setScoreView] = useState<"today" | "week" | "best">("today");
   const [scoreInfoOpen, setScoreInfoOpen] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [restoreFromPhotoMeta, setRestoreFromPhotoMeta] = useState<PlungePhotoMeta | null>(null);
@@ -3419,37 +3419,24 @@ export default function Home() {
                   data-testid="card-cold-score"
                   onClick={() => {
                     setScoreInfoOpen(false);
-                    setScoreView(v => v === "today" ? "week" : v === "week" ? "kcal" : v === "kcal" ? "kcal-week" : "today");
+                    setScoreView(v => v === "today" ? "week" : v === "week" ? "best" : "today");
                   }}
                   className="flex flex-col items-center w-full focus:outline-none active:opacity-80"
                 >
-                  {scoreView === "kcal" || scoreView === "kcal-week" ? (
-                    <>
-                      <span className="text-orange-300 text-[2.4rem] font-bold leading-none">
-                        {scoreView === "kcal"
-                          ? (todayCalories > 0 ? Math.round(todayCalories) : "—")
-                          : (weeklyCalories > 0 ? Math.round(weeklyCalories) : "—")
-                        }
-                      </span>
-                      <span className="text-orange-400/70 text-[8px] mt-1.5"
-                            title="Estimated thermogenic calorie burn. Varies by individual physiology — not a precise measurement.">
-                        {scoreView === "kcal" ? "kcal today" : "kcal/week"}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-cyan-300 text-[2.4rem] font-bold leading-none"
-                            style={{ textShadow: "0 0 20px rgba(103,232,249,0.35)" }}>
-                        {scoreView === "today"
-                          ? (displayScore > 0 ? displayScore.toFixed(1) : "—")
-                          : (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
-                        }
-                      </span>
-                      <span className={`text-[8px] mt-1.5 ${isActive && scoreView === "today" ? "text-green-400 animate-pulse" : "text-blue-300/60"}`}>
-                        {scoreView === "today" ? (isActive ? "live" : "today") : "this week"}
-                      </span>
-                    </>
-                  )}
+                  <>
+                    <span className={`text-[2.4rem] font-bold leading-none ${scoreView === "best" ? "text-yellow-300" : "text-cyan-300"}`}
+                          style={scoreView !== "best" ? { textShadow: "0 0 20px rgba(103,232,249,0.35)" } : undefined}>
+                      {scoreView === "today"
+                        ? (displayScore > 0 ? displayScore.toFixed(1) : "—")
+                        : scoreView === "week"
+                          ? (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
+                          : (personalBest > 0 ? personalBest.toFixed(1) : "—")
+                      }
+                    </span>
+                    <span className={`text-[8px] mt-1.5 ${isActive && scoreView === "today" ? "text-green-400 animate-pulse" : scoreView === "best" ? "text-yellow-400/70" : "text-blue-300/60"}`}>
+                      {scoreView === "today" ? (isActive ? "live" : "today") : scoreView === "week" ? "this week" : "personal best"}
+                    </span>
+                  </>
                 </button>
                 <span className="text-blue-300/60 text-[8px] uppercase tracking-widest mt-auto pt-2">Tap to cycle</span>
                 {/* Info button */}
@@ -3466,11 +3453,11 @@ export default function Home() {
                       className="absolute top-1.5 right-2 text-blue-500 hover:text-white text-xs"
                     >✕</button>
                     <p className="text-blue-200 text-[10px] leading-relaxed">
-                      <span className="text-cyan-300 font-bold">Cold Score</span> = duration (min) × temperature factor.<br />
+                      <span className="text-cyan-300 font-bold">Cold Score</span> = duration (min) × temperature factor × body composition.<br />
                       40°F = <span className="text-cyan-300 font-bold">2.3×</span> · 50°F = <span className="text-cyan-300 font-bold">1.7×</span> · 60°F = <span className="text-cyan-300 font-bold">1.0×</span>
                     </p>
                     <p className="text-blue-200 text-[10px] leading-relaxed mt-2">
-                      <span className="text-orange-300 font-bold">Calories</span> = thermogenesis model based on temp, duration &amp; body weight. Set your weight in Settings.
+                      Tap to cycle: <span className="text-cyan-300 font-bold">today</span> → <span className="text-cyan-300 font-bold">this week</span> → <span className="text-yellow-300 font-bold">personal best</span>
                     </p>
                   </div>
                 )}
@@ -4134,6 +4121,37 @@ export default function Home() {
                   <div className="text-[10px] text-blue-400 uppercase tracking-wider">Score</div>
                   <div className="text-cyan-400 font-bold text-lg">{todayScore.toFixed(2)}</div>
                 </div>
+              </div>
+            )}
+
+            {/* Calorie breakdown — day / week / all-time */}
+            {plunges.length > 0 && (
+              <div className="bg-blue-900/40 rounded-2xl px-4 py-3 mb-4 border border-blue-800/40">
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <Flame className="w-3.5 h-3.5 text-orange-400" />
+                  <span className="text-[10px] text-orange-300/80 uppercase tracking-wider font-semibold">Calorie Burn (est.)</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <div className="text-orange-300 font-bold text-base leading-none">
+                      {todayCalories > 0 ? Math.round(todayCalories) : "—"}
+                    </div>
+                    <div className="text-blue-400/70 text-[9px] uppercase tracking-wide mt-1">Today</div>
+                  </div>
+                  <div className="border-x border-blue-700/40">
+                    <div className="text-orange-300 font-bold text-base leading-none">
+                      {weeklyCalories > 0 ? Math.round(weeklyCalories) : "—"}
+                    </div>
+                    <div className="text-blue-400/70 text-[9px] uppercase tracking-wide mt-1">This week</div>
+                  </div>
+                  <div>
+                    <div className="text-orange-300 font-bold text-base leading-none">
+                      {allTimeCalories > 0 ? Math.round(allTimeCalories) : "—"}
+                    </div>
+                    <div className="text-blue-400/70 text-[9px] uppercase tracking-wide mt-1">All-time</div>
+                  </div>
+                </div>
+                <p className="text-blue-500/60 text-[9px] mt-2 leading-relaxed">Thermogenic estimate — not a precise measurement. Set weight in Settings for best accuracy.</p>
               </div>
             )}
 
