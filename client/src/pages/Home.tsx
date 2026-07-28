@@ -66,6 +66,7 @@ import { searchFriends as searchFriendsImpl } from "@/lib/searchFriends";
 import { sendFriendRequest as sendFriendRequestImpl } from "@/lib/sendFriendRequest";
 import { respondFriendRequest as respondFriendRequestImpl } from "@/lib/respondFriendRequest";
 import { sendFriendChallenge as sendFriendChallengeImpl } from "@/lib/sendFriendChallenge";
+import { handleSwMessage } from "@/lib/swMessageHandler";
 
 // Pick a fresh cold take the user hasn't unlocked yet and persist it to the
 // unlocked collection. Falls back to a repeat only if the pool is exhausted.
@@ -424,39 +425,17 @@ export default function Home() {
   // Friends screen so they know something changed.
   // Shows a toast when an action silently failed (e.g. duplicate tap).
   useEffect(() => {
-    const handleSwMessage = (event: MessageEvent) => {
-      if (event.data?.type === "notification-navigate") {
-        // Challenge notification tapped while app was already open
-        const url = event.data?.url ?? "";
-        const id = Number(new URLSearchParams(url.split("?")[1] ?? "").get("challenger"));
-        if (id) setActiveChallengerUserId(id);
-      } else if (event.data?.type === "friend-request-resolved") {
-        loadFriends();
-        // Show a named toast so the user knows what changed without opening Friends
-        const requesterName: string | null = event.data.requesterName ?? null;
-        const resolution: string | null = event.data.resolution ?? null;
-        if (requesterName && resolution) {
-          const verb = resolution === "accepted" ? "accepted" : "declined";
-          toast({
-            title: resolution === "accepted" ? "🎉 Friend request accepted" : "Friend request declined",
-            description: `${requesterName} ${verb} your friend request.`,
-          });
-        }
-        if (!isOnFriendsScreenRef.current) {
-          localStorage.setItem("coldstreak-friends-badge", "1");
-          setFriendsBadge(true);
-        }
-      } else if (event.data?.type === "friend-action-failed") {
-        toast({
-          title: "Action failed",
-          description: event.data.message || "Something went wrong. Please try again in the app.",
-          variant: "destructive",
-        });
-      }
-    };
-    navigator.serviceWorker?.addEventListener("message", handleSwMessage);
+    const handler = (event: MessageEvent) =>
+      handleSwMessage(event, {
+        toast,
+        loadFriends,
+        setActiveChallengerUserId,
+        isOnFriendsScreen: () => isOnFriendsScreenRef.current,
+        setFriendsBadge,
+      });
+    navigator.serviceWorker?.addEventListener("message", handler);
     return () => {
-      navigator.serviceWorker?.removeEventListener("message", handleSwMessage);
+      navigator.serviceWorker?.removeEventListener("message", handler);
     };
   }, [loadFriends]);
 
