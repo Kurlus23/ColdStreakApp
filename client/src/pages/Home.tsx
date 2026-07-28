@@ -3401,13 +3401,13 @@ export default function Home() {
                           : (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
                         }
                       </span>
-                      <span className={`text-[8px] mt-1.5 ${isActive && scoreView === "today" ? "text-green-400 animate-pulse" : "text-blue-500/50"}`}>
+                      <span className={`text-[8px] mt-1.5 ${isActive && scoreView === "today" ? "text-green-400 animate-pulse" : "text-blue-300/60"}`}>
                         {scoreView === "today" ? (isActive ? "live" : "today") : "this week"}
                       </span>
                     </>
                   )}
                 </button>
-                <span className="text-blue-500/30 text-[8px] uppercase tracking-widest mt-auto pt-2">Tap to cycle</span>
+                <span className="text-blue-300/60 text-[8px] uppercase tracking-widest mt-auto pt-2">Tap to cycle</span>
                 {/* Info button */}
                 <button
                   data-testid="button-score-info"
@@ -3469,7 +3469,7 @@ export default function Home() {
                     countdownStartRef.current = null;
                     localStorage.removeItem(ACTIVE_SESSION_KEY);
                   }}
-                  className="flex items-center gap-1 text-blue-500/40 hover:text-blue-300 transition-colors text-[8px] uppercase tracking-widest focus:outline-none"
+                  className="flex items-center gap-1 text-blue-300/60 hover:text-blue-200 transition-colors text-[8px] uppercase tracking-widest focus:outline-none"
                 >
                   {countdownMode ? "Countdown" : "Stopwatch"}
                   <svg className="w-2 h-2 opacity-60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -3489,8 +3489,8 @@ export default function Home() {
                 return (
                   <div className="flex flex-col justify-center px-3 pt-2 pb-2.5">
                     <div className="flex justify-between mb-1">
-                      <span className="text-blue-500/40 text-[8px]">{_fbtUniqueDays}d</span>
-                      <span className="text-blue-500/40 text-[8px]">{nextTier.emoji} {nextTier.days}d</span>
+                      <span className="text-blue-300/60 text-[8px]">{_fbtUniqueDays}d</span>
+                      <span className="text-blue-300/60 text-[8px]">{nextTier.emoji} {nextTier.days}d</span>
                     </div>
                     <div className="h-0.5 rounded-full bg-blue-900">
                       <div
