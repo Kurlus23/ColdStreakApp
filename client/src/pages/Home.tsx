@@ -183,12 +183,26 @@ function plungeScore(
   return Number((minutes * coldFactor * getCompositionFactor(bodyFatPct, weightLbs, heightCm)).toFixed(2));
 }
 
-function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
+/**
+ * Estimates kcal burned during a cold plunge.
+ * Uses lean body mass when body fat % is known — fat tissue contributes
+ * far less to cold thermogenesis than lean mass does.
+ * Falls back to total body weight when body fat is unavailable.
+ */
+function estimateCalories(
+  durationSeconds: number,
+  tempF: number,
+  weightLbs: number,
+  bodyFatPct?: number | null,
+): number {
   const durationMin = durationSeconds / 60;
   const tempC = (tempF - 32) * 5 / 9;
   const deltaT = Math.max(0, 37 - tempC);
-  const weightKg = weightLbs / 2.205;
-  return Math.max(0, durationMin * deltaT * weightKg * 0.0077);
+  const effectiveLbs = (bodyFatPct != null && bodyFatPct > 0)
+    ? weightLbs * (1 - bodyFatPct / 100)
+    : weightLbs;
+  const effectiveKg = effectiveLbs / 2.205;
+  return Math.max(0, durationMin * deltaT * effectiveKg * 0.0077);
 }
 
 function formatTime(totalSeconds: number) {
@@ -1769,7 +1783,7 @@ export default function Home() {
     const headers = ["Date", "Time", "Duration", "Duration (sec)", "Temp (°F)", "Temp (°C)", "Cold Score", "Calories (kcal est.)", "Location"];
     const rows = plunges.map((p) => {
       const d = new Date(p.createdAt);
-      const calories = p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs));
+      const calories = p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs, bodyFatPct));
       const tempC = Math.round(((p.temperature - 32) * 5) / 9 * 10) / 10;
       const mins = Math.floor(p.duration / 60);
       const secs = p.duration % 60;
@@ -2788,7 +2802,8 @@ export default function Home() {
   const doLogPlunge = useCallback(async (durationSec: number, startedAtOverride?: Date, challenger?: { userId: number; score: number }) => {
     const score = plungeScore(durationSec, temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct);
     const weightAtLogTime = Number(localStorage.getItem("coldstreak-body-weight") || 150);
-    const caloriesAtLogTime = Math.round(estimateCalories(durationSec, temperature, weightAtLogTime));
+    const bodyFatAtLogTime = Number(localStorage.getItem("coldstreak-body-fat") || 0) || null;
+    const caloriesAtLogTime = Math.round(estimateCalories(durationSec, temperature, weightAtLogTime, bodyFatAtLogTime));
 
     // Live BLE readings take priority if any were captured during this plunge.
     let hrAvg: number | null = hrReadingsRef.current.length > 0
@@ -3191,9 +3206,9 @@ export default function Home() {
   const thisWeek = plunges.filter((p) => new Date(p.createdAt) >= weekStart);
   const weeklyMinutes = thisWeek.reduce((sum, p) => sum + p.duration, 0) / 60;
   const weeklyScore = thisWeek.reduce((sum, p) => sum + Number(p.score), 0);
-  const todayCalories = todayPlunges.reduce((sum, p) => sum + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs))), 0);
-  const weeklyCalories = thisWeek.reduce((sum, p) => sum + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs))), 0);
-  const allTimeCalories = plunges.reduce((sum, p) => sum + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs))), 0);
+  const todayCalories = todayPlunges.reduce((sum, p) => sum + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs, bodyFatPct))), 0);
+  const weeklyCalories = thisWeek.reduce((sum, p) => sum + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs, bodyFatPct))), 0);
+  const allTimeCalories = plunges.reduce((sum, p) => sum + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs, bodyFatPct))), 0);
   const weeklyPct = Math.min(100, (weeklyMinutes / weeklyGoalMinutes) * 100);
   const streak = getStreak(plunges, freezeData?.freezes ?? []);
 
@@ -4084,7 +4099,7 @@ export default function Home() {
                       : manualLocSel === "custom" ? (manualLocCustom.trim() || undefined)
                       : undefined;
                     createPlunge.mutate(
-                      { duration: durationSec, temperature: manualTempF, score: String(score), hrAvg: null, spo2Avg: null, createdAt: isoDate, locationId: finalLocId, locationName: finalLocName, calories: Math.round(estimateCalories(durationSec, manualTempF, Number(localStorage.getItem("coldstreak-body-weight") || 150))) },
+                      { duration: durationSec, temperature: manualTempF, score: String(score), hrAvg: null, spo2Avg: null, createdAt: isoDate, locationId: finalLocId, locationName: finalLocName, calories: Math.round(estimateCalories(durationSec, manualTempF, Number(localStorage.getItem("coldstreak-body-weight") || 150), Number(localStorage.getItem("coldstreak-body-fat") || 0) || null)) },
                       {
                         onSuccess: () => {
                           setShowManualEntry(false);
@@ -4167,7 +4182,7 @@ export default function Home() {
                               createdAt: m.date,
                               locationId: m.locationId ?? undefined,
                               locationName: m.locationName ?? undefined,
-                              calories: Math.round(estimateCalories(m.duration, m.temp, Number(localStorage.getItem("coldstreak-body-weight") || 150))),
+                              calories: Math.round(estimateCalories(m.duration, m.temp, Number(localStorage.getItem("coldstreak-body-weight") || 150), Number(localStorage.getItem("coldstreak-body-fat") || 0) || null)),
                             },
                             {
                               onSuccess: () => {

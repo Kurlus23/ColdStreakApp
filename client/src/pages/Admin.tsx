@@ -1543,6 +1543,9 @@ export default function Admin() {
             </div>
           )}
 
+          {/* Recalculate plunge stats */}
+          <RecalcPlungeStatsPanel />
+
           {/* Churn Surveys */}
           <ChurnSurveysPanel />
 
@@ -1874,6 +1877,51 @@ const REASON_LABELS: Record<string, string> = {
   found_other: "🔁 Other tool",
   other: "💬 Other",
 };
+
+function RecalcPlungeStatsPanel() {
+  const [result, setResult] = useState<{ updated: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const mutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/admin/recalculate-plunge-stats"),
+    onSuccess: (data: any) => {
+      setResult(data);
+      setError(null);
+      toast({ title: "Recalculation complete", description: `${data.updated} plunge rows updated.` });
+    },
+    onError: (err: any) => {
+      setError(err?.message ?? "Server error");
+      toast({ title: "Recalculation failed", description: err?.message ?? "Server error", variant: "destructive" });
+    },
+  });
+
+  return (
+    <div className="border border-blue-800/40 rounded-xl overflow-hidden">
+      <div className="px-4 py-3 bg-blue-950/60 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-blue-200 font-semibold text-sm">🔄 Recalculate Plunge Stats</p>
+          <p className="text-blue-400 text-xs mt-0.5">
+            Recomputes every user's calorie burn (lean-mass formula) and cold score (body-fat / BMI factor) using their current profile metrics. Run once after updating body composition data.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          className="bg-blue-700 hover:bg-blue-600 text-white text-xs shrink-0"
+          onClick={() => mutation.mutate()}
+          disabled={mutation.isPending}
+        >
+          {mutation.isPending ? "Running…" : "Run Now"}
+        </Button>
+      </div>
+      {(result || error) && (
+        <div className={`px-4 py-2 text-xs ${error ? "bg-red-950/40 text-red-300" : "bg-green-950/40 text-green-300"}`}>
+          {error ? `❌ ${error}` : `✓ Updated ${result!.updated} plunge records.`}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ChurnSurveysPanel() {
   const [expanded, setExpanded] = useState(false);

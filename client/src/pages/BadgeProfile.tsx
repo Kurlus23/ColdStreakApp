@@ -54,12 +54,19 @@ const SOCIAL_META: { key: keyof SocialLinks; label: string; Icon: React.ElementT
   { key: "youtube", label: "YouTube", Icon: SiYoutube, color: "text-red-400", placeholder: "yourhandle", prefix: "https://youtube.com/@" },
 ];
 
-function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
+function estimateCalories(
+  durationSeconds: number,
+  tempF: number,
+  weightLbs: number,
+  bodyFatPct?: number | null,
+): number {
   const durationMin = durationSeconds / 60;
   const tempC = (tempF - 32) * 5 / 9;
   const deltaT = Math.max(0, 37 - tempC);
-  const weightKg = weightLbs / 2.205;
-  return Math.max(0, durationMin * deltaT * weightKg * 0.0077);
+  const effectiveLbs = (bodyFatPct != null && bodyFatPct > 0)
+    ? weightLbs * (1 - bodyFatPct / 100)
+    : weightLbs;
+  return Math.max(0, durationMin * deltaT * (effectiveLbs / 2.205) * 0.0077);
 }
 
 function computeEarnedTempTiers(coldestTemp: number | null): Set<string> {
@@ -672,9 +679,10 @@ export default function BadgeProfile() {
           const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
           const todayPlunges = ownerPlunges.filter(p => { const d = new Date(p.createdAt); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` === todayKey; });
           const thisWeek = ownerPlunges.filter(p => new Date(p.createdAt).getTime() >= weekAgo);
-          const todayCalories = todayPlunges.reduce((s, p) => s + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs))), 0);
-          const weeklyCalories = thisWeek.reduce((s, p) => s + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs))), 0);
-          const allTimeCalories = ownerPlunges.reduce((s, p) => s + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs))), 0);
+          const bfPct = Number(localStorage.getItem("coldstreak-body-fat") || 0) || null;
+          const todayCalories = todayPlunges.reduce((s, p) => s + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs, bfPct))), 0);
+          const weeklyCalories = thisWeek.reduce((s, p) => s + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs, bfPct))), 0);
+          const allTimeCalories = ownerPlunges.reduce((s, p) => s + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs, bfPct))), 0);
           const weeklyMinutes = thisWeek.reduce((s, p) => s + p.duration, 0) / 60;
           const weeklyPct = Math.min(100, (weeklyMinutes / weeklyGoalMinutes) * 100);
 

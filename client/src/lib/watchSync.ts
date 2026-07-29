@@ -50,7 +50,7 @@ function plungeScore(durationSeconds: number, tempF: number): number {
   return Math.round(durationSeconds * tempFactor * 0.1);
 }
 
-function estimateCalories(durationSec: number, tempF: number, weightLbs: number): number {
+function estimateCalories(durationSec: number, tempF: number, weightLbs: number, bodyFatPct?: number | null): number {
   // Same model as Home.tsx — see notes there. Conservative shivering-thermogenesis estimate.
   const weightKg = weightLbs * 0.4536;
   const tempC = (tempF - 32) * (5 / 9);
@@ -74,6 +74,7 @@ function toApiPayload(p: WatchPlungePayload): {
   const durationSec = Math.max(1, Math.round(p.durationSec ?? 0));
   const tempF = Math.round(p.waterTempF ?? 50);
   const weightLbs = Number(localStorage.getItem("coldstreak-body-weight") || 150);
+  const bodyFatPct = Number(localStorage.getItem("coldstreak-body-fat") || 0) || null;
 
   // Prefer explicit avgHR; fall back to mid-point of max/min if needed.
   let hrAvg: number | null = null;
@@ -93,7 +94,7 @@ function toApiPayload(p: WatchPlungePayload): {
     hrAvg,
     spo2Avg: null,
     timerUsed: true,
-    calories: estimateCalories(durationSec, tempF, weightLbs),
+    calories: estimateCalories(durationSec, tempF, weightLbs, bodyFatPct),
     createdAt,
     locationId: "home",
     locationName: "",

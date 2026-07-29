@@ -1862,6 +1862,62 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     res.json({ success: true });
   });
 
+  // ── Admin: recalculate plunge calories + scores using lean-mass formula ─────
+  app.post("/api/admin/recalculate-plunge-stats", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+
+    // Recalculate calories (using lean mass when body_fat is known) and score
+    // (using body-fat factor when available, else BMI factor) for every plunge
+    // that has an associated user with body metrics stored.
+    //
+    // body_fat is stored as tenths on the users table (199 = 19.9 %).
+    // body_weight is in lbs.  body_height is in cm.
+    const result = await db.execute(sql`
+      UPDATE plunges p
+      SET
+        calories = GREATEST(0, ROUND(
+          (p.duration / 60.0)
+          * GREATEST(0.0, 37.0 - (p.temperature - 32.0) * 5.0 / 9.0)
+          * (
+              CASE
+                WHEN u.body_fat IS NOT NULL AND u.body_fat > 0
+                THEN COALESCE(u.body_weight, 150.0) * (1.0 - (u.body_fat / 10.0) / 100.0) / 2.205
+                ELSE COALESCE(u.body_weight, 150.0) / 2.205
+              END
+            )
+          * 0.0077
+        )::integer),
+        score = ROUND(
+          (p.duration / 60.0)
+          * CASE
+              WHEN p.temperature <= 40 THEN 2.3
+              WHEN p.temperature <= 45 THEN 1.9
+              WHEN p.temperature <= 50 THEN 1.5
+              WHEN p.temperature <= 55 THEN 1.2
+              ELSE 1.0
+            END
+          * GREATEST(0.75, LEAST(1.35,
+              CASE
+                WHEN u.body_fat IS NOT NULL AND u.body_fat > 0
+                  THEN (u.body_fat / 10.0) / 20.0
+                WHEN u.body_weight IS NOT NULL AND u.body_weight > 0
+                     AND u.body_height IS NOT NULL AND u.body_height > 0
+                  THEN (u.body_weight / 2.205)
+                       / POWER(u.body_height / 100.0, 2)
+                       / 22.0
+                ELSE 1.0
+              END
+            ))
+        , 2)
+      FROM users u
+      WHERE p.user_id = u.id
+    `);
+
+    const count = (result as any).rowCount ?? (result as any).count ?? 0;
+    res.json({ success: true, updated: count });
+  });
+
   // ── Admin: manage pro users ─────────────────────────────────────────────
   app.get("/api/admin/pro-users", async (req, res) => {
     const caller = extractUser(req);

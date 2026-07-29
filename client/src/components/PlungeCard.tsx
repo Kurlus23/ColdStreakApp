@@ -11,12 +11,19 @@ import { shareContent, logShareEvent } from "@/lib/share";
 import { isNative, nativeShare } from "@/lib/nativeShare";
 import { computeEarnedSegments, SEGMENTS, getCompositionFactor } from "@/lib/benefitSegments";
 
-function estimateCalories(durationSeconds: number, tempF: number, weightLbs: number): number {
+function estimateCalories(
+  durationSeconds: number,
+  tempF: number,
+  weightLbs: number,
+  bodyFatPct?: number | null,
+): number {
   const durationMin = durationSeconds / 60;
   const tempC = (tempF - 32) * 5 / 9;
   const deltaT = Math.max(0, 37 - tempC);
-  const weightKg = weightLbs / 2.205;
-  return Math.max(0, durationMin * deltaT * weightKg * 0.0077);
+  const effectiveLbs = (bodyFatPct != null && bodyFatPct > 0)
+    ? weightLbs * (1 - bodyFatPct / 100)
+    : weightLbs;
+  return Math.max(0, durationMin * deltaT * (effectiveLbs / 2.205) * 0.0077);
 }
 
 
@@ -188,7 +195,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
   const [showChallengePicker, setShowChallengePicker] = useState(false);
   const [challengingFriendId, setChallengingFriendId] = useState<number | null>(null);
 
-  const calories = plunge.calories ?? Math.round(estimateCalories(plunge.duration, plunge.temperature, bodyWeightLbs));
+  const calories = plunge.calories ?? Math.round(estimateCalories(plunge.duration, plunge.temperature, bodyWeightLbs, bodyFatPct));
 
   useEffect(() => {
     getPhoto(plunge.id).then((p) => setLocalPhoto(p)).catch(() => {});
