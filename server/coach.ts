@@ -141,8 +141,10 @@ CURRENT USER:
 `.trim();
 
   // ── Call Gemini via v1 REST (SDK defaults to v1beta which blocks newer models) ──
-  const GEMINI_MODEL = "gemini-3.5-flash";
-  const url = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+  // Primary + fallback so a single overloaded model doesn't kill the coach
+  const GEMINI_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"];
+  const baseUrl = (model: string) =>
+    `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
   // Gemini uses "user" / "model" roles (not "assistant")
   const geminiHistory = history.slice(-10).map((m) => ({
@@ -156,14 +158,24 @@ CURRENT USER:
       ...geminiHistory,
       { role: "user", parts: [{ text: message }] },
     ],
-    generationConfig: { maxOutputTokens: 600, temperature: 0.7, responseMimeType: "application/json" },
+    generationConfig: { maxOutputTokens: 600, temperature: 0.7 },
   };
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  async function callGemini(model: string) {
+    return fetch(baseUrl(model), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  let res = await callGemini(GEMINI_MODELS[0]);
+
+  // On overload/quota, try each fallback model in turn before giving up
+  for (let i = 1; i < GEMINI_MODELS.length && (res.status === 503 || res.status === 429); i++) {
+    console.warn(`[coach] ${GEMINI_MODELS[i-1]} returned ${res.status}, trying ${GEMINI_MODELS[i]}`);
+    res = await callGemini(GEMINI_MODELS[i]);
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
