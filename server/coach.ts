@@ -143,10 +143,9 @@ CURRENT USER:
   // ── Call Gemini via v1 REST (SDK defaults to v1beta which blocks newer models) ──
   // Free (unlimited RPD) models first, paid models as last resort
   const GEMINI_MODELS = [
-    "gemini-2.5-flash-lite", // free, unlimited RPD
-    "gemini-2.0-flash",      // free, unlimited RPD
-    "gemini-3.5-flash",      // paid, 10K RPD
-    "gemini-3.6-flash",      // paid, 10K RPD
+    "gemini-2.5-flash",      // free tier, latest stable
+    "gemini-2.0-flash",      // free, unlimited RPD fallback
+    "gemini-1.5-flash",      // older free fallback
   ];
   const baseUrl = (model: string) =>
     `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
@@ -176,8 +175,8 @@ CURRENT USER:
 
   let res = await callGemini(GEMINI_MODELS[0]);
 
-  // On overload/quota, try each fallback model in turn before giving up
-  for (let i = 1; i < GEMINI_MODELS.length && (res.status === 503 || res.status === 429); i++) {
+  // On overload/quota/deprecation, try each fallback model in turn before giving up
+  for (let i = 1; i < GEMINI_MODELS.length && (res.status === 503 || res.status === 429 || res.status === 404); i++) {
     console.warn(`[coach] ${GEMINI_MODELS[i-1]} returned ${res.status}, trying ${GEMINI_MODELS[i]}`);
     res = await callGemini(GEMINI_MODELS[i]);
   }

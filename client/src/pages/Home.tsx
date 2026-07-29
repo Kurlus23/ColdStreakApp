@@ -1480,10 +1480,12 @@ export default function Home() {
         }
 
         // Restore display unit preferences (server is truth — survives Android localStorage wipes)
+        let hasExplicitCelsius = false;
         if (data.displayPrefs) {
           try {
             const prefs = JSON.parse(data.displayPrefs) as { useCelsius?: boolean; countdownMode?: boolean; countdownMinutes?: number; countdownSeconds?: number };
             if (typeof prefs.useCelsius === "boolean") {
+              hasExplicitCelsius = true;
               setUseCelsius(prefs.useCelsius);
               localStorage.setItem("coldstreak-use-celsius", String(prefs.useCelsius));
             }
@@ -1502,17 +1504,31 @@ export default function Home() {
           } catch { /* ignore malformed prefs */ }
         }
 
-        // Restore unit system from server (overrides localStorage; country-based auto-detect as fallback)
+        // Restore unit system from server (overrides localStorage; country-based auto-detect as fallback).
+        // Also syncs useCelsius unless the user has an explicit displayPrefs override (e.g. metric + °F).
+        const applyCelsiusFromSystem = (sys: "imperial" | "metric") => {
+          if (!hasExplicitCelsius) {
+            const c = sys === "metric";
+            setUseCelsius(c);
+            localStorage.setItem("coldstreak-use-celsius", String(c));
+          }
+        };
         if (data.unitSystem === "imperial" || data.unitSystem === "metric") {
           setUnitSystem(data.unitSystem);
           localStorage.setItem("coldstreak-unit-system", data.unitSystem);
+          applyCelsiusFromSystem(data.unitSystem);
         } else if (data.country) {
           const detected = IMPERIAL_COUNTRIES.includes(data.country.toUpperCase()) ? "imperial" : "metric";
+          const celsius = detected === "metric";
           setUnitSystem(detected);
           localStorage.setItem("coldstreak-unit-system", detected);
-          // Persist the detection so next load doesn't re-run
+          applyCelsiusFromSystem(detected);
+          // Persist the detection (including celsius) so next load doesn't re-run
           const tok2 = localStorage.getItem("coldstreak-auth-token");
-          if (tok2) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok2}` }, body: JSON.stringify({ unitSystem: detected }) }).catch(() => {});
+          if (tok2) {
+            const mergedPrefs = JSON.stringify({ useCelsius: celsius, countdownMode, countdownMinutes: minutesInput, countdownSeconds: secondsInput });
+            fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok2}` }, body: JSON.stringify({ unitSystem: detected, displayPrefs: mergedPrefs }) }).catch(() => {});
+          }
         }
 
         // bodyFat stored as tenths server-side (199 = 19.9%); convert back to pct
@@ -1671,14 +1687,19 @@ export default function Home() {
   };
 
   const saveUnitSystem = (u: "imperial" | "metric") => {
+    const celsius = u === "metric";
     setUnitSystem(u);
+    setUseCelsius(celsius);
     localStorage.setItem("coldstreak-unit-system", u);
+    localStorage.setItem("coldstreak-use-celsius", String(celsius));
     const tok = localStorage.getItem("coldstreak-auth-token");
     if (!tok) return;
+    // Save unitSystem + matching useCelsius in one request
+    const mergedPrefs = JSON.stringify({ useCelsius: celsius, countdownMode, countdownMinutes: minutesInput, countdownSeconds: secondsInput });
     fetch("/api/auth/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
-      body: JSON.stringify({ unitSystem: u }),
+      body: JSON.stringify({ unitSystem: u, displayPrefs: mergedPrefs }),
     }).catch(() => {});
   };
 
