@@ -9,7 +9,6 @@
  * Falls back gracefully when GEMINI_API_KEY is not configured.
  */
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from "./db";
 import { plunges, users } from "@shared/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -123,12 +122,9 @@ CURRENT USER:
 • Weight: ${user?.bodyWeight ? `${user.bodyWeight} lbs` : "not set"}${screenLine ? `\n${screenLine}` : ""}
 `.trim();
 
-  // ── Call Gemini ─────────────────────────────────────────────────────────
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
-    systemInstruction: APP_KNOWLEDGE + "\n\n" + userContext,
-  });
+  // ── Call Gemini via v1 REST (SDK defaults to v1beta which blocks newer models) ──
+  const GEMINI_MODEL = "gemini-3.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
   // Gemini uses "user" / "model" roles (not "assistant")
   const geminiHistory = history.slice(-10).map((m) => ({
@@ -136,11 +132,29 @@ CURRENT USER:
     parts: [{ text: m.content }],
   }));
 
-  const chat = model.startChat({ history: geminiHistory });
-  const result = await chat.sendMessage(message);
+  const body = {
+    systemInstruction: { parts: [{ text: APP_KNOWLEDGE + "\n\n" + userContext }] },
+    contents: [
+      ...geminiHistory,
+      { role: "user", parts: [{ text: message }] },
+    ],
+    generationConfig: { maxOutputTokens: 350, temperature: 0.7 },
+  };
 
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`Gemini ${res.status}: ${(err as any)?.error?.message ?? res.statusText}`);
+  }
+
+  const data = await res.json() as { candidates?: { content?: { parts?: { text: string }[] } }[] };
   return (
-    result.response.text() ||
+    data.candidates?.[0]?.content?.parts?.[0]?.text ||
     "Sorry, I couldn't generate a response — please try again."
   );
 }
