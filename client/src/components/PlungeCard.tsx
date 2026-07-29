@@ -39,6 +39,7 @@ interface PlungeCardProps {
   avatarUrl?: string | null;
   friends?: ChallengeFriend[];
   onChallengeFriend?: (userId: number, displayName: string) => void;
+  useCelsius?: boolean;
 }
 
 const MOOD_META: Record<number, { emoji: string; label: string; color: string }> = {
@@ -165,7 +166,7 @@ function resolveLocationDisplay(locId: string | null | undefined, locName: strin
   return null;
 }
 
-export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bodyFatPct, username, streak, homeLabel, communityLocs = [], isPro = false, avatarUrl, friends = [], onChallengeFriend }: PlungeCardProps) {
+export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bodyFatPct, username, streak, homeLabel, communityLocs = [], isPro = false, avatarUrl, friends = [], onChallengeFriend, useCelsius = false }: PlungeCardProps) {
   const deletePlunge = useDeletePlunge();
   const updatePlunge = useUpdatePlunge();
   const { toast } = useToast();
@@ -432,7 +433,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
                       {[
                         plunge.locationId === "home" ? "📍 Home" : plunge.locationName ? `📍 ${plunge.locationName}` : null,
                         streak && streak > 0 ? `${streak}d 🔥` : null,
-                        `${plunge.temperature}°F`,
+                        useCelsius ? `${Math.round((plunge.temperature - 32) * 5 / 9)}°C` : `${plunge.temperature}°F`,
                         formatTime(plunge.duration),
                         plunge.score ? `Score ${Number(plunge.score).toFixed(1)}` : null,
                       ].filter(Boolean).join("  ·  ")}
@@ -630,7 +631,10 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
               {format(new Date(plunge.createdAt), "MMM d, yyyy 'at' h:mm a")}
             </div>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <span className="text-sm font-semibold text-white">{plunge.temperature}<span className="text-cyan-400 text-xs">°F</span></span>
+              <span className="text-sm font-semibold text-white">
+                {useCelsius ? Math.round((plunge.temperature - 32) * 5 / 9) : plunge.temperature}
+                <span className="text-cyan-400 text-xs">{useCelsius ? "°C" : "°F"}</span>
+              </span>
               <span className="text-slate-600">·</span>
               <span className="text-xs text-cyan-300 font-semibold">Score {Number(plunge.score).toFixed(1)}</span>
               <span className="text-slate-600">·</span>
@@ -805,7 +809,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
             {/* Temperature */}
             <div>
               <label className="text-slate-400 text-[10px] uppercase tracking-wide flex items-center gap-1 mb-1">
-                <Thermometer className="w-3 h-3" /> Temperature (°F)
+                <Thermometer className="w-3 h-3" /> Temperature ({useCelsius ? "°C" : "°F"})
               </label>
               <select
                 data-testid={`select-edit-temp-${plunge.id}`}
@@ -814,7 +818,9 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
                 className="w-28 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-cyan-400 appearance-none"
               >
                 {Array.from({ length: 44 }, (_, i) => 32 + i).map((t) => (
-                  <option key={t} value={t}>{t}°F</option>
+                  <option key={t} value={t}>
+                    {useCelsius ? `${Math.round((t - 32) * 5 / 9)}°C` : `${t}°F`}
+                  </option>
                 ))}
               </select>
             </div>

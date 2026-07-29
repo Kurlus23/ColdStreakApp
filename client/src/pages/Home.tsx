@@ -4274,6 +4274,7 @@ export default function Home() {
                         communityLocs={communityLocs}
                         isPro={isPro}
                         avatarUrl={ownAvatarUrl}
+                        useCelsius={useCelsius}
                         friends={friends.map((f) => ({ userId: f.userId, displayName: f.displayName, username: f.username }))}
                         onChallengeFriend={async (userId, displayName) => {
                           await sendFriendChallengeImpl(userId, displayName, {
