@@ -145,6 +145,7 @@ export const updatePlungeSchema = insertPlungeSchema.partial().pick({
   duration: true,
   temperature: true,
   score: true,
+  calories: true,
   mood: true,
   moodEnergy: true,
   moodFocus: true,

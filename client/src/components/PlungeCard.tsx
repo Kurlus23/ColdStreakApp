@@ -397,10 +397,11 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
     if (temperature <= 40) coldFactor = 2.3;
     const compositionFactor = getCompositionFactor(bodyFatPct, bodyWeightLbs, bodyHeightCm);
     const score = String(Number((minutes * coldFactor * compositionFactor).toFixed(2)));
+    const calories = Math.round(estimateCalories(duration, temperature, bodyWeightLbs, bodyFatPct));
     const createdAt = new Date(`${editDate}T${editTime}:00`).toISOString();
 
     updatePlunge.mutate(
-      { id: plunge.id, patch: { locationId, locationName, duration, temperature, score, createdAt } },
+      { id: plunge.id, patch: { locationId, locationName, duration, temperature, score, calories, createdAt } },
       {
         onSuccess: () => {
           setEditing(false);
