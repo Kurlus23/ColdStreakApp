@@ -6031,9 +6031,9 @@ export default function Home() {
                       return (
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <button onClick={() => saveFat(pct - 0.5)} className={btnCls}>−</button>
+                            <button onClick={() => saveFat(Math.round((pct - 0.1) * 10) / 10)} className={btnCls}>−</button>
                             <div className={valCls}>{pct.toFixed(1)}%</div>
-                            <button onClick={() => saveFat(pct + 0.5)} className={btnCls}>+</button>
+                            <button onClick={() => saveFat(Math.round((pct + 0.1) * 10) / 10)} className={btnCls}>+</button>
                             {bodyFatPct !== null ? (
                               <span className="text-cyan-400 text-xs font-semibold">✓ Active — overrides BMI</span>
                             ) : (
