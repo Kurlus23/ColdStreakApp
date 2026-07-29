@@ -51,6 +51,23 @@ TEMPERATURE TIERS:
 SCORING: Plunge Score combines duration × temperature factor × body-weight factor. Higher = colder + longer.
 
 Always answer from the app's perspective. If unsure, be honest. Never make up statistics.
+
+RESPONSE FORMAT — always return valid JSON, no markdown, no code fences:
+{
+  "reply": "your message to the user",
+  "navigate": null
+}
+
+Set "navigate" to the screen name (string) when your answer is specifically about a feature the user can see on that screen — so they can follow along:
+• "timer"        — benefits bar, plunge score, streak, temperature, countdown, start/stop
+• "history"      — past plunges, sweet spot, cold adaptation, try this next, calorie stats, mood check-in
+• "explore"      — finding spots, community locations, nearby plunge spots
+• "gear"         — equipment, devices, Bluetooth sensors, smart scales
+• "settings"     — profile, weight, height, body fat, notifications, account
+• "achievements" — badges, passport
+• "friends"      — challenges, friend streaks, pending requests
+
+Set "navigate" to null for general cold-plunge science questions, greetings, or when the answer doesn't map to a single screen.
 `.trim();
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -75,12 +92,13 @@ export async function coachChat(
   message: string,
   history: ChatMessage[],
   screenContext?: string,
-): Promise<string> {
+): Promise<{ reply: string; navigate?: string | null }> {
   if (!process.env.GEMINI_API_KEY) {
-    return (
-      "The AI coach needs a Gemini API key to answer questions. " +
-      "Add GEMINI_API_KEY to your server secrets and restart the app."
-    );
+    return {
+      reply:
+        "The AI coach needs a Gemini API key to answer questions. " +
+        "Add GEMINI_API_KEY to your server secrets and restart the app.",
+    };
   }
 
   // ── Build user context ──────────────────────────────────────────────────
@@ -138,7 +156,7 @@ CURRENT USER:
       ...geminiHistory,
       { role: "user", parts: [{ text: message }] },
     ],
-    generationConfig: { maxOutputTokens: 600, temperature: 0.7 },
+    generationConfig: { maxOutputTokens: 600, temperature: 0.7, responseMimeType: "application/json" },
   };
 
   const res = await fetch(url, {
@@ -153,8 +171,17 @@ CURRENT USER:
   }
 
   const data = await res.json() as { candidates?: { content?: { parts?: { text: string }[] } }[] };
-  return (
-    data.candidates?.[0]?.content?.parts?.[0]?.text ||
-    "Sorry, I couldn't generate a response — please try again."
-  );
+  const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+
+  // Gemini returns JSON — parse it
+  try {
+    const parsed = JSON.parse(raw) as { reply?: string; navigate?: string | null };
+    return {
+      reply: parsed.reply || "Sorry, I couldn't generate a response — please try again.",
+      navigate: parsed.navigate ?? null,
+    };
+  } catch {
+    // Fallback: treat raw text as reply with no navigation
+    return { reply: raw || "Sorry, I couldn't generate a response — please try again." };
+  }
 }

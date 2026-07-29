@@ -8529,7 +8529,7 @@ export default function Home() {
       {/* ── AI Coach ── */}
       {auth.user && (
         <>
-          <CoachFAB authToken={localStorage.getItem("coldstreak-auth-token")} screen={screen} isPlunging={(isActive && screen === "timer") || photoPromptId !== null} />
+          <CoachFAB authToken={localStorage.getItem("coldstreak-auth-token")} screen={screen} isPlunging={(isActive && screen === "timer") || photoPromptId !== null} onNavigate={(s) => navTo(s as Parameters<typeof navTo>[0])} />
           {showFirstOpenWalkthrough && (
             <CoachWalkthrough
               tourType="first-open"

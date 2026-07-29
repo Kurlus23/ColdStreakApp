@@ -3939,8 +3939,8 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     }
     try {
       const { coachChat } = await import("./coach");
-      const reply = await coachChat(payload.userId, message, history, context?.screen);
-      res.json({ reply });
+      const result = await coachChat(payload.userId, message, history, context?.screen);
+      res.json(result);
     } catch (err) {
       console.error("Coach chat error:", err);
       res.status(500).json({ message: "Coach unavailable right now — please try again." });

@@ -24,6 +24,8 @@ interface ChatMessage {
   content: string;
   /** True for transient error/fallback messages that should not be persisted. */
   isError?: boolean;
+  /** Screen to navigate to when the user taps the action chip. */
+  navigate?: string | null;
 }
 
 interface Props {
@@ -33,6 +35,8 @@ interface Props {
   screen?: string;
   /** When true (active plunge in progress) the button is hidden entirely. */
   isPlunging?: boolean;
+  /** Called when the coach wants to navigate to a screen. */
+  onNavigate?: (screen: string) => void;
 }
 
 // ── Chat history persistence ──────────────────────────────────────────────────
@@ -104,7 +108,7 @@ async function sendMessage(
   message: string,
   history: ChatMessage[],
   screen?: string,
-): Promise<string> {
+): Promise<{ reply: string; navigate?: string | null }> {
   const res = await fetch("/api/coach/chat", {
     method: "POST",
     headers: {
@@ -118,9 +122,18 @@ async function sendMessage(
     }),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = (await res.json()) as { reply: string };
-  return data.reply;
+  return res.json() as Promise<{ reply: string; navigate?: string | null }>;
 }
+
+const NAV_LABELS: Record<string, string> = {
+  timer:        "Timer",
+  history:      "History",
+  explore:      "Explore",
+  gear:         "Gear",
+  settings:     "Settings",
+  achievements: "Achievements",
+  friends:      "Friends",
+};
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -147,7 +160,7 @@ function defaultPos(): { x: number; y: number } {
   return { x: 16, y: safeTop };
 }
 
-export function CoachFAB({ authToken, screen, isPlunging }: Props) {
+export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
   const [open, setOpen]         = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory(authToken));
   const [loadedForToken, setLoadedForToken] = useState<string | null>(authToken);
@@ -303,8 +316,8 @@ export function CoachFAB({ authToken, screen, isPlunging }: Props) {
       setLoading(true);
 
       try {
-        const reply = await sendMessage(authToken, trimmed, messages.concat(userMsg), screen);
-        setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+        const { reply, navigate } = await sendMessage(authToken, trimmed, messages.concat(userMsg), screen);
+        setMessages((prev) => [...prev, { role: "assistant", content: reply, navigate }]);
       } catch {
         setMessages((prev) => [
           ...prev,
@@ -489,22 +502,33 @@ export function CoachFAB({ authToken, screen, isPlunging }: Props) {
                   {msg.role === "assistant" && (
                     <img src="/icons/icon-192.png" alt="" className="w-6 h-6 rounded-full object-cover shrink-0 mt-0.5" draggable={false} />
                   )}
-                  <div
-                    className={`rounded-2xl px-3.5 py-2.5 max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap ${
-                      msg.role === "user"
-                        ? "bg-cyan-700/60 text-white rounded-tr-sm"
-                        : "bg-blue-900/40 text-blue-100 rounded-tl-sm"
-                    }`}
-                    dangerouslySetInnerHTML={{
-                      // Convert **bold** markdown to <strong> tags safely
-                      __html: msg.content
-                        .replace(/&/g, "&amp;")
-                        .replace(/</g, "&lt;")
-                        .replace(/>/g, "&gt;")
-                        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-                        .replace(/\n/g, "<br/>"),
-                    }}
-                  />
+                  <div className="flex flex-col gap-1.5 max-w-[85%]">
+                    <div
+                      className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                        msg.role === "user"
+                          ? "bg-cyan-700/60 text-white rounded-tr-sm"
+                          : "bg-blue-900/40 text-blue-100 rounded-tl-sm"
+                      }`}
+                      dangerouslySetInnerHTML={{
+                        // Convert **bold** markdown to <strong> tags safely
+                        __html: msg.content
+                          .replace(/&/g, "&amp;")
+                          .replace(/</g, "&lt;")
+                          .replace(/>/g, "&gt;")
+                          .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                          .replace(/\n/g, "<br/>"),
+                      }}
+                    />
+                    {msg.role === "assistant" && msg.navigate && NAV_LABELS[msg.navigate] && onNavigate && (
+                      <button
+                        onClick={() => { closePanel(); setTimeout(() => onNavigate(msg.navigate!), 320); }}
+                        className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-600/20 border border-cyan-500/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-600/30 active:scale-95 transition-all"
+                      >
+                        <span>→</span>
+                        <span>Open {NAV_LABELS[msg.navigate]}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
 
