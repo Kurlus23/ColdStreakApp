@@ -354,7 +354,7 @@ export async function registerRoutes(
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUserById(payload.userId);
     if (!user) return res.status(401).json({ message: "User not found" });
-    res.json({ username: user.username ?? null, displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null, bodyHeight: user.bodyHeight ?? null, bodyFat: user.bodyFat ?? null, displayPrefs: user.displayPrefs ?? null });
+    res.json({ username: user.username ?? null, displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null, bodyHeight: user.bodyHeight ?? null, bodyFat: user.bodyFat ?? null, displayPrefs: user.displayPrefs ?? null, unitSystem: user.unitSystem ?? null, country: user.country ?? null });
   });
 
   app.patch("/api/auth/profile", async (req, res) => {
@@ -362,14 +362,15 @@ export async function registerRoutes(
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
     const existing = await storage.getUserById(payload.userId);
     if (!existing) return res.status(401).json({ message: "User not found" });
-    const { displayName, bodyWeight, bodyHeight, bodyFat, username, displayPrefs } = req.body;
-    const patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number | null; username?: string; displayPrefs?: string } = {};
+    const { displayName, bodyWeight, bodyHeight, bodyFat, username, displayPrefs, unitSystem } = req.body;
+    const patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number | null; username?: string; displayPrefs?: string; unitSystem?: string } = {};
     if (typeof displayName === "string") patch.displayName = displayName.trim().slice(0, 32);
     if (typeof bodyWeight === "number" && bodyWeight > 0) patch.bodyWeight = Math.round(bodyWeight);
     if (typeof bodyHeight === "number" && bodyHeight > 0) patch.bodyHeight = Math.round(bodyHeight);
     // bodyFat === 0 is the client's "clear" signal; treat as null so BMI fallback kicks in.
     if (typeof bodyFat === "number") patch.bodyFat = bodyFat > 0 ? Math.round(bodyFat) : null;
     if (typeof displayPrefs === "string") patch.displayPrefs = displayPrefs;
+    if (unitSystem === "imperial" || unitSystem === "metric") patch.unitSystem = unitSystem;
     if (typeof username === "string") {
       const parsed = usernameSchema.safeParse(username);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0].message });
@@ -383,7 +384,7 @@ export async function registerRoutes(
       patch.username = parsed.data;
     }
     const user = await storage.updateUserProfile(payload.userId, patch);
-    res.json({ username: user.username ?? null, displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null, bodyHeight: user.bodyHeight ?? null, bodyFat: user.bodyFat ?? null, displayPrefs: user.displayPrefs ?? null });
+    res.json({ username: user.username ?? null, displayName: user.displayName ?? null, bodyWeight: user.bodyWeight ?? null, bodyHeight: user.bodyHeight ?? null, bodyFat: user.bodyFat ?? null, displayPrefs: user.displayPrefs ?? null, unitSystem: user.unitSystem ?? null, country: user.country ?? null });
   });
 
   app.delete("/api/auth/account", async (req, res) => {

@@ -1111,12 +1111,17 @@ export default function Home() {
   const [heightNudgeDismissed, setHeightNudgeDismissed] = useState<boolean>(() => {
     try { return localStorage.getItem(HEIGHT_NUDGE_KEY) === "1"; } catch { return false; }
   });
-  const [heightUnit, setHeightUnit] = useState<"imperial" | "metric">(() =>
-    (localStorage.getItem("coldstreak-height-unit") as "imperial" | "metric") || "imperial"
-  );
-  const [weightUnit, setWeightUnit] = useState<"lbs" | "kg">(() =>
-    (localStorage.getItem("coldstreak-weight-unit") as "lbs" | "kg") || "lbs"
-  );
+  // Single unit-system preference ("imperial" | "metric").
+  // Auto-detected from country on first use; overrideable by the user.
+  const IMPERIAL_COUNTRIES = ["US", "LR", "MM"];
+  const [unitSystem, setUnitSystem] = useState<"imperial" | "metric">(() => {
+    const stored = localStorage.getItem("coldstreak-unit-system");
+    if (stored === "imperial" || stored === "metric") return stored;
+    // Legacy keys — migrate on first load
+    const legacyH = localStorage.getItem("coldstreak-height-unit");
+    if (legacyH === "metric") return "metric";
+    return "imperial"; // default; server will override with country detection on login
+  });
   const [restoreEmailInput, setRestoreEmailInput] = useState("");
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [settingsRestoreEmail, setSettingsRestoreEmail] = useState("");
@@ -1477,16 +1482,37 @@ export default function Home() {
         // Restore display unit preferences (server is truth — survives Android localStorage wipes)
         if (data.displayPrefs) {
           try {
-            const prefs = JSON.parse(data.displayPrefs) as { heightUnit?: string; weightUnit?: string };
-            if (prefs.heightUnit === "imperial" || prefs.heightUnit === "metric") {
-              setHeightUnit(prefs.heightUnit);
-              localStorage.setItem("coldstreak-height-unit", prefs.heightUnit);
+            const prefs = JSON.parse(data.displayPrefs) as { useCelsius?: boolean; countdownMode?: boolean; countdownMinutes?: number; countdownSeconds?: number };
+            if (typeof prefs.useCelsius === "boolean") {
+              setUseCelsius(prefs.useCelsius);
+              localStorage.setItem("coldstreak-use-celsius", String(prefs.useCelsius));
             }
-            if (prefs.weightUnit === "lbs" || prefs.weightUnit === "kg") {
-              setWeightUnit(prefs.weightUnit);
-              localStorage.setItem("coldstreak-weight-unit", prefs.weightUnit);
+            if (typeof prefs.countdownMode === "boolean") {
+              setCountdownMode(prefs.countdownMode);
+              localStorage.setItem("coldstreak-countdown-mode", String(prefs.countdownMode));
+            }
+            if (typeof prefs.countdownMinutes === "number") {
+              setMinutesInput(prefs.countdownMinutes);
+              localStorage.setItem("coldstreak-countdown-minutes", String(prefs.countdownMinutes));
+            }
+            if (typeof prefs.countdownSeconds === "number") {
+              setSecondsInput(prefs.countdownSeconds);
+              localStorage.setItem("coldstreak-countdown-seconds", String(prefs.countdownSeconds));
             }
           } catch { /* ignore malformed prefs */ }
+        }
+
+        // Restore unit system from server (overrides localStorage; country-based auto-detect as fallback)
+        if (data.unitSystem === "imperial" || data.unitSystem === "metric") {
+          setUnitSystem(data.unitSystem);
+          localStorage.setItem("coldstreak-unit-system", data.unitSystem);
+        } else if (data.country) {
+          const detected = IMPERIAL_COUNTRIES.includes(data.country.toUpperCase()) ? "imperial" : "metric";
+          setUnitSystem(detected);
+          localStorage.setItem("coldstreak-unit-system", detected);
+          // Persist the detection so next load doesn't re-run
+          const tok2 = localStorage.getItem("coldstreak-auth-token");
+          if (tok2) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok2}` }, body: JSON.stringify({ unitSystem: detected }) }).catch(() => {});
         }
 
         // bodyFat stored as tenths server-side (199 = 19.9%); convert back to pct
@@ -1632,6 +1658,30 @@ export default function Home() {
   };
 
   // Save an edited account username from the Profile menu (validates + handles 409).
+  // ── Persistent display preferences (timer only) ─────────────────────────
+  const saveDisplayPrefs = (prefs: { useCelsius?: boolean; countdownMode?: boolean; countdownMinutes?: number; countdownSeconds?: number }) => {
+    const merged = { useCelsius, countdownMode, countdownMinutes: minutesInput, countdownSeconds: secondsInput, ...prefs };
+    const tok = localStorage.getItem("coldstreak-auth-token");
+    if (!tok) return;
+    fetch("/api/auth/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
+      body: JSON.stringify({ displayPrefs: JSON.stringify(merged) }),
+    }).catch(() => {});
+  };
+
+  const saveUnitSystem = (u: "imperial" | "metric") => {
+    setUnitSystem(u);
+    localStorage.setItem("coldstreak-unit-system", u);
+    const tok = localStorage.getItem("coldstreak-auth-token");
+    if (!tok) return;
+    fetch("/api/auth/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
+      body: JSON.stringify({ unitSystem: u }),
+    }).catch(() => {});
+  };
+
   const saveAccountUsername = async (raw: string) => {
     const value = raw.trim();
     if (!usernameSchema.safeParse(value).success) { setAccountNameStatus("invalid"); return; }
@@ -3344,13 +3394,13 @@ export default function Home() {
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <button
                     data-testid="button-unit-f"
-                    onClick={() => { setUseCelsius(false); localStorage.setItem("coldstreak-use-celsius", "false"); }}
+                    onClick={() => { setUseCelsius(false); localStorage.setItem("coldstreak-use-celsius", "false"); saveDisplayPrefs({ useCelsius: false }); }}
                     className={`text-[10px] font-bold transition-all ${!useCelsius ? "text-white" : "text-blue-400/60 hover:text-blue-300"}`}
                   >°F</button>
                   <span className="text-blue-600/60 text-[10px]">/</span>
                   <button
                     data-testid="button-unit-c"
-                    onClick={() => { setUseCelsius(true); localStorage.setItem("coldstreak-use-celsius", "true"); }}
+                    onClick={() => { setUseCelsius(true); localStorage.setItem("coldstreak-use-celsius", "true"); saveDisplayPrefs({ useCelsius: true }); }}
                     className={`text-[10px] font-bold transition-all ${useCelsius ? "text-white" : "text-blue-400/60 hover:text-blue-300"}`}
                   >°C</button>
                 </div>
@@ -4378,12 +4428,12 @@ export default function Home() {
                 <div className="text-white font-semibold flex items-center gap-2"><AlarmClock className="w-4 h-4 text-cyan-400" /> Timer Mode</div>
                 <div className="flex bg-blue-800/80 rounded-lg p-0.5">
                   <button
-                    onClick={() => { setCountdownMode(false); localStorage.setItem("coldstreak-countdown-mode", "false"); }}
+                    onClick={() => { setCountdownMode(false); localStorage.setItem("coldstreak-countdown-mode", "false"); saveDisplayPrefs({ countdownMode: false }); }}
                     data-testid="button-mode-stopwatch"
                     className={`flex-1 px-3 py-1.5 rounded-md text-sm font-semibold transition-all text-center ${!countdownMode ? "bg-cyan-500 text-white" : "text-blue-400 hover:text-white"}`}
                   >Stopwatch</button>
                   <button
-                    onClick={() => { setCountdownMode(true); localStorage.setItem("coldstreak-countdown-mode", "true"); }}
+                    onClick={() => { setCountdownMode(true); localStorage.setItem("coldstreak-countdown-mode", "true"); saveDisplayPrefs({ countdownMode: true }); }}
                     data-testid="button-mode-countdown"
                     className={`flex-1 px-3 py-1.5 rounded-md text-sm font-semibold transition-all text-center ${countdownMode ? "bg-cyan-500 text-white" : "text-blue-400 hover:text-white"}`}
                   >Countdown</button>
@@ -4391,13 +4441,13 @@ export default function Home() {
               </div>
               {countdownMode && (
                 <div className="flex items-center gap-2">
-                  <select data-testid="select-countdown-minutes" value={minutesInput} onChange={(e) => { const v = Number(e.target.value); setMinutesInput(v); localStorage.setItem("coldstreak-countdown-minutes", String(v)); }}
+                  <select data-testid="select-countdown-minutes" value={minutesInput} onChange={(e) => { const v = Number(e.target.value); setMinutesInput(v); localStorage.setItem("coldstreak-countdown-minutes", String(v)); saveDisplayPrefs({ countdownMinutes: v }); }}
                     disabled={countdownRunning}
                     className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white font-semibold appearance-none text-center focus:outline-none focus:border-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed">
                     {Array.from({ length: 61 }, (_, i) => <option key={i} value={i}>{i} min</option>)}
                   </select>
                   <span className="text-blue-400 font-bold">:</span>
-                  <select data-testid="select-countdown-seconds" value={secondsInput} onChange={(e) => { const v = Number(e.target.value); setSecondsInput(v); localStorage.setItem("coldstreak-countdown-seconds", String(v)); }}
+                  <select data-testid="select-countdown-seconds" value={secondsInput} onChange={(e) => { const v = Number(e.target.value); setSecondsInput(v); localStorage.setItem("coldstreak-countdown-seconds", String(v)); saveDisplayPrefs({ countdownSeconds: v }); }}
                     disabled={countdownRunning}
                     className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white font-semibold appearance-none text-center focus:outline-none focus:border-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed">
                     {Array.from({ length: 60 }, (_, i) => <option key={i} value={i}>{i} sec</option>)}
@@ -5843,24 +5893,25 @@ export default function Home() {
                     {accountNameStatus === "saving" && <p data-testid="text-username-status" className="text-blue-400 text-xs mt-1">Saving…</p>}
                     {accountNameStatus === "saved" && <p data-testid="text-username-status" className="text-green-400 text-xs mt-1">Saved.</p>}
                     {accountNameStatus === "idle" && <p className="text-blue-500 text-xs mt-1">Your unique login handle.</p>}
-                  </div>
+                  </div>                   {/* Unit system (single toggle covers weight + height) */}
+                   <div>
+                     <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Units</label>
+                     <div className="flex rounded-lg overflow-hidden border border-blue-700 text-xs font-bold">
+                       {(["imperial", "metric"] as const).map((u) => (
+                         <button
+                           key={u}
+                           onClick={() => saveUnitSystem(u)}
+                           className={`flex-1 px-3 py-1.5 transition-colors ${unitSystem === u ? "bg-cyan-600 text-white" : "bg-blue-900 text-blue-400"}`}
+                         >
+                           {u === "imperial" ? "Imperial  (lbs, ft / in)" : "Metric  (kg, cm)"}
+                         </button>
+                       ))}
+                     </div>
+                   </div>
 
-                  {/* Body weight */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-blue-400 text-xs uppercase tracking-wide">Body Weight</label>
-                      <div className="flex rounded-lg overflow-hidden border border-blue-700 text-[10px] font-bold">
-                        {(["lbs", "kg"] as const).map((u) => (
-                          <button
-                            key={u}
-                            onClick={() => { setWeightUnit(u); localStorage.setItem("coldstreak-weight-unit", u); saveDisplayPrefs({ weightUnit: u }); }}
-                            className={`px-2 py-0.5 transition-colors ${weightUnit === u ? "bg-cyan-600 text-white" : "bg-blue-900 text-blue-400"}`}
-                          >
-                            {u}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                   {/* Body weight */}
+                   <div>
+                     <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Body Weight</label>
                     {(() => {
                       const saveWeight = (lbs: number) => {
                         const clamped = Math.min(400, Math.max(80, Math.round(lbs)));
@@ -5872,7 +5923,7 @@ export default function Home() {
                       const btnCls = "w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none";
                       const valCls = "w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none";
                       const displayKg = Math.round(bodyWeightLbs / 2.205);
-                      if (weightUnit === "kg") {
+                      if (unitSystem === "metric") {
                         return (
                           <div className="flex items-center gap-2">
                             <button data-testid="button-account-weight-decrease" onClick={() => saveWeight((displayKg - 1) * 2.205)} className={btnCls}>−</button>
@@ -5894,22 +5945,9 @@ export default function Home() {
                     <p className="text-blue-500 text-xs mt-1">Used with height to estimate calories burned.</p>
                   </div>
 
-                  {/* Body height */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-blue-400 text-xs uppercase tracking-wide">Height</label>
-                      <div className="flex rounded-lg overflow-hidden border border-blue-700 text-[10px] font-bold">
-                        {(["imperial", "metric"] as const).map((u) => (
-                          <button
-                            key={u}
-                            onClick={() => { setHeightUnit(u); localStorage.setItem("coldstreak-height-unit", u); saveDisplayPrefs({ heightUnit: u }); }}
-                            className={`px-2 py-0.5 transition-colors ${heightUnit === u ? "bg-cyan-600 text-white" : "bg-blue-900 text-blue-400"}`}
-                          >
-                            {u === "imperial" ? "ft / in" : "cm"}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                   {/* Body height */}
+                   <div>
+                     <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Height</label>
                     {(() => {
                       const saveHeight = (cm: number) => {
                         const clamped = Math.min(250, Math.max(100, Math.round(cm)));
@@ -5926,7 +5964,7 @@ export default function Home() {
                       const inches = totalInches % 12;
                       const btnCls = "w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none";
                       const valCls = "bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none";
-                      if (heightUnit === "imperial") {
+                      if (unitSystem === "imperial") {
                         return (
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-1.5">

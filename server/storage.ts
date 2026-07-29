@@ -90,7 +90,7 @@ export interface IStorage {
   updatePassword(id: number, passwordHash: string): Promise<void>;
   setVerifyToken(userId: number, token: string): Promise<void>;
   verifyEmailToken(token: string): Promise<User | null>;
-  updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number | null; username?: string; displayPrefs?: string }): Promise<User>;
+  updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number | null; username?: string; displayPrefs?: string; unitSystem?: string }): Promise<User>;
   getUserCount(): Promise<number>;
 
   // Client visits (server-side first-touch / activity ground truth)
@@ -669,7 +669,7 @@ export class DatabaseStorage implements IStorage {
     return updated ?? null;
   }
 
-  async updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number | null; username?: string; displayPrefs?: string }): Promise<User> {
+  async updateUserProfile(id: number, patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number | null; username?: string; displayPrefs?: string; unitSystem?: string }): Promise<User> {
     const [updated] = await db.update(users)
       .set(patch)
       .where(eq(users.id, id))
