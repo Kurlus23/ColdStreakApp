@@ -1164,7 +1164,6 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   const acknowledged = typeof window !== "undefined" && !!localStorage.getItem(DISCLAIMER_KEY);
 
   const handleCommunityToggle = () => {
-    if (!isPro) { onUpgrade(); return; }
     if (!acknowledged && !communityOpen) {
       setShowCommunityDisclaimer(true);
     }
@@ -2018,108 +2017,25 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
             <div className="flex-1 text-left">
               <div className="text-white font-bold text-sm">Community Spots</div>
               <div className="text-blue-400 text-[11px]">
-                {isPro ? (effectiveGeoPos ? "Sorted by distance from you" : "Sorted by most nominations") : "Pro — discover & submit spots"}
+                {effectiveGeoPos ? "Sorted by distance from you" : "Sorted by most nominations"}
               </div>
             </div>
-            {isPro ? (
-              <span className="text-xs text-blue-400 font-semibold">
-                {effectiveGeoPos ? `Nearest ${communityFiltered.length}` : `Top ${communityFiltered.length}`}
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-xs text-yellow-400 font-semibold mr-1">
-                <Lock className="w-3 h-3" /> Pro
-              </span>
-            )}
-            <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform duration-300 ${communityOpen && isPro ? "rotate-180" : ""}`} />
+            <span className="text-xs text-blue-400 font-semibold">
+              {effectiveGeoPos ? `Nearest ${communityFiltered.length}` : `Top ${communityFiltered.length}`}
+            </span>
+            <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform duration-300 ${communityOpen ? "rotate-180" : ""}`} />
           </button>
-          {isPro && (
-            <button
-              data-testid="button-community-disclaimer"
-              onClick={(e) => { e.stopPropagation(); setShowCommunityDisclaimer(true); }}
-              title="Location disclaimer"
-              className="p-3 text-indigo-400/60 hover:text-indigo-300 transition-colors"
-            >
-              <Info className="w-4 h-4" />
-            </button>
-          )}
+          <button
+            data-testid="button-community-disclaimer"
+            onClick={(e) => { e.stopPropagation(); setShowCommunityDisclaimer(true); }}
+            title="Location disclaimer"
+            className="p-3 text-indigo-400/60 hover:text-indigo-300 transition-colors"
+          >
+            <Info className="w-4 h-4" />
+          </button>
         </div>
 
-        {communityOpen && !isPro && (
-          <div className="px-3 pb-3 space-y-2">
-            {/* Frosted real community cards */}
-            <div className="relative">
-              <div className="space-y-2 blur-[3px] opacity-50 pointer-events-none select-none" aria-hidden="true">
-                {(() => {
-                  const nonBiz = communityLocs.filter(l => !l.isBusiness);
-                  const preview = nonBiz.slice(0, 3);
-                  return preview.map((loc) => {
-                    const lat = loc.latitude ? Number(loc.latitude) : null;
-                    const lng = loc.longitude ? Number(loc.longitude) : null;
-                    const dist = lat && lng ? distLabel(lat, lng) : null;
-                    return (
-                      <div key={loc.id} className="bg-blue-900/60 border border-blue-700/40 rounded-xl px-3 py-2.5 flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-lg bg-indigo-500/30 border border-indigo-500/30 flex items-center justify-center shrink-0">
-                          <MapPin className="w-3.5 h-3.5 text-indigo-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-xs font-semibold truncate">{loc.name}</p>
-                          <p className="text-blue-400 text-[11px]">{[loc.city, loc.state].filter(Boolean).join(", ")}</p>
-                        </div>
-                        {dist && <span className="text-cyan-400 text-[11px] font-semibold shrink-0">{dist}</span>}
-                      </div>
-                    );
-                  });
-                })()}
-                {/* Pad with skeletons if no real spots exist yet */}
-                {communityLocs.filter(l => !l.isBusiness).length === 0 && [1,2,3].map((i) => (
-                  <div key={i} className="bg-blue-900/60 border border-blue-700/40 rounded-xl px-3 py-2.5 flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg bg-indigo-700/40 shrink-0" />
-                    <div className="flex-1 space-y-1.5">
-                      <div className="h-2.5 bg-blue-400/40 rounded-full w-3/4" />
-                      <div className="h-2 bg-blue-600/30 rounded-full w-1/2" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {/* Fade to CTA */}
-              <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-blue-950/80 to-transparent pointer-events-none" />
-            </div>
-            {/* CTA */}
-            <button
-              data-testid="button-upgrade-community"
-              onClick={onUpgrade}
-              className="w-full bg-gradient-to-br from-slate-900 to-indigo-950 border border-indigo-500/50 rounded-xl p-3.5 text-left space-y-2.5 shadow-md active:scale-[0.99] transition-all"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
-                  <MapPin className="w-4 h-4 text-indigo-400" />
-                </div>
-                <div>
-                  <p className="text-white font-bold text-xs leading-tight">Discover community cold spots</p>
-                  <p className="text-blue-400 text-[11px]">User-submitted locations near you</p>
-                </div>
-                <span className="ml-auto text-yellow-400 font-bold text-xs shrink-0">from $3.99/mo</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                {[
-                  { icon: "📍", text: "Spots near you" },
-                  { icon: "🏆", text: "Local leaderboards" },
-                  { icon: "➕", text: "Submit your own" },
-                  { icon: "🗳️", text: "Vote for favorites" },
-                ].map(({ icon, text }) => (
-                  <div key={text} className="flex items-center gap-1.5 bg-indigo-900/30 rounded-lg px-2 py-1.5">
-                    <span className="text-[12px]">{icon}</span>
-                    <span className="text-blue-200 text-[11px] font-medium">{text}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="w-full py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold text-xs text-center">
-                Unlock Pro →
-              </div>
-            </button>
-          </div>
-        )}
-        {communityOpen && isPro && (
+        {communityOpen && (
           <div className="px-3 pb-3 space-y-2">
             {/* Submit button */}
             <button
@@ -2462,80 +2378,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
           <div className="flex-1 text-left">
             <div className="text-white font-bold text-sm">Chill Places</div>
             <div className="text-blue-400 text-[11px]">
-              {isPro ? `${badges.size} / ${PASSPORT_LOCATIONS.length} earned` : "Pro — curated bucket-list spots"}
+              {`${badges.size} / ${PASSPORT_LOCATIONS.length} earned`}
             </div>
           </div>
-          {isPro ? (
-            <span className="text-xs text-cyan-400 font-bold">{passportFiltered.length} shown</span>
-          ) : (
-            <span className="flex items-center gap-1 text-xs text-yellow-400 font-semibold mr-1">
-              <Lock className="w-3 h-3" /> Pro
-            </span>
-          )}
+          <span className="text-xs text-cyan-400 font-bold">{passportFiltered.length} shown</span>
           <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform duration-300 ${passportOpen ? "rotate-180" : ""}`} />
         </button>
 
-        {passportOpen && !isPro && (
-          <div className="px-3 pb-3 space-y-2">
-            {/* Frosted real passport cards */}
-            <div className="relative">
-              <div className="space-y-2 blur-[3px] opacity-50 pointer-events-none select-none" aria-hidden="true">
-                {(passportFiltered.length > 0 ? passportFiltered : PASSPORT_LOCATIONS).slice(0, 3).map((loc) => {
-                  const diff = DIFFICULTY_META[loc.difficulty as Difficulty];
-                  const dist = distLabel(loc.lat, loc.lng);
-                  return (
-                    <div key={loc.id} className="bg-blue-900/50 border border-cyan-700/30 rounded-xl px-3 py-2.5 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0 text-base">
-                        {diff?.emoji ?? "❄️"}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white text-xs font-semibold truncate">{loc.name}</p>
-                        <p className="text-blue-400 text-[11px]">{[loc.state, loc.country].filter(Boolean).join(", ")}</p>
-                      </div>
-                      {dist && <span className="text-cyan-400 text-[11px] font-semibold shrink-0">{dist}</span>}
-                    </div>
-                  );
-                })}
-              </div>
-              {/* Fade to CTA */}
-              <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-blue-950/80 to-transparent pointer-events-none" />
-            </div>
-            {/* CTA */}
-            <button
-              data-testid="button-upgrade-passport"
-              onClick={onUpgrade}
-              className="w-full bg-gradient-to-br from-slate-900 to-cyan-950 border border-cyan-500/40 rounded-xl p-3.5 text-left space-y-2.5 shadow-md active:scale-[0.99] transition-all"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0">
-                  <Star className="w-4 h-4 text-cyan-400" />
-                </div>
-                <div>
-                  <p className="text-white font-bold text-xs leading-tight">50+ curated cold plunge destinations</p>
-                  <p className="text-blue-400 text-[11px]">Bucket-list spots around the world</p>
-                </div>
-                <span className="ml-auto text-yellow-400 font-bold text-xs shrink-0">from $3.99/mo</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                {[
-                  { icon: "⭐", text: "Passport badges" },
-                  { icon: "🗺️", text: "Bucket-list spots" },
-                  { icon: "📏", text: "Distance sorting" },
-                  { icon: "🏅", text: "Earn achievements" },
-                ].map(({ icon, text }) => (
-                  <div key={text} className="flex items-center gap-1.5 bg-cyan-900/20 rounded-lg px-2 py-1.5">
-                    <span className="text-[12px]">{icon}</span>
-                    <span className="text-blue-200 text-[11px] font-medium">{text}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="w-full py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold text-xs text-center">
-                Unlock Pro →
-              </div>
-            </button>
-          </div>
-        )}
-        {passportOpen && isPro && (
+        {passportOpen && (
           <div className="px-3 pb-3">
             {passportFiltered.length === 0 ? (
               <div className="text-center py-6 text-blue-400 text-sm">No locations match your filters.</div>

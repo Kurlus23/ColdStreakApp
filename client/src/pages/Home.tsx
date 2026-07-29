@@ -3287,25 +3287,7 @@ export default function Home() {
             auth.user && !auth.user.emailVerified && !verifyBannerDismissed ? "top-32" : "top-16"
           }`}
         >
-          {isPro ? (
-            <MusicWidget />
-          ) : (
-            <button
-              data-testid="button-music-upgrade"
-              onClick={() => setShowUpgradeModal(true)}
-              className="w-full bg-blue-900/75 backdrop-blur-md rounded-2xl border border-blue-700/40 shadow-lg shadow-black/30 px-3 py-2 flex items-center gap-2 hover:bg-blue-900/90 active:scale-[0.99] transition-all"
-              title="Music integration is a Pro feature"
-            >
-              <div className="shrink-0 w-7 h-7 rounded-full bg-blue-950/60 flex items-center justify-center">
-                <Crown className="w-3.5 h-3.5 text-yellow-400" />
-              </div>
-              <div className="flex-1 min-w-0 text-left">
-                <div className="text-white text-xs font-semibold truncate">Music — Pro feature</div>
-                <div className="text-blue-300 text-[10px] truncate">Auto-play Spotify or Apple Music with timer</div>
-              </div>
-              <Lock className="w-3.5 h-3.5 text-yellow-400/80 shrink-0" />
-            </button>
-          )}
+          <MusicWidget />
         </div>
       )}
 
@@ -3693,15 +3675,11 @@ export default function Home() {
               {plunges.length > 0 && (
                 <button
                   data-testid="button-export-csv"
-                  onClick={isPro ? exportCSV : () => setShowUpgradeModal(true)}
-                  title={isPro ? "Export plunge history as CSV" : "Pro feature — upgrade to export"}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all active:scale-95 ${
-                    isPro
-                      ? "bg-blue-700/50 border-blue-600/50 text-blue-200 hover:bg-blue-600/60"
-                      : "bg-blue-900/30 border-blue-700/30 text-blue-500 opacity-70 hover:opacity-90"
-                  }`}
+                  onClick={exportCSV}
+                  title="Export plunge history as CSV"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all active:scale-95 bg-blue-700/50 border-blue-600/50 text-blue-200 hover:bg-blue-600/60"
                 >
-                  {isPro ? <Download className="w-3.5 h-3.5" /> : <Lock className="w-3 h-3" />}
+                  <Download className="w-3.5 h-3.5" />
                   Export CSV
                 </button>
               )}
@@ -4193,10 +4171,8 @@ export default function Home() {
                 <p className="text-blue-400">No plunges yet. Brave the cold!</p>
               </div>
             ) : (() => {
-              const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
               const sorted = [...plunges].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-              const visible = isPro ? sorted : sorted.filter((p) => new Date(p.createdAt) >= sevenDaysAgo);
-              const locked = isPro ? [] : sorted.filter((p) => new Date(p.createdAt) < sevenDaysAgo);
+              const visible = sorted;
               return (
                 <div className="space-y-3">
                   {visible.map((plunge, idx) => (
@@ -4222,74 +4198,7 @@ export default function Home() {
                       />
                     </Fragment>
                   ))}
-                  {locked.length > 0 && (
-                    <div data-testid="banner-upgrade-history" className="relative">
-                      {/* Frosted real locked plunges */}
-                      <div className="space-y-3 blur-[3px] opacity-50 pointer-events-none select-none" aria-hidden="true">
-                        {locked.slice(0, 2).map((plunge) => {
-                          const mins = Math.floor(plunge.durationSeconds / 60);
-                          const secs = plunge.durationSeconds % 60;
-                          return (
-                            <div key={plunge.id} className="bg-blue-900/60 border border-blue-700/40 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
-                              <div className="flex-1 min-w-0">
-                                <p className="text-white text-sm font-semibold">{new Date(plunge.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
-                                <p className="text-blue-400 text-xs">{plunge.locationName || "Home plunge"}</p>
-                              </div>
-                              <div className="flex gap-2 shrink-0">
-                                <div className="bg-cyan-500/20 border border-cyan-500/30 rounded-xl px-2.5 py-1.5 text-center">
-                                  <p className="text-cyan-300 text-xs font-bold">{plunge.tempF}°F</p>
-                                </div>
-                                <div className="bg-blue-700/40 border border-blue-600/30 rounded-xl px-2.5 py-1.5 text-center">
-                                  <p className="text-blue-200 text-xs font-bold">{mins}:{secs.toString().padStart(2, "0")}</p>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Fade overlay */}
-                      <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-transparent to-slate-950/0 pointer-events-none" />
-
-                      {/* Lock CTA card */}
-                      <button
-                        onClick={() => setShowUpgradeModal(true)}
-                        className="relative mt-2 w-full bg-gradient-to-br from-slate-900 to-blue-950 border border-cyan-600/50 rounded-2xl p-4 text-left space-y-3 shadow-lg shadow-cyan-900/20 active:scale-[0.99] transition-all"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-xl bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center shrink-0">
-                            <Crown className="w-4.5 h-4.5 text-yellow-400" />
-                          </div>
-                          <div>
-                            <p className="text-white font-bold text-sm leading-tight">
-                              {locked.length} plunge{locked.length !== 1 ? "s" : ""} locked
-                            </p>
-                            <p className="text-blue-400 text-[11px]">Upgrade to Pro to see your full history</p>
-                          </div>
-                          <span className="ml-auto text-yellow-400 font-bold text-sm shrink-0">from $3.99</span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-1.5">
-                          {[
-                            { icon: "📅", text: "Unlimited history" },
-                            { icon: "📊", text: "Advanced stats" },
-                            { icon: "📍", text: "Chill Places" },
-                            { icon: "📤", text: "CSV export" },
-                          ].map(({ icon, text }) => (
-                            <div key={text} className="flex items-center gap-1.5 bg-blue-900/40 rounded-lg px-2 py-1.5">
-                              <span className="text-[13px]">{icon}</span>
-                              <span className="text-blue-200 text-[11px] font-medium">{text}</span>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold text-sm text-center">
-                          Unlock Pro →
-                        </div>
-                      </button>
-                    </div>
-                  )}
-                  {visible.length === 0 && locked.length === 0 && (
+                  {visible.length === 0 && (
                     <div className="text-center text-blue-500 py-8 text-sm">No plunges yet. Start your first session!</div>
                   )}
                 </div>
@@ -6466,14 +6375,11 @@ export default function Home() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="text-blue-400 text-[11px] uppercase tracking-widest">Days Plunged</div>
-                    {isPro
-                      ? <div className="text-blue-500 text-[11px]">{uniquePlungeDays} day{uniquePlungeDays !== 1 ? "s" : ""} total</div>
-                      : <span className="flex items-center gap-1 text-[11px] text-yellow-400 font-semibold"><Lock className="w-2.5 h-2.5" /> Pro</span>
-                    }
+                    <div className="text-blue-500 text-[11px]">{uniquePlungeDays} day{uniquePlungeDays !== 1 ? "s" : ""} total</div>
                   </div>
                   <span className={`text-blue-400 text-xs transition-transform duration-200 ${openSections.days ? "rotate-180" : ""}`}>▼</span>
                 </button>
-                {openSections.days && isPro && (
+                {openSections.days && (
                   <div className="px-4 pb-4 border-t border-blue-700/30 pt-3">
                     <div className="text-blue-500 text-[11px] mb-3">Reach milestone days to unlock each badge.</div>
                     <div className="flex flex-wrap gap-2">
@@ -6507,36 +6413,6 @@ export default function Home() {
                     </div>
                   </div>
                 )}
-                {openSections.days && !isPro && (
-                  <div className="px-4 pb-4 border-t border-blue-700/30 pt-3 space-y-3">
-                    <div className="relative">
-                      <div className="flex flex-wrap gap-2 blur-[3px] opacity-50 pointer-events-none select-none" aria-hidden="true">
-                        {DAYS_TIERS.map((tier) => (
-                          <div key={tier.id} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border bg-blue-800/40 border-blue-700/30 text-blue-600">
-                            <span className="text-base">{tier.emoji}</span>
-                            <div className="text-left">
-                              <div>{tier.label}</div>
-                              <div className="text-[10px] opacity-70">{tier.days === 365 ? "365+ days" : `${tier.days} days`}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setShowUpgradeModal(true)}
-                      className="w-full bg-gradient-to-br from-slate-900 to-blue-950 border border-cyan-600/50 rounded-xl p-3 text-left flex items-center gap-3 active:scale-[0.99] transition-all"
-                    >
-                      <div className="w-8 h-8 rounded-xl bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center shrink-0">
-                        <Crown className="w-4 h-4 text-yellow-400" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-white font-bold text-xs">Unlock milestone badges</p>
-                        <p className="text-blue-400 text-[11px]">Track plunge streaks across days, weeks & years</p>
-                      </div>
-                      <span className="text-cyan-400 text-xs font-bold shrink-0">Unlock →</span>
-                    </button>
-                  </div>
-                )}
               </div>
 
               {/* State Badges */}
@@ -6548,11 +6424,10 @@ export default function Home() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="text-blue-400 text-[11px] uppercase tracking-widest">State Badges</div>
-                    {!isPro && <span className="flex items-center gap-1 text-[11px] text-yellow-400 font-semibold"><Lock className="w-2.5 h-2.5" /> Pro</span>}
                   </div>
                   <span className={`text-blue-400 text-xs transition-transform duration-200 ${openSections.states ? "rotate-180" : ""}`}>▼</span>
                 </button>
-                {openSections.states && isPro && (
+                {openSections.states && (
                   <div className="px-4 pb-4 border-t border-blue-700/30 pt-3">
                     <div className="text-blue-500 text-[11px] mb-3">Plunge at every Chill Place in a state to earn its badge.</div>
                     <div className="flex flex-wrap gap-1.5">
@@ -6584,36 +6459,6 @@ export default function Home() {
                         );
                       })}
                     </div>
-                  </div>
-                )}
-                {openSections.states && !isPro && (
-                  <div className="px-4 pb-4 border-t border-blue-700/30 pt-3 space-y-3">
-                    <div className="relative">
-                      <div className="flex flex-wrap gap-1.5 blur-[3px] opacity-50 pointer-events-none select-none" aria-hidden="true">
-                        {allStates.slice(0, 12).map((state) => {
-                          const emoji = STATE_EMOJI[state] ?? "🏆";
-                          return (
-                            <div key={state} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-800/40 border border-blue-700/30 text-blue-600">
-                              <span>{emoji}</span>
-                              <span>{state}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setShowUpgradeModal(true)}
-                      className="w-full bg-gradient-to-br from-slate-900 to-blue-950 border border-cyan-600/50 rounded-xl p-3 text-left flex items-center gap-3 active:scale-[0.99] transition-all"
-                    >
-                      <div className="w-8 h-8 rounded-xl bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center shrink-0">
-                        <Crown className="w-4 h-4 text-yellow-400" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-white font-bold text-xs">Collect state badges</p>
-                        <p className="text-blue-400 text-[11px]">Plunge at every Chill Place in a state to earn its badge</p>
-                      </div>
-                      <span className="text-cyan-400 text-xs font-bold shrink-0">Unlock →</span>
-                    </button>
                   </div>
                 )}
               </div>
