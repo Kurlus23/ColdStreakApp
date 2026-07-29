@@ -325,8 +325,21 @@ export default function Admin() {
   const [confirmDeleteLoc, setConfirmDeleteLoc] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmDeleteEvent, setConfirmDeleteEvent] = useState<number | null>(null);
-  const [sortMode, setSortMode] = useState<SortMode>("issues-first");
-  const [activitySort, setActivitySort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
+  const [sortMode, setSortModeRaw] = useState<SortMode>(() => {
+    try { return (localStorage.getItem("admin-sort-mode") as SortMode) || "issues-first"; } catch { return "issues-first"; }
+  });
+  const setSortMode = (m: SortMode) => { setSortModeRaw(m); try { localStorage.setItem("admin-sort-mode", m); } catch {} };
+
+  const [activitySort, setActivitySortRaw] = useState<{ key: string; dir: "asc" | "desc" } | null>(() => {
+    try { const raw = localStorage.getItem("admin-activity-sort"); return raw ? JSON.parse(raw) : null; } catch { return null; }
+  });
+  const setActivitySort: typeof setActivitySortRaw = (val) => {
+    setActivitySortRaw((prev) => {
+      const next = typeof val === "function" ? (val as (p: typeof prev) => typeof prev)(prev) : val;
+      try { localStorage.setItem("admin-activity-sort", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   // Mass email
   const [massSubject, setMassSubject] = useState("");

@@ -140,15 +140,17 @@ CURRENT USER:
 • Weight: ${user?.bodyWeight ? `${user.bodyWeight} lbs` : "not set"}${screenLine ? `\n${screenLine}` : ""}
 `.trim();
 
-  // ── Call Gemini via v1 REST (SDK defaults to v1beta which blocks newer models) ──
-  // Free (unlimited RPD) models first, paid models as last resort
+  // ── Call Gemini via v1beta REST ───────────────────────────────────────────
+  // v1beta is the correct endpoint for generateContent; v1 only lists models.
+  // Free (unlimited RPD) models first, paid models as last resort.
   const GEMINI_MODELS = [
-    "gemini-2.5-flash",      // free tier, latest stable
-    "gemini-2.0-flash",      // free, unlimited RPD fallback
-    "gemini-1.5-flash",      // older free fallback
+    "gemini-2.0-flash",          // free tier, stable
+    "gemini-2.0-flash-lite",     // lighter free fallback
+    "gemini-1.5-flash-latest",   // older free fallback
+    "gemini-1.5-flash-8b",       // smallest free fallback
   ];
   const baseUrl = (model: string) =>
-    `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
   // Gemini uses "user" / "model" roles (not "assistant")
   const geminiHistory = history.slice(-10).map((m) => ({
