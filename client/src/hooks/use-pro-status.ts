@@ -325,5 +325,8 @@ export function useProStatus() {
     }
   }, [markPro]);
 
-  return { isPro: true, proEmail, proPlan, promoExpiresAt, loading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, clearPro, redeemPromo, verifyProForEmail };
+  // isPro is hardcoded true so all features stay open to everyone.
+  // isSubscribed reflects actual paid status (server-verified) for display purposes only.
+  const isSubscribed = !!proPlan || isFoundingPlunger || isPromoActiveForEmail(loggedInEmail);
+  return { isPro: true, isSubscribed, proEmail, proPlan, promoExpiresAt, loading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, clearPro, redeemPromo, verifyProForEmail };
 }

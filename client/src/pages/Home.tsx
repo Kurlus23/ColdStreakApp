@@ -719,7 +719,7 @@ export default function Home() {
   }, [stopWebCamera]);
 
   // Pro status
-  const { isPro, proEmail, proPlan, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo, clearPro, verifyProForEmail } = useProStatus();
+  const { isPro, isSubscribed, proEmail, proPlan, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo, clearPro, verifyProForEmail } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'legal' | 'settings' | 'support'>('support');
 
@@ -5858,10 +5858,10 @@ export default function Home() {
                 <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl px-5 py-5 border border-blue-800/50 space-y-4" data-testid="card-account">
                   <div className="flex items-center justify-between">
                     <h2 className="text-white font-bold text-lg flex items-center gap-2"><User className="w-5 h-5 text-cyan-400" /> Account</h2>
-                    {isPro ? (
+                    {isSubscribed ? (
                       <span data-testid="status-pro" className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/40">Pro</span>
                     ) : (
-                      <span data-testid="status-pro" className="text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-blue-800/60 text-blue-300 border border-blue-700/50">Free</span>
+                      <span data-testid="status-pro" className="text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-cyan-900/50 text-cyan-300 border border-cyan-700/40">Member</span>
                     )}
                   </div>
 
