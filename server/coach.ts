@@ -5,11 +5,11 @@
  *   Body:  { message: string, history: {role:"user"|"assistant", content:string}[] }
  *   Reply: { reply: string }
  *
- * Uses OpenAI GPT-4o-mini. Gracefully returns a fallback string when
- * OPENAI_API_KEY is not configured so the client never hard-fails.
+ * Uses Google Gemini 1.5 Flash (free tier: 1,500 req/day, no card required).
+ * Falls back gracefully when GEMINI_API_KEY is not configured.
  */
 
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from "./db";
 import { plunges, users } from "@shared/schema";
 import { eq, desc, count } from "drizzle-orm";
@@ -77,10 +77,10 @@ export async function coachChat(
   history: ChatMessage[],
   screenContext?: string,
 ): Promise<string> {
-  if (!process.env.OPENAI_API_KEY) {
+  if (!process.env.GEMINI_API_KEY) {
     return (
-      "The AI coach needs an OpenAI API key to answer questions. " +
-      "Add OPENAI_API_KEY to your server secrets and restart the app."
+      "The AI coach needs a Gemini API key to answer questions. " +
+      "Add GEMINI_API_KEY to your server secrets and restart the app."
     );
   }
 
@@ -123,22 +123,24 @@ CURRENT USER:
 • Weight: ${user?.bodyWeight ? `${user.bodyWeight} lbs` : "not set"}${screenLine ? `\n${screenLine}` : ""}
 `.trim();
 
-  // ── Call OpenAI ─────────────────────────────────────────────────────────
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    max_tokens: 350,
-    temperature: 0.7,
-    messages: [
-      { role: "system", content: APP_KNOWLEDGE + "\n\n" + userContext },
-      ...history.slice(-10), // keep last 10 turns for context
-      { role: "user", content: message },
-    ],
+  // ── Call Gemini ─────────────────────────────────────────────────────────
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({
+    model: "gemini-1.5-flash",
+    systemInstruction: APP_KNOWLEDGE + "\n\n" + userContext,
   });
 
+  // Gemini uses "user" / "model" roles (not "assistant")
+  const geminiHistory = history.slice(-10).map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+
+  const chat = model.startChat({ history: geminiHistory });
+  const result = await chat.sendMessage(message);
+
   return (
-    response.choices[0]?.message?.content ??
+    result.response.text() ||
     "Sorry, I couldn't generate a response — please try again."
   );
 }
