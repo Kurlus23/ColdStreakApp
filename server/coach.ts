@@ -141,8 +141,13 @@ CURRENT USER:
 `.trim();
 
   // ── Call Gemini via v1 REST (SDK defaults to v1beta which blocks newer models) ──
-  // Primary + fallback so a single overloaded model doesn't kill the coach
-  const GEMINI_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"];
+  // Free (unlimited RPD) models first, paid models as last resort
+  const GEMINI_MODELS = [
+    "gemini-2.5-flash-lite", // free, unlimited RPD
+    "gemini-2.0-flash",      // free, unlimited RPD
+    "gemini-3.5-flash",      // paid, 10K RPD
+    "gemini-3.6-flash",      // paid, 10K RPD
+  ];
   const baseUrl = (model: string) =>
     `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
@@ -185,9 +190,10 @@ CURRENT USER:
   const data = await res.json() as { candidates?: { content?: { parts?: { text: string }[] } }[] };
   const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
-  // Gemini returns JSON — parse it
+  // Gemini returns JSON — strip any markdown code fences it may have added, then parse
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
   try {
-    const parsed = JSON.parse(raw) as { reply?: string; navigate?: string | null };
+    const parsed = JSON.parse(cleaned) as { reply?: string; navigate?: string | null };
     return {
       reply: parsed.reply || "Sorry, I couldn't generate a response — please try again.",
       navigate: parsed.navigate ?? null,

@@ -519,7 +519,7 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
                           .replace(/\n/g, "<br/>"),
                       }}
                     />
-                    {msg.role === "assistant" && msg.navigate && NAV_LABELS[msg.navigate] && onNavigate && (
+                    {msg.role === "assistant" && msg.navigate && NAV_LABELS[msg.navigate] && onNavigate && msg.navigate !== screen && (
                       <button
                         onClick={() => { closePanel(); setTimeout(() => onNavigate(msg.navigate!), 320); }}
                         className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-600/20 border border-cyan-500/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-600/30 active:scale-95 transition-all"
