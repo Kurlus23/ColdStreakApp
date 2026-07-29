@@ -130,6 +130,7 @@ export function buildShareText({
   locationName,
   locationId,
   seed,
+  useCelsius,
 }: {
   username?: string;
   temperature: number;
@@ -138,18 +139,23 @@ export function buildShareText({
   locationName?: string | null;
   locationId?: string | null;
   seed?: number;
+  useCelsius?: boolean;
 }): string {
   const durationStr = formatTime(duration);
   const streakPart = streak && streak > 0 ? ` | ${streak}-day 🔥 streak` : "";
   const locationPart =
     locationId === "home" ? "\n📍 Home" : locationName ? `\n📍 ${locationName}` : "";
 
+  const tempStr = useCelsius
+    ? `${Math.round((temperature - 32) * 5 / 9)}°C`
+    : `${temperature}°F`;
+
   const s = seed ?? 0;
   const hook = pickBySeed(SHARE_HOOKS, s, 0);
   const cta = pickBySeed(SHARE_CTAS, s, 3);
 
   return [
-    `❄️ Just survived ${temperature}°F for ${durationStr}${streakPart}${locationPart}`,
+    `❄️ Just survived ${tempStr} for ${durationStr}${streakPart}${locationPart}`,
     "",
     hook,
     "",
@@ -267,6 +273,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
           locationId: plunge.locationId,
           score: plunge.score ? Number(plunge.score) : undefined,
           avatarUrl,
+          useCelsius,
         });
         await downloadBlob(composited);
       } else {
@@ -287,6 +294,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
       locationName: plunge.locationName,
       locationId: plunge.locationId,
       seed: plunge.id,
+      useCelsius,
     });
 
     // Fetch Bitmoji/avatar as a blob to attach to the share

@@ -51,6 +51,7 @@ function drawOverlay({
   score,
   logo,
   avatar,
+  useCelsius,
 }: {
   ctx: CanvasRenderingContext2D;
   w: number;
@@ -63,6 +64,7 @@ function drawOverlay({
   score?: number;
   logo: HTMLImageElement | null;
   avatar?: HTMLImageElement | null;
+  useCelsius?: boolean;
 }) {
   const sc = w / 1080;
   const pad = 44 * sc;
@@ -78,7 +80,10 @@ function drawOverlay({
     locationId === "home" ? "📍 Home" : locationName ? `📍 ${locationName}` : null;
   if (loc) parts.push(loc);
   if (streak && streak > 0) parts.push(`${streak}d 🔥`);
-  parts.push(`${temperature}°F`);
+  const tempStr = useCelsius
+    ? `${Math.round((temperature - 32) * 5 / 9)}°C`
+    : `${temperature}°F`;
+  parts.push(tempStr);
   parts.push(formatTime(duration));
   if (score !== undefined) parts.push(`Score ${score.toFixed(1)}`);
   const line = parts.join("  ·  ");
@@ -155,6 +160,7 @@ export async function buildShareImage(params: {
   locationId?: string | null;
   score?: number;
   avatarUrl?: string | null;
+  useCelsius?: boolean;
 }): Promise<string> {
   const { avatarUrl, ...rest } = params;
   const [photo, logo, avatar] = await Promise.all([
@@ -184,6 +190,7 @@ export function buildShareBlobFromPreloaded(params: {
   locationName?: string | null;
   locationId?: string | null;
   score?: number;
+  useCelsius?: boolean;
 }): Promise<Blob> {
   const { photoImg, logoImg, avatarImg, ...rest } = params;
   const canvas = document.createElement("canvas");
