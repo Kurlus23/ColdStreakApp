@@ -1474,6 +1474,21 @@ export default function Home() {
           patch.bodyHeight = localHeight;
         }
 
+        // Restore display unit preferences (server is truth — survives Android localStorage wipes)
+        if (data.displayPrefs) {
+          try {
+            const prefs = JSON.parse(data.displayPrefs) as { heightUnit?: string; weightUnit?: string };
+            if (prefs.heightUnit === "imperial" || prefs.heightUnit === "metric") {
+              setHeightUnit(prefs.heightUnit);
+              localStorage.setItem("coldstreak-height-unit", prefs.heightUnit);
+            }
+            if (prefs.weightUnit === "lbs" || prefs.weightUnit === "kg") {
+              setWeightUnit(prefs.weightUnit);
+              localStorage.setItem("coldstreak-weight-unit", prefs.weightUnit);
+            }
+          } catch { /* ignore malformed prefs */ }
+        }
+
         // bodyFat stored as tenths server-side (199 = 19.9%); convert back to pct
         if (data.bodyFat && data.bodyFat > 0) {
           const pct = data.bodyFat / 10;
@@ -5838,7 +5853,7 @@ export default function Home() {
                         {(["lbs", "kg"] as const).map((u) => (
                           <button
                             key={u}
-                            onClick={() => { setWeightUnit(u); localStorage.setItem("coldstreak-weight-unit", u); }}
+                            onClick={() => { setWeightUnit(u); localStorage.setItem("coldstreak-weight-unit", u); saveDisplayPrefs({ weightUnit: u }); }}
                             className={`px-2 py-0.5 transition-colors ${weightUnit === u ? "bg-cyan-600 text-white" : "bg-blue-900 text-blue-400"}`}
                           >
                             {u}
@@ -5887,7 +5902,7 @@ export default function Home() {
                         {(["imperial", "metric"] as const).map((u) => (
                           <button
                             key={u}
-                            onClick={() => { setHeightUnit(u); localStorage.setItem("coldstreak-height-unit", u); }}
+                            onClick={() => { setHeightUnit(u); localStorage.setItem("coldstreak-height-unit", u); saveDisplayPrefs({ heightUnit: u }); }}
                             className={`px-2 py-0.5 transition-colors ${heightUnit === u ? "bg-cyan-600 text-white" : "bg-blue-900 text-blue-400"}`}
                           >
                             {u === "imperial" ? "ft / in" : "cm"}
