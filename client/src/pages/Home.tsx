@@ -285,7 +285,7 @@ export default function Home() {
   const [temperature, setTemperature] = useState<number>(
     () => Math.min(60, Math.max(25, Number(localStorage.getItem("coldstreak-temperature") ?? 50)))
   );
-  const [useCelsius, setUseCelsius] = useState(false);
+  const [useCelsius, setUseCelsius] = useState(() => localStorage.getItem("coldstreak-use-celsius") === "true");
 
   // Bluetooth thermometer
   const [btConnected, setBtConnected] = useState(false);
@@ -354,15 +354,15 @@ export default function Home() {
   const [showWatchHrHelp, setShowWatchHrHelp] = useState(false);
 
   // Countdown
-  const [countdownMode, setCountdownMode] = useState(false);
+  const [countdownMode, setCountdownMode] = useState(() => localStorage.getItem("coldstreak-countdown-mode") === "true");
   const [countdown, setCountdown] = useState(0);
   const [countdownRunning, setCountdownRunning] = useState(false);
   const [countdownElapsed, setCountdownElapsed] = useState(0);
   const [isLandscape, setIsLandscape] = useState(() =>
     typeof window !== "undefined" && window.matchMedia("(orientation: landscape)").matches
   );
-  const [minutesInput, setMinutesInput] = useState(3);
-  const [secondsInput, setSecondsInput] = useState(0);
+  const [minutesInput, setMinutesInput] = useState(() => Number(localStorage.getItem("coldstreak-countdown-minutes") ?? 3) || 3);
+  const [secondsInput, setSecondsInput] = useState(() => Number(localStorage.getItem("coldstreak-countdown-seconds") ?? 0));
   const alarmRef = useRef<AlarmHandle | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const countdownTotalRef = useRef<number>(0);
@@ -3329,13 +3329,13 @@ export default function Home() {
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <button
                     data-testid="button-unit-f"
-                    onClick={() => setUseCelsius(false)}
+                    onClick={() => { setUseCelsius(false); localStorage.setItem("coldstreak-use-celsius", "false"); }}
                     className={`text-[10px] font-bold transition-all ${!useCelsius ? "text-white" : "text-blue-400/60 hover:text-blue-300"}`}
                   >°F</button>
                   <span className="text-blue-600/60 text-[10px]">/</span>
                   <button
                     data-testid="button-unit-c"
-                    onClick={() => setUseCelsius(true)}
+                    onClick={() => { setUseCelsius(true); localStorage.setItem("coldstreak-use-celsius", "true"); }}
                     className={`text-[10px] font-bold transition-all ${useCelsius ? "text-white" : "text-blue-400/60 hover:text-blue-300"}`}
                   >°C</button>
                 </div>
@@ -4363,12 +4363,12 @@ export default function Home() {
                 <div className="text-white font-semibold flex items-center gap-2"><AlarmClock className="w-4 h-4 text-cyan-400" /> Timer Mode</div>
                 <div className="flex bg-blue-800/80 rounded-lg p-0.5">
                   <button
-                    onClick={() => setCountdownMode(false)}
+                    onClick={() => { setCountdownMode(false); localStorage.setItem("coldstreak-countdown-mode", "false"); }}
                     data-testid="button-mode-stopwatch"
                     className={`flex-1 px-3 py-1.5 rounded-md text-sm font-semibold transition-all text-center ${!countdownMode ? "bg-cyan-500 text-white" : "text-blue-400 hover:text-white"}`}
                   >Stopwatch</button>
                   <button
-                    onClick={() => setCountdownMode(true)}
+                    onClick={() => { setCountdownMode(true); localStorage.setItem("coldstreak-countdown-mode", "true"); }}
                     data-testid="button-mode-countdown"
                     className={`flex-1 px-3 py-1.5 rounded-md text-sm font-semibold transition-all text-center ${countdownMode ? "bg-cyan-500 text-white" : "text-blue-400 hover:text-white"}`}
                   >Countdown</button>
@@ -4376,13 +4376,13 @@ export default function Home() {
               </div>
               {countdownMode && (
                 <div className="flex items-center gap-2">
-                  <select data-testid="select-countdown-minutes" value={minutesInput} onChange={(e) => setMinutesInput(Number(e.target.value))}
+                  <select data-testid="select-countdown-minutes" value={minutesInput} onChange={(e) => { const v = Number(e.target.value); setMinutesInput(v); localStorage.setItem("coldstreak-countdown-minutes", String(v)); }}
                     disabled={countdownRunning}
                     className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white font-semibold appearance-none text-center focus:outline-none focus:border-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed">
                     {Array.from({ length: 61 }, (_, i) => <option key={i} value={i}>{i} min</option>)}
                   </select>
                   <span className="text-blue-400 font-bold">:</span>
-                  <select data-testid="select-countdown-seconds" value={secondsInput} onChange={(e) => setSecondsInput(Number(e.target.value))}
+                  <select data-testid="select-countdown-seconds" value={secondsInput} onChange={(e) => { const v = Number(e.target.value); setSecondsInput(v); localStorage.setItem("coldstreak-countdown-seconds", String(v)); }}
                     disabled={countdownRunning}
                     className="flex-1 bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white font-semibold appearance-none text-center focus:outline-none focus:border-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed">
                     {Array.from({ length: 60 }, (_, i) => <option key={i} value={i}>{i} sec</option>)}
