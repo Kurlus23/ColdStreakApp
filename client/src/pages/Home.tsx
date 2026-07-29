@@ -1479,8 +1479,15 @@ export default function Home() {
           patch.bodyHeight = localHeight;
         }
 
-        // Restore display unit preferences (server is truth — survives Android localStorage wipes)
+        // Restore display unit preferences (server is truth — survives Android localStorage wipes).
+        // Track resolved countdown values in local variables so the country-detection write-back
+        // (below) uses the just-fetched server values rather than stale React state — React state
+        // setters (setMinutesInput etc.) only schedule a re-render; they don't update the closure
+        // binding within the same effect call.
         let hasExplicitCelsius = false;
+        let resolvedCountdownMode = countdownMode;
+        let resolvedMinutes = minutesInput;
+        let resolvedSeconds = secondsInput;
         if (data.displayPrefs) {
           try {
             const prefs = JSON.parse(data.displayPrefs) as { useCelsius?: boolean; countdownMode?: boolean; countdownMinutes?: number; countdownSeconds?: number };
@@ -1490,14 +1497,17 @@ export default function Home() {
               localStorage.setItem("coldstreak-use-celsius", String(prefs.useCelsius));
             }
             if (typeof prefs.countdownMode === "boolean") {
+              resolvedCountdownMode = prefs.countdownMode;
               setCountdownMode(prefs.countdownMode);
               localStorage.setItem("coldstreak-countdown-mode", String(prefs.countdownMode));
             }
             if (typeof prefs.countdownMinutes === "number") {
+              resolvedMinutes = prefs.countdownMinutes;
               setMinutesInput(prefs.countdownMinutes);
               localStorage.setItem("coldstreak-countdown-minutes", String(prefs.countdownMinutes));
             }
             if (typeof prefs.countdownSeconds === "number") {
+              resolvedSeconds = prefs.countdownSeconds;
               setSecondsInput(prefs.countdownSeconds);
               localStorage.setItem("coldstreak-countdown-seconds", String(prefs.countdownSeconds));
             }
@@ -1505,7 +1515,9 @@ export default function Home() {
         }
 
         // Restore unit system from server (overrides localStorage; country-based auto-detect as fallback).
-        // Also syncs useCelsius unless the user has an explicit displayPrefs override (e.g. metric + °F).
+        // Priority order: explicit unitSystem column > country-based detection > localStorage default.
+        // useCelsius is derived from unitSystem unless displayPrefs has an explicit override
+        // (e.g. a user who wants imperial weights/distances but prefers °C display).
         const applyCelsiusFromSystem = (sys: "imperial" | "metric") => {
           if (!hasExplicitCelsius) {
             const c = sys === "metric";
@@ -1518,15 +1530,20 @@ export default function Home() {
           localStorage.setItem("coldstreak-unit-system", data.unitSystem);
           applyCelsiusFromSystem(data.unitSystem);
         } else if (data.country) {
+          // Legacy path: no unitSystem saved yet — detect from country and persist so
+          // future loads skip this branch.  Use resolvedCountdown* (not stale React state).
           const detected = IMPERIAL_COUNTRIES.includes(data.country.toUpperCase()) ? "imperial" : "metric";
           const celsius = detected === "metric";
           setUnitSystem(detected);
           localStorage.setItem("coldstreak-unit-system", detected);
           applyCelsiusFromSystem(detected);
-          // Persist the detection (including celsius) so next load doesn't re-run
+          // Persist the detection (including celsius) so next load doesn't re-run.
+          // Use resolvedCountdown* here — the setMinutesInput / setCountdownMode calls above
+          // haven't committed to React state yet so `minutesInput` / `countdownMode` would
+          // still be the old (stale) values if used directly.
           const tok2 = localStorage.getItem("coldstreak-auth-token");
           if (tok2) {
-            const mergedPrefs = JSON.stringify({ useCelsius: celsius, countdownMode, countdownMinutes: minutesInput, countdownSeconds: secondsInput });
+            const mergedPrefs = JSON.stringify({ useCelsius: celsius, countdownMode: resolvedCountdownMode, countdownMinutes: resolvedMinutes, countdownSeconds: resolvedSeconds });
             fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok2}` }, body: JSON.stringify({ unitSystem: detected, displayPrefs: mergedPrefs }) }).catch(() => {});
           }
         }
