@@ -1858,7 +1858,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
       originalMessage: msg.message,
       replyText,
     });
-    await storage.resolveSupportMessage(id);
+    await storage.resolveSupportMessage(id, replyText);
     res.json({ success: true });
   });
 

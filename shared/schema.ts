@@ -416,6 +416,7 @@ export const supportMessages = pgTable("support_messages", {
   message: text("message").notNull(),
   deviceInfo: text("device_info"), // JSON string
   status: text("status").default("open").notNull(), // open | resolved
+  adminReply: text("admin_reply"),  // text of the admin's reply email, stored for visibility
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

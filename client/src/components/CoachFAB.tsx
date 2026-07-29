@@ -6,6 +6,7 @@
  * • On open, injects unseen announcements as coach messages then marks them seen.
  * • Chat history is persisted to localStorage (last 20 messages), keyed per user.
  * • Calls POST /api/coach/chat with message + history; falls back gracefully on error.
+ * • Failed user messages show a "↺ Retry" chip — tap to resend without retyping.
  *
  * Suggested quick-question chips are shown when the conversation is empty.
  */
@@ -323,7 +324,35 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
           ...prev,
           {
             role: "assistant",
-            content: "Sorry, I couldn't reach the server right now. Try again in a moment.",
+            content: "Sorry, I couldn't reach the server right now. Tap your message to try again.",
+            isError: true,
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loading, authToken, messages, screen],
+  );
+
+  // Retry a failed message: strip the failed user message + error reply, then
+  // re-send using the history that existed before that attempt.
+  const retryMessage = useCallback(
+    async (text: string, fromIndex: number) => {
+      if (loading || !authToken) return;
+      const historyBefore = messages.slice(0, fromIndex);
+      const userMsg: ChatMessage = { role: "user", content: text };
+      setMessages([...historyBefore, userMsg]);
+      setLoading(true);
+      try {
+        const { reply, navigate } = await sendMessage(authToken, text, historyBefore.concat(userMsg), screen);
+        setMessages((prev) => [...prev, { role: "assistant", content: reply, navigate }]);
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "Sorry, I couldn't reach the server right now. Tap your message to try again.",
             isError: true,
           },
         ]);
@@ -494,43 +523,61 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
                 </div>
               )}
 
-              {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex gap-2 items-start ${msg.role === "user" ? "flex-row-reverse" : ""}`}
-                >
-                  {msg.role === "assistant" && (
-                    <img src="/icons/icon-192.png" alt="" className="w-6 h-6 rounded-full object-cover shrink-0 mt-0.5" draggable={false} />
-                  )}
-                  <div className="flex flex-col gap-1.5 max-w-[85%]">
-                    <div
-                      className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-                        msg.role === "user"
-                          ? "bg-cyan-700/60 text-white rounded-tr-sm"
-                          : "bg-blue-900/40 text-blue-100 rounded-tl-sm"
-                      }`}
-                      dangerouslySetInnerHTML={{
-                        // Convert **bold** markdown to <strong> tags safely
-                        __html: msg.content
-                          .replace(/&/g, "&amp;")
-                          .replace(/</g, "&lt;")
-                          .replace(/>/g, "&gt;")
-                          .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-                          .replace(/\n/g, "<br/>"),
-                      }}
-                    />
-                    {msg.role === "assistant" && msg.navigate && NAV_LABELS[msg.navigate] && onNavigate && msg.navigate !== screen && (
-                      <button
-                        onClick={() => { closePanel(); setTimeout(() => onNavigate(msg.navigate!), 320); }}
-                        className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-600/20 border border-cyan-500/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-600/30 active:scale-95 transition-all"
-                      >
-                        <span>→</span>
-                        <span>Open {NAV_LABELS[msg.navigate]}</span>
-                      </button>
+              {messages.map((msg, i) => {
+                // A user message is retryable when the very next message is an error
+                const isRetryable = msg.role === "user" && messages[i + 1]?.isError === true;
+                return (
+                  <div
+                    key={i}
+                    className={`flex gap-2 items-start ${msg.role === "user" ? "flex-row-reverse" : ""}`}
+                  >
+                    {msg.role === "assistant" && (
+                      <img src="/icons/icon-192.png" alt="" className="w-6 h-6 rounded-full object-cover shrink-0 mt-0.5" draggable={false} />
                     )}
+                    <div className="flex flex-col gap-1.5 max-w-[85%]">
+                      <div
+                        className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                          msg.role === "user"
+                            ? `bg-cyan-700/60 text-white rounded-tr-sm${isRetryable ? " opacity-60" : ""}`
+                            : msg.isError
+                            ? "bg-red-900/30 text-red-300 rounded-tl-sm"
+                            : "bg-blue-900/40 text-blue-100 rounded-tl-sm"
+                        }`}
+                        dangerouslySetInnerHTML={{
+                          // Convert **bold** markdown to <strong> tags safely
+                          __html: msg.content
+                            .replace(/&/g, "&amp;")
+                            .replace(/</g, "&lt;")
+                            .replace(/>/g, "&gt;")
+                            .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                            .replace(/\n/g, "<br/>"),
+                        }}
+                      />
+                      {/* Retry chip — shown below the failed user bubble */}
+                      {isRetryable && (
+                        <button
+                          onClick={() => retryMessage(msg.content, i)}
+                          disabled={loading}
+                          className="self-end flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-900/30 border border-red-500/40 text-red-300 text-xs font-semibold hover:bg-red-900/50 active:scale-95 transition-all disabled:opacity-40"
+                        >
+                          <span>↺</span>
+                          <span>Tap to retry</span>
+                        </button>
+                      )}
+                      {/* Navigation chip */}
+                      {msg.role === "assistant" && msg.navigate && NAV_LABELS[msg.navigate] && onNavigate && msg.navigate !== screen && (
+                        <button
+                          onClick={() => { closePanel(); setTimeout(() => onNavigate(msg.navigate!), 320); }}
+                          className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-600/20 border border-cyan-500/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-600/30 active:scale-95 transition-all"
+                        >
+                          <span>→</span>
+                          <span>Open {NAV_LABELS[msg.navigate]}</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {loading && (
                 <div className="flex gap-2 items-start">

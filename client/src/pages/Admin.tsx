@@ -1485,6 +1485,12 @@ export default function Admin() {
                             {m.status === "resolved" && <span className="text-xs text-green-600 shrink-0">✓ Resolved</span>}
                           </div>
                           <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{m.message}</p>
+                          {m.adminReply && (
+                            <div className="border-t border-slate-700/60 pt-2 mt-1 space-y-1">
+                              <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Your reply</p>
+                              <p className="text-xs text-cyan-200/80 whitespace-pre-wrap leading-relaxed">{m.adminReply}</p>
+                            </div>
+                          )}
                           {Object.keys(deviceObj).length > 0 && (
                             <div className="text-[10px] text-slate-600 flex flex-wrap gap-x-3">
                               {deviceObj.platform && <span>Platform: {deviceObj.platform}</span>}

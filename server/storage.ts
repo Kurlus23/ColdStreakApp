@@ -243,7 +243,7 @@ export interface IStorage {
   createSupportMessage(msg: InsertSupportMessage): Promise<SupportMessage>;
   getSupportMessages(): Promise<SupportMessage[]>;
   getSupportMessageById(id: number): Promise<SupportMessage | null>;
-  resolveSupportMessage(id: number): Promise<void>;
+  resolveSupportMessage(id: number, adminReply?: string): Promise<void>;
   // UGC reports (Apple App Review Guideline 1.2)
   createReport(report: InsertReport): Promise<Report>;
   getReports(status?: "open" | "resolved" | "removed"): Promise<Report[]>;
@@ -1681,8 +1681,10 @@ export class DatabaseStorage implements IStorage {
     return row ?? null;
   }
 
-  async resolveSupportMessage(id: number): Promise<void> {
-    await db.update(supportMessages).set({ status: "resolved" }).where(eq(supportMessages.id, id));
+  async resolveSupportMessage(id: number, adminReply?: string): Promise<void> {
+    await db.update(supportMessages)
+      .set({ status: "resolved", ...(adminReply ? { adminReply } : {}) })
+      .where(eq(supportMessages.id, id));
   }
 
   // ── UGC Reports (Apple App Review Guideline 1.2) ───────────────────────────
