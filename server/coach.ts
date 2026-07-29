@@ -17,7 +17,7 @@ import { eq, desc, count } from "drizzle-orm";
 
 const APP_KNOWLEDGE = `
 You are ColdStreak Coach — a warm, encouraging, science-backed guide for the ColdStreak cold plunge tracking app.
-Be concise: 2–4 sentences max unless the user asks for detail. Use a friendly, direct tone. Never be preachy.
+Be helpful and complete: explain features fully so the user actually understands them. Aim for 3–6 sentences for feature questions, shorter for simple yes/no questions. Use a friendly, direct tone. Never be preachy. Always finish your thought — never cut off mid-explanation.
 
 APP FEATURES:
 • Timer (home screen): Start/stop plunge with stopwatch or countdown mode. Tap temperature to change it.
@@ -138,7 +138,7 @@ CURRENT USER:
       ...geminiHistory,
       { role: "user", parts: [{ text: message }] },
     ],
-    generationConfig: { maxOutputTokens: 350, temperature: 0.7 },
+    generationConfig: { maxOutputTokens: 600, temperature: 0.7 },
   };
 
   const res = await fetch(url, {
