@@ -3110,6 +3110,23 @@ export default function Home() {
       : undefined;
     setActiveChallengerUserId(null);
 
+    // Show encouragement when user stops before hitting their goal
+    const maybeEncourage = (elapsedSec: number) => {
+      if (elapsedSec < 5 || plungeAchieved.has(primaryBenefit)) return;
+      const thresholds = computeThresholds(temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct);
+      const primaryIdx = SEGMENTS.findIndex(s => s.id === primaryBenefit);
+      const needed = Math.max(0, thresholds[primaryIdx] - todayTotalSec);
+      if (needed <= 0) return; // already hit from earlier sessions
+      const pct = Math.min(1, elapsedSec / needed);
+      const seg = SEGMENTS[primaryIdx];
+      if (pct >= 0.6) {
+        toast({ title: "So close! 🧊", description: `You almost hit your ${seg.label} goal. Try again soon!` });
+      } else if (pct >= 0.2) {
+        toast({ title: "Great start! ❄️", description: `Keep building — ${seg.label} is within reach.` });
+      }
+      // < 20% = they barely started, no message
+    };
+
     if (countdownMode) {
       if (countdownRunning) {
         setCountdownRunning(false);
@@ -3118,6 +3135,7 @@ export default function Home() {
         if (elapsed > 0) {
           const startedAt = countdownStartRef.current ? new Date(countdownStartRef.current) : new Date(Date.now() - elapsed * 1000);
           doLogPlunge(elapsed, startedAt, challengerOpts);
+          maybeEncourage(elapsed);
           setCountdown(0);
         } else {
           resetCountdown();
@@ -3136,6 +3154,7 @@ export default function Home() {
         setIsRunning(false);
         const startedAt = startMs ? new Date(startMs) : new Date(Date.now() - elapsed * 1000);
         doLogPlunge(elapsed, startedAt, challengerOpts);
+        maybeEncourage(elapsed);
         setSeconds(0);
         startTimeRef.current = null;
       } else {
