@@ -206,6 +206,71 @@ export function GoalNudge({
 // its halfLifeHours. The recommended time = sum of (segDuration × undecayed%)
 // across all segments up to and including the primary goal.
 
+/**
+ * Pure helper: returns how many seconds are still needed to reach 100% on every
+ * segment up to and including `primaryBenefit`, accounting for benefit decay
+ * from plunges already logged today.
+ *
+ * Returns 0 when the goal is fully covered (hint should be hidden).
+ * Pass `nowMs` explicitly so tests can pin the clock.
+ */
+export function computeCountdownNeededSecs(
+  primaryBenefit: SegmentId,
+  tempF: number,
+  todayPlungesData: { duration: number; createdAt: string | Date }[],
+  nowMs: number,
+  bodyWeightLbs = 150,
+  bodyHeightCm  = 175,
+  bodyFatPct?: number | null,
+): number {
+  const thresholds     = computeThresholds(tempF, bodyWeightLbs, bodyHeightCm, bodyFatPct);
+  const primaryIdx     = SEGMENTS.findIndex(s => s.id === primaryBenefit);
+  const todayLoggedSecs = todayPlungesData.reduce((s, p) => s + p.duration, 0);
+
+  // Raw fill per segment (0–100), no decay yet
+  const rawFills = SEGMENTS.map((_, i) => {
+    const lo = i === 0 ? 0 : thresholds[i - 1];
+    const hi = thresholds[i];
+    if (todayLoggedSecs <= lo) return 0;
+    if (todayLoggedSecs >= hi) return 100;
+    return ((todayLoggedSecs - lo) / (hi - lo)) * 100;
+  });
+
+  // When each segment was earned (timestamp)
+  const segmentEarnedAt: (number | undefined)[] = SEGMENTS.map(() => undefined);
+  if (todayPlungesData.length > 0) {
+    const sorted = [...todayPlungesData].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+    let running = 0;
+    for (const p of sorted) {
+      running += p.duration;
+      const plungeEnd = new Date(p.createdAt).getTime() + p.duration * 1000;
+      SEGMENTS.forEach((_, i) => {
+        if (segmentEarnedAt[i] !== undefined) return;
+        if (running >= thresholds[i]) segmentEarnedAt[i] = plungeEnd;
+      });
+    }
+  }
+
+  // Decayed fill per segment
+  const decayedFills = SEGMENTS.map((seg, i) => {
+    if (rawFills[i] < 100) return rawFills[i];
+    const anchor = segmentEarnedAt[i];
+    if (!anchor) return 100;
+    const msElapsed = nowMs - anchor;
+    return Math.max(0, 100 * (1 - msElapsed / (seg.halfLifeHours * 3600 * 1000)));
+  });
+
+  // Sum the gap across all segments up to and including the primary goal
+  let neededSecs = 0;
+  for (let i = 0; i <= primaryIdx; i++) {
+    const segDuration = i === 0 ? thresholds[0] : thresholds[i] - thresholds[i - 1];
+    neededSecs += Math.ceil(segDuration * (1 - decayedFills[i] / 100));
+  }
+  return Math.max(0, neededSecs);
+}
+
 interface CountdownGoalHintProps {
   primaryBenefit: SegmentId;
   setTimeSecs: number;
@@ -228,60 +293,25 @@ export function CountdownGoalHint({
   todayPlungesData = [],
   onApply,
 }: CountdownGoalHintProps) {
-  const thresholds = computeThresholds(tempF, bodyWeightLbs, bodyHeightCm, bodyFatPct);
   const primaryIdx = SEGMENTS.findIndex(s => s.id === primaryBenefit);
   const primarySeg = SEGMENTS[primaryIdx];
-  const now        = Date.now();
 
-  // Total raw seconds logged today
-  const todayLoggedSecs = todayPlungesData.reduce((s, p) => s + p.duration, 0);
-
-  // ── Raw fill per segment (0–100), no decay yet ────────────────────────────
-  const rawFills = SEGMENTS.map((_, i) => {
-    const lo = i === 0 ? 0 : thresholds[i - 1];
-    const hi = thresholds[i];
-    if (todayLoggedSecs <= lo) return 0;
-    if (todayLoggedSecs >= hi) return 100;
-    return ((todayLoggedSecs - lo) / (hi - lo)) * 100;
-  });
-
-  // ── When each segment was earned (timestamp) ──────────────────────────────
-  const segmentEarnedAt: (number | undefined)[] = SEGMENTS.map(() => undefined);
-  if (todayPlungesData.length > 0) {
-    const sorted = [...todayPlungesData].sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    );
-    let running = 0;
-    for (const p of sorted) {
-      running += p.duration;
-      const plungeEnd = new Date(p.createdAt).getTime() + p.duration * 1000;
-      SEGMENTS.forEach((_, i) => {
-        if (segmentEarnedAt[i] !== undefined) return;
-        if (running >= thresholds[i]) segmentEarnedAt[i] = plungeEnd;
-      });
-    }
-  }
-
-  // ── Decayed fill per segment ──────────────────────────────────────────────
-  const decayedFills = SEGMENTS.map((seg, i) => {
-    if (rawFills[i] < 100) return rawFills[i]; // partial — no decay
-    const anchor = segmentEarnedAt[i];
-    if (!anchor) return 100;
-    const msElapsed = now - anchor;
-    return Math.max(0, 100 * (1 - msElapsed / (seg.halfLifeHours * 3600 * 1000)));
-  });
-
-  // ── How many seconds are needed right now to reach 100% on each segment ───
-  // For each segment up to and including the primary goal, compute the gap
-  // between its current decayed fill and 100%.
-  let neededSecs = 0;
-  for (let i = 0; i <= primaryIdx; i++) {
-    const segDuration = i === 0 ? thresholds[0] : thresholds[i] - thresholds[i - 1];
-    neededSecs += Math.ceil(segDuration * (1 - decayedFills[i] / 100));
-  }
+  const neededSecs = computeCountdownNeededSecs(
+    primaryBenefit,
+    tempF,
+    todayPlungesData,
+    Date.now(),
+    bodyWeightLbs,
+    bodyHeightCm,
+    bodyFatPct,
+  );
 
   // Silently skip if goal is already covered or set time already meets it
   if (neededSecs <= 0 || setTimeSecs >= neededSecs - 10) return null;
+
+  // Explain if decay is the reason the recommendation is longer than expected
+  const todayLoggedSecs = todayPlungesData.reduce((s, p) => s + p.duration, 0);
+  const thresholds      = computeThresholds(tempF, bodyWeightLbs, bodyHeightCm, bodyFatPct);
 
   const recMins = Math.floor(neededSecs / 60);
   const recSecs = neededSecs % 60;
