@@ -81,12 +81,11 @@ type ChatMessage = { role: "user" | "assistant"; content: string };
 const SCREEN_LABELS: Record<string, string> = {
   timer:        "Timer (home screen — start/stop plunge)",
   history:      "History tab (past plunges log, mood check-in)",
-  achievements: "Profile screen — Badges, Account tab, and Stats tab (calorie burn, sweet spot, cold adaptation, try this next, insights)",
+  achievements: "Profile screen — Badges, Account tab, and Stats tab (calorie burn, sweet spot, cold adaptation, try this next, discovery report, insights)",
   friends:      "Friends tab (friend streaks, challenges, pending requests)",
   explore:      "Explore tab (nearby cold plunge spots)",
   gear:         "Gear tab (equipment browsing)",
   settings:     "Settings / Profile screen",
-  achievements: "Achievements screen (badges, passport)",
   legal:        "Legal / Terms screen",
 };
 
