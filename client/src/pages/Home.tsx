@@ -1175,6 +1175,7 @@ export default function Home() {
     return raw.filter((id: string) => !TEMP_TIERS.some(t => t.id === id) && !DAYS_TIERS.some(t => t.id === id));
   });
   const [openSections, setOpenSections] = useState({ tier: true, days: true, states: true, featured: true });
+  const [badgeSubTab, setBadgeSubTab] = useState<"tier" | "days" | "state">("tier");
   const [userOpen, setUserOpen] = useState(true);
   const [homeLabel, setHomeLabel] = useState(() => localStorage.getItem("coldstreak-home-label") || "Home");
   const [safetySeen] = useState(() => !!localStorage.getItem("coldstreak-safety-seen"));
@@ -1429,7 +1430,7 @@ export default function Home() {
         plungeCount: plunges.length,
         uniqueDays,
         coldestTemp,
-        foundingPlunger: isFoundingPlunger,
+        foundingPlunger: isFoundingPlunger && isPro,
       });
     } catch {}
   }, [username, plunges, showTempTier, showDaysBadge, featuredStateIds, isFoundingPlunger]);
@@ -5639,9 +5640,9 @@ export default function Home() {
         const totalTiers = earnedTempTierIds.size;
         const totalStates = earnedStates.size;
         const totalDays = earnedDaysTierIds.size;
-        const foundingPlungerCount = isFoundingPlunger ? 1 : 0;
+        const foundingPlungerCount = (isFoundingPlunger && isPro) ? 1 : 0;
         const totalEarned = totalTiers + totalStates + totalDays + foundingPlungerCount;
-        const totalPossible = TEMP_TIERS.length + allStates.length + DAYS_TIERS.length + (isFoundingPlunger ? 1 : 0);
+        const totalPossible = TEMP_TIERS.length + allStates.length + DAYS_TIERS.length + ((isFoundingPlunger && isPro) ? 1 : 0);
 
         const badgeEmojiLookup: Record<string, string> = {};
         TEMP_TIERS.forEach(t => { badgeEmojiLookup[t.id] = t.emoji; });
@@ -5691,7 +5692,7 @@ export default function Home() {
                 {/* Earned badges row */}
                 {totalEarned > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-3">
-                    {isFoundingPlunger && (
+                    {isFoundingPlunger && isPro && (
                       <span title="Founding Plunger" className="text-xl leading-tight">🎖️</span>
                     )}
                     {[...orderedTiers].reverse().filter(t => earnedTempTierIds.has(t.id)).map(t => (
@@ -6227,8 +6228,8 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Founding Plunger */}
-              {isFoundingPlunger && (
+              {/* Founding Plunger — only shown when currently paid OR admin-granted */}
+              {isFoundingPlunger && isPro && (
                 <div
                   data-testid="achievement-founding-plunger"
                   className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-gradient-to-r from-amber-900/40 to-yellow-900/20 border border-amber-500/40"
@@ -6243,24 +6244,32 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Featured Badges */}
+              {/* ── Unified Badges panel ──────────────────────────── */}
               <div className="bg-blue-950/80 rounded-2xl border border-blue-700/50">
-                <button
-                  data-testid="button-toggle-featured-badges"
-                  onClick={() => setOpenSections(s => ({ ...s, featured: !s.featured }))}
-                  className="w-full flex items-center justify-between px-4 py-3 text-left"
-                >
-                  <div>
-                    <div className="text-blue-400 text-[11px] uppercase tracking-widest">Featured Badges</div>
-                    <div className="text-blue-600 text-[10px] mt-0.5">Shown next to your name on leaderboards</div>
+                {/* Header + subtabs */}
+                <div className="px-4 pt-3 pb-2">
+                  <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">Badges</div>
+                  <div className="flex rounded-xl overflow-hidden border border-blue-700/40">
+                    {(["tier", "days", "state"] as const).map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setBadgeSubTab(tab)}
+                        className={`flex-1 py-1.5 text-[11px] font-semibold transition-colors ${
+                          badgeSubTab === tab ? "bg-blue-800/80 text-white" : "text-blue-400 hover:text-blue-200"
+                        }`}
+                      >
+                        {tab === "tier" ? "Tier" : tab === "days" ? "Days Plunged" : "State"}
+                      </button>
+                    ))}
                   </div>
-                  <span className={`text-blue-400 text-xs transition-transform duration-200 ml-3 shrink-0 ${openSections.featured ? "rotate-180" : ""}`}>▼</span>
-                </button>
-                {openSections.featured && (
+                </div>
+
+                {/* ── Tier tab ── */}
+                {badgeSubTab === "tier" && (
                   <div className="px-4 pb-4 border-t border-blue-700/30 pt-3 space-y-3">
-                    {/* Temperature Tier — auto = highest earned */}
+                    {/* Featured toggle */}
                     <div>
-                      <div className="text-blue-500 text-[10px] uppercase tracking-widest mb-1.5">Temperature Tier</div>
+                      <div className="text-blue-500 text-[10px] uppercase tracking-widest mb-1.5">Featured on leaderboard</div>
                       {highestEarnedTempTier ? (
                         <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-blue-700/50 bg-blue-900/70">
                           <div className="flex items-center gap-2">
@@ -6280,9 +6289,41 @@ export default function Home() {
                         <div className="px-3 py-2 rounded-xl border border-blue-800/40 bg-blue-950/60 text-blue-600 text-xs">No temperature tier earned yet</div>
                       )}
                     </div>
-                    {/* Days Badge — auto = highest earned */}
+                    {/* All tiers */}
                     <div>
-                      <div className="text-blue-500 text-[10px] uppercase tracking-widest mb-1.5">Days Plunged</div>
+                      <div className="text-blue-500 text-[11px] mb-2">Reaching a colder tier unlocks all warmer ones.</div>
+                      <div className="flex flex-wrap gap-2">
+                        {TEMP_TIERS.map((tier) => {
+                          const earned = earnedTempTierIds.has(tier.id);
+                          return (
+                            <button
+                              key={tier.id}
+                              data-testid={`achievement-tier-${tier.id}`}
+                              onClick={() => setBadgeDetailModal({ type: "temp-tier", tierId: tier.id })}
+                              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 border ${
+                                earned ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300" : "bg-blue-800/40 border-blue-700/30 text-blue-600"
+                              }`}
+                            >
+                              <span className="text-base">{tier.emoji}</span>
+                              <div className="text-left">
+                                <div>{tier.label}</div>
+                                <div className="text-[10px] opacity-70">{tier.minTemp === 0 ? "≤32°F" : `${tier.maxTemp}–${tier.minTemp}°F`}</div>
+                              </div>
+                              {earned && <span className="text-[10px] text-cyan-400 ml-1">✓</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Days Plunged tab ── */}
+                {badgeSubTab === "days" && (
+                  <div className="px-4 pb-4 border-t border-blue-700/30 pt-3 space-y-3">
+                    {/* Featured toggle */}
+                    <div>
+                      <div className="text-blue-500 text-[10px] uppercase tracking-widest mb-1.5">Featured on leaderboard</div>
                       {highestEarnedDaysTier ? (
                         <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-blue-700/50 bg-blue-900/70">
                           <div className="flex items-center gap-2">
@@ -6302,10 +6343,47 @@ export default function Home() {
                         <div className="px-3 py-2 rounded-xl border border-blue-800/40 bg-blue-950/60 text-blue-600 text-xs">No days badge earned yet</div>
                       )}
                     </div>
-                    {/* State Badges */}
+                    {/* All days badges */}
+                    <div>
+                      <div className="text-blue-500 text-[11px] mb-2">{uniquePlungeDays} day{uniquePlungeDays !== 1 ? "s" : ""} total · reach milestones to unlock each badge.</div>
+                      <div className="flex flex-wrap gap-2">
+                        {DAYS_TIERS.map((tier) => {
+                          const earned = earnedDaysTierIds.has(tier.id);
+                          const isNext = !earned && DAYS_TIERS.filter((t) => !earnedDaysTierIds.has(t.id))[0]?.id === tier.id;
+                          const pct = isNext ? Math.min(100, Math.round((uniquePlungeDays / tier.days) * 100)) : 0;
+                          return (
+                            <button
+                              key={tier.id}
+                              data-testid={`achievement-days-${tier.id}`}
+                              onClick={() => setBadgeDetailModal({ type: "days", tierId: tier.id })}
+                              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 border ${
+                                earned ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300" : "bg-blue-800/40 border-blue-700/30 text-blue-600"
+                              }`}
+                            >
+                              <span className="text-base">{tier.emoji}</span>
+                              <div className="text-left">
+                                <div>{tier.label}</div>
+                                <div className="text-[10px] opacity-70">
+                                  {tier.days === 365 ? "365+ days" : `${tier.days} days`}
+                                  {isNext && ` · ${pct}%`}
+                                </div>
+                              </div>
+                              {earned && <span className="text-[10px] text-cyan-400 ml-1">✓</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── State tab ── */}
+                {badgeSubTab === "state" && (
+                  <div className="px-4 pb-4 border-t border-blue-700/30 pt-3 space-y-3">
+                    {/* Featured state toggles */}
                     {earnedStates.size > 0 && (
                       <div>
-                        <div className="text-blue-500 text-[10px] uppercase tracking-widest mb-1.5">State Badges</div>
+                        <div className="text-blue-500 text-[10px] uppercase tracking-widest mb-1.5">Featured on leaderboard</div>
                         <div className="grid grid-cols-2 gap-1.5">
                           {[...earnedStates].sort().map(state => {
                             const emoji = STATE_EMOJI[state] ?? "🏆";
@@ -6332,143 +6410,38 @@ export default function Home() {
                         </div>
                       </div>
                     )}
-                  </div>
-                )}
-              </div>
-
-              {/* Tier Badges */}
-              <div className="bg-blue-950/80 rounded-2xl border border-blue-700/50">
-                <button
-                  data-testid="button-toggle-tier-badges"
-                  onClick={() => setOpenSections(s => ({ ...s, tier: !s.tier }))}
-                  className="w-full flex items-center justify-between px-4 py-3 text-left"
-                >
-                  <div className="text-blue-400 text-[11px] uppercase tracking-widest">Tier Badges</div>
-                  <span className={`text-blue-400 text-xs transition-transform duration-200 ${openSections.tier ? "rotate-180" : ""}`}>▼</span>
-                </button>
-                {openSections.tier && (
-                  <div className="px-4 pb-4 border-t border-blue-700/30 pt-3">
-                    <div className="text-blue-500 text-[11px] mb-3">Reaching a colder tier automatically unlocks all warmer ones.</div>
-                    <div className="flex flex-wrap gap-2">
-                      {TEMP_TIERS.map((tier) => {
-                        const earned = earnedTempTierIds.has(tier.id);
-                        return (
-                          <button
-                            key={tier.id}
-                            data-testid={`achievement-tier-${tier.id}`}
-                            onClick={() => setBadgeDetailModal({ type: "temp-tier", tierId: tier.id })}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 border ${
-                              earned
-                                ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300"
-                                : "bg-blue-800/40 border-blue-700/30 text-blue-600"
-                            }`}
-                          >
-                            <span className="text-base">{tier.emoji}</span>
-                            <div className="text-left">
-                              <div>{tier.label}</div>
-                              <div className="text-[10px] opacity-70">{tier.minTemp === 0 ? "≤32°F" : `${tier.maxTemp}–${tier.minTemp}°F`}</div>
-                            </div>
-                            {earned && <span className="text-[10px] text-cyan-400 ml-1">✓</span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Days Plunged Badges */}
-              <div className="bg-blue-950/80 rounded-2xl border border-blue-700/50">
-                <button
-                  data-testid="button-toggle-days-badges"
-                  onClick={() => setOpenSections(s => ({ ...s, days: !s.days }))}
-                  className="w-full flex items-center justify-between px-4 py-3 text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-blue-400 text-[11px] uppercase tracking-widest">Days Plunged</div>
-                    <div className="text-blue-500 text-[11px]">{uniquePlungeDays} day{uniquePlungeDays !== 1 ? "s" : ""} total</div>
-                  </div>
-                  <span className={`text-blue-400 text-xs transition-transform duration-200 ${openSections.days ? "rotate-180" : ""}`}>▼</span>
-                </button>
-                {openSections.days && (
-                  <div className="px-4 pb-4 border-t border-blue-700/30 pt-3">
-                    <div className="text-blue-500 text-[11px] mb-3">Reach milestone days to unlock each badge.</div>
-                    <div className="flex flex-wrap gap-2">
-                      {DAYS_TIERS.map((tier) => {
-                        const earned = earnedDaysTierIds.has(tier.id);
-                        const isNext = !earned && DAYS_TIERS.filter((t) => !earnedDaysTierIds.has(t.id))[0]?.id === tier.id;
-                        const pct = isNext ? Math.min(100, Math.round((uniquePlungeDays / tier.days) * 100)) : 0;
-                        return (
-                          <button
-                            key={tier.id}
-                            data-testid={`achievement-days-${tier.id}`}
-                            onClick={() => setBadgeDetailModal({ type: "days", tierId: tier.id })}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 border ${
-                              earned
-                                ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300"
-                                : "bg-blue-800/40 border-blue-700/30 text-blue-600"
-                            }`}
-                          >
-                            <span className="text-base">{tier.emoji}</span>
-                            <div className="text-left">
-                              <div>{tier.label}</div>
-                              <div className="text-[10px] opacity-70">
-                                {tier.days === 365 ? "365+ days" : `${tier.days} days`}
-                                {isNext && ` · ${pct}%`}
-                              </div>
-                            </div>
-                            {earned && <span className="text-[10px] text-cyan-400 ml-1">✓</span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* State Badges */}
-              <div className="bg-blue-950/80 rounded-2xl border border-blue-700/50">
-                <button
-                  data-testid="button-toggle-state-badges"
-                  onClick={() => setOpenSections(s => ({ ...s, states: !s.states }))}
-                  className="w-full flex items-center justify-between px-4 py-3 text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-blue-400 text-[11px] uppercase tracking-widest">State Badges</div>
-                  </div>
-                  <span className={`text-blue-400 text-xs transition-transform duration-200 ${openSections.states ? "rotate-180" : ""}`}>▼</span>
-                </button>
-                {openSections.states && (
-                  <div className="px-4 pb-4 border-t border-blue-700/30 pt-3">
-                    <div className="text-blue-500 text-[11px] mb-3">Plunge at every Chill Place in a state to earn its badge.</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {allStates.map((state) => {
-                        const earned = earnedStates.has(state);
-                        const emoji = STATE_EMOJI[state] ?? "🏆";
-                        const stateLocs = PASSPORT_LOCATIONS.filter((l) => l.state === state);
-                        const earnedCount = stateLocs.filter((l) => badges.has(l.id)).length;
-                        return (
-                          <button
-                            key={state}
-                            data-testid={`achievement-state-${state.replace(/[\s/]/g, "-").toLowerCase()}`}
-                            onClick={() => setBadgeDetailModal({ type: "state", state })}
-                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
-                              earned
-                                ? "bg-yellow-500/20 border border-yellow-500/40 text-yellow-200"
-                                : earnedCount > 0
-                                ? "bg-blue-800/60 border border-blue-600/50 text-blue-400"
-                                : "bg-blue-800/40 border border-blue-700/30 text-blue-600"
-                            }`}
-                          >
-                            <span>{emoji}</span>
-                            <span>{state}</span>
-                            {earned
-                              ? <span className="text-[10px] text-yellow-400">✓</span>
-                              : <span className="text-[10px] opacity-60">{earnedCount}/{stateLocs.length}</span>
-                            }
-                          </button>
-                        );
-                      })}
+                    {/* All state badges */}
+                    <div>
+                      <div className="text-blue-500 text-[11px] mb-2">Plunge at every Chill Place in a state to earn its badge.</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {allStates.map((state) => {
+                          const earned = earnedStates.has(state);
+                          const emoji = STATE_EMOJI[state] ?? "🏆";
+                          const stateLocs = PASSPORT_LOCATIONS.filter((l) => l.state === state);
+                          const earnedCount = stateLocs.filter((l) => badges.has(l.id)).length;
+                          return (
+                            <button
+                              key={state}
+                              data-testid={`achievement-state-${state.replace(/[\s/]/g, "-").toLowerCase()}`}
+                              onClick={() => setBadgeDetailModal({ type: "state", state })}
+                              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
+                                earned
+                                  ? "bg-yellow-500/20 border border-yellow-500/40 text-yellow-200"
+                                  : earnedCount > 0
+                                  ? "bg-blue-800/60 border border-blue-600/50 text-blue-400"
+                                  : "bg-blue-800/40 border border-blue-700/30 text-blue-600"
+                              }`}
+                            >
+                              <span>{emoji}</span>
+                              <span>{state}</span>
+                              {earned
+                                ? <span className="text-[10px] text-yellow-400">✓</span>
+                                : <span className="text-[10px] opacity-60">{earnedCount}/{stateLocs.length}</span>
+                              }
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 )}
