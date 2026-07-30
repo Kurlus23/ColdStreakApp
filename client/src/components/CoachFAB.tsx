@@ -317,7 +317,11 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
       setLoading(true);
 
       try {
-        const { reply, navigate } = await sendMessage(authToken, trimmed, messages.concat(userMsg), screen);
+        // Pass only prior messages as history — the current message is sent
+        // as the explicit `message` param and appended by the server. Including
+        // it in history too causes Gemini to see it twice and sometimes answer
+        // the previous stale question instead of the new one.
+        const { reply, navigate } = await sendMessage(authToken, trimmed, messages, screen);
         setMessages((prev) => [...prev, { role: "assistant", content: reply, navigate }]);
       } catch {
         setMessages((prev) => [

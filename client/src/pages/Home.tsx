@@ -3545,9 +3545,22 @@ export default function Home() {
               {/* Timer */}
               <div className="flex flex-col items-center px-2 py-2.5 relative" data-testid="card-timer">
                 <span className="text-blue-400/60 text-[8.5px] font-semibold uppercase tracking-widest mb-1">Timer</span>
-                <span className={`text-[2.4rem] leading-none font-mono font-bold tracking-tight ${isActive ? "text-white" : "text-slate-200"}`}>
-                  {formatTime(displaySeconds)}
-                </span>
+                {/* Tapping the countdown display when idle jumps to the time-setter in Settings */}
+                {countdownMode && !isActive ? (
+                  <button
+                    onClick={() => { navTo("settings"); setTimeout(() => setSettingsTab("settings"), 50); }}
+                    className="text-[2.4rem] leading-none font-mono font-bold tracking-tight text-slate-200 active:opacity-70 transition-opacity focus:outline-none"
+                  >
+                    {formatTime(displaySeconds)}
+                  </button>
+                ) : (
+                  <span className={`text-[2.4rem] leading-none font-mono font-bold tracking-tight ${isActive ? "text-white" : "text-slate-200"}`}>
+                    {formatTime(displaySeconds)}
+                  </span>
+                )}
+                {countdownMode && !isActive && (
+                  <span className="text-[8px] text-blue-400/50 -mt-0.5 mb-0.5">tap to set time</span>
+                )}
                 <div className="flex gap-1.5 mt-2.5 w-full">
                   <button
                     data-testid="button-start"
