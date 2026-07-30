@@ -739,6 +739,9 @@ export default function Home() {
   const { isPro, isSubscribed, proEmail, proPlan, promoExpiresAt, loading: proLoading, isFoundingPlunger, startCheckout, verifySession, restorePurchase, redeemPromo, clearPro, verifyProForEmail } = useProStatus();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'legal' | 'settings' | 'support'>('support');
+  const [profileTab, setProfileTab] = useState<'account' | 'stats'>(() =>
+    (localStorage.getItem('coldstreak-profile-tab') as 'account' | 'stats') ?? 'account'
+  );
 
   // Load friends whenever the Friends screen becomes visible and clear the badge —
   // the user has now seen the updated list.
@@ -4216,37 +4219,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* Calorie breakdown — day / week / all-time */}
-            {plunges.length > 0 && (
-              <div className="bg-blue-900/40 rounded-2xl px-4 py-3 mb-4 border border-blue-800/40">
-                <div className="flex items-center gap-1.5 mb-2.5">
-                  <Flame className="w-3.5 h-3.5 text-orange-400" />
-                  <span className="text-[10px] text-orange-300/80 uppercase tracking-wider font-semibold">Calorie Burn (est.)</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <div className="text-orange-300 font-bold text-base leading-none">
-                      {todayCalories > 0 ? Math.round(todayCalories) : "—"}
-                    </div>
-                    <div className="text-blue-400/70 text-[9px] uppercase tracking-wide mt-1">Today</div>
-                  </div>
-                  <div className="border-x border-blue-700/40">
-                    <div className="text-orange-300 font-bold text-base leading-none">
-                      {weeklyCalories > 0 ? Math.round(weeklyCalories) : "—"}
-                    </div>
-                    <div className="text-blue-400/70 text-[9px] uppercase tracking-wide mt-1">This week</div>
-                  </div>
-                  <div>
-                    <div className="text-orange-300 font-bold text-base leading-none">
-                      {allTimeCalories > 0 ? Math.round(allTimeCalories) : "—"}
-                    </div>
-                    <div className="text-blue-400/70 text-[9px] uppercase tracking-wide mt-1">All-time</div>
-                  </div>
-                </div>
-                <p className="text-blue-500/60 text-[9px] mt-2 leading-relaxed">Thermogenic estimate — not a precise measurement. Set weight in Settings for best accuracy.</p>
-              </div>
-            )}
-
             {/* Discovery report — in-app version of the weekly/monthly email */}
             <DiscoveryReportCard plunges={plunges} />
 
@@ -4258,9 +4230,6 @@ export default function Home() {
 
             {/* Try This Next nudge — personalised action based on trend/state */}
             <TryThisNextCard plunges={plunges} />
-
-            {/* Sweet Spot card — shown after 10+ check-ins */}
-            <SweetSpotCard plunges={plunges} />
 
             {/* Link to full web insights dashboard */}
             <a
@@ -5889,6 +5858,19 @@ export default function Home() {
                     )}
                   </div>
 
+                  {/* Account / Stats tab switcher */}
+                  <div className="flex rounded-xl overflow-hidden border border-blue-700/50">
+                    <button
+                      onClick={() => { setProfileTab('account'); localStorage.setItem('coldstreak-profile-tab', 'account'); }}
+                      className={`flex-1 py-2 text-xs font-semibold transition-colors ${profileTab === 'account' ? 'bg-blue-800/80 text-white' : 'text-blue-400 hover:text-blue-200'}`}
+                    >Account</button>
+                    <button
+                      onClick={() => { setProfileTab('stats'); localStorage.setItem('coldstreak-profile-tab', 'stats'); }}
+                      className={`flex-1 py-2 text-xs font-semibold transition-colors ${profileTab === 'stats' ? 'bg-blue-800/80 text-white' : 'text-blue-400 hover:text-blue-200'}`}
+                    >Stats</button>
+                  </div>
+
+                  {profileTab === 'account' && (<>
                   {/* Email */}
                   <div>
                     <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Email</label>
@@ -6182,6 +6164,20 @@ export default function Home() {
                     </a>
                   )}
 
+                  {/* Stats teaser — taps into Stats tab */}
+                  {allTimeCalories > 0 && (
+                    <button
+                      onClick={() => { setProfileTab('stats'); localStorage.setItem('coldstreak-profile-tab', 'stats'); }}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-orange-950/30 border border-orange-800/40 hover:border-orange-600/50 transition-all active:scale-[0.98]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Flame className="w-3.5 h-3.5 text-orange-400" />
+                        <span className="text-orange-300/90 text-xs font-semibold">~{Math.round(allTimeCalories).toLocaleString()} kcal all-time</span>
+                      </div>
+                      <span className="text-orange-500/70 text-xs font-bold">Stats →</span>
+                    </button>
+                  )}
+
                   {/* Sign out / Delete */}
                   <button
                     data-testid="button-account-signout"
@@ -6193,6 +6189,44 @@ export default function Home() {
                     onClick={() => setShowDeleteAccountConfirm(true)}
                     className="w-full py-2 rounded-xl bg-transparent border border-red-800/40 text-red-500/70 text-xs font-semibold hover:border-red-500 hover:text-red-400 transition-colors"
                   >Delete Account</button>
+                  </>)}
+
+                  {profileTab === 'stats' && (<>
+                  {/* Calorie breakdown — day / week / all-time */}
+                  {plunges.length > 0 ? (
+                    <div className="bg-blue-900/40 rounded-2xl px-4 py-3 border border-blue-800/40">
+                      <div className="flex items-center gap-1.5 mb-2.5">
+                        <Flame className="w-3.5 h-3.5 text-orange-400" />
+                        <span className="text-[10px] text-orange-300/80 uppercase tracking-wider font-semibold">Calorie Burn (est.)</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div>
+                          <div className="text-orange-300 font-bold text-base leading-none">
+                            {todayCalories > 0 ? Math.round(todayCalories) : "—"}
+                          </div>
+                          <div className="text-blue-400/70 text-[9px] uppercase tracking-wide mt-1">Today</div>
+                        </div>
+                        <div className="border-x border-blue-700/40">
+                          <div className="text-orange-300 font-bold text-base leading-none">
+                            {weeklyCalories > 0 ? Math.round(weeklyCalories) : "—"}
+                          </div>
+                          <div className="text-blue-400/70 text-[9px] uppercase tracking-wide mt-1">This week</div>
+                        </div>
+                        <div>
+                          <div className="text-orange-300 font-bold text-base leading-none">
+                            {allTimeCalories > 0 ? Math.round(allTimeCalories) : "—"}
+                          </div>
+                          <div className="text-blue-400/70 text-[9px] uppercase tracking-wide mt-1">All-time</div>
+                        </div>
+                      </div>
+                      <p className="text-blue-500/60 text-[9px] mt-2 leading-relaxed">Thermogenic estimate — not a precise measurement. Set weight in Account for best accuracy.</p>
+                    </div>
+                  ) : (
+                    <p className="text-blue-500/60 text-xs text-center py-4">Log your first plunge to see stats.</p>
+                  )}
+                  {/* Sweet Spot */}
+                  <SweetSpotCard plunges={plunges} />
+                  </>)}
                 </div>
               ) : forgotMode ? (
                 <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl px-5 py-5 border border-blue-800/50" data-testid="card-account-signedout">
