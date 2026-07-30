@@ -6228,24 +6228,26 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Founding Plunger — only shown when currently paid OR admin-granted */}
-              {isFoundingPlunger && isPro && (
-                <div
-                  data-testid="achievement-founding-plunger"
-                  className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-gradient-to-r from-amber-900/40 to-yellow-900/20 border border-amber-500/40"
-                >
-                  <span className="text-4xl leading-none shrink-0">🎖️</span>
-                  <div className="min-w-0">
-                    <div className="text-amber-300 font-bold text-base leading-tight">Founding Plunger</div>
-                    <div className="text-amber-200/60 text-xs mt-0.5 leading-relaxed">
-                      One of the first 1,000 people to go Pro. This exclusive title appears on your profile and leaderboard entries.
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* ── Unified Badges panel ──────────────────────────── */}
-              <div className="bg-blue-950/80 rounded-2xl border border-blue-700/50">
+              <div className="bg-blue-950/80 rounded-2xl border border-blue-700/50 overflow-hidden">
+
+                {/* Founding Plunger — pinned at top, amber-accented, only for paid/admin */}
+                {isFoundingPlunger && isPro && (
+                  <div
+                    data-testid="achievement-founding-plunger"
+                    className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-amber-900/50 to-yellow-900/30 border-b border-amber-500/30"
+                  >
+                    <span className="text-3xl leading-none shrink-0">🎖️</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-amber-300 font-bold text-sm leading-tight">Founding Plunger</div>
+                      <div className="text-amber-200/55 text-[11px] mt-0.5 leading-snug">
+                        One of the first 1,000 to go Pro · exclusive title on your profile &amp; leaderboard
+                      </div>
+                    </div>
+                    <span className="text-amber-400/60 text-[10px] font-semibold uppercase tracking-wide shrink-0">Exclusive</span>
+                  </div>
+                )}
+
                 {/* Header + subtabs */}
                 <div className="px-4 pt-3 pb-2">
                   <div className="text-blue-400 text-[11px] uppercase tracking-widest mb-2">Badges</div>
