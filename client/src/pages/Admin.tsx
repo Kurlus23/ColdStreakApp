@@ -979,7 +979,30 @@ export default function Admin() {
                             {u.displayName ?? u.username}{u.username && u.displayName ? ` (@${u.username})` : ""}
                           </div>
                         )}
-                        {!u.emailVerified && <div className="text-[10px] text-amber-400">unverified</div>}
+                        {!u.emailVerified && (
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] text-amber-400">unverified</span>
+                            <button
+                              onClick={async () => {
+                                const token = localStorage.getItem("coldstreak-auth-token");
+                                const res = await fetch(`/api/admin/users/${u.id}/verify-email`, {
+                                  method: "POST",
+                                  headers: { Authorization: `Bearer ${token}` },
+                                });
+                                if (res.ok) {
+                                  toast({ title: "Email verified", description: `${u.email} marked as verified.` });
+                                  queryClient.invalidateQueries({ queryKey: ["/api/admin/user-activity"] });
+                                } else {
+                                  const j = await res.json().catch(() => ({}));
+                                  toast({ title: "Failed", description: j.message ?? "Server error", variant: "destructive" });
+                                }
+                              }}
+                              className="text-[10px] text-green-400 hover:text-green-300 underline"
+                            >
+                              ✓ verify
+                            </button>
+                          </div>
+                        )}
                         <button
                           data-testid={`button-clear-avatar-${u.id}`}
                           onClick={async () => {

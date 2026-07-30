@@ -1918,6 +1918,18 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     res.json({ success: true, updated: count });
   });
 
+  // ── Admin: manually verify a user's email ───────────────────────────────
+  app.post("/api/admin/users/:id/verify-email", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    const userId = Number(req.params.id);
+    if (isNaN(userId)) return res.status(400).json({ message: "Invalid user id" });
+    await db.update(users)
+      .set({ emailVerified: true, emailVerifyToken: null })
+      .where(eq(users.id, userId));
+    res.json({ success: true });
+  });
+
   // ── Admin: manage pro users ─────────────────────────────────────────────
   app.get("/api/admin/pro-users", async (req, res) => {
     const caller = extractUser(req);

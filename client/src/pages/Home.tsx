@@ -280,7 +280,10 @@ export default function Home() {
   const [forgotSent, setForgotSent] = useState(false);
   const [resendSent, setResendSent] = useState(false);
   const [verifyBannerDismissed, setVerifyBannerDismissed] = useState<boolean>(() => {
-    try { return sessionStorage.getItem("coldstreak-verify-banner-dismissed") === "1"; } catch { return false; }
+    // localStorage (not sessionStorage) so dismissal survives app restarts.
+    // Previously used sessionStorage which caused the banner — and "Resend email"
+    // taps — to reappear on every cold start, resulting in daily verification emails.
+    try { return localStorage.getItem("coldstreak-verify-banner-dismissed") === "1"; } catch { return false; }
   });
   const [verifyBannerSent, setVerifyBannerSent] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -3387,7 +3390,7 @@ export default function Home() {
               data-testid="button-dismiss-verify-banner"
               onClick={() => {
                 setVerifyBannerDismissed(true);
-                try { sessionStorage.setItem("coldstreak-verify-banner-dismissed", "1"); } catch {}
+                try { localStorage.setItem("coldstreak-verify-banner-dismissed", "1"); } catch {}
               }}
               className="text-amber-300/70 hover:text-amber-200 shrink-0 p-0.5"
               aria-label="Dismiss"
