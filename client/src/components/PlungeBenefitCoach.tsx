@@ -204,11 +204,13 @@ export function GoalNudge({
 
 interface CountdownGoalHintProps {
   primaryBenefit: SegmentId;
-  setTimeSecs: number;       // minutesInput * 60 + secondsInput
+  setTimeSecs: number;          // minutesInput * 60 + secondsInput
   tempF: number;
   bodyWeightLbs?: number;
   bodyHeightCm?: number;
   bodyFatPct?: number | null;
+  /** Seconds already logged today — reduces the needed countdown accordingly. */
+  todayLoggedSeconds?: number;
   onApply: (minutes: number, seconds: number) => void;
 }
 
@@ -219,15 +221,17 @@ export function CountdownGoalHint({
   bodyWeightLbs = 150,
   bodyHeightCm  = 175,
   bodyFatPct,
+  todayLoggedSeconds = 0,
   onApply,
 }: CountdownGoalHintProps) {
   const thresholds  = computeThresholds(tempF, bodyWeightLbs, bodyHeightCm, bodyFatPct);
   const primaryIdx  = SEGMENTS.findIndex(s => s.id === primaryBenefit);
   const primarySeg  = SEGMENTS[primaryIdx];
-  const goalSecs    = thresholds[primaryIdx];
+  // Subtract time already logged today — you only need the remaining gap
+  const goalSecs    = Math.max(0, thresholds[primaryIdx] - todayLoggedSeconds);
 
-  // Only show when the set time is more than 10 s short of the goal
-  if (setTimeSecs >= goalSecs - 10) return null;
+  // Already hit the goal today, or set time covers it: stay silent
+  if (goalSecs <= 0 || setTimeSecs >= goalSecs - 10) return null;
 
   const recMins = Math.floor(goalSecs / 60);
   const recSecs = goalSecs % 60;

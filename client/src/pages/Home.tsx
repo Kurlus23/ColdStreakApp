@@ -3088,6 +3088,21 @@ export default function Home() {
     }
   };
 
+  const handleAddTime = useCallback((seconds: number) => {
+    countdownTotalRef.current += seconds;
+    // Patch persisted session so kill/restore gets the right total
+    try {
+      const saved = localStorage.getItem(ACTIVE_SESSION_KEY);
+      if (saved) {
+        const s = JSON.parse(saved);
+        localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ ...s, countdownTotal: countdownTotalRef.current }));
+      }
+    } catch {}
+    // Keep the minute/second inputs in sync
+    setMinutesInput(Math.floor(countdownTotalRef.current / 60));
+    setSecondsInput(countdownTotalRef.current % 60);
+  }, []);
+
   const handleStop = () => {
     // Capture challenger context before any state changes
     const challengerOpts = activeChallengerUserId != null && challengerScore != null
@@ -3270,6 +3285,17 @@ export default function Home() {
     : new Date(lastTodayPlunge.createdAt).getTime() + lastTodayPlunge.duration * 1000;
   const elapsedSeconds = countdownMode ? countdownElapsed : seconds;
   const displayScore = isActive && displaySeconds > 0 ? plungeScore(elapsedSeconds, temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct) : todayScore;
+
+  // Which benefit segment is the user currently mid-progress through?
+  const benefitThresholds = computeThresholds(temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct);
+  const totalElapsedForBenefits = todayTotalSec + elapsedSeconds;
+  const midSegmentIdx = (() => {
+    for (let i = 0; i < SEGMENTS.length; i++) {
+      const lo = i === 0 ? 0 : benefitThresholds[i - 1];
+      if (totalElapsedForBenefits >= lo && totalElapsedForBenefits < benefitThresholds[i]) return i;
+    }
+    return -1; // all segments complete
+  })();
 
   const tempDisplay = useCelsius
     ? `${Math.round((temperature - 32) * 5 / 9)}°C`
@@ -3531,6 +3557,34 @@ export default function Home() {
                     <RotateCcw className="w-3 h-3" /> Reset
                   </button>
                 )}
+
+                {/* ── Time extension buttons (countdown only) ── */}
+                {countdownMode && countdownRunning && (() => {
+                  const allDone = midSegmentIdx === -1;
+                  const seg = allDone ? null : SEGMENTS[midSegmentIdx];
+                  const secsToFinish = allDone ? 0 : Math.max(1, benefitThresholds[midSegmentIdx] - totalElapsedForBenefits);
+                  return (
+                    <div className="flex gap-1.5 mt-1.5 w-full">
+                      <button
+                        onClick={() => handleAddTime(30)}
+                        className="flex-1 py-1.5 rounded-xl text-[10px] font-bold transition-all active:scale-95"
+                        style={{ background: "rgba(34,211,238,0.08)", border: "1px solid rgba(34,211,238,0.25)", color: "#67e8f9" }}
+                      >+0:30</button>
+                      <button
+                        onClick={() => handleAddTime(allDone ? 60 : secsToFinish)}
+                        className="flex-1 py-1.5 rounded-xl text-[10px] font-bold transition-all active:scale-95"
+                        style={{
+                          background: allDone ? "rgba(34,211,238,0.08)" : `${seg!.barColor}18`,
+                          border: `1px solid ${allDone ? "rgba(34,211,238,0.25)" : seg!.barColor + "50"}`,
+                          color: allDone ? "#67e8f9" : seg!.barColor,
+                        }}
+                      >
+                        {allDone ? "+1:00" : `+Finish ${seg!.emoji}`}
+                      </button>
+                    </div>
+                  );
+                })()}
+
                 {/* Right divider */}
                 <div className="absolute right-0 top-3 bottom-3 w-px bg-blue-800/50" />
               </div>
@@ -4511,6 +4565,7 @@ export default function Home() {
                   bodyWeightLbs={bodyWeightLbs}
                   bodyHeightCm={bodyHeightCm}
                   bodyFatPct={bodyFatPct}
+                  todayLoggedSeconds={todayTotalSec}
                   onApply={(m, s) => {
                     setMinutesInput(m);
                     setSecondsInput(s);
