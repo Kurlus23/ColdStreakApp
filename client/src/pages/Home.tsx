@@ -306,6 +306,7 @@ export default function Home() {
 
   // Bluetooth thermometer
   const [btConnected, setBtConnected] = useState(false);
+  const [btConnectMsg, setBtConnectMsg] = useState<string | null>(null);
   const [btConnecting, setBtConnecting] = useState(false);
   const [btDeviceName, setBtDeviceName] = useState("");
   const [btOffsetVisible, setBtOffsetVisible] = useState(false);
@@ -505,6 +506,13 @@ export default function Home() {
       if (btOffsetTimerRef.current) clearTimeout(btOffsetTimerRef.current);
     };
   }, [btConnected]);
+
+  // Auto-dismiss the small BLE connect pill after 3 s
+  useEffect(() => {
+    if (!btConnectMsg) return;
+    const id = setTimeout(() => setBtConnectMsg(null), 3000);
+    return () => clearTimeout(id);
+  }, [btConnectMsg]);
 
   // Handle Stripe payment return — verify session_id in URL or stored session
   useEffect(() => {
@@ -1901,7 +1909,7 @@ export default function Home() {
           setTemperature(clampDisplayTempF(_det1.tempF + btTempOffsetRef.current).value);
           startThermoKeepalive(_det1.matchedDeviceId, "beacon");
           setBtConnected(true);
-          toast({ title: "Thermometer reconnected", description: name });
+          setBtConnectMsg(`↩ ${name}`);
         } else {
           // Device wasn't broadcasting — clear state, user can manually retry from UI.
           btDeviceRef.current = null;
@@ -2540,7 +2548,7 @@ export default function Home() {
         setTemperature(clampDisplayTempF(_det2.tempF + btTempOffsetRef.current).value);
         startThermoKeepalive(_det2.matchedDeviceId, "beacon");
         setBtConnected(true);
-        toast({ title: "Thermometer connected", description: `${device.name ?? "Device"} — temperature will update automatically.` });
+        setBtConnectMsg(device.name ?? "Device");
       } else {
         await BleClient.stopLEScan().catch(() => {});
         btDeviceRef.current = null;
@@ -2655,7 +2663,7 @@ export default function Home() {
         setTemperature(clampDisplayTempF(_det3.tempF + btTempOffsetRef.current).value);
         startThermoKeepalive(_det3.matchedDeviceId, "beacon");
         setBtConnected(true);
-        toast({ title: "Thermometer connected", description: `${name} — temperature will update automatically.` });
+        setBtConnectMsg(name);
       } else {
         await BleClient.stopLEScan().catch(() => {});
         btDeviceRef.current = null;
@@ -2692,7 +2700,7 @@ export default function Home() {
         setTemperature(clampDisplayTempF(_det.tempF + btTempOffsetRef.current).value);
         startThermoKeepalive(_det.matchedDeviceId, "beacon");
         setBtConnected(true);
-        toast({ title: "Thermometer reconnected", description: `${name} — temperature will update automatically.` });
+        setBtConnectMsg(`↩ ${name}`);
       } else {
         await BleClient.stopLEScan().catch(() => {});
         btDeviceRef.current = null;
@@ -3446,6 +3454,13 @@ export default function Home() {
                     style={btConnected ? { textShadow: "0 0 18px rgba(34,211,238,0.55)" } : undefined}
                   >{tempDisplay}</span>
                 </div>
+                {/* Small BLE connect confirmation pill — auto-dismisses after 3 s */}
+                {btConnectMsg && (
+                  <div className="flex items-center gap-1 mt-1 bg-cyan-950/80 border border-cyan-500/40 rounded-full px-2 py-0.5 pointer-events-none">
+                    <span className="w-1 h-1 rounded-full bg-cyan-400 shrink-0" />
+                    <span className="text-[8px] text-cyan-300 font-semibold whitespace-nowrap">{btConnectMsg}</span>
+                  </div>
+                )}
                 {/* °F / °C inline toggle */}
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <button
@@ -3579,10 +3594,7 @@ export default function Home() {
                   data-testid="button-bt-status-header"
                 >
                   <span
-                    className={`w-2 h-2 rounded-full ${btConnected ? "bg-green-400" : "bg-blue-700/60"}`}
-                  />
-                  <span
-                    className={`text-[9px] font-bold uppercase tracking-widest ${btConnected ? "text-green-400 animate-pulse" : "text-blue-700/60"}`}
+                    className={`text-[9px] font-bold uppercase tracking-widest ${btConnected ? "text-green-400 animate-pulse" : "text-blue-700/40"}`}
                   >Live</span>
                 </button>
                 <div className="absolute right-0 top-2 bottom-2 w-px bg-blue-800/50" />
@@ -7898,6 +7910,50 @@ export default function Home() {
           onStop={handleStop}
           onDismissChallenger={() => setActiveChallengerUserId(null)}
         />
+      )}
+
+      {/* ─── PENDING CHALLENGE NOTIFICATION ─── */}
+      {/* Shows on login when a friend challenged us while push was unavailable */}
+      {activeChallengerUserId !== null && !isActive && auth.user && activeChallengerFriend && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: "rgba(5,12,30,0.82)", backdropFilter: "blur(6px)" }}>
+          <div className="w-full max-w-xs rounded-3xl bg-blue-950 border border-cyan-600/50 shadow-2xl overflow-hidden"
+               style={{ boxShadow: "0 0 40px rgba(34,211,238,0.18)" }}>
+            {/* Header glow strip */}
+            <div className="h-1 w-full bg-gradient-to-r from-cyan-500 via-blue-400 to-cyan-500" />
+            <div className="px-6 pt-5 pb-6 text-center space-y-4">
+              <div className="text-3xl">🧊</div>
+              <div>
+                <p className="text-white font-bold text-lg leading-tight">You've been challenged!</p>
+                <p className="text-blue-300 text-sm mt-1">
+                  <span className="text-cyan-300 font-semibold">
+                    {activeChallengerFriend.displayName || activeChallengerFriend.username || "A friend"}
+                  </span>
+                  {" "}wants to see if you can beat their score.
+                </p>
+              </div>
+              {challengerScore != null && (
+                <div className="inline-flex items-center gap-2 bg-blue-900/60 border border-cyan-700/40 rounded-2xl px-4 py-2">
+                  <span className="text-slate-400 text-xs uppercase tracking-wide font-semibold">Their score</span>
+                  <span className="text-cyan-300 text-2xl font-bold">{Number(challengerScore).toFixed(1)}</span>
+                </div>
+              )}
+              <div className="flex flex-col gap-2.5 pt-1">
+                <button
+                  onClick={() => { navTo("timer"); }}
+                  className="w-full py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 active:scale-[0.98] text-white font-bold text-sm transition-all"
+                >
+                  Let's Go! →
+                </button>
+                <button
+                  onClick={() => setActiveChallengerUserId(null)}
+                  className="w-full py-2 rounded-2xl text-blue-400 text-sm hover:text-blue-300 transition-colors"
+                >
+                  Later
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ─── CHALLENGE RESULT CARD ─── */}

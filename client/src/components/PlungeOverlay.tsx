@@ -259,13 +259,7 @@ export function PlungeOverlay({
         >
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-1 mb-0.5">
-              <span className="relative flex h-1.5 w-1.5">
-                {btConnected && (
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-                )}
-                <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${btConnected ? "bg-cyan-300" : "bg-slate-600"}`} />
-              </span>
-              <span className={`text-[9px] uppercase tracking-widest font-semibold ${btConnected ? "text-slate-400" : "text-slate-600"}`}>Live Temp</span>
+              <span className={`text-[9px] uppercase tracking-widest font-semibold ${btConnected ? "text-green-400 animate-pulse" : "text-slate-600"}`}>Live Temp</span>
             </div>
             <span className={`text-2xl font-bold tracking-tight ${btConnected ? "text-white" : "text-slate-600"}`}>{tempDisplay}</span>
           </div>
