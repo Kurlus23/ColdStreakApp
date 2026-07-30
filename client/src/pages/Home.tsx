@@ -394,6 +394,12 @@ export default function Home() {
   interface UserResult { id: number; username: string | null; displayName: string | null; avatarUrl: string | null; friendshipStatus: string | null; }
   const [friends, setFriends] = useState<FriendEntry[]>([]);
   const [activeChallengerUserId, setActiveChallengerUserId] = useState<number | null>(null);
+  // Name stored from the pending-challenge API so the modal can render even
+  // before the friends list has loaded (avoids the race on first login).
+  const [pendingChallengerName, setPendingChallengerName] = useState<string | null>(null);
+  // Tracks whether the user tapped "Later" — hides the modal but keeps the
+  // challenger context alive so the timer overlay still shows their score.
+  const [pendingChallengeModalDismissed, setPendingChallengeModalDismissed] = useState(false);
   const [challengeResult, setChallengeResult] = useState<ChallengeResult | null>(null);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
@@ -1612,6 +1618,11 @@ export default function Home() {
       .then((r) => r.json())
       .then((data) => {
         if (data.none || !data.fromUserId) return;
+        // Store the name from the API so the modal can render immediately,
+        // before the friends list has finished loading.
+        setPendingChallengerName(data.fromName ?? null);
+        // Reset dismissed so the modal shows for this new challenge.
+        setPendingChallengeModalDismissed(false);
         setActiveChallengerUserId(data.fromUserId);
         // Delete it server-side — the client state now owns it
         fetch("/api/friends/pending-challenge", {
@@ -7924,7 +7935,7 @@ export default function Home() {
 
       {/* ─── PENDING CHALLENGE NOTIFICATION ─── */}
       {/* Shows on login when a friend challenged us while push was unavailable */}
-      {activeChallengerUserId !== null && !isActive && auth.user && activeChallengerFriend && (
+      {activeChallengerUserId !== null && !isActive && auth.user && !pendingChallengeModalDismissed && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: "rgba(5,12,30,0.82)", backdropFilter: "blur(6px)" }}>
           <div className="w-full max-w-xs rounded-3xl bg-blue-950 border border-cyan-600/50 shadow-2xl overflow-hidden"
                style={{ boxShadow: "0 0 40px rgba(34,211,238,0.18)" }}>
@@ -7936,7 +7947,7 @@ export default function Home() {
                 <p className="text-white font-bold text-lg leading-tight">You've been challenged!</p>
                 <p className="text-blue-300 text-sm mt-1">
                   <span className="text-cyan-300 font-semibold">
-                    {activeChallengerFriend.displayName || activeChallengerFriend.username || "A friend"}
+                    {activeChallengerFriend?.displayName || activeChallengerFriend?.username || pendingChallengerName || "A friend"}
                   </span>
                   {" "}wants to see if you can beat their score.
                 </p>
@@ -7955,7 +7966,7 @@ export default function Home() {
                   Let's Go! →
                 </button>
                 <button
-                  onClick={() => setActiveChallengerUserId(null)}
+                  onClick={() => setPendingChallengeModalDismissed(true)}
                   className="w-full py-2 rounded-2xl text-blue-400 text-sm hover:text-blue-300 transition-colors"
                 >
                   Later
