@@ -408,6 +408,7 @@ export default function Home() {
   const [friendSearchResults, setFriendSearchResults] = useState<UserResult[]>([]);
   const [friendsSearchLoading, setFriendsSearchLoading] = useState(false);
   const [challengingId, setChallengingId] = useState<number | null>(null);
+  const [challengedIds, setChallengedIds] = useState<Set<number>>(new Set());
   const [selectedFriend, setSelectedFriend] = useState<FriendEntry | null>(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteSending, setInviteSending] = useState(false);
@@ -5421,20 +5422,26 @@ export default function Home() {
                     {/* Challenge */}
                     <button
                       onClick={async () => {
-                        if (challengingId === selectedFriend.userId) return;
+                        if (challengingId === selectedFriend.userId || challengedIds.has(selectedFriend.userId)) return;
                         setChallengingId(selectedFriend.userId);
                         await sendFriendChallengeImpl(selectedFriend.userId, selectedFriend.displayName || selectedFriend.username || "Friend", {
                           authFetch, navigate, toast,
                           clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
                         });
                         setChallengingId(null);
-                        setSelectedFriend(null);
+                        setChallengedIds(prev => new Set(prev).add(selectedFriend.userId));
                       }}
-                      disabled={challengingId === selectedFriend.userId}
-                      className="w-full py-4 rounded-2xl font-bold text-sm tracking-wide transition-all active:scale-95 disabled:opacity-50"
-                      style={{ background: "linear-gradient(135deg, #c2410c, #f97316)", color: "#fff", boxShadow: "0 0 20px rgba(249,115,22,0.35)" }}
+                      disabled={challengingId === selectedFriend.userId || challengedIds.has(selectedFriend.userId)}
+                      className="w-full py-4 rounded-2xl font-bold text-sm tracking-wide transition-all active:scale-95 disabled:opacity-90"
+                      style={challengedIds.has(selectedFriend.userId)
+                        ? { background: "linear-gradient(135deg, #15803d, #22c55e)", color: "#fff", boxShadow: "0 0 20px rgba(34,197,94,0.35)" }
+                        : { background: "linear-gradient(135deg, #c2410c, #f97316)", color: "#fff", boxShadow: "0 0 20px rgba(249,115,22,0.35)" }}
                     >
-                      {challengingId === selectedFriend.userId ? "Sending…" : `⚡ Challenge ${(selectedFriend.displayName || selectedFriend.username || "them").split(" ")[0]}`}
+                      {challengingId === selectedFriend.userId
+                        ? "Sending…"
+                        : challengedIds.has(selectedFriend.userId)
+                        ? "✓ Challenged"
+                        : `⚡ Challenge ${(selectedFriend.displayName || selectedFriend.username || "them").split(" ")[0]}`}
                     </button>
                   </div>
                 </div>
