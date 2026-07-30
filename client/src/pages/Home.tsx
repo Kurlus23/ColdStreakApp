@@ -42,7 +42,6 @@ import { isNative, nativeShare } from "@/lib/nativeShare";
 import { shareContent } from "@/lib/share";
 import { saveCustomAlarmUrl, loadCustomAlarmUrl, clearCustomAlarmUrl } from "@/lib/alarm-storage";
 import { drainWatchQueue, startWatchListener, stopWatchListener } from "@/lib/watchSync";
-import { ensureHealthKitAuth, connectHealthKit, fetchHrAvgForWindow, fetchLatestBodyWeightLbs, fetchLatestBodyFatPct, isHealthKitPossible } from "@/lib/healthKit";
 import { Explore, GEAR_ITEMS, type GearCategory } from "@/pages/Explore";
 import {
   PASSPORT_LOCATIONS, usePassportBadges, distanceMiles,
@@ -845,12 +844,6 @@ export default function Home() {
     drainWatchQueue({ onSynced });
     startWatchListener({ onSynced });
 
-    // Best-effort: ask once for HealthKit permission so the iPhone-side fallback
-    // can populate hrAvg from Apple Health for plunges logged without a BLE strap.
-    if (isHealthKitPossible()) {
-      ensureHealthKitAuth();
-    }
-
     const onResume = () => { drainWatchQueue({ onSynced }); };
     const sub = CapApp.addListener("appStateChange", ({ isActive }) => {
       if (isActive) onResume();
@@ -1590,20 +1583,6 @@ export default function Home() {
           fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(patch) }).catch(() => {});
         }
 
-        // If neither server nor local has a weight, try seeding from Apple Health (iOS only).
-        // Race guard: only apply if the user hasn't set a weight while the async call was in flight.
-        const hasServerWeight = data.bodyWeight && data.bodyWeight > 0;
-        if (!hasServerWeight && !localWeight && isHealthKitPossible()) {
-          fetchLatestBodyWeightLbs().then((res) => {
-            if (!res || res.lbs < 60 || res.lbs > 500) return;
-            // Re-check: did the user (or another path) set a weight while we were waiting?
-            if (localStorage.getItem("coldstreak-body-weight")) return;
-            const lbs = Math.round(res.lbs);
-            setBodyWeightLbs(lbs);
-            localStorage.setItem("coldstreak-body-weight", String(lbs));
-            fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ bodyWeight: lbs }) }).catch(() => {});
-          }).catch(() => {});
-        }
       })
       .catch(() => {});
   }, [auth.user]);
@@ -1706,19 +1685,9 @@ export default function Home() {
     return { ok: true };
   };
 
-  // Onboarding Apple Health weight import — returns lbs (or a reason it failed).
+  // Apple Health weight import — disabled in this build.
   const handleOnboardingImportWeight = async (): Promise<{ lbs: number | null; message?: string }> => {
-    try {
-      const result = await connectHealthKit();
-      if (result === "no-plugin") return { lbs: null, message: "This app version doesn't include Apple Health support yet." };
-      if (result === "unavailable") return { lbs: null, message: "Apple Health isn't available on this device." };
-      if (result !== "connected") return { lbs: null, message: "Turn on Body Mass for ColdStreak in Health settings, then try again." };
-      const res = await fetchLatestBodyWeightLbs();
-      if (!res || res.lbs < 60 || res.lbs > 500) return { lbs: null, message: "No weight found in Apple Health." };
-      return { lbs: res.lbs };
-    } catch {
-      return { lbs: null, message: "Could not read from Apple Health." };
-    }
+    return { lbs: null, message: "Apple Health is not available in this build." };
   };
 
   // Save an edited account username from the Profile menu (validates + handles 409).
@@ -2823,20 +2792,6 @@ export default function Home() {
       ? Math.round(hrReadingsRef.current.reduce((a, b) => a + b, 0) / hrReadingsRef.current.length)
       : null;
 
-    // Fallback: pull HR from Apple Health for the timer window. Picks up data
-    // from any device that syncs to Apple Health — Apple Watch, Garmin, Whoop,
-    // Oura, Fitbit, T-Rex via 3rd-party sync apps, etc. Capped at 2s so the
-    // save toast never feels stuck.
-    if (hrAvg === null && isHealthKitPossible()) {
-      try {
-        const endedAt = new Date();
-        const startedAt = startedAtOverride ?? new Date(endedAt.getTime() - durationSec * 1000);
-        const pull = fetchHrAvgForWindow(startedAt, endedAt);
-        const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000));
-        hrAvg = (await Promise.race([pull, timeout])) ?? null;
-      } catch { /* never block the save on HealthKit */ }
-    }
-
     createPlunge.mutate(
       {
         duration: durationSec, temperature, score: String(score), timerUsed: true, calories: caloriesAtLogTime,
@@ -3272,7 +3227,7 @@ export default function Home() {
           onComplete={() => setShowOnboarding(false)}
           onRegister={handleOnboardingRegister}
           onImportWeight={handleOnboardingImportWeight}
-          healthKitAvailable={isHealthKitPossible()}
+          healthKitAvailable={false}
         />
       )}
 
@@ -5038,64 +4993,6 @@ export default function Home() {
               </details>
             </div>
 
-            {/* ── Apple Health (HealthKit) ─────────────────────────── */}
-            {/* Apple Guideline 2.5.1: clearly identify HealthKit usage in the UI. */}
-            {isHealthKitPossible() && (
-              <div data-testid="card-apple-health" className="bg-gradient-to-br from-pink-900/40 to-blue-900/60 backdrop-blur-md rounded-2xl border border-pink-500/30 p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Heart className="w-5 h-5 text-pink-400 fill-pink-400" />
-                  <h3 className="text-white font-bold text-sm">Apple Health</h3>
-                </div>
-                <p className="text-blue-200 text-xs leading-relaxed">
-                  ColdStreak uses Apple HealthKit to import your heart rate, HRV, and body weight from Apple Watch (or any device that writes to Apple Health). This is how your plunges get a heart-rate average without a chest strap and accurate calorie estimates without re-entering your weight.
-                </p>
-                <div className="bg-blue-950/60 rounded-xl border border-blue-700/30 p-3 space-y-1.5">
-                  <p className="text-pink-300 text-[11px] font-semibold uppercase tracking-wide">Data read from Apple Health</p>
-                  <ul className="text-blue-200 text-[11px] space-y-1">
-                    <li>• Heart Rate — averaged across your plunge window</li>
-                    <li>• Heart Rate Variability (HRV) — for recovery insights</li>
-                    <li>• Body Weight — used to estimate calories burned</li>
-                  </ul>
-                  <p className="text-blue-400 text-[11px] mt-2">No data is written to Apple Health, and nothing leaves your device without your action.</p>
-                </div>
-                <button
-                  data-testid="button-apple-health-connect"
-                  onClick={async () => {
-                    const result = await connectHealthKit();
-                    if (result === "connected") {
-                      toast({ title: "Apple Health connected", description: "Heart rate, HRV, and weight will be pulled from Apple Health for your plunges. Make sure Heart Rate, HRV, and Body Mass are turned ON in the Health permission screen." });
-                    } else if (result === "no-plugin") {
-                      toast({
-                        title: "Update needed",
-                        description: "This app version doesn't include Apple Health support yet. Install the latest TestFlight/App Store build, then try again.",
-                        variant: "destructive",
-                      });
-                    } else if (result === "unavailable") {
-                      toast({
-                        title: "Apple Health unavailable",
-                        description: "This device doesn't have Apple Health data available.",
-                        variant: "destructive",
-                      });
-                    } else if (result === "error") {
-                      toast({
-                        title: "Couldn't open Apple Health",
-                        description: "Something went wrong reaching Apple Health. Please try again, or check ColdStreak under Settings → Health → Data Access & Devices.",
-                        variant: "destructive",
-                      });
-                    } else {
-                      toast({
-                        title: "Grant access in Health",
-                        description: "Opening Health app. Tap Sharing tab → Apps → ColdStreak, then turn on Heart Rate, HRV, and Body Mass.",
-                      });
-                      setTimeout(() => { window.location.href = "x-apple-health://"; }, 400);
-                    }
-                  }}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-400 hover:to-red-400 text-white font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  <Heart className="w-4 h-4" /> Connect Apple Health
-                </button>
-              </div>
-            )}
 
             {/* Manual reminder */}
             <p className="text-blue-600/70 text-[10px] text-center px-2 pb-1">
@@ -6040,31 +5937,6 @@ export default function Home() {
                       </button>
                     </div>
 
-                    {/* Apple Health import — only shown on iOS native builds */}
-                    {isHealthKitPossible() && (
-                      <button
-                        onClick={async () => {
-                          const result = await fetchLatestBodyFatPct();
-                          if (!result) {
-                            toast({ title: "No body fat % found", description: "Make sure your scale syncs to Apple Health and you've weighed in recently." });
-                            return;
-                          }
-                          const pct = result.pct;
-                          const clamped = Math.round(Math.min(60, Math.max(3, pct)) * 10) / 10;
-                          setBodyFatPct(clamped);
-                          setBodyFatRecordedAt(result.recordedAt);
-                          localStorage.setItem("coldstreak-body-fat", String(clamped));
-                          localStorage.setItem("coldstreak-body-fat-recorded-at", String(result.recordedAt));
-                          const tok = localStorage.getItem("coldstreak-auth-token");
-                          if (tok) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bodyFat: Math.round(clamped * 10) }) }).catch(() => {});
-                          toast({ title: `Body fat set to ${clamped.toFixed(1)}%`, description: "Pulled from Apple Health." });
-                        }}
-                        className="w-full py-2 rounded-xl bg-blue-800/60 border border-blue-600 text-blue-100 text-xs font-semibold flex items-center justify-center gap-2 active:scale-[0.98] hover:border-cyan-400 transition-colors"
-                      >
-                        <Heart className="w-3.5 h-3.5 text-red-400" />
-                        Import from Apple Health
-                      </button>
-                    )}
 
                     {/* Stepper */}
                     {(() => {
@@ -6083,37 +5955,15 @@ export default function Home() {
                       const btnCls = "w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none";
                       const valCls = "w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none";
 
-                      // Build the Apple Health age label when a recordedAt timestamp exists
-                      const ahLabel = (() => {
-                        if (!bodyFatRecordedAt) return null;
-                        const diffMs = Date.now() - bodyFatRecordedAt;
-                        const diffDays = Math.floor(diffMs / 86_400_000);
-                        const diffHours = Math.floor(diffMs / 3_600_000);
-                        let age: string;
-                        if (diffDays === 0) age = diffHours <= 1 ? "just now" : `${diffHours}h ago`;
-                        else if (diffDays === 1) age = "yesterday";
-                        else age = `${diffDays} days ago`;
-                        const stale = diffDays >= 14;
-                        return { age, stale };
-                      })();
-
                       return (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => saveFat(Math.round((pct - 0.1) * 10) / 10)} className={btnCls}>−</button>
-                            <div className={valCls}>{pct.toFixed(1)}%</div>
-                            <button onClick={() => saveFat(Math.round((pct + 0.1) * 10) / 10)} className={btnCls}>+</button>
-                            {bodyFatPct !== null ? (
-                              <span className="text-cyan-400 text-xs font-semibold">✓ Active — overrides BMI</span>
-                            ) : (
-                              <span className="text-blue-500 text-xs">Not set — using BMI</span>
-                            )}
-                          </div>
-                          {ahLabel && (
-                            <p className={`text-xs pl-1 ${ahLabel.stale ? "text-amber-400" : "text-blue-400"}`}>
-                              From Apple Health · {ahLabel.age}
-                              {ahLabel.stale && " · may be outdated"}
-                            </p>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => saveFat(Math.round((pct - 0.1) * 10) / 10)} className={btnCls}>−</button>
+                          <div className={valCls}>{pct.toFixed(1)}%</div>
+                          <button onClick={() => saveFat(Math.round((pct + 0.1) * 10) / 10)} className={btnCls}>+</button>
+                          {bodyFatPct !== null ? (
+                            <span className="text-cyan-400 text-xs font-semibold">✓ Active — overrides BMI</span>
+                          ) : (
+                            <span className="text-blue-500 text-xs">Not set — using BMI</span>
                           )}
                         </div>
                       );

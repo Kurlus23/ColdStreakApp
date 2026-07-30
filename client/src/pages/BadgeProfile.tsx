@@ -9,7 +9,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { shareContent } from "@/lib/share";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
-import { isHealthKitPossible, connectHealthKit, fetchLatestBodyWeightLbs } from "@/lib/healthKit";
 import { Capacitor } from "@capacitor/core";
 import { loadFriends as loadFriendsImpl } from "@/lib/loadFriends";
 import { searchFriends as searchFriendsImpl } from "@/lib/searchFriends";
@@ -739,26 +738,6 @@ export default function BadgeProfile() {
                 <button {...pressProps(1)} className="w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none">+</button>
                 <span className="text-blue-500 text-xs">lbs ({Math.round(bodyWeightLbs / 2.205)} kg)</span>
               </div>
-              {isHealthKitPossible() && (
-                <button
-                  onClick={async () => {
-                    if (weightPullInFlightRef.current) return;
-                    weightPullInFlightRef.current = true;
-                    try {
-                      const r = await connectHealthKit();
-                      if (r !== "connected") { toast({ title: "Apple Health not connected", description: "Go to Settings → Health → ColdStreak to grant Body Mass access.", variant: "destructive" }); return; }
-                      const res = await fetchLatestBodyWeightLbs();
-                      if (!res || res.lbs < 60 || res.lbs > 500) { toast({ title: "No weight found in Apple Health", description: "Log your weight in the Health app first." }); return; }
-                      const lbs = Math.round(res.lbs);
-                      setBodyWeightLbs(lbs);
-                      localStorage.setItem("coldstreak-body-weight", String(lbs));
-                      saveWeightToServer(lbs);
-                      toast({ title: `Updated to ${lbs} lbs`, description: "Pulled from Apple Health." });
-                    } finally { weightPullInFlightRef.current = false; }
-                  }}
-                  className="mt-2 text-xs text-cyan-400 hover:text-cyan-300 underline-offset-2 hover:underline active:scale-95"
-                >📥 Pull from Apple Health</button>
-              )}
               <div className="mt-3 grid grid-cols-3 gap-2 text-center border-t border-blue-800/60 pt-3">
                 <div>
                   <div className="text-orange-300 font-bold text-base leading-none">{Math.round(todayCalories) || "—"}</div>
