@@ -1924,9 +1924,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
     const userId = Number(req.params.id);
     if (isNaN(userId)) return res.status(400).json({ message: "Invalid user id" });
-    await db.update(users)
-      .set({ emailVerified: true, emailVerifyToken: null })
-      .where(eq(users.id, userId));
+    await storage.verifyUserEmail(userId);
     res.json({ success: true });
   });
 

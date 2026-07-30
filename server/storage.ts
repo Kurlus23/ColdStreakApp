@@ -244,6 +244,7 @@ export interface IStorage {
   getSupportMessages(): Promise<SupportMessage[]>;
   getSupportMessageById(id: number): Promise<SupportMessage | null>;
   resolveSupportMessage(id: number, adminReply?: string): Promise<void>;
+  verifyUserEmail(id: number): Promise<void>;
   // UGC reports (Apple App Review Guideline 1.2)
   createReport(report: InsertReport): Promise<Report>;
   getReports(status?: "open" | "resolved" | "removed"): Promise<Report[]>;
@@ -1679,6 +1680,12 @@ export class DatabaseStorage implements IStorage {
   async getSupportMessageById(id: number): Promise<SupportMessage | null> {
     const [row] = await db.select().from(supportMessages).where(eq(supportMessages.id, id));
     return row ?? null;
+  }
+
+  async verifyUserEmail(id: number): Promise<void> {
+    await db.update(users)
+      .set({ emailVerified: true, emailVerifyToken: null })
+      .where(eq(users.id, id));
   }
 
   async resolveSupportMessage(id: number, adminReply?: string): Promise<void> {
