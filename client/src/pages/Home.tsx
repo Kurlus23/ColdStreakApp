@@ -164,7 +164,8 @@ function playAlarm(url: string, label: string, isCustom: boolean, stopAfterMs?: 
 type Screen = "timer" | "history" | "explore" | "gear" | "settings" | "legal" | "achievements" | "friends";
 
 
-import { getCompositionFactor } from "@/lib/benefitSegments";
+import { getCompositionFactor, SEGMENTS, type SegmentId, computeThresholds } from "@/lib/benefitSegments";
+import { CelebrationOverlay, GoalNudge, CountdownGoalHint } from "@/components/PlungeBenefitCoach";
 
 function plungeScore(
   durationSeconds: number,
@@ -386,6 +387,14 @@ export default function Home() {
   const [weeklyGoalMinutes, setWeeklyGoalMinutes] = useState<number>(
     () => Number(localStorage.getItem("weeklyGoalMinutes") ?? 11)
   );
+
+  // ── Benefit coaching ───────────────────────────────────────────────────────
+  const [primaryBenefit, setPrimaryBenefit] = useState<SegmentId>(
+    () => (localStorage.getItem("coldstreak-primary-benefit") as SegmentId) || "mood"
+  );
+  const [showBenefitPicker, setShowBenefitPicker] = useState(false);
+  const [celebrationFor, setCelebrationFor] = useState<SegmentId | null>(null);
+  const [plungeAchieved, setPlungeAchieved] = useState<Set<SegmentId>>(new Set());
 
   // Friends
   interface FriendEntry { friendshipId: number; userId: number; username: string | null; displayName: string | null; avatarUrl: string | null; streak: number; plungedToday: boolean; latestScore: number | null; bestScore: number | null; }
@@ -3236,6 +3245,23 @@ export default function Home() {
 
   const displaySeconds = countdownMode ? countdown : seconds;
   const isActive = countdownMode ? countdownRunning : isRunning;
+
+  // Reset per-plunge achievement tracking when a new session starts
+  const prevIsActiveRef = useRef(false);
+  useEffect(() => {
+    if (isActive && !prevIsActiveRef.current) {
+      setPlungeAchieved(new Set());
+      setCelebrationFor(null);
+    }
+    prevIsActiveRef.current = isActive;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive]);
+
+  const handleBenefitMilestone = useCallback((segId: SegmentId) => {
+    setPlungeAchieved(prev => new Set(prev).add(segId));
+    setCelebrationFor(segId);
+  }, []);
+
   // ms timestamp when the last plunge of the day ended — used for benefit decay.
   // createdAt is the session start; end = start + duration.
   // Undefined during an active session (no decay while plunging).
@@ -3630,6 +3656,28 @@ export default function Home() {
             </div>
           </div>
 
+          {/* ── Benefit goal pill ── */}
+          {(() => {
+            const ps = SEGMENTS.find(s => s.id === primaryBenefit)!;
+            return (
+              <button
+                onClick={() => { if (!isActive) setShowBenefitPicker(true); }}
+                className="mt-2 w-full flex items-center justify-between rounded-xl px-3 py-2 transition-colors"
+                style={{ background: "rgba(14,30,54,0.7)", border: `1px solid ${ps.barColor}33` }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">{ps.emoji}</span>
+                  <span className="text-[11px] font-semibold" style={{ color: ps.barColor }}>
+                    Goal: {ps.label}
+                  </span>
+                </div>
+                {!isActive && (
+                  <span className="text-slate-500 text-[10px]">tap to change</span>
+                )}
+              </button>
+            );
+          })()}
+
           {/* ── Benefit bar (home screen) ── */}
           {/* Uses full today total — no 2-hour window; once earned, stays lit until midnight */}
           <div data-testid="benefit-bar" className="rounded-xl mt-2 px-2 pt-3 pb-1.5 bg-blue-950/90 backdrop-blur-sm border border-blue-800/50">
@@ -3643,8 +3691,22 @@ export default function Home() {
               bodyHeightCm={bodyHeightCm}
               bodyFatPct={bodyFatPct}
               lastPlungeEndedAt={lastPlungeEndedAt}
+              onMilestoneReached={handleBenefitMilestone}
             />
           </div>
+
+          {/* ── Goal nudge (live countdown / keep-going) ── */}
+          <GoalNudge
+            primaryBenefit={primaryBenefit}
+            totalElapsed={todayTotalSec + elapsedSeconds}
+            isActive={isActive}
+            tempF={temperature}
+            bodyWeightLbs={bodyWeightLbs}
+            bodyHeightCm={bodyHeightCm}
+            bodyFatPct={bodyFatPct}
+            goalAchieved={plungeAchieved.has(primaryBenefit)}
+            allAchieved={plungeAchieved.has("recovery")}
+          />
 
           {/* ── Height nudge banner ── */}
           {auth.user && !heightNudgeDismissed && !localStorage.getItem("coldstreak-body-height") && (
@@ -4440,6 +4502,23 @@ export default function Home() {
                     {Array.from({ length: 60 }, (_, i) => <option key={i} value={i}>{i} sec</option>)}
                   </select>
                 </div>
+              )}
+              {countdownMode && !countdownRunning && (
+                <CountdownGoalHint
+                  primaryBenefit={primaryBenefit}
+                  setTimeSecs={minutesInput * 60 + secondsInput}
+                  tempF={temperature}
+                  bodyWeightLbs={bodyWeightLbs}
+                  bodyHeightCm={bodyHeightCm}
+                  bodyFatPct={bodyFatPct}
+                  onApply={(m, s) => {
+                    setMinutesInput(m);
+                    setSecondsInput(s);
+                    localStorage.setItem("coldstreak-countdown-minutes", String(m));
+                    localStorage.setItem("coldstreak-countdown-seconds", String(s));
+                    saveDisplayPrefs({ countdownMinutes: m, countdownSeconds: s });
+                  }}
+                />
               )}
             </div>
 
@@ -7841,6 +7920,67 @@ export default function Home() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── BENEFIT CELEBRATION OVERLAY ─── */}
+      {celebrationFor && (
+        <CelebrationOverlay
+          segmentId={celebrationFor}
+          primaryBenefit={primaryBenefit}
+          onDismiss={() => setCelebrationFor(null)}
+        />
+      )}
+
+      {/* ─── BENEFIT GOAL PICKER ─── */}
+      {showBenefitPicker && (
+        <div
+          className="fixed inset-0 z-[55] flex items-end justify-center"
+          style={{ background: "rgba(4,15,30,0.8)", backdropFilter: "blur(8px)" }}
+          onClick={() => setShowBenefitPicker(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-t-3xl px-5 pt-5 pb-10 space-y-3"
+            style={{ background: "linear-gradient(to bottom, #0d2240, #071428)", border: "1px solid rgba(34,211,238,0.15)", borderBottom: "none" }}
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="text-white font-bold text-base mb-1">What's your goal today?</p>
+            <p className="text-slate-400 text-xs mb-3 leading-relaxed">
+              We'll guide you during your plunge and celebrate when you hit it.
+            </p>
+            {SEGMENTS.map(seg => {
+              const DESCS: Record<SegmentId, string> = {
+                energy:     "Sharp focus & alertness for 2–3 hours",
+                mood:       "Dopamine surge lasting 3–5 hours",
+                metabolism: "Brown fat activation & calorie burn",
+                recovery:   "Inflammation reduction & muscle repair",
+              };
+              const active = primaryBenefit === seg.id;
+              return (
+                <button
+                  key={seg.id}
+                  onClick={() => {
+                    setPrimaryBenefit(seg.id);
+                    localStorage.setItem("coldstreak-primary-benefit", seg.id);
+                    setShowBenefitPicker(false);
+                  }}
+                  className="w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-all active:scale-[0.98]"
+                  style={{
+                    background: active ? seg.barColor + "18" : "rgba(14,30,54,0.7)",
+                    border: `1px solid ${active ? seg.barColor + "60" : "rgba(34,211,238,0.12)"}`,
+                    boxShadow: active ? `0 0 16px ${seg.barColor}22` : "none",
+                  }}
+                >
+                  <span className="text-2xl shrink-0">{seg.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm" style={{ color: active ? seg.barColor : "#fff" }}>{seg.label}</p>
+                    <p className="text-slate-400 text-xs mt-0.5">{DESCS[seg.id as SegmentId]}</p>
+                  </div>
+                  {active && <span className="text-xs font-bold shrink-0" style={{ color: seg.barColor }}>✓</span>}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

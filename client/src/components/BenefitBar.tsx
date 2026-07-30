@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { SEGMENTS, getTempFactor, getCompositionFactor } from "@/lib/benefitSegments";
+import { SEGMENTS, getTempFactor, getCompositionFactor, type SegmentId } from "@/lib/benefitSegments";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 interface BenefitBarProps {
@@ -9,6 +9,8 @@ interface BenefitBarProps {
   tempF: number;
   /** Whether the timer is actively running. */
   isActive: boolean;
+  /** Called once per segment when it crosses its threshold during an active session. */
+  onMilestoneReached?: (segmentId: SegmentId) => void;
   /**
    * Sum of durations (seconds) of all plunges already logged today.
    * Carried over so a second session resumes from where the first stopped.
@@ -46,6 +48,7 @@ export function BenefitBar({
   bodyFatPct,
   lastPlungeEndedAt,
   todayPlungesData,
+  onMilestoneReached,
 }: BenefitBarProps) {
   const tempFactor = useMemo(() => getTempFactor(tempF), [tempF]);
   const compFactor = useMemo(
@@ -89,6 +92,7 @@ export function BenefitBar({
         setMilestone(`${seg.emoji} ${seg.label} achieved`);
         if (milestoneTimerRef.current) clearTimeout(milestoneTimerRef.current);
         milestoneTimerRef.current = setTimeout(() => setMilestone(null), 2500);
+        onMilestoneReached?.(seg.id);
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
