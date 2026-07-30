@@ -408,7 +408,13 @@ export default function Home() {
   const [friendSearchResults, setFriendSearchResults] = useState<UserResult[]>([]);
   const [friendsSearchLoading, setFriendsSearchLoading] = useState(false);
   const [challengingId, setChallengingId] = useState<number | null>(null);
-  const [challengedIds, setChallengedIds] = useState<Set<number>>(new Set());
+  const [challengedIds, setChallengedIds] = useState<Set<number>>(() => {
+    try {
+      const stored = sessionStorage.getItem("coldstreak-challenged-ids");
+      if (stored) return new Set<number>(JSON.parse(stored));
+    } catch {}
+    return new Set<number>();
+  });
   const [selectedFriend, setSelectedFriend] = useState<FriendEntry | null>(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteSending, setInviteSending] = useState(false);
@@ -481,6 +487,15 @@ export default function Home() {
       setPendingChallengeModalDismissed(false);
     }
   }, [activeChallengerUserId]);
+
+  // Persist challenged IDs to sessionStorage so the green "✓ Challenged"
+  // button survives tab switches (the Home component stays mounted, but
+  // sessionStorage gives an extra safety net and survives shallow remounts).
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("coldstreak-challenged-ids", JSON.stringify([...challengedIds]));
+    } catch {}
+  }, [challengedIds]);
 
   // No auto-open login modal — users discover signup organically through
   // the nudge that fires after their first plunge.
@@ -5326,21 +5341,24 @@ export default function Home() {
                                 data-testid={`button-challenge-${f.userId}`}
                                 onClick={async (e) => {
                                   e.stopPropagation();
-                                  if (challengingId === f.userId) return;
+                                  if (challengingId === f.userId || challengedIds.has(f.userId)) return;
                                   setChallengingId(f.userId);
                                   await sendFriendChallengeImpl(f.userId, f.displayName || f.username || "Friend", {
                                     authFetch, navigate, toast,
                                     clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
                                   });
                                   setChallengingId(null);
+                                  setChallengedIds(prev => new Set(prev).add(f.userId));
                                 }}
-                                disabled={challengingId === f.userId}
-                                className={`absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[9px] font-bold transition-colors active:scale-95 disabled:opacity-40 leading-none ${
-                                  f.plungedToday && f.latestScore != null && todayScore > 0 && f.latestScore > todayScore
+                                disabled={challengingId === f.userId || challengedIds.has(f.userId)}
+                                className={`absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[9px] font-bold transition-colors active:scale-95 disabled:opacity-90 leading-none ${
+                                  challengedIds.has(f.userId)
+                                    ? "bg-green-500/20 border border-green-500/40 text-green-300"
+                                    : f.plungedToday && f.latestScore != null && todayScore > 0 && f.latestScore > todayScore
                                     ? "bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/30"
                                     : "bg-orange-500/20 border border-orange-500/40 text-orange-300 hover:bg-orange-500/30"
                                 }`}
-                              >{challengingId === f.userId ? "…" : (f.plungedToday && f.latestScore != null && todayScore > 0 && f.latestScore > todayScore ? "🏆 Winner" : "⚡ Challenge")}</button>
+                              >{challengingId === f.userId ? "…" : challengedIds.has(f.userId) ? "✓ Challenged" : (f.plungedToday && f.latestScore != null && todayScore > 0 && f.latestScore > todayScore ? "🏆 Winner" : "⚡ Challenge")}</button>
                             )}
                           </div>
                         );
