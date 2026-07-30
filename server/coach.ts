@@ -23,11 +23,13 @@ APP FEATURES:
 • Timer (home screen): Start/stop plunge with stopwatch or countdown mode. Tap temperature to change it.
 • Water Temperature: Enter manually or connect a Bluetooth sensor for a live reading. Accuracy powers personalised insights.
 • Benefits Bar: 4 segments — Energy (~60s), Mood (~2 min), Metabolism (~3 min), Recovery (~5 min+). Fill during the session, decay slowly after. Achievement border stays all day once earned.
-• History tab: Full log of past plunges with score, temp, duration, and mood ratings. Houses Sweet Spot, Cold Adaptation trend, and "Try This Next" card.
-• Sweet Spot: Finds the temp/duration combo where the user feels best. Requires 10+ rated plunges.
-• Cold Adaptation: Tracks month-over-month improvement in post-plunge feel. Trending up = adapting; suggests going colder/longer.
-• Try This Next: Temperature-aware progression card. Suggests colder temps for warmer plungers; affirms consistency for advanced (≤45°F) plungers.
+• History tab: Full log of past plunges with score, temp, duration, and mood ratings.
 • Mood check-in: After a plunge, rate Energy (1–3), Focus (1–3), and Overall Mood (1–5). Powers Sweet Spot and Adaptation.
+• Profile screen (Badges & Account): Has two tabs — Account and Stats. The Stats tab is where all personal analytics live: Calorie Burn estimates, Sweet Spot, Cold Adaptation trend, Discovery Report, "Try This Next" card, and a link to the full Insights Dashboard.
+• Sweet Spot: Finds the temp/duration combo where the user feels best. Requires 10+ rated plunges. Found in Profile › Stats tab.
+• Cold Adaptation: Tracks month-over-month improvement in post-plunge feel. Trending up = adapting; suggests going colder/longer. Found in Profile › Stats tab.
+• Try This Next: Temperature-aware progression card. Suggests colder temps for warmer plungers; affirms consistency for advanced (≤45°F) plungers. Found in Profile › Stats tab.
+• Calorie Burn: Thermogenic estimate based on duration, temperature, and body weight. Shows Today / This week / All-time. Found in Profile › Stats tab (tap the Profile icon → Stats tab).
 • Streak: Daily plunge streak. Streak Freeze tokens protect it on rest days.
 • Friends tab: See friends' streaks, send challenges, view profiles.
 • Explore tab: Discover cold plunge spots near you.
@@ -60,11 +62,11 @@ RESPONSE FORMAT — always return valid JSON, no markdown, no code fences:
 
 Set "navigate" to the screen name (string) when your answer is specifically about a feature the user can see on that screen — so they can follow along:
 • "timer"        — benefits bar, plunge score, streak, temperature, countdown, start/stop
-• "history"      — past plunges, sweet spot, cold adaptation, try this next, calorie stats, mood check-in
+• "history"      — past plunges log, mood check-in
+• "achievements" — badges, passport, Account tab, Stats tab (calorie burn, sweet spot, cold adaptation, try this next, discovery report, insights)
 • "explore"      — finding spots, community locations, nearby plunge spots
 • "gear"         — equipment, devices, Bluetooth sensors, smart scales
-• "settings"     — profile, weight, height, body fat, notifications, account
-• "achievements" — badges, passport
+• "settings"     — weight, height, body fat, notifications
 • "friends"      — challenges, friend streaks, pending requests
 
 Set "navigate" to null for general cold-plunge science questions, greetings, or when the answer doesn't map to a single screen.
@@ -78,7 +80,8 @@ type ChatMessage = { role: "user" | "assistant"; content: string };
 
 const SCREEN_LABELS: Record<string, string> = {
   timer:        "Timer (home screen — start/stop plunge)",
-  history:      "History tab (past plunges, Sweet Spot, Cold Adaptation, Try This Next)",
+  history:      "History tab (past plunges log, mood check-in)",
+  achievements: "Profile screen — Badges, Account tab, and Stats tab (calorie burn, sweet spot, cold adaptation, try this next, insights)",
   friends:      "Friends tab (friend streaks, challenges, pending requests)",
   explore:      "Explore tab (nearby cold plunge spots)",
   gear:         "Gear tab (equipment browsing)",
