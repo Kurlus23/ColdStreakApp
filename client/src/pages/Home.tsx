@@ -5403,7 +5403,7 @@ export default function Home() {
                         <p className="text-slate-500 text-[10px] uppercase tracking-wider mt-0.5">Streak</p>
                       </div>
                       <div className="rounded-2xl p-3 text-center" style={{ background: "rgba(14,30,54,0.8)", border: "1px solid rgba(34,211,238,0.12)" }}>
-                        <p className="text-cyan-400 text-xl font-black">{selectedFriend.latestScore != null ? selectedFriend.latestScore.toFixed(1) : "—"}</p>
+                        <p className="text-cyan-400 text-xl font-black">{selectedFriend.plungedToday && selectedFriend.latestScore != null ? selectedFriend.latestScore.toFixed(1) : "—"}</p>
                         <p className="text-slate-500 text-[10px] uppercase tracking-wider mt-0.5">Today</p>
                       </div>
                       <div className="rounded-2xl p-3 text-center" style={{ background: "rgba(14,30,54,0.8)", border: "1px solid rgba(34,211,238,0.12)" }}>
