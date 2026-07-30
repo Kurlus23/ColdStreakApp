@@ -5368,7 +5368,7 @@ export default function Home() {
                   onClick={() => setSelectedFriend(null)}
                 >
                   <div
-                    className="rounded-t-3xl px-6 pt-5 pb-10 space-y-5"
+                    className="rounded-t-3xl px-6 pt-5 pb-10 space-y-5 w-full max-w-lg mx-auto"
                     style={{ background: "linear-gradient(to bottom, #0d2240, #071428)", border: "1px solid rgba(34,211,238,0.15)", borderBottom: "none" }}
                     onClick={(e) => e.stopPropagation()}
                   >
