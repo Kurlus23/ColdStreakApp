@@ -4584,7 +4584,7 @@ export default function Home() {
                   bodyWeightLbs={bodyWeightLbs}
                   bodyHeightCm={bodyHeightCm}
                   bodyFatPct={bodyFatPct}
-                  todayLoggedSeconds={todayTotalSec}
+                  todayPlungesData={todayPlunges}
                   onApply={(m, s) => {
                     setMinutesInput(m);
                     setSecondsInput(s);

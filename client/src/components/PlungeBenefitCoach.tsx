@@ -200,17 +200,21 @@ export function GoalNudge({
 
 // ─── CountdownGoalHint ────────────────────────────────────────────────────────
 // Shown below the countdown time picker when the set duration is shorter than
-// what the user's goal requires at the current temperature & body composition.
+// what the user's goal requires right now, accounting for benefit decay.
+//
+// Uses the same decay model as BenefitBar: each fully-earned segment fades over
+// its halfLifeHours. The recommended time = sum of (segDuration × undecayed%)
+// across all segments up to and including the primary goal.
 
 interface CountdownGoalHintProps {
   primaryBenefit: SegmentId;
-  setTimeSecs: number;          // minutesInput * 60 + secondsInput
+  setTimeSecs: number;
   tempF: number;
   bodyWeightLbs?: number;
   bodyHeightCm?: number;
   bodyFatPct?: number | null;
-  /** Seconds already logged today — reduces the needed countdown accordingly. */
-  todayLoggedSeconds?: number;
+  /** Today's logged plunges — used to compute per-segment earnedAt for decay. */
+  todayPlungesData?: { duration: number; createdAt: string | Date }[];
   onApply: (minutes: number, seconds: number) => void;
 }
 
@@ -221,21 +225,70 @@ export function CountdownGoalHint({
   bodyWeightLbs = 150,
   bodyHeightCm  = 175,
   bodyFatPct,
-  todayLoggedSeconds = 0,
+  todayPlungesData = [],
   onApply,
 }: CountdownGoalHintProps) {
-  const thresholds  = computeThresholds(tempF, bodyWeightLbs, bodyHeightCm, bodyFatPct);
-  const primaryIdx  = SEGMENTS.findIndex(s => s.id === primaryBenefit);
-  const primarySeg  = SEGMENTS[primaryIdx];
-  // Subtract time already logged today — you only need the remaining gap
-  const goalSecs    = Math.max(0, thresholds[primaryIdx] - todayLoggedSeconds);
+  const thresholds = computeThresholds(tempF, bodyWeightLbs, bodyHeightCm, bodyFatPct);
+  const primaryIdx = SEGMENTS.findIndex(s => s.id === primaryBenefit);
+  const primarySeg = SEGMENTS[primaryIdx];
+  const now        = Date.now();
 
-  // Already hit the goal today, or set time covers it: stay silent
-  if (goalSecs <= 0 || setTimeSecs >= goalSecs - 10) return null;
+  // Total raw seconds logged today
+  const todayLoggedSecs = todayPlungesData.reduce((s, p) => s + p.duration, 0);
 
-  const recMins = Math.floor(goalSecs / 60);
-  const recSecs = goalSecs % 60;
+  // ── Raw fill per segment (0–100), no decay yet ────────────────────────────
+  const rawFills = SEGMENTS.map((_, i) => {
+    const lo = i === 0 ? 0 : thresholds[i - 1];
+    const hi = thresholds[i];
+    if (todayLoggedSecs <= lo) return 0;
+    if (todayLoggedSecs >= hi) return 100;
+    return ((todayLoggedSecs - lo) / (hi - lo)) * 100;
+  });
+
+  // ── When each segment was earned (timestamp) ──────────────────────────────
+  const segmentEarnedAt: (number | undefined)[] = SEGMENTS.map(() => undefined);
+  if (todayPlungesData.length > 0) {
+    const sorted = [...todayPlungesData].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+    let running = 0;
+    for (const p of sorted) {
+      running += p.duration;
+      const plungeEnd = new Date(p.createdAt).getTime() + p.duration * 1000;
+      SEGMENTS.forEach((_, i) => {
+        if (segmentEarnedAt[i] !== undefined) return;
+        if (running >= thresholds[i]) segmentEarnedAt[i] = plungeEnd;
+      });
+    }
+  }
+
+  // ── Decayed fill per segment ──────────────────────────────────────────────
+  const decayedFills = SEGMENTS.map((seg, i) => {
+    if (rawFills[i] < 100) return rawFills[i]; // partial — no decay
+    const anchor = segmentEarnedAt[i];
+    if (!anchor) return 100;
+    const msElapsed = now - anchor;
+    return Math.max(0, 100 * (1 - msElapsed / (seg.halfLifeHours * 3600 * 1000)));
+  });
+
+  // ── How many seconds are needed right now to reach 100% on each segment ───
+  // For each segment up to and including the primary goal, compute the gap
+  // between its current decayed fill and 100%.
+  let neededSecs = 0;
+  for (let i = 0; i <= primaryIdx; i++) {
+    const segDuration = i === 0 ? thresholds[0] : thresholds[i] - thresholds[i - 1];
+    neededSecs += Math.ceil(segDuration * (1 - decayedFills[i] / 100));
+  }
+
+  // Silently skip if goal is already covered or set time already meets it
+  if (neededSecs <= 0 || setTimeSecs >= neededSecs - 10) return null;
+
+  const recMins = Math.floor(neededSecs / 60);
+  const recSecs = neededSecs % 60;
   const recStr  = `${recMins}:${String(recSecs).padStart(2, "0")}`;
+
+  // Explain if decay is the reason the recommendation is longer than expected
+  const decayDriven = todayLoggedSecs > 0 && neededSecs > (thresholds[primaryIdx] - todayLoggedSecs);
 
   return (
     <div
@@ -248,16 +301,18 @@ export function CountdownGoalHint({
       <span className="text-lg shrink-0">{primarySeg.emoji}</span>
       <div className="flex-1 min-w-0">
         <p className="text-[11px] font-semibold leading-tight" style={{ color: primarySeg.barColor }}>
-          {primarySeg.label} goal needs {recStr} at this temp
+          {primarySeg.label} goal needs {recStr} right now
         </p>
+        {decayDriven && (
+          <p className="text-[10px] text-slate-500 leading-tight mt-0.5">
+            Earlier benefits have faded — a bit more time needed
+          </p>
+        )}
       </div>
       <button
         onClick={() => onApply(recMins, recSecs)}
         className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all active:scale-95"
-        style={{
-          background: primarySeg.barColor,
-          color: "#000d1a",
-        }}
+        style={{ background: primarySeg.barColor, color: "#000d1a" }}
       >
         Set it
       </button>
