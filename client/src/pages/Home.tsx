@@ -3176,6 +3176,9 @@ export default function Home() {
   const weeklyScore = thisWeek.reduce((sum, p) => sum + Number(p.score), 0);
   const todayCalories = todayPlunges.reduce((sum, p) => sum + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs, bodyFatPct))), 0);
   const weeklyCalories = thisWeek.reduce((sum, p) => sum + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs, bodyFatPct))), 0);
+  const monthStart = (() => { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d; })();
+  const thisMonth = plunges.filter((p) => new Date(p.createdAt) >= monthStart);
+  const monthlyCalories = thisMonth.reduce((sum, p) => sum + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs, bodyFatPct))), 0);
   const allTimeCalories = plunges.reduce((sum, p) => sum + (p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs, bodyFatPct))), 0);
   const weeklyPct = Math.min(100, (weeklyMinutes / weeklyGoalMinutes) * 100);
   const streak = getStreak(plunges, freezeData?.freezes ?? []);
@@ -6033,7 +6036,7 @@ export default function Home() {
                         <Flame className="w-3.5 h-3.5 text-orange-400" />
                         <span className="text-[10px] text-orange-300/80 uppercase tracking-wider font-semibold">Calorie Burn (est.)</span>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="grid grid-cols-4 gap-1.5 text-center">
                         <div>
                           <div className="text-orange-300 font-bold text-base leading-none">
                             {todayCalories > 0 ? Math.round(todayCalories) : "—"}
@@ -6044,7 +6047,13 @@ export default function Home() {
                           <div className="text-orange-300 font-bold text-base leading-none">
                             {weeklyCalories > 0 ? Math.round(weeklyCalories) : "—"}
                           </div>
-                          <div className="text-blue-400/70 text-[9px] uppercase tracking-wide mt-1">This week</div>
+                          <div className="text-blue-400/70 text-[9px] uppercase tracking-wide mt-1">Week</div>
+                        </div>
+                        <div className="border-r border-blue-700/40">
+                          <div className="text-orange-300 font-bold text-base leading-none">
+                            {monthlyCalories > 0 ? Math.round(monthlyCalories) : "—"}
+                          </div>
+                          <div className="text-blue-400/70 text-[9px] uppercase tracking-wide mt-1">Month</div>
                         </div>
                         <div>
                           <div className="text-orange-300 font-bold text-base leading-none">

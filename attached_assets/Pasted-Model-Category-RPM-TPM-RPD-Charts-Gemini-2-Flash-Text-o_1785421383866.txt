@@ -1,0 +1,201 @@
+Model
+Category
+RPM
+TPM
+RPD
+Charts
+Gemini 2 Flash
+Text-out models	
+2 / 2K
+2.19K / 4M
+9 / Unlimited
+Gemini 2 Flash Lite
+Text-out models	
+2 / 4K
+2.19K / 4M
+3 / Unlimited
+Gemini 2.5 Flash Lite
+Text-out models	
+2 / 4K
+1.31K / 4M
+7 / Unlimited
+Gemini 2.5 Flash Native Audio Dialog
+Live API	
+0 / Unlimited
+0 / 1M
+0 / Unlimited
+Gemini 3 Flash Live
+Live API	
+0 / Unlimited
+0 / 150K
+0 / Unlimited
+Gemini 3.5 Live Translate
+Live API	
+0 / Unlimited
+0 / 100K
+0 / Unlimited
+Gemini Embedding 1
+Other models	
+0 / 3K
+0 / 1M
+0 / Unlimited
+Gemini Embedding 2
+Other models	
+0 / 3K
+0 / 1M
+0 / Unlimited
+Antigravity
+Agents	
+0 / 30
+0 / 200K
+0 / 1K
+Deep Research Pro Preview
+Agents	
+0 / 1
+0 / 500K
+0 / 1.44K
+Computer Use Preview
+Other models	
+0 / 150
+0 / 2M
+0 / 10K
+Nano Banana (Gemini 2.5 Flash Preview Image)
+Multi-modal generative models	
+0 / 500
+0 / 500K
+0 / 2K
+Gemini 2.5 Flash TTS
+Multi-modal generative models	
+0 / 10
+0 / 10K
+0 / 100
+Gemini 2.5 Pro TTS
+Multi-modal generative models	
+0 / 10
+0 / 10K
+0 / 50
+Gemini 3 Flash
+Text-out models	
+0 / 1K
+0 / 2M
+0 / 10K
+Nano Banana Pro (Gemini 3 Pro Image)
+Multi-modal generative models	
+0 / 20
+0 / 100K
+0 / 250
+Gemini 3.1 Pro
+Text-out models	
+0 / 25
+0 / 2M
+0 / 250
+Nano Banana 2 (Gemini 3.1 Flash Image)
+Multi-modal generative models	
+0 / 100
+0 / 200K
+0 / 1K
+Nano Banana 2 Lite (Gemini 3.1 Flash Lite Image)
+Multi-modal generative models	
+0 / 150
+0 / 100K
+0 / 1K
+Gemini 3.1 Flash TTS
+Multi-modal generative models	
+0 / 10
+0 / 10K
+0 / 100
+Gemini 3.5 Flash Lite
+Text-out models	
+0 / 4K
+0 / 4M
+0 / 150K
+Gemini Omni Flash
+Multi-modal generative models	
+0 / 4
+0 / Unlimited
+0 / 20
+Gemini Robotics ER 1.5 Preview
+Other models	
+0 / 1K
+0 / 2M
+0 / 86.4K
+Gemini Robotics ER 1.6 Preview
+Other models	
+0 / 1K
+0 / 2M
+0 / 86.4K
+Gemma 4 31B
+Other models	
+0 / 30
+0 / 16K
+0 / 14.4K
+Imagen 4 Fast Generate
+Multi-modal generative models	
+0 / 10
+-	
+0 / 70
+Imagen 4 Generate
+Multi-modal generative models	
+0 / 10
+-	
+0 / 70
+Imagen 4 Ultra Generate
+Multi-modal generative models	
+0 / 5
+-	
+0 / 30
+Lyria 3 Clip
+Multi-modal generative models	
+0 / 150
+0 / 4M
+0 / 500
+Lyria 3 Pro
+Multi-modal generative models	
+0 / 150
+0 / 4M
+0 / 500
+Veo 3 Fast Generate
+Multi-modal generative models	
+0 / 2
+-	
+0 / 10
+Veo 3 Generate
+Multi-modal generative models	
+0 / 2
+-	
+0 / 10
+Veo 3 Lite Generate
+Multi-modal generative models	
+0 / 2
+-	
+0 / 10
+Gemini 3.1 Flash Lite
+Text-out models	
+1 / 4K
+6 / 4M
+1 / 150K
+Gemma 4 26B
+Other models	
+1 / 30
+6 / 16K
+1 / 14.4K
+Gemini 3.6 Flash
+Text-out models	
+1 / 1K
+1.19K / 2M
+4 / 10K
+Gemini 2.5 Flash
+Text-out models	
+3 / 1K
+1.11K / 1M
+7 / 10K
+Gemini 2.5 Pro
+Text-out models	
+1 / 150
+6 / 2M
+1 / 1K
+Gemini 3.5 Flash
+Text-out models	
+2 / 1K
+1.55K / 2M
+10 / 10K

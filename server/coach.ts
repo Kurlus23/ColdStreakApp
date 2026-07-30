@@ -146,10 +146,13 @@ CURRENT USER:
   // v1beta is the correct endpoint for generateContent; v1 only lists models.
   // Free (unlimited RPD) models first, paid models as last resort.
   const GEMINI_MODELS = [
-    "gemini-2.0-flash",          // free tier, stable
-    "gemini-2.0-flash-lite",     // lighter free fallback
-    "gemini-1.5-flash-latest",   // older free fallback
-    "gemini-1.5-flash-8b",       // smallest free fallback
+    "gemini-flash-latest",       // alias → current stable flash (free)
+    "gemini-3.5-flash",          // 10K RPD free (may 503 under load — falls through)
+    "gemini-3.6-flash",          // 10K RPD free
+    "gemini-3-flash-preview",    // 10K RPD free
+    "gemini-3.5-flash-lite",     // 150K RPD free — lite but huge quota
+    "gemini-3.1-flash-lite",     // 150K RPD free
+    "gemini-flash-lite-latest",  // alias → current lite (last resort)
   ];
   const baseUrl = (model: string) =>
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
