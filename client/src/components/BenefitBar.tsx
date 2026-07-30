@@ -11,6 +11,10 @@ interface BenefitBarProps {
   isActive: boolean;
   /** Called once per segment when it crosses its threshold during an active session. */
   onMilestoneReached?: (segmentId: SegmentId) => void;
+  /** Current goal segment — shows a small tappable label at the top of the bar. */
+  primaryBenefit?: SegmentId;
+  /** Called when the user taps the goal label (disabled while a session is active). */
+  onGoalTap?: () => void;
   /**
    * Sum of durations (seconds) of all plunges already logged today.
    * Carried over so a second session resumes from where the first stopped.
@@ -49,6 +53,8 @@ export function BenefitBar({
   lastPlungeEndedAt,
   todayPlungesData,
   onMilestoneReached,
+  primaryBenefit,
+  onGoalTap,
 }: BenefitBarProps) {
   const tempFactor = useMemo(() => getTempFactor(tempF), [tempF]);
   const compFactor = useMemo(
@@ -163,8 +169,27 @@ export function BenefitBar({
     return Math.max(0, 100 * (1 - msElapsed / (seg.halfLifeHours * 3600 * 1000)));
   });
 
+  const goalSeg = primaryBenefit ? SEGMENTS.find(s => s.id === primaryBenefit) : null;
+
   return (
     <div className="px-0.5 space-y-0.5 mt-0.5 mb-0">
+      {/* Goal tap line — small label; hidden when no primaryBenefit passed */}
+      {goalSeg && (
+        <button
+          onClick={() => { if (!isActive) onGoalTap?.(); }}
+          disabled={isActive}
+          className="w-full flex items-center justify-center gap-1 mb-1 transition-opacity"
+          style={{ opacity: isActive ? 0.4 : 1 }}
+        >
+          <span className="text-[9px]" style={{ color: goalSeg.barColor }}>
+            {goalSeg.emoji} {goalSeg.label} goal
+          </span>
+          {!isActive && (
+            <span className="text-[9px] text-slate-500">· tap to change</span>
+          )}
+        </button>
+      )}
+
       {/* Milestone flash — collapses to zero height when nothing to show */}
       <p
         className="text-center text-[10px] font-semibold tracking-wide transition-opacity duration-500"

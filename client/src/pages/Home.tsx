@@ -3729,28 +3729,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* ── Benefit goal pill ── */}
-          {(() => {
-            const ps = SEGMENTS.find(s => s.id === primaryBenefit)!;
-            return (
-              <button
-                onClick={() => { if (!isActive) setShowBenefitPicker(true); }}
-                className="mt-2 w-full flex items-center justify-between rounded-xl px-3 py-2 transition-colors"
-                style={{ background: "rgba(14,30,54,0.7)", border: `1px solid ${ps.barColor}33` }}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">{ps.emoji}</span>
-                  <span className="text-[11px] font-semibold" style={{ color: ps.barColor }}>
-                    Goal: {ps.label}
-                  </span>
-                </div>
-                {!isActive && (
-                  <span className="text-slate-500 text-[10px]">tap to change</span>
-                )}
-              </button>
-            );
-          })()}
-
           {/* ── Benefit bar (home screen) ── */}
           {/* Uses full today total — no 2-hour window; once earned, stays lit until midnight */}
           <div data-testid="benefit-bar" className="rounded-xl mt-2 px-2 pt-3 pb-1.5 bg-blue-950/90 backdrop-blur-sm border border-blue-800/50">
@@ -3765,6 +3743,8 @@ export default function Home() {
               bodyFatPct={bodyFatPct}
               lastPlungeEndedAt={lastPlungeEndedAt}
               onMilestoneReached={handleBenefitMilestone}
+              primaryBenefit={primaryBenefit}
+              onGoalTap={() => setShowBenefitPicker(true)}
             />
           </div>
 
