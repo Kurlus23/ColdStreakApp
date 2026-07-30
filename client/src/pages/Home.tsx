@@ -466,11 +466,20 @@ export default function Home() {
     const id = Number(params.get("challenger"));
     if (id) {
       setActiveChallengerUserId(id);
+      setPendingChallengeModalDismissed(false);
       // Clean the param from the URL without a reload
       const clean = window.location.pathname;
       window.history.replaceState({}, "", clean);
     }
   }, []);
+
+  // Reset the "Later" dismissal whenever a new challenger is set so the modal
+  // re-appears. Covers URL-param, SW-message, and repeated-challenge paths.
+  useEffect(() => {
+    if (activeChallengerUserId !== null) {
+      setPendingChallengeModalDismissed(false);
+    }
+  }, [activeChallengerUserId]);
 
   // No auto-open login modal — users discover signup organically through
   // the nudge that fires after their first plunge.
@@ -7774,7 +7783,7 @@ export default function Home() {
           challengerScore={challengerScore}
           challengerName={activeChallengerFriend
             ? (activeChallengerFriend.displayName || activeChallengerFriend.username || "Friend")
-            : null}
+            : pendingChallengerName}
           elapsedSeconds={elapsedSeconds}
           benefitCarryOver={benefitCarryOver}
           isActive={isActive}
