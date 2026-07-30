@@ -92,6 +92,39 @@ export function computeThresholds(
   });
 }
 
+// ─── +Finish button helpers ───────────────────────────────────────────────────
+
+/**
+ * Returns the index of the benefit segment that is currently in-progress
+ * (started but not yet complete), or -1 if all segments are done.
+ *
+ * Used by the "+Finish [emoji]" button in Home.tsx to identify which segment
+ * the user is aiming for.
+ */
+export function getMidSegmentIdx(
+  totalElapsed: number,
+  thresholds: number[],
+): number {
+  for (let i = 0; i < thresholds.length; i++) {
+    const lo = i === 0 ? 0 : thresholds[i - 1];
+    if (totalElapsed >= lo && totalElapsed < thresholds[i]) return i;
+  }
+  return -1; // all segments complete
+}
+
+/**
+ * Returns the number of additional seconds needed to reach the next benefit
+ * threshold.  Guaranteed >= 1 when called from a valid in-progress state
+ * (i.e. getMidSegmentIdx >= 0).  Callers should check getMidSegmentIdx first.
+ */
+export function getSecsToFinish(
+  totalElapsed: number,
+  thresholds: number[],
+  midIdx: number,
+): number {
+  return Math.max(1, thresholds[midIdx] - totalElapsed);
+}
+
 /**
  * Returns the IDs of segments fully earned by a single plunge of the given
  * duration, temperature, and body metrics.

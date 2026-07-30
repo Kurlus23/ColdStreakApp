@@ -164,7 +164,7 @@ function playAlarm(url: string, label: string, isCustom: boolean, stopAfterMs?: 
 type Screen = "timer" | "history" | "explore" | "gear" | "settings" | "legal" | "achievements" | "friends";
 
 
-import { getCompositionFactor, SEGMENTS, type SegmentId, computeThresholds } from "@/lib/benefitSegments";
+import { getCompositionFactor, SEGMENTS, type SegmentId, computeThresholds, getMidSegmentIdx, getSecsToFinish } from "@/lib/benefitSegments";
 import { CelebrationOverlay, GoalNudge, CountdownGoalHint } from "@/components/PlungeBenefitCoach";
 
 function plungeScore(
@@ -3308,13 +3308,7 @@ export default function Home() {
   // Which benefit segment is the user currently mid-progress through?
   const benefitThresholds = computeThresholds(temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct);
   const totalElapsedForBenefits = todayTotalSec + elapsedSeconds;
-  const midSegmentIdx = (() => {
-    for (let i = 0; i < SEGMENTS.length; i++) {
-      const lo = i === 0 ? 0 : benefitThresholds[i - 1];
-      if (totalElapsedForBenefits >= lo && totalElapsedForBenefits < benefitThresholds[i]) return i;
-    }
-    return -1; // all segments complete
-  })();
+  const midSegmentIdx = getMidSegmentIdx(totalElapsedForBenefits, benefitThresholds);
 
   const tempDisplay = useCelsius
     ? `${Math.round((temperature - 32) * 5 / 9)}°C`
@@ -3581,7 +3575,7 @@ export default function Home() {
                 {countdownMode && countdownRunning && (() => {
                   const allDone = midSegmentIdx === -1;
                   const seg = allDone ? null : SEGMENTS[midSegmentIdx];
-                  const secsToFinish = allDone ? 0 : Math.max(1, benefitThresholds[midSegmentIdx] - totalElapsedForBenefits);
+                  const secsToFinish = allDone ? 0 : getSecsToFinish(totalElapsedForBenefits, benefitThresholds, midSegmentIdx);
                   return (
                     <div className="flex gap-1.5 mt-1.5 w-full">
                       <button
