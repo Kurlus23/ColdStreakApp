@@ -3321,9 +3321,15 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
 
+  const [milestoneEvent, setMilestoneEvent] = useState<{ segId: string; emoji: string; label: string; count: number } | null>(null);
+
   const handleBenefitMilestone = useCallback((segId: SegmentId) => {
     setPlungeAchieved(prev => new Set(prev).add(segId));
-    setCelebrationFor(segId);
+    // Route the milestone into the cold-take overlay (replaces CelebrationOverlay during a plunge)
+    const seg = SEGMENTS.find(s => s.id === segId);
+    if (seg) {
+      setMilestoneEvent(prev => ({ segId, emoji: seg.emoji, label: seg.label, count: (prev?.count ?? 0) + 1 }));
+    }
   }, []);
 
   // ms timestamp when the last plunge of the day ended — used for benefit decay.
@@ -8014,6 +8020,7 @@ export default function Home() {
           bodyHeightCm={bodyHeightCm}
           bodyFatPct={bodyFatPct}
           btConnected={btConnected}
+          milestoneEvent={milestoneEvent}
           onStop={handleStop}
           onDismissChallenger={() => setActiveChallengerUserId(null)}
         />

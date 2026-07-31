@@ -400,6 +400,69 @@ export const GENERAL: string[] = [
   "Freezing so beautifully even Elsa would be jealous.",
 ];
 
+// ── Milestone-specific takes ──────────────────────────────────────────────────
+// Served as the cold take AFTER each benefit milestone notification clears.
+// Tone: same irreverent / witty style, but themed to the benefit just unlocked.
+
+export const ENERGY_MILESTONE: string[] = [
+  "Energy unlocked: that feeling when norepinephrine hits and suddenly everyone in your life is the problem.",
+  "Your norepinephrine just clocked in. Finally, a coworker that pulls their weight.",
+  "Energy achieved. Your to-do list just got nervous.",
+  "Focus sharpened. You'll be insufferable in meetings for the next four hours. You're welcome.",
+  "Norepinephrine: imagine if espresso could see the future and was furious about it.",
+  "Your brain just got promoted. Your body didn't get the memo and is still shivering.",
+  "Energy achieved. The annoying productive version of you has entered the chat.",
+  "Norepinephrine online. You now have strong opinions about things that haven't happened yet.",
+  "Your sympathetic nervous system just sent everyone a calendar invite. No one is happy.",
+  "Energy unlocked: the kind where you reply to emails with full sentences and zero resentment.",
+];
+
+export const MOOD_MILESTONE: string[] = [
+  "Mood enhanced: that feeling when dopamine hits and you forgive people you had fully written off.",
+  "Dopamine spike: like wearing your partner's hoodie without asking. Warm. Slightly illegal. Worth it.",
+  "Mood achieved. You're now the version of yourself people tolerate at family dinners.",
+  "Mood enhanced: that feeling you get in your wife's underwear without her knowing. Bold. Unexplained. You look great.",
+  "Your dopamine is doing backflips. Your toes are still filing complaints.",
+  "Mood unlocked: like realizing you remembered everyone's birthday this year. You didn't. But you feel like you did.",
+  "Serotonin and dopamine just walked into a bar. They left with your anxiety's car keys.",
+  "Mood enhanced. You're going to text someone you love. Possibly the wrong person. The cold has bad aim.",
+  "Dopamine hit: the sneaky kind. The one that makes you reply 'sounds good!' and mean it.",
+  "Mood achieved: that post-plunge glow where you think 'maybe things will be fine.' They might be.",
+];
+
+export const METABOLISM_MILESTONE: string[] = [
+  "Metabolism achieved: your body fat is receiving a formal eviction notice.",
+  "Brown fat activated. Your body is now billing your love handles by the minute.",
+  "Thermogenesis unlocked. Your internal furnace lit up. Side effects include smug salad avoidance.",
+  "Metabolism online. Your body is eating its own fat like a company going through layoffs.",
+  "Brown fat: the kind of calorie burn that makes the pizza you're about to eat technically free.",
+  "Your metabolic rate just filed for overtime. Without HR's approval.",
+  "Thermogenesis: your cells started a campfire using your own body fat. Environmentally confusing.",
+  "Brown fat lit. The part of you that stores winter weight is now paying rent.",
+  "Metabolism achieved: your body is auditioning for a documentary about calorie combustion. It got the part.",
+  "Your mitochondria punched in. Overtime. No union rep. No choice.",
+];
+
+export const RECOVERY_MILESTONE: string[] = [
+  "Recovery achieved: inflammation packed its bags and is looking for a new host.",
+  "Max benefit unlocked. Your body is filing an insurance claim on every bad decision you've ever made.",
+  "Recovery: your muscles are doing HR onboarding. Paperwork filed. Repairs underway.",
+  "Inflammation? She left. Your joints got the memo. Eventually.",
+  "All four benefits hit. You're medically impressive and statistically unwell.",
+  "Recovery unlocked: your body's IT department finally ran diagnostics. The problem was you. Fixed now.",
+  "Max benefit: you've been in cold water long enough for your body to fix itself and send a Yelp review.",
+  "Inflammation reduced. Your knees texted back. It was brief, but they're open to talking.",
+  "Recovery achieved: your parasympathetic nervous system finally got a word in. It had notes.",
+  "Your body is now a compression sleeve from the inside. You earned this.",
+];
+
+export const MILESTONE_TAKES: Record<string, string[]> = {
+  energy:     ENERGY_MILESTONE,
+  mood:       MOOD_MILESTONE,
+  metabolism: METABOLISM_MILESTONE,
+  recovery:   RECOVERY_MILESTONE,
+};
+
 export type Bucket =
   | "EARLY" | "SHORT" | "LONG" | "EXTREME"
   | "BRUTAL_COLD" | "MILD"
@@ -475,6 +538,14 @@ export function pickColdTake(
 
   const idx = Math.abs((seed * 31 + slot * 1009) % candidates.length);
   return candidates[idx];
+}
+
+/** Pick a take themed to the milestone segment just unlocked.
+ *  Falls back to GENERAL when the segId is unrecognised. */
+export function pickMilestoneColdTake(segId: string, seed: number, slot: number): string {
+  const pool = MILESTONE_TAKES[segId] ?? GENERAL;
+  const idx = Math.abs((seed * 31 + slot * 1009) % pool.length);
+  return pool[idx];
 }
 
 // Legacy export — kept for backwards compatibility with the old endpoint shape.

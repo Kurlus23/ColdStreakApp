@@ -1,4 +1,4 @@
-import { ColdTakeOverlay } from "@/components/ColdTakeOverlay";
+import { ColdTakeOverlay, MilestoneEvent } from "@/components/ColdTakeOverlay";
 import { BenefitBar } from "@/components/BenefitBar";
 import { MusicTransportMini } from "@/components/MusicWidget";
 
@@ -109,6 +109,7 @@ interface PlungeOverlayProps {
   bodyHeightCm: number;
   bodyFatPct?: number | null;
   btConnected: boolean;
+  milestoneEvent?: MilestoneEvent | null;
   onStop: () => void;
   onDismissChallenger: () => void;
 }
@@ -135,6 +136,7 @@ export function PlungeOverlay({
   bodyHeightCm,
   bodyFatPct,
   btConnected,
+  milestoneEvent,
   onStop,
   onDismissChallenger,
 }: PlungeOverlayProps) {
@@ -242,6 +244,7 @@ export function PlungeOverlay({
           tempF={temperature}
           isFirstPlunge={plungesCount === 0}
           streakDays={streak}
+          milestoneEvent={milestoneEvent}
         />
       </div>
 

@@ -190,14 +190,6 @@ export function BenefitBar({
         </button>
       )}
 
-      {/* Milestone flash — collapses to zero height when nothing to show */}
-      <p
-        className="text-center text-[10px] font-semibold tracking-wide transition-opacity duration-500"
-        style={{ opacity: milestone ? 1 : 0, color: "#6ee7b7", minHeight: milestone ? "0.875rem" : 0, height: milestone ? "0.875rem" : 0, overflow: "hidden" }}
-      >
-        {milestone ?? ""}
-      </p>
-
       {/* Segmented progress bar */}
       <div className="flex gap-1.5">
         {SEGMENTS.map((seg, i) => {
