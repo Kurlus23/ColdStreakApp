@@ -1842,16 +1842,18 @@ export class DatabaseStorage implements IStorage {
     const friendUsers = await db.select({ id: users.id, username: users.username, displayName: users.displayName })
       .from(users).where(inArray(users.id, friendIds));
 
-    // Get avatar urls and featured badges from badge_profiles
+    // Get avatar urls and featured badges from badge_profiles (case-insensitive username match)
     const usernames = friendUsers.map(u => u.username).filter(Boolean) as string[];
     const avatarMap: Record<string, string | null> = {};
     const badgeMap: Record<string, string> = {};
     if (usernames.length > 0) {
+      const lowerUsernames = usernames.map(u => u.toLowerCase());
       const profiles = await db.select({ username: badgeProfiles.username, avatarUrl: badgeProfiles.avatarUrl, featuredBadges: badgeProfiles.featuredBadges })
-        .from(badgeProfiles).where(inArray(badgeProfiles.username, usernames));
+        .from(badgeProfiles).where(inArray(sql`lower(${badgeProfiles.username})`, lowerUsernames));
       for (const p of profiles) {
-        avatarMap[p.username] = p.avatarUrl ?? null;
-        badgeMap[p.username] = p.featuredBadges ?? "[]";
+        // Key by lowercase so lookups below always hit regardless of stored casing
+        avatarMap[p.username.toLowerCase()] = p.avatarUrl ?? null;
+        badgeMap[p.username.toLowerCase()] = p.featuredBadges ?? "[]";
       }
     }
 
@@ -1882,8 +1884,8 @@ export class DatabaseStorage implements IStorage {
         userId: friend.id,
         username: friend.username,
         displayName: friend.displayName,
-        avatarUrl: friend.username ? (avatarMap[friend.username] ?? null) : null,
-        featuredBadges: friend.username ? (badgeMap[friend.username] ?? "[]") : "[]",
+        avatarUrl: friend.username ? (avatarMap[friend.username.toLowerCase()] ?? null) : null,
+        featuredBadges: friend.username ? (badgeMap[friend.username.toLowerCase()] ?? "[]") : "[]",
         streak,
         plungedToday,
         latestScore,
