@@ -3325,8 +3325,43 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
       if (fpMap[liveFpDisplayName.toLowerCase()]) liveFoundingPlunger = true;
     }
 
+    // Auto-compute featured badges from live stats when none are explicitly set.
+    // Mirrors the same logic in getFriends() so the profile page and leaderboard agree.
+    const computeAutoFeaturedBadges = (ctTemp: number | null, uDays: number): string => {
+      const FRIEND_TEMP_TIERS = [
+        { id: "ice-breaker",  minTemp: 0,  maxTemp: 32 },
+        { id: "frosty",       minTemp: 33, maxTemp: 39 },
+        { id: "cold-blooded", minTemp: 40, maxTemp: 49 },
+        { id: "initiate",     minTemp: 50, maxTemp: 60 },
+      ];
+      const FRIEND_DAYS_TIERS = [
+        { id: "shiva",        days: 365 },
+        { id: "ice-baron",    days: 270 },
+        { id: "blue-yeti",    days: 180 },
+        { id: "polar-bear",   days: 120 },
+        { id: "penguin",      days: 75  },
+        { id: "frost-seeker", days: 45  },
+        { id: "cold-habit",   days: 21  },
+        { id: "first-frost",  days: 7   },
+      ];
+      const autoIds: string[] = [];
+      if (ctTemp !== null) {
+        const tempTier = [...FRIEND_TEMP_TIERS].reverse().find(t => ctTemp <= t.maxTemp && ctTemp >= t.minTemp);
+        if (tempTier) autoIds.push(tempTier.id);
+      }
+      const daysTier = FRIEND_DAYS_TIERS.find(t => uDays >= t.days);
+      if (daysTier) autoIds.push(daysTier.id);
+      return JSON.stringify(autoIds);
+    };
+
     if (storedProfile) {
-      return res.json({ ...storedProfile, plungeCount, uniqueDays, coldestTemp, foundingPlunger: liveFoundingPlunger });
+      let featuredBadges = storedProfile.featuredBadges;
+      try {
+        if ((JSON.parse(featuredBadges) as string[]).length === 0) {
+          featuredBadges = computeAutoFeaturedBadges(coldestTemp, uniqueDays);
+        }
+      } catch { /* leave as-is */ }
+      return res.json({ ...storedProfile, plungeCount, uniqueDays, coldestTemp, foundingPlunger: liveFoundingPlunger, featuredBadges });
     }
 
     // Auto-compute when no published profile exists yet (but user account found)
@@ -3334,7 +3369,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     const resolvedUsername = user?.displayName || requestedUsername;
     return res.json({
       username: resolvedUsername,
-      featuredBadges: "[]",
+      featuredBadges: computeAutoFeaturedBadges(coldestTemp, uniqueDays),
       plungeCount,
       uniqueDays,
       coldestTemp,
