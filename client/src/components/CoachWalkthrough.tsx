@@ -19,7 +19,7 @@ import { useState, useEffect, useCallback } from "react";
 
 // ── localStorage keys ─────────────────────────────────────────────────────────
 
-export const FIRST_OPEN_KEY   = "coach-walkthrough-first-open-v1";
+export const FIRST_OPEN_KEY   = "coach-walkthrough-first-open-v2";
 export const POST_PLUNGE_KEY  = "coach-walkthrough-post-plunge-v1";
 export const PROFILE_TIP_KEY  = "coach-tip-profile-v1";
 export const FRIENDS_TIP_KEY  = "coach-tip-friends-v1";
@@ -74,7 +74,7 @@ const FIRST_OPEN_STEPS: Step[] = [
   {
     icon: "💬",
     title: "Ask me anything",
-    body: "Tap the ❄️ button top-left any time to ask about your stats or any feature.",
+    body: "Tap the ColdStreak icon (top-left, it moves — drag it wherever you like) any time to ask about your stats or any feature.",
     highlight: '[data-testid="coach-fab"]',
   },
 ];
