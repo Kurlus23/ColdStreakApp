@@ -69,6 +69,18 @@ const FOCUS_META: Record<number, { emoji: string; label: string }> = {
   3: { emoji: "🎯", label: "Better" },
 };
 
+const FATIGUE_META: Record<number, { emoji: string; label: string }> = {
+  1: { emoji: "😣", label: "Still sore" },
+  2: { emoji: "😐", label: "Neutral"    },
+  3: { emoji: "💪", label: "Relieved"   },
+};
+
+const RECOVERY_META: Record<number, { emoji: string; label: string }> = {
+  1: { emoji: "😓", label: "Not yet"  },
+  2: { emoji: "😐", label: "Somewhat" },
+  3: { emoji: "✨", label: "Restored" },
+};
+
 function formatTime(totalSeconds: number) {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
@@ -700,8 +712,13 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
           const earned     = computeEarnedSegments(plunge.duration, plunge.temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct);
           const mood       = plunge.mood       != null ? MOOD_META[plunge.mood]         : null;
           const energy     = plunge.moodEnergy != null ? ENERGY_META[plunge.moodEnergy] : null;
-          const focus      = plunge.moodFocus  != null ? FOCUS_META[plunge.moodFocus]   : null;
-          const hasCheckin = mood || energy || focus;
+          // moodFatigue present → recovery check-in: moodFocus = "Recovery", moodFatigue = "Muscle fatigue"
+          const isRecoveryCheckin = plunge.moodFatigue != null;
+          const fatigue    = plunge.moodFatigue != null ? FATIGUE_META[plunge.moodFatigue] : null;
+          const focus      = plunge.moodFocus  != null
+            ? (isRecoveryCheckin ? RECOVERY_META[plunge.moodFocus] : FOCUS_META[plunge.moodFocus])
+            : null;
+          const hasCheckin = mood || energy || fatigue || focus;
           return (
             <div className="relative z-10 mt-3 space-y-2">
               {/* Mini segmented benefit bar — same visual as live bar, static snapshot */}
@@ -735,7 +752,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
                 })}
               </div>
 
-              {/* Check-in badges: Mood · Energy · Focus */}
+              {/* Check-in badges: Mood · Energy · [Muscle fatigue · Recovery] or [Focus] */}
               {hasCheckin && (
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {mood && (
@@ -751,8 +768,15 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
                       {energy.emoji} {energy.label}
                     </span>
                   )}
+                  {fatigue && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-orange-300">
+                      <span className="text-[8px] text-slate-500 font-normal">Fatigue:</span>
+                      {fatigue.emoji} {fatigue.label}
+                    </span>
+                  )}
                   {focus && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-purple-300">
+                      {isRecoveryCheckin && <span className="text-[8px] text-slate-500 font-normal">Recovery:</span>}
                       {focus.emoji} {focus.label}
                     </span>
                   )}

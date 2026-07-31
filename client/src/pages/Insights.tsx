@@ -299,19 +299,30 @@ export default function Insights() {
   const adaptation  = computeAdaptation(plunges);
   const months      = computeMonthly(plunges);
 
-  const moodCounts:   Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  const energyCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
-  const focusCounts:  Record<number, number> = { 1: 0, 2: 0, 3: 0 };
+  const moodCounts:     Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  const energyCounts:   Record<number, number> = { 1: 0, 2: 0, 3: 0 };
+  // moodFatigue present → recovery check-in: moodFocus = "Recovery feeling", moodFatigue = "Muscle fatigue"
+  const fatigueCounts:  Record<number, number> = { 1: 0, 2: 0, 3: 0 };
+  const recoveryCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0 }; // moodFocus on recovery check-ins
+  const focusCounts:    Record<number, number> = { 1: 0, 2: 0, 3: 0 }; // moodFocus on non-recovery check-ins
   for (const p of rated) {
     moodCounts[p.mood!]++;
-    if (p.moodEnergy != null) energyCounts[p.moodEnergy]++;
-    if (p.moodFocus  != null) focusCounts[p.moodFocus]++;
+    if (p.moodEnergy  != null) energyCounts[p.moodEnergy]++;
+    if (p.moodFatigue != null) fatigueCounts[p.moodFatigue]++;
+    if (p.moodFocus   != null) {
+      if (p.moodFatigue != null) recoveryCounts[p.moodFocus]++;
+      else                       focusCounts[p.moodFocus]++;
+    }
   }
-  const energyResponded = rated.filter((p) => p.moodEnergy != null).length;
-  const focusResponded  = rated.filter((p) => p.moodFocus  != null).length;
-  const avgMood   = ratedCount    > 0 ? (rated.reduce((s, p) => s + p.mood!, 0)                      / ratedCount)    : null;
-  const avgEnergy = energyResponded > 0 ? (rated.filter((p) => p.moodEnergy != null).reduce((s, p) => s + p.moodEnergy!, 0) / energyResponded) : null;
-  const avgFocus  = focusResponded  > 0 ? (rated.filter((p) => p.moodFocus  != null).reduce((s, p) => s + p.moodFocus!,  0) / focusResponded)  : null;
+  const energyResponded   = rated.filter((p) => p.moodEnergy  != null).length;
+  const fatigueResponded  = rated.filter((p) => p.moodFatigue != null).length;
+  const recoveryResponded = rated.filter((p) => p.moodFatigue != null && p.moodFocus != null).length;
+  const focusResponded    = rated.filter((p) => p.moodFatigue == null  && p.moodFocus != null).length;
+  const avgMood     = ratedCount       > 0 ? (rated.reduce((s, p) => s + p.mood!, 0)                                                            / ratedCount)       : null;
+  const avgEnergy   = energyResponded  > 0 ? (rated.filter((p) => p.moodEnergy  != null).reduce((s, p) => s + p.moodEnergy!,  0) / energyResponded)  : null;
+  const avgFatigue  = fatigueResponded > 0 ? (rated.filter((p) => p.moodFatigue != null).reduce((s, p) => s + p.moodFatigue!, 0) / fatigueResponded) : null;
+  const avgRecovery = recoveryResponded > 0 ? (rated.filter((p) => p.moodFatigue != null && p.moodFocus != null).reduce((s, p) => s + p.moodFocus!, 0) / recoveryResponded) : null;
+  const avgFocus    = focusResponded   > 0 ? (rated.filter((p) => p.moodFatigue == null  && p.moodFocus != null).reduce((s, p) => s + p.moodFocus!,  0) / focusResponded)   : null;
 
   const hasMonthly      = months.length >= 2;
   const hasMorning      = insight?.morningBest != null;
@@ -458,7 +469,7 @@ export default function Insights() {
                 <div className="bg-blue-900/40 border border-blue-800/50 rounded-2xl p-5 space-y-6">
 
                   {/* Avg summary row */}
-                  <div className="grid grid-cols-3 gap-3 pb-4 border-b border-blue-800/40">
+                  <div className={`grid gap-3 pb-4 border-b border-blue-800/40 ${fatigueResponded > 0 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
                     <div className="text-center">
                       <p className="text-cyan-300 text-2xl font-bold">{avgMood != null ? avgMood.toFixed(1) : "—"}</p>
                       <p className="text-blue-400 text-xs mt-1 uppercase tracking-wide">Avg Mood</p>
@@ -469,11 +480,26 @@ export default function Insights() {
                       <p className="text-blue-400 text-xs mt-1 uppercase tracking-wide">Avg Energy</p>
                       <p className="text-blue-500 text-[10px]">out of 3</p>
                     </div>
-                    <div className="text-center">
-                      <p className="text-violet-300 text-2xl font-bold">{avgFocus != null ? avgFocus.toFixed(1) : "—"}</p>
-                      <p className="text-blue-400 text-xs mt-1 uppercase tracking-wide">Avg Focus</p>
-                      <p className="text-blue-500 text-[10px]">out of 3</p>
-                    </div>
+                    {fatigueResponded > 0 ? (
+                      <>
+                        <div className="text-center">
+                          <p className="text-orange-300 text-2xl font-bold">{avgFatigue != null ? avgFatigue.toFixed(1) : "—"}</p>
+                          <p className="text-blue-400 text-xs mt-1 uppercase tracking-wide">Avg Fatigue</p>
+                          <p className="text-blue-500 text-[10px]">out of 3</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-emerald-300 text-2xl font-bold">{avgRecovery != null ? avgRecovery.toFixed(1) : "—"}</p>
+                          <p className="text-blue-400 text-xs mt-1 uppercase tracking-wide">Avg Recovery</p>
+                          <p className="text-blue-500 text-[10px]">out of 3</p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center">
+                        <p className="text-violet-300 text-2xl font-bold">{avgFocus != null ? avgFocus.toFixed(1) : "—"}</p>
+                        <p className="text-blue-400 text-xs mt-1 uppercase tracking-wide">Avg Focus</p>
+                        <p className="text-blue-500 text-[10px]">out of 3</p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Mood distribution */}
@@ -496,13 +522,33 @@ export default function Insights() {
                     </div>
                   )}
 
-                  {/* Focus distribution */}
+                  {/* Focus distribution — only for non-recovery check-ins */}
                   {focusResponded >= 3 && (
                     <div className="space-y-2">
                       <p className="text-blue-300 text-xs font-semibold uppercase tracking-widest mb-3">🧠 Focus distribution</p>
                       <DistBar label="🎯 Better (3)"  count={focusCounts[3]} total={focusResponded} color="#a78bfa" />
                       <DistBar label="🧠 Same (2)"    count={focusCounts[2]} total={focusResponded} color="#a3a3a3" />
                       <DistBar label="🌫️ Worse (1)"   count={focusCounts[1]} total={focusResponded} color="#475569" />
+                    </div>
+                  )}
+
+                  {/* Muscle fatigue distribution — recovery check-ins only */}
+                  {fatigueResponded >= 3 && (
+                    <div className="space-y-2">
+                      <p className="text-blue-300 text-xs font-semibold uppercase tracking-widest mb-3">💪 Muscle fatigue distribution</p>
+                      <DistBar label="💪 Relieved (3)"    count={fatigueCounts[3]} total={fatigueResponded} color="#f97316" />
+                      <DistBar label="😐 Neutral (2)"     count={fatigueCounts[2]} total={fatigueResponded} color="#a3a3a3" />
+                      <DistBar label="😣 Still sore (1)"  count={fatigueCounts[1]} total={fatigueResponded} color="#475569" />
+                    </div>
+                  )}
+
+                  {/* Recovery feeling distribution — recovery check-ins only */}
+                  {recoveryResponded >= 3 && (
+                    <div className="space-y-2">
+                      <p className="text-blue-300 text-xs font-semibold uppercase tracking-widest mb-3">🔄 Recovery distribution</p>
+                      <DistBar label="✨ Restored (3)"  count={recoveryCounts[3]} total={recoveryResponded} color="#34d399" />
+                      <DistBar label="😐 Somewhat (2)"  count={recoveryCounts[2]} total={recoveryResponded} color="#a3a3a3" />
+                      <DistBar label="😓 Not yet (1)"   count={recoveryCounts[1]} total={recoveryResponded} color="#475569" />
                     </div>
                   )}
                 </div>
