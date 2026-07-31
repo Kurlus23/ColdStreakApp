@@ -792,6 +792,20 @@ export default function Home() {
     }
   }, [screen, auth.user, loadFriends]);
 
+  // Re-fetch friends when the app returns to the foreground while the user is
+  // already on the Friends screen. This prevents stale featuredBadges from
+  // lingering when a friend updates their badges in the same session.
+  useEffect(() => {
+    if (!auth.user) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && isOnFriendsScreenRef.current) {
+        loadFriends();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [auth.user, loadFriends]);
+
   // Keep isOnFriendsScreenRef in sync so the SW message handler (registered
   // earlier) can read the current screen without a stale closure. Declared
   // here — after settingsTab — to avoid a temporal dead zone during render.
