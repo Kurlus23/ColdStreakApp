@@ -397,7 +397,7 @@ export default function Home() {
   const [plungeAchieved, setPlungeAchieved] = useState<Set<SegmentId>>(new Set());
 
   // Friends
-  interface FriendEntry { friendshipId: number; userId: number; username: string | null; displayName: string | null; avatarUrl: string | null; streak: number; plungedToday: boolean; latestScore: number | null; bestScore: number | null; }
+  interface FriendEntry { friendshipId: number; userId: number; username: string | null; displayName: string | null; avatarUrl: string | null; featuredBadges?: string; streak: number; plungedToday: boolean; latestScore: number | null; bestScore: number | null; }
   interface FriendRequest { friendshipId: number; requesterId: number; requesterUsername: string | null; requesterDisplayName: string | null; requesterAvatarUrl: string | null; requesterStreak: number; requesterPlungeCount: number; createdAt: string; }
   interface UserResult { id: number; username: string | null; displayName: string | null; avatarUrl: string | null; friendshipStatus: string | null; }
   const [friends, setFriends] = useState<FriendEntry[]>([]);
@@ -1362,6 +1362,22 @@ export default function Home() {
     const id = setTimeout(() => setShowFriendsTip(true), 600);
     return () => clearTimeout(id);
   }, [auth.user, screen]);
+
+  // Restore selectedFriend when returning from a badge profile navigation.
+  useEffect(() => {
+    if (screen !== "friends") return;
+    if (friends.length === 0) return;
+    try {
+      const stored = sessionStorage.getItem("coldstreak-return-friend");
+      if (!stored) return;
+      sessionStorage.removeItem("coldstreak-return-friend");
+      const saved = JSON.parse(stored) as FriendEntry;
+      // Re-find from live friends list so stats are fresh
+      const live = friends.find(f => f.userId === saved.userId) ?? saved;
+      setSelectedFriend(live);
+    } catch { /* ignore */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, friends]);
 
   // Challenge tip: first time user is on the Friends screen with at least one friend.
   useEffect(() => {
@@ -5542,7 +5558,15 @@ export default function Home() {
                   >
                     {/* Header */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                      <button
+                        className="flex items-center gap-3 active:opacity-70 transition-opacity text-left"
+                        onClick={() => {
+                          if (!selectedFriend.username) return;
+                          try { sessionStorage.setItem("coldstreak-return-friend", JSON.stringify(selectedFriend)); } catch { /* ignore */ }
+                          setSelectedFriend(null);
+                          navigate(`/profile/${encodeURIComponent(selectedFriend.username)}`);
+                        }}
+                      >
                         {selectedFriend.avatarUrl ? (
                           <img src={selectedFriend.avatarUrl} alt="" className="w-14 h-14 rounded-2xl object-cover border border-blue-700/50" />
                         ) : (
@@ -5552,7 +5576,7 @@ export default function Home() {
                         )}
                         <div>
                           <p className="text-white font-bold text-lg leading-tight">{selectedFriend.displayName || selectedFriend.username || "Friend"}</p>
-                          {selectedFriend.username && <p className="text-blue-400 text-xs">@{selectedFriend.username}</p>}
+                          {selectedFriend.username && <p className="text-blue-400 text-xs">@{selectedFriend.username} · tap to view profile</p>}
                           {(() => {
                             const ids: string[] = (() => { try { return JSON.parse(selectedFriend.featuredBadges ?? "[]"); } catch { return []; } })();
                             if (!ids.length) return null;
@@ -5564,7 +5588,7 @@ export default function Home() {
                             return emojis ? <p className="text-xl leading-none mt-0.5">{emojis}</p> : null;
                           })()}
                         </div>
-                      </div>
+                      </button>
                       <button
                         onClick={() => setSelectedFriend(null)}
                         className="w-9 h-9 flex items-center justify-center rounded-full bg-blue-800/70 border border-blue-600/50 text-blue-200 hover:text-white hover:bg-blue-700/80 transition-all active:scale-95"
@@ -5621,15 +5645,6 @@ export default function Home() {
                         : `⚡ Challenge ${(selectedFriend.displayName || selectedFriend.username || "them").split(" ")[0]}`}
                     </button>
 
-                    {/* View profile link */}
-                    {selectedFriend.username && (
-                      <button
-                        onClick={() => { setSelectedFriend(null); navigate(`/profile/${encodeURIComponent(selectedFriend.username!)}`); }}
-                        className="w-full py-2.5 rounded-2xl font-semibold text-sm text-blue-300 border border-blue-700/50 bg-blue-900/30 hover:bg-blue-800/40 transition-all active:scale-95"
-                      >
-                        View Badge Profile →
-                      </button>
-                    )}
                   </div>
                 </div>
               )}
