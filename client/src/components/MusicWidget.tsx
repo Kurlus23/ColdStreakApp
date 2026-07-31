@@ -110,25 +110,58 @@ function deriveLabel(url: string): string {
   }
 }
 
+/** Convert an open.spotify.com URL to a spotify: URI, e.g.
+ *  https://open.spotify.com/playlist/37i9dQZF → spotify:playlist:37i9dQZF */
+function spotifyUrlToUri(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split("/").filter(Boolean);
+    if (parts.length >= 2 && ["playlist","album","artist","track"].includes(parts[0])) {
+      return `spotify:${parts[0]}:${parts[1]}`;
+    }
+  } catch {}
+  return null;
+}
+
 export function openMusic(): boolean {
   const cfg = loadConfig();
   if (!cfg.featureEnabled) return false;
   if (cfg.service === "none" || !cfg.url) return false;
-  // In Capacitor, Apple Music universal links open the Apple Music app but
-  // don't auto-play — user has to tap play manually. Use the native plugin
-  // to push the playlist to ApplicationMusicPlayer so playback starts
-  // immediately. Fire-and-forget; on any failure we fall back to the URL.
+
+  // Apple Music — use native plugin in Capacitor for immediate playback;
+  // fall back to URL open on failure.
   if (appleMusic.isInNativeApp() && appleMusic.isAppleMusicPlaylistUrl(cfg.url)) {
     appleMusic.playPlaylistNative(cfg.url).then((ok) => {
-      if (!ok) {
-        try { window.open(cfg.url, "_blank", "noopener,noreferrer"); } catch {}
-      }
-    }).catch((err) => {
-      console.warn("[apple-music/native] play failed, falling back to URL", err);
+      if (!ok) try { window.open(cfg.url, "_blank", "noopener,noreferrer"); } catch {}
+    }).catch(() => {
       try { window.open(cfg.url, "_blank", "noopener,noreferrer"); } catch {}
     });
     return true;
   }
+
+  // Spotify — try the Web API first (plays without leaving the app if
+  // Spotify is already running on the device). Falls back to URL open when
+  // there is no active device (app not open yet).
+  if (cfg.service === "spotify") {
+    const contextUri = spotifyUrlToUri(cfg.url);
+    apiRequest("POST", "/api/spotify/control", {
+      action: "play",
+      ...(contextUri ? { contextUri } : {}),
+    }).then(async (res) => {
+      if (res.ok) return; // ✓ started via API — no need to open Spotify
+      const data = await res.json().catch(() => ({} as any));
+      // No active Spotify device → open the app so the user can start it
+      if (data?.noDevice || res.status === 409 || res.status === 401) {
+        try { window.open(cfg.url, "_blank", "noopener,noreferrer"); } catch {}
+      }
+      // Other errors (403 scope, 502): stay silent — don't kick the user out
+    }).catch(() => {
+      // Network failure — fall back to URL
+      try { window.open(cfg.url, "_blank", "noopener,noreferrer"); } catch {}
+    });
+    return true;
+  }
+
   try {
     window.open(cfg.url, "_blank", "noopener,noreferrer");
     return true;
@@ -142,6 +175,42 @@ export function shouldAutoPlay(): boolean {
   return cfg.featureEnabled && cfg.autoPlay && cfg.service !== "none" && !!cfg.url;
 }
 
+// ── Now-playing hook (Spotify only) ────────────────────────────────────────
+// Polls /api/spotify/now-playing every 10 s when playing, 30 s otherwise.
+// Returns null when not applicable (Apple Music, not connected, no track).
+interface NowPlaying { trackName: string; artistName: string | null }
+
+function useSpotifyNowPlaying(enabled: boolean): NowPlaying | null {
+  const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(null);
+  const isPlayingRef = useRef(false);
+
+  useEffect(() => {
+    if (!enabled) { setNowPlaying(null); return; }
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const res = await apiRequest("GET", "/api/spotify/now-playing");
+        if (cancelled) return;
+        if (!res.ok) return;
+        const data = await res.json() as { trackName: string | null; artistName: string | null; isPlaying: boolean };
+        isPlayingRef.current = data.isPlaying;
+        if (data.trackName) {
+          setNowPlaying({ trackName: data.trackName, artistName: data.artistName });
+        } else {
+          setNowPlaying(null);
+        }
+      } catch { /* silent — don't surface network errors */ }
+    };
+
+    poll();
+    const id = setInterval(() => poll(), isPlayingRef.current ? 10_000 : 30_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [enabled]);
+
+  return nowPlaying;
+}
+
 // ── Mini transport for the full-screen plunge timer overlay ────────────────
 // Compact prev / play-pause / next pill that reuses the same control paths as
 // the main widget: native Apple Music plugin or /api/spotify/control proxy.
@@ -151,6 +220,7 @@ export function MusicTransportMini({ className = "" }: { className?: string }) {
   const [config] = useState<MusicConfig>(() => loadConfig());
   const [isPlaying, setIsPlaying] = useState<boolean>(() => shouldAutoPlay());
   const [busy, setBusy] = useState<"prev" | "toggle" | "next" | null>(null);
+  const nowPlaying = useSpotifyNowPlaying(config.service === "spotify" && !!getAuthToken());
 
   const spotifyControl = useCallback(async (action: "play" | "pause" | "next" | "previous", silent = false): Promise<boolean> => {
     try {
@@ -214,7 +284,18 @@ export function MusicTransportMini({ className = "" }: { className?: string }) {
           ? <SiSpotify className="w-4 h-4 text-green-400" />
           : <SiApplemusic className="w-4 h-4 text-pink-400" />}
       </div>
-      <span className="text-blue-200 text-xs font-medium truncate max-w-[110px]">{config.label || "Music"}</span>
+      <div className="flex flex-col min-w-0 max-w-[110px]">
+        {nowPlaying ? (
+          <>
+            <span className="text-white text-[10px] font-semibold truncate leading-tight">{nowPlaying.trackName}</span>
+            {nowPlaying.artistName && (
+              <span className="text-blue-400 text-[9px] truncate leading-tight">{nowPlaying.artistName}</span>
+            )}
+          </>
+        ) : (
+          <span className="text-blue-200 text-xs font-medium truncate">{config.label || "Music"}</span>
+        )}
+      </div>
       <button
         data-testid="button-timer-music-prev"
         onClick={() => skip("prev")}
@@ -675,6 +756,8 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
   const isCustomSaved = config.service !== "none" && !matchedPin && !matchedUserPick && !matchedApplePick;
   const selectValue = matchedPin?.url ?? matchedUserPick?.url ?? matchedApplePick?.url ?? (isCustomSaved ? config.url : "");
 
+  const nowPlaying = useSpotifyNowPlaying(isLoggedIn && isSpotifyConnected && config.service === "spotify");
+
   const ServiceIcon = config.service === "spotify" ? SiSpotify : config.service === "apple" ? SiApplemusic : Music;
   const serviceColor = config.service === "spotify" ? "text-green-400" : config.service === "apple" ? "text-pink-400" : "text-cyan-400";
 
@@ -807,6 +890,17 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
             <Settings className="w-3.5 h-3.5" />
           </button>
         </div>
+
+        {/* Now-playing strip — shown for Spotify when a track is detected */}
+        {nowPlaying && config.service === "spotify" && (
+          <div className="px-3 pb-1 flex items-center gap-1.5 min-w-0">
+            <span className="text-green-400 text-[9px] font-bold uppercase tracking-wide shrink-0">Now playing</span>
+            <span className="text-white text-[10px] font-semibold truncate">{nowPlaying.trackName}</span>
+            {nowPlaying.artistName && (
+              <span className="text-blue-400 text-[10px] truncate shrink-0">· {nowPlaying.artistName}</span>
+            )}
+          </div>
+        )}
 
         {/* Transport controls — only shown when a playlist is selected. Lets
             the user pause / resume / skip / stop the music without leaving

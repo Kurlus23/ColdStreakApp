@@ -946,10 +946,21 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     const isPlay = action === "play" || action === "pause";
     const method = isPlay ? "PUT" : "POST";
     const path = `me/player/${action === "play" ? "play" : action === "pause" ? "pause" : action}`;
+    // Optional context_uri (e.g. "spotify:playlist:37i9...") tells Spotify which
+    // playlist/album/artist to start — passed through from the client when
+    // auto-starting from the ColdStreak timer so the right playlist plays.
+    const contextUri = typeof req.body?.contextUri === "string" ? req.body.contextUri : null;
+    const bodyJson = action === "play" && contextUri
+      ? JSON.stringify({ context_uri: contextUri })
+      : undefined;
     try {
       const r = await fetch(`https://api.spotify.com/v1/${path}`, {
         method,
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(bodyJson ? { "Content-Type": "application/json" } : {}),
+        },
+        body: bodyJson,
       });
       // 204 = success, 404 = no active device, 403 = missing scope / non-premium
       if (r.status === 204 || r.status === 202) return res.json({ ok: true });
@@ -967,6 +978,37 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     } catch (err: any) {
       console.error("[spotify] control error", err);
       return res.status(502).json({ error: "Failed to contact Spotify" });
+    }
+  });
+
+  // ── Spotify: currently-playing track (song name + artist) ──────────────────
+  app.get("/api/spotify/now-playing", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller?.userId) return res.status(401).json({ error: "Auth required" });
+    const sp = await import("./spotify");
+    const token = await sp.getValidAccessToken(caller.userId);
+    if (!token) return res.json({ trackName: null, artistName: null, isPlaying: false });
+    try {
+      const r = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.status === 204 || r.status === 202) {
+        return res.json({ trackName: null, artistName: null, isPlaying: false });
+      }
+      if (!r.ok) return res.json({ trackName: null, artistName: null, isPlaying: false });
+      const data = await r.json() as any;
+      const item = data?.item;
+      if (!item) return res.json({ trackName: null, artistName: null, isPlaying: false });
+      return res.json({
+        trackName:  item.name ?? null,
+        artistName: Array.isArray(item.artists) && item.artists.length > 0
+          ? item.artists.map((a: any) => a.name).join(", ")
+          : null,
+        isPlaying: !!data.is_playing,
+      });
+    } catch (err) {
+      console.error("[spotify] now-playing error", err);
+      return res.json({ trackName: null, artistName: null, isPlaying: false });
     }
   });
 
