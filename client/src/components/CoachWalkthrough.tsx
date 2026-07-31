@@ -19,7 +19,7 @@ import { useState, useEffect, useCallback } from "react";
 
 // ── localStorage keys ─────────────────────────────────────────────────────────
 
-export const FIRST_OPEN_KEY   = "coach-walkthrough-first-open-v5";
+export const FIRST_OPEN_KEY   = "coach-walkthrough-first-open-v6";
 export const POST_PLUNGE_KEY  = "coach-walkthrough-post-plunge-v1";
 export const PROFILE_TIP_KEY  = "coach-tip-profile-v1";
 export const FRIENDS_TIP_KEY  = "coach-tip-friends-v1";
@@ -60,7 +60,7 @@ const FIRST_OPEN_STEPS: Step[] = [
   {
     icon: "⚡",
     title: "Cold Score",
-    body: "Your performance score — colder water and longer duration means a higher score. Tap to cycle between today, this week, and your personal best.",
+    body: "Your performance score — colder water and longer duration means a higher score. Tap to cycle between today and your personal best.",
     highlight: '[data-testid="card-cold-score"]',
     hint: "↓ below",
   },
@@ -80,15 +80,50 @@ const FIRST_OPEN_STEPS: Step[] = [
   },
   {
     icon: "📊",
-    title: "History tab",
-    body: "After your first plunge, tap History to see your full plunge log and mood check-ins. Sweet Spot and Cold Adaptation live in Profile → Stats tab.",
+    title: "History",
+    body: "Your full plunge log lives here. Tap any session to rate your Energy, Focus, and Mood — the more you rate, the smarter your insights get.",
     highlight: '[data-testid="nav-history"]',
+    hint: "↓ bottom nav",
+  },
+  {
+    icon: "👤",
+    title: "Profile",
+    body: "Two tabs: Account (username, body metrics, your public badge page) and Stats (Cold Score trends, Sweet Spot, and Cold Adaptation analysis). Body metrics also personalise your Cold Score and Benefits bar.",
+    highlight: '[data-testid="nav-profile"]',
+    hint: "↓ bottom nav",
+  },
+  {
+    icon: "👥",
+    title: "Friends",
+    body: "Search for friends by @username, see their daily scores and streaks, and tap any friend card to send them an ⚡ Challenge. A red dot on the icon means a friend request is waiting.",
+    highlight: '[data-testid="nav-friends"]',
+    hint: "↓ bottom nav",
+  },
+  {
+    icon: "🧭",
+    title: "Explore",
+    body: "Global and city leaderboards, community events, and local plunge spots near you. A great place to find cold-plunge buddies and see how you stack up worldwide.",
+    highlight: '[data-testid="nav-explore"]',
+    hint: "↓ bottom nav",
+  },
+  {
+    icon: "🛒",
+    title: "Gear",
+    body: "Browse cold plunge tubs, thermometers, and accessories hand-picked for plungers. Linking a Bluetooth thermometer lets the app read your water temp automatically.",
+    highlight: '[data-testid="nav-gear"]',
+    hint: "↓ bottom nav",
+  },
+  {
+    icon: "⚙️",
+    title: "Settings",
+    body: "Change temperature units, link a Bluetooth thermometer, manage your account, and set up notifications. Body metrics (weight, height, body fat) are in Profile → Account.",
+    highlight: '[data-testid="nav-settings"]',
     hint: "↓ bottom nav",
   },
   {
     icon: "💬",
     title: "Ask me anything",
-    body: "Tap the ColdStreak icon (top-left, it moves — drag it wherever you like) any time to ask about your stats or any feature.",
+    body: "Tap the ColdStreak icon (top-left, it moves — drag it wherever you like) any time to ask about your stats, cold plunge science, or how any feature works.",
     highlight: '[data-testid="coach-fab"]',
   },
 ];

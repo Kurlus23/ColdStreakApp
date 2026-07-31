@@ -1111,7 +1111,7 @@ export default function Home() {
   const [showAchievements, setShowAchievements] = useState(() => {
     return localStorage.getItem("coldstreak-achievements-open") !== "false";
   });
-  const [scoreView, setScoreView] = useState<"today" | "week" | "best">("today");
+  const [scoreView, setScoreView] = useState<"today" | "best">("today");
   const [scoreInfoOpen, setScoreInfoOpen] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [restoreFromPhotoMeta, setRestoreFromPhotoMeta] = useState<PlungePhotoMeta | null>(null);
@@ -3652,7 +3652,7 @@ export default function Home() {
                   data-testid="card-cold-score"
                   onClick={() => {
                     setScoreInfoOpen(false);
-                    setScoreView(v => v === "today" ? "week" : v === "week" ? "best" : "today");
+                    setScoreView(v => v === "today" ? "best" : "today");
                   }}
                   className="flex flex-col items-center w-full focus:outline-none active:opacity-80"
                 >
@@ -3661,13 +3661,11 @@ export default function Home() {
                           style={scoreView !== "best" ? { textShadow: "0 0 20px rgba(103,232,249,0.35)" } : undefined}>
                       {scoreView === "today"
                         ? (displayScore > 0 ? displayScore.toFixed(1) : "—")
-                        : scoreView === "week"
-                          ? (weeklyScore > 0 ? weeklyScore.toFixed(1) : "—")
-                          : (personalBest > 0 ? personalBest.toFixed(1) : "—")
+                        : (personalBest > 0 ? personalBest.toFixed(1) : "—")
                       }
                     </span>
                     <span className={`text-[8px] mt-1.5 ${isActive && scoreView === "today" ? "text-green-400 animate-pulse" : scoreView === "best" ? "text-yellow-400/70" : "text-blue-300/60"}`}>
-                      {scoreView === "today" ? (isActive ? "live" : "today") : scoreView === "week" ? "this week" : "personal best"}
+                      {scoreView === "today" ? (isActive ? "live" : "today") : "personal best"}
                     </span>
                   </>
                 </button>
@@ -3689,7 +3687,7 @@ export default function Home() {
                       <span className="text-cyan-300 font-bold">Cold Score</span> rewards colder water, longer duration, and is personalised by your body composition. The exact formula is proprietary.
                     </p>
                     <p className="text-blue-200 text-[10px] leading-relaxed mt-2">
-                      Tap to cycle: <span className="text-cyan-300 font-bold">today</span> → <span className="text-cyan-300 font-bold">this week</span> → <span className="text-yellow-300 font-bold">personal best</span>
+                      Tap to cycle: <span className="text-cyan-300 font-bold">today</span> → <span className="text-yellow-300 font-bold">personal best</span>
                     </p>
                   </div>
                 )}
