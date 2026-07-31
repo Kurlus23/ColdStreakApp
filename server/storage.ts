@@ -244,6 +244,8 @@ export interface IStorage {
     bestScore: number;
     plungeCount: number;
     lastPlungeAt: Date;
+    featuredBadges: string;
+    foundingPlunger: boolean;
   }>>;
   getAllVerifiedListings(): Promise<UserLocation[]>;
   // Public profile / share / hours / co-managers / CSV export
@@ -1403,6 +1405,8 @@ export class DatabaseStorage implements IStorage {
     bestScore: number;
     plungeCount: number;
     lastPlungeAt: Date;
+    featuredBadges: string;
+    foundingPlunger: boolean;
   }>> {
     const locKey = `community-${locationId}`;
     // Group by a single identity key per plunger:
@@ -1427,13 +1431,44 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(sql`max(${plunges.score})`))
       .limit(limit);
 
-    return rows.map((r) => ({
-      username: r.displayName ?? r.email?.split("@")[0] ?? (r.clientId ? "Anon (device)" : "Anon"),
-      userId: r.userId ?? null,
-      bestScore: Number(r.bestScore),
-      plungeCount: Number(r.plungeCount),
-      lastPlungeAt: r.lastAt as Date,
-    }));
+    // Badge profiles are keyed by displayName (the value the client writes as "username").
+    // Collect the display identity for each row to look up the correct profile.
+    const displayNames = rows
+      .map((r) => r.displayName ?? null)
+      .filter((n): n is string => n !== null);
+
+    const badgeMap = new Map<string, { featuredBadges: string; foundingPlunger: boolean }>();
+    if (displayNames.length > 0) {
+      const badgeRows = await db
+        .select({
+          username: badgeProfiles.username,
+          featuredBadges: badgeProfiles.featuredBadges,
+          foundingPlunger: badgeProfiles.foundingPlunger,
+        })
+        .from(badgeProfiles)
+        .where(inArray(badgeProfiles.username, displayNames));
+      for (const b of badgeRows) {
+        badgeMap.set(b.username, {
+          featuredBadges: b.featuredBadges ?? "[]",
+          foundingPlunger: b.foundingPlunger ?? false,
+        });
+      }
+    }
+
+    return rows.map((r) => {
+      const displayUsername = r.displayName ?? r.email?.split("@")[0] ?? (r.clientId ? "Anon (device)" : "Anon");
+      // Look up by displayName since that's the key badge profiles are stored under.
+      const badge = r.displayName ? badgeMap.get(r.displayName) : undefined;
+      return {
+        username: displayUsername,
+        userId: r.userId ?? null,
+        bestScore: Number(r.bestScore),
+        plungeCount: Number(r.plungeCount),
+        lastPlungeAt: r.lastAt as Date,
+        featuredBadges: badge?.featuredBadges ?? "[]",
+        foundingPlunger: badge?.foundingPlunger ?? false,
+      };
+    });
   }
 
   // ── Public profile / sharing / hours / co-managers / CSV export ──────────

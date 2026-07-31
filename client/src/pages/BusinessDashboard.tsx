@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -30,6 +31,8 @@ type LeaderRow = {
   bestScore: number;
   plungeCount: number;
   lastPlungeAt: string;
+  featuredBadges?: string;
+  foundingPlunger?: boolean;
 };
 
 const CLICK_LABELS: Record<string, string> = {
@@ -399,7 +402,22 @@ export default function BusinessDashboard() {
                         className="border-t border-blue-900/40 hover:bg-blue-950/40"
                       >
                         <td className="px-2 py-2 text-blue-400 font-bold w-6">{i + 1}</td>
-                        <td className="px-2 py-2 text-white font-semibold truncate max-w-[160px]">{row.username}</td>
+                        <td className="px-2 py-2 text-white font-semibold truncate max-w-[160px]">
+                          {row.username}
+                          {(() => {
+                            const chips: string[] = [];
+                            if (row.foundingPlunger) chips.push("🎖️");
+                            try {
+                              const ids: string[] = JSON.parse(row.featuredBadges ?? "[]");
+                              const lookup: Record<string, string> = {};
+                              TEMP_TIERS.forEach((t) => { lookup[t.id] = t.emoji; });
+                              DAYS_TIERS.forEach((t) => { lookup[t.id] = t.emoji; });
+                              Object.entries(STATE_EMOJI).forEach(([k, v]) => { lookup[k] = v; });
+                              ids.slice(0, 3).forEach((id) => { const e = lookup[id]; if (e) chips.push(e); });
+                            } catch { /* ignore */ }
+                            return chips.length ? <span className="ml-1 text-sm leading-none">{chips.join("")}</span> : null;
+                          })()}
+                        </td>
                         <td className="px-2 py-2 text-cyan-300 text-right font-mono">{row.bestScore.toLocaleString()}</td>
                         <td className="px-2 py-2 text-blue-300 text-right">{row.plungeCount}</td>
                         <td className="px-2 py-2 text-blue-500 text-right text-xs hidden sm:table-cell">

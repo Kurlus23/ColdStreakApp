@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -29,7 +30,7 @@ interface PublicBiz {
   hours: BusinessHours | null;
   timezone: string | null;
   viewCount: number;
-  leaderboard: Array<{ username: string; bestScore: number; plungeCount: number; lastPlungeAt: string }>;
+  leaderboard: Array<{ username: string; bestScore: number; plungeCount: number; lastPlungeAt: string; featuredBadges?: string; foundingPlunger?: boolean }>;
 }
 
 const DAY_LABELS: Record<DayKey, string> = {
@@ -411,6 +412,19 @@ export default function BusinessProfile() {
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-blue-400 font-bold text-xs w-5">{i + 1}</span>
                     <span className="text-white font-semibold truncate">{row.username}</span>
+                    {(() => {
+                      const chips: string[] = [];
+                      if (row.foundingPlunger) chips.push("🎖️");
+                      try {
+                        const ids: string[] = JSON.parse(row.featuredBadges ?? "[]");
+                        const lookup: Record<string, string> = {};
+                        TEMP_TIERS.forEach((t) => { lookup[t.id] = t.emoji; });
+                        DAYS_TIERS.forEach((t) => { lookup[t.id] = t.emoji; });
+                        Object.entries(STATE_EMOJI).forEach(([k, v]) => { lookup[k] = v; });
+                        ids.slice(0, 3).forEach((id) => { const e = lookup[id]; if (e) chips.push(e); });
+                      } catch { /* ignore */ }
+                      return chips.length ? <span className="text-sm leading-none flex-shrink-0">{chips.join("")}</span> : null;
+                    })()}
                   </div>
                   <div className="flex items-center gap-3 text-xs">
                     <span className="text-cyan-300 font-mono">{row.bestScore.toLocaleString()}</span>
