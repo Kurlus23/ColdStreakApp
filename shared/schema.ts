@@ -61,8 +61,9 @@ export const plunges = pgTable("plunges", {
   calories: integer("calories"), // kcal estimate locked at log time (nullable for legacy rows)
   timezone: text("timezone"), // IANA tz captured at log time (nullable for legacy rows)
   mood: integer("mood"), // post-plunge mood check-in: 1 (rough) → 5 (great), nullable until answered
-  moodEnergy: integer("mood_energy"), // post-plunge energy check-in: 1 (drained) → 3 (energized), nullable
-  moodFocus: integer("mood_focus"),   // post-plunge focus check-in:  1 (worse)   → 3 (better),   nullable
+  moodEnergy:  integer("mood_energy"),  // post-plunge energy check-in:  1 (drained) → 3 (energized), nullable
+  moodFocus:   integer("mood_focus"),   // post-plunge focus check-in:   1 (worse)   → 3 (better),   nullable
+  moodFatigue: integer("mood_fatigue"), // post-plunge fatigue check-in: 1 (sore)    → 3 (relieved),  nullable
   moodPromptedAt: timestamp("mood_prompted_at"), // when the 1-hour mood push was sent (nullable)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -147,12 +148,14 @@ export const updatePlungeSchema = insertPlungeSchema.partial().pick({
   score: true,
   calories: true,
   mood: true,
-  moodEnergy: true,
-  moodFocus: true,
+  moodEnergy:  true,
+  moodFocus:   true,
+  moodFatigue: true,
 }).extend({
   mood:        z.number().int().min(1).max(5).nullable().optional(),
   moodEnergy:  z.number().int().min(1).max(3).nullable().optional(),
   moodFocus:   z.number().int().min(1).max(3).nullable().optional(),
+  moodFatigue: z.number().int().min(1).max(3).nullable().optional(),
   createdAt:   z.string().optional(), // allow date/time editing from history card
 });
 

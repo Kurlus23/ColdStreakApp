@@ -7910,7 +7910,7 @@ export default function Home() {
       )}
 
       {/* ─── POST-PLUNGE MOOD CHECK-IN ─── */}
-      <MoodCheckIn plunges={plunges} visible={photoPromptId === null && !showWebCamera} />
+      <MoodCheckIn plunges={plunges} visible={photoPromptId === null && !showWebCamera} primaryBenefit={primaryBenefit} />
 
       {/* ─── WEB CAMERA OVERLAY ─── */}
       {showWebCamera && (

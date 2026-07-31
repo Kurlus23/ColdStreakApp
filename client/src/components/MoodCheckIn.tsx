@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useUpdatePlunge } from "@/hooks/use-plunges";
 import { type Plunge } from "@shared/schema";
+import { type SegmentId } from "@/lib/benefitSegments";
 
 // ── Scale definitions ──────────────────────────────────────────────────────────
 
@@ -24,9 +25,24 @@ export const FOCUS_OPTIONS = [
   { value: 3, emoji: "🎯", label: "Better" },
 ] as const;
 
+export const FATIGUE_OPTIONS = [
+  { value: 1, emoji: "😣", label: "Still sore" },
+  { value: 2, emoji: "😐", label: "Neutral"    },
+  { value: 3, emoji: "💪", label: "Relieved"   },
+] as const;
+
+export const RECOVERY_OPTIONS = [
+  { value: 1, emoji: "😓", label: "Not yet"  },
+  { value: 2, emoji: "😐", label: "Somewhat" },
+  { value: 3, emoji: "✨", label: "Restored" },
+] as const;
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const DISMISS_KEY = (id: number) => `coldstreak-mood-dismissed-${id}`;
+
+/** 5-minute threshold for a "longer" mood-goal plunge */
+const MOOD_LONG_SECS = 300;
 
 function extractMoodId(url: string): number | null {
   try {
@@ -83,17 +99,45 @@ function PickerRow<T extends readonly { value: number; emoji: string; label: str
   );
 }
 
+// ── Question-set logic ─────────────────────────────────────────────────────────
+
+type QuestionSet = "recovery" | "mood-short" | "mood-long" | "default";
+
+function getQuestionSet(goal: SegmentId, durationSec: number): QuestionSet {
+  if (goal === "recovery") return "recovery";
+  if (goal === "mood") return durationSec >= MOOD_LONG_SECS ? "mood-long" : "mood-short";
+  return "default";
+}
+
+function getHeaderText(qset: QuestionSet, isNotif: boolean, ageHours: number): string {
+  if (qset === "recovery") return "How's your body feeling after your plunge?";
+  if (qset === "mood-short") return "How's your mood after your plunge?";
+  if (isNotif) return "How did your plunge affect the rest of your day?";
+  return ageHours <= 3
+    ? "How did your plunge affect you today?"
+    : "How did your last plunge affect the rest of your day?";
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export function MoodCheckIn({ plunges, visible }: { plunges: Plunge[]; visible: boolean }) {
+export function MoodCheckIn({
+  plunges,
+  visible,
+  primaryBenefit = "mood",
+}: {
+  plunges: Plunge[];
+  visible: boolean;
+  primaryBenefit?: SegmentId;
+}) {
   const updatePlunge = useUpdatePlunge();
   const [notifPlungeId, setNotifPlungeId] = useState<number | null>(null);
   const [saved, setSaved] = useState(false);
   const [dismissTick, setDismissTick] = useState(0);
 
-  const [mood,       setMood]       = useState<number | null>(null);
-  const [moodEnergy, setMoodEnergy] = useState<number | null>(null);
-  const [moodFocus,  setMoodFocus]  = useState<number | null>(null);
+  const [mood,        setMood]        = useState<number | null>(null);
+  const [moodEnergy,  setMoodEnergy]  = useState<number | null>(null);
+  const [moodFocus,   setMoodFocus]   = useState<number | null>(null);
+  const [moodFatigue, setMoodFatigue] = useState<number | null>(null);
 
   // Cold start: arrived via /?mood=<id> (notification tap opened a new window)
   useEffect(() => {
@@ -142,6 +186,7 @@ export function MoodCheckIn({ plunges, visible }: { plunges: Plunge[]; visible: 
     setMood(null);
     setMoodEnergy(null);
     setMoodFocus(null);
+    setMoodFatigue(null);
   }, [target?.id]);
 
   useEffect(() => {
@@ -170,12 +215,27 @@ export function MoodCheckIn({ plunges, visible }: { plunges: Plunge[]; visible: 
 
   const isNotif = notifPlunge != null;
   const ageHours = Math.round((now - new Date(target.createdAt).getTime()) / 3600000);
-  const allPicked = mood !== null && moodEnergy !== null && moodFocus !== null;
+  const qset = getQuestionSet(primaryBenefit, target.duration);
+  const headerText = getHeaderText(qset, isNotif, ageHours);
+
+  // Per-question-set "all answered" guard
+  const allPicked = (() => {
+    if (qset === "recovery")   return mood !== null && moodEnergy !== null && moodFatigue !== null && moodFocus !== null;
+    if (qset === "mood-short") return mood !== null && moodEnergy !== null;
+    return mood !== null && moodEnergy !== null && moodFocus !== null;
+  })();
 
   const submit = () => {
     if (!allPicked) return;
+    const patch: Record<string, number | null> = { mood, moodEnergy };
+    if (qset === "recovery") {
+      patch.moodFatigue = moodFatigue;
+      patch.moodFocus   = moodFocus;   // saved as "recovery feeling"
+    } else if (qset !== "mood-short") {
+      patch.moodFocus = moodFocus;
+    }
     updatePlunge.mutate(
-      { id: target.id, patch: { mood, moodEnergy, moodFocus } },
+      { id: target.id, patch },
       { onSuccess: () => { setSaved(true); setNotifPlungeId(null); } },
     );
   };
@@ -186,6 +246,12 @@ export function MoodCheckIn({ plunges, visible }: { plunges: Plunge[]; visible: 
     setDismissTick((t) => t + 1);
   };
 
+  const saveLabel = (() => {
+    if (qset === "recovery")   return allPicked ? "Save check-in" : "Answer all four to save";
+    if (qset === "mood-short") return allPicked ? "Save check-in" : "Answer both to save";
+    return allPicked ? "Save check-in" : "Select all three to save";
+  })();
+
   return (
     <div className="fixed bottom-24 left-0 right-0 z-30 flex justify-center px-4">
       <div
@@ -194,13 +260,7 @@ export function MoodCheckIn({ plunges, visible }: { plunges: Plunge[]; visible: 
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
-          <p className="text-white text-sm font-semibold leading-snug">
-            {isNotif
-              ? "How did your plunge affect the rest of your day?"
-              : ageHours <= 3
-                ? "How did your plunge affect you today?"
-                : "How did your last plunge affect the rest of your day?"}
-          </p>
+          <p className="text-white text-sm font-semibold leading-snug">{headerText}</p>
           <button
             data-testid="button-dismiss-mood"
             onClick={dismiss}
@@ -210,28 +270,32 @@ export function MoodCheckIn({ plunges, visible }: { plunges: Plunge[]; visible: 
           </button>
         </div>
 
-        {/* Three pickers */}
-        <PickerRow
-          icon="😊"
-          label="Mood"
-          options={MOOD_OPTIONS}
-          value={mood}
-          onPick={setMood}
-        />
-        <PickerRow
-          icon="⚡"
-          label="Energy"
-          options={ENERGY_OPTIONS}
-          value={moodEnergy}
-          onPick={setMoodEnergy}
-        />
-        <PickerRow
-          icon="🧠"
-          label="Focus"
-          options={FOCUS_OPTIONS}
-          value={moodFocus}
-          onPick={setMoodFocus}
-        />
+        {/* ── Recovery goal: mood + energy + muscle fatigue + recovery feeling ── */}
+        {qset === "recovery" && (
+          <>
+            <PickerRow icon="😊" label="Mood"           options={MOOD_OPTIONS}     value={mood}        onPick={setMood} />
+            <PickerRow icon="⚡" label="Energy"         options={ENERGY_OPTIONS}   value={moodEnergy}  onPick={setMoodEnergy} />
+            <PickerRow icon="💪" label="Muscle fatigue" options={FATIGUE_OPTIONS}  value={moodFatigue} onPick={setMoodFatigue} />
+            <PickerRow icon="🔄" label="Recovery"       options={RECOVERY_OPTIONS} value={moodFocus}   onPick={setMoodFocus} />
+          </>
+        )}
+
+        {/* ── Mood goal, short: just mood + energy ── */}
+        {qset === "mood-short" && (
+          <>
+            <PickerRow icon="😊" label="Mood"   options={MOOD_OPTIONS}   value={mood}       onPick={setMood} />
+            <PickerRow icon="⚡" label="Energy" options={ENERGY_OPTIONS} value={moodEnergy} onPick={setMoodEnergy} />
+          </>
+        )}
+
+        {/* ── Mood goal long / default: mood + energy + focus ── */}
+        {(qset === "mood-long" || qset === "default") && (
+          <>
+            <PickerRow icon="😊" label="Mood"   options={MOOD_OPTIONS}   value={mood}       onPick={setMood} />
+            <PickerRow icon="⚡" label="Energy" options={ENERGY_OPTIONS} value={moodEnergy} onPick={setMoodEnergy} />
+            <PickerRow icon="🧠" label="Focus"  options={FOCUS_OPTIONS}  value={moodFocus}  onPick={setMoodFocus} />
+          </>
+        )}
 
         {/* Save button */}
         <button
@@ -245,7 +309,7 @@ export function MoodCheckIn({ plunges, visible }: { plunges: Plunge[]; visible: 
               : "bg-blue-900/30 border border-blue-700/30 text-blue-600 cursor-not-allowed",
           ].join(" ")}
         >
-          {allPicked ? "Save check-in" : "Select all three to save"}
+          {saveLabel}
         </button>
       </div>
     </div>

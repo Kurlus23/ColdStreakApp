@@ -49,6 +49,7 @@ function makePlunge(overrides: {
     mood:           overrides.mood         ?? null,
     moodEnergy:     overrides.moodEnergy   ?? null,
     moodFocus:      overrides.moodFocus    ?? null,
+    moodFatigue:    null,
     moodPromptedAt: null,
     createdAt:      overrides.createdAt    ?? new Date(),
   };
