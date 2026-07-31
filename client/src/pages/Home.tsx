@@ -5532,13 +5532,12 @@ export default function Home() {
               {/* ── Friend profile sheet ── */}
               {selectedFriend && (
                 <div
-                  className="fixed inset-0 z-50 flex items-center justify-center p-6"
-                  style={{ background: "rgba(4,15,30,0.75)", backdropFilter: "blur(6px)" }}
+                  className="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-none"
                   onClick={() => setSelectedFriend(null)}
                 >
                   <div
-                    className="rounded-3xl px-6 pt-5 pb-7 space-y-5 w-full max-w-sm"
-                    style={{ background: "linear-gradient(to bottom, #0d2240, #071428)", border: "1px solid rgba(34,211,238,0.15)" }}
+                    className="rounded-3xl px-6 pt-5 pb-7 space-y-5 w-full max-w-sm pointer-events-auto"
+                    style={{ background: "linear-gradient(to bottom, #0d2240, #071428)", border: "1px solid rgba(34,211,238,0.15)", boxShadow: "0 8px 48px rgba(0,0,0,0.6)" }}
                     onClick={(e) => e.stopPropagation()}
                   >
                     {/* Header */}
