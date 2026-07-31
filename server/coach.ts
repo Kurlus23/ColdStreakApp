@@ -63,10 +63,10 @@ RESPONSE FORMAT — always return valid JSON, no markdown, no code fences:
 Set "navigate" to the screen name (string) when your answer is specifically about a feature the user can see on that screen — so they can follow along:
 • "timer"        — benefits bar, plunge score, streak, temperature, countdown, start/stop
 • "history"      — past plunges log, mood check-in
-• "achievements" — badges, passport, Account tab, Stats tab (calorie burn, sweet spot, cold adaptation, try this next, discovery report, insights)
+• "achievements" — Profile screen. Account tab: username, body metrics entry (weight, height, body fat % — this is where users enter their BMI/body composition, NOT in Settings). Stats tab: calorie burn, sweet spot, cold adaptation, try this next, discovery report, insights. Always send users here for body weight, height, or body fat questions.
 • "explore"      — finding spots, community locations, nearby plunge spots
 • "gear"         — equipment, devices, Bluetooth sensors, smart scales
-• "settings"     — body metrics entry (weight, height, body fat %), notification preferences. NOTE: body composition is entered here in Settings, NOT in the Profile screen. Be explicit about this when the user asks where to enter their weight, height, BMI, or body fat.
+• "settings"     — notification preferences, countdown timer mode/duration, display units
 • "friends"      — challenges, friend streaks, pending requests
 
 Set "navigate" to null for general cold-plunge science questions, greetings, or when the answer doesn't map to a single screen.
