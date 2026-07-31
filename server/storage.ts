@@ -23,6 +23,7 @@ export interface FriendWithStats {
   username: string | null;
   displayName: string | null;
   avatarUrl: string | null;
+  featuredBadges: string; // JSON array string
   streak: number;
   plungedToday: boolean;
   latestScore: number | null;
@@ -1841,13 +1842,17 @@ export class DatabaseStorage implements IStorage {
     const friendUsers = await db.select({ id: users.id, username: users.username, displayName: users.displayName })
       .from(users).where(inArray(users.id, friendIds));
 
-    // Get avatar urls from badge_profiles
+    // Get avatar urls and featured badges from badge_profiles
     const usernames = friendUsers.map(u => u.username).filter(Boolean) as string[];
     const avatarMap: Record<string, string | null> = {};
+    const badgeMap: Record<string, string> = {};
     if (usernames.length > 0) {
-      const profiles = await db.select({ username: badgeProfiles.username, avatarUrl: badgeProfiles.avatarUrl })
+      const profiles = await db.select({ username: badgeProfiles.username, avatarUrl: badgeProfiles.avatarUrl, featuredBadges: badgeProfiles.featuredBadges })
         .from(badgeProfiles).where(inArray(badgeProfiles.username, usernames));
-      for (const p of profiles) avatarMap[p.username] = p.avatarUrl ?? null;
+      for (const p of profiles) {
+        avatarMap[p.username] = p.avatarUrl ?? null;
+        badgeMap[p.username] = p.featuredBadges ?? "[]";
+      }
     }
 
     // Get plunges for each friend to compute streak, latest score, best score
@@ -1878,6 +1883,7 @@ export class DatabaseStorage implements IStorage {
         username: friend.username,
         displayName: friend.displayName,
         avatarUrl: friend.username ? (avatarMap[friend.username] ?? null) : null,
+        featuredBadges: friend.username ? (badgeMap[friend.username] ?? "[]") : "[]",
         streak,
         plungedToday,
         latestScore,

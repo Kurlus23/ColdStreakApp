@@ -5409,6 +5409,7 @@ export default function Home() {
                       username: auth.user?.username ?? null,
                       displayName: auth.user?.username ?? null,
                       avatarUrl: ownAvatarUrl,
+                      featuredBadges: JSON.stringify(featuredBadgeIds),
                       streak,
                       plungedToday: myPlungedToday,
                       latestScore: plunges.length > 0 ? parseFloat(String(plunges[0].score)) || null : null,
@@ -5454,10 +5455,20 @@ export default function Home() {
                                 </div>
                               )}
                               <div className="flex-1 min-w-0">
-                                {/* Name + you badge + score on same line */}
+                                {/* Name + you badge + badges + score on same line */}
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <p className="text-white text-sm font-semibold">{f.displayName || f.username || "Friend"}</p>
                                   {isMe && <span className="shrink-0 text-[9px] font-bold bg-cyan-500/30 text-cyan-300 rounded-full px-1.5 py-0.5 leading-none">you</span>}
+                                  {(() => {
+                                    const ids: string[] = (() => { try { return JSON.parse(f.featuredBadges ?? "[]"); } catch { return []; } })();
+                                    if (!ids.length) return null;
+                                    const lookup: Record<string, string> = {};
+                                    TEMP_TIERS.forEach(t => { lookup[t.id] = t.emoji; });
+                                    DAYS_TIERS.forEach(t => { lookup[t.id] = t.emoji; });
+                                    Object.entries(STATE_EMOJI).forEach(([s, e]) => { lookup[s] = e as string; });
+                                    const emojis = ids.slice(0, 3).map(id => lookup[id] ?? "").filter(Boolean).join("");
+                                    return emojis ? <span className="text-base leading-none shrink-0">{emojis}</span> : null;
+                                  })()}
                                   {friendsSort === 'daily' && f.plungedToday && f.latestScore != null && (
                                     <span className="text-cyan-400 text-[11px] font-bold">⚡ {f.latestScore.toFixed(1)}</span>
                                   )}
@@ -5543,6 +5554,16 @@ export default function Home() {
                         <div>
                           <p className="text-white font-bold text-lg leading-tight">{selectedFriend.displayName || selectedFriend.username || "Friend"}</p>
                           {selectedFriend.username && <p className="text-blue-400 text-xs">@{selectedFriend.username}</p>}
+                          {(() => {
+                            const ids: string[] = (() => { try { return JSON.parse(selectedFriend.featuredBadges ?? "[]"); } catch { return []; } })();
+                            if (!ids.length) return null;
+                            const lookup: Record<string, string> = {};
+                            TEMP_TIERS.forEach(t => { lookup[t.id] = t.emoji; });
+                            DAYS_TIERS.forEach(t => { lookup[t.id] = t.emoji; });
+                            Object.entries(STATE_EMOJI).forEach(([s, e]) => { lookup[s] = e as string; });
+                            const emojis = ids.slice(0, 3).map(id => lookup[id] ?? "").filter(Boolean).join("");
+                            return emojis ? <p className="text-xl leading-none mt-0.5">{emojis}</p> : null;
+                          })()}
                         </div>
                       </div>
                       <button
@@ -5600,6 +5621,16 @@ export default function Home() {
                         ? "✓ Challenged"
                         : `⚡ Challenge ${(selectedFriend.displayName || selectedFriend.username || "them").split(" ")[0]}`}
                     </button>
+
+                    {/* View profile link */}
+                    {selectedFriend.username && (
+                      <button
+                        onClick={() => { setSelectedFriend(null); navigate(`/profile/${encodeURIComponent(selectedFriend.username!)}`); }}
+                        className="w-full py-2.5 rounded-2xl font-semibold text-sm text-blue-300 border border-blue-700/50 bg-blue-900/30 hover:bg-blue-800/40 transition-all active:scale-95"
+                      >
+                        View Badge Profile →
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

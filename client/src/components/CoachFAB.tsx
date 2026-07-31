@@ -195,6 +195,9 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
     if (!el) return;
 
     const onTouchStart = (e: TouchEvent) => {
+      // Non-passive: prevent browser from starting a system pan before our
+      // touchmove handler can take over.
+      e.preventDefault();
       const t = e.touches[0];
       wasDrag.current = false;
       drag.current = {
@@ -233,7 +236,7 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
       try { localStorage.setItem(POS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
     };
 
-    el.addEventListener("touchstart",  onTouchStart, { passive: true });
+    el.addEventListener("touchstart",  onTouchStart, { passive: false });
     el.addEventListener("touchmove",   onTouchMove,  { passive: false }); // ← key: non-passive
     el.addEventListener("touchend",    onTouchEnd,   { passive: true });
 
