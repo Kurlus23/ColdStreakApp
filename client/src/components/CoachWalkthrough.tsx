@@ -19,7 +19,7 @@ import { useState, useEffect, useCallback } from "react";
 
 // ── localStorage keys ─────────────────────────────────────────────────────────
 
-export const FIRST_OPEN_KEY   = "coach-walkthrough-first-open-v3";
+export const FIRST_OPEN_KEY   = "coach-walkthrough-first-open-v5";
 export const POST_PLUNGE_KEY  = "coach-walkthrough-post-plunge-v1";
 export const PROFILE_TIP_KEY  = "coach-tip-profile-v1";
 export const FRIENDS_TIP_KEY  = "coach-tip-friends-v1";
@@ -53,12 +53,26 @@ const FIRST_OPEN_STEPS: Step[] = [
   {
     icon: "🌡️",
     title: "Water temperature",
-    body: "Tap the temperature display to set your water temp before you plunge.",
+    body: "Tap the temperature display to set your water temp manually. The 'LIVE' indicator means a Bluetooth thermometer is connected and updating temp automatically — link one in Settings.",
     highlight: '[data-testid="card-water-temp"]',
     hint: "↓ below",
   },
   {
     icon: "⚡",
+    title: "Cold Score",
+    body: "Your performance score — colder water and longer duration means a higher score. Tap to cycle between today, this week, and your personal best.",
+    highlight: '[data-testid="card-cold-score"]',
+    hint: "↓ below",
+  },
+  {
+    icon: "🏅",
+    title: "Badge progress",
+    body: "The small bar under your score tracks how many unique days you've plunged, counting down to your next days badge. Each new day you plunge — no matter how many times — moves it forward.",
+    highlight: '[data-testid="card-badge-progress"]',
+    hint: "↓ below",
+  },
+  {
+    icon: "💪",
     title: "Benefits bar",
     body: "Fills as you plunge through Energy, Mood, Metabolism, and Recovery. Thresholds are personalised — colder water and leaner body composition unlock each benefit faster. Tap the goal label at the top of the bar to set or change your target benefit.",
     highlight: '[data-testid="benefit-bar"]',

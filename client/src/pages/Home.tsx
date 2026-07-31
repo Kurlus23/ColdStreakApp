@@ -3733,7 +3733,7 @@ export default function Home() {
                 const prevDays = [...sortedTiers].reverse().find(t => _fbtUniqueDays >= t.days)?.days ?? 0;
                 const pct = Math.min(100, Math.round(((_fbtUniqueDays - prevDays) / (nextTier.days - prevDays)) * 100));
                 return (
-                  <div className="flex flex-col justify-center px-3 pt-2 pb-2.5">
+                  <div className="flex flex-col justify-center px-3 pt-2 pb-2.5" data-testid="card-badge-progress">
                     <div className="flex justify-between mb-1">
                       <span className="text-blue-300/60 text-[8px]">{_fbtUniqueDays}d</span>
                       <span className="text-blue-300/60 text-[8px]">{nextTier.emoji} {nextTier.days}d</span>

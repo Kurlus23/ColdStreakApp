@@ -17,6 +17,24 @@ import {
 } from "@shared/schema";
 import { desc, eq, sql, or, isNull, and, not, lt, gte, inArray, sum } from "drizzle-orm";
 
+// Mirror of client-side passport tiers — used to auto-compute friend badges
+const FRIEND_TEMP_TIERS = [
+  { id: "ice-breaker",  minTemp: 0,  maxTemp: 32 },
+  { id: "frosty",       minTemp: 33, maxTemp: 39 },
+  { id: "cold-blooded", minTemp: 40, maxTemp: 49 },
+  { id: "initiate",     minTemp: 50, maxTemp: 60 },
+];
+const FRIEND_DAYS_TIERS = [
+  { id: "shiva",        days: 365 },
+  { id: "ice-baron",    days: 270 },
+  { id: "blue-yeti",    days: 180 },
+  { id: "polar-bear",   days: 120 },
+  { id: "penguin",      days: 75  },
+  { id: "frost-seeker", days: 45  },
+  { id: "cold-habit",   days: 21  },
+  { id: "first-frost",  days: 7   },
+];
+
 export interface FriendWithStats {
   friendshipId: number;
   userId: number;
@@ -1860,7 +1878,7 @@ export class DatabaseStorage implements IStorage {
     // Get plunges for each friend to compute streak, latest score, best score
     const results: FriendWithStats[] = [];
     for (const friend of friendUsers) {
-      const friendPlunges = await db.select({ score: plunges.score, createdAt: plunges.createdAt })
+      const friendPlunges = await db.select({ score: plunges.score, createdAt: plunges.createdAt, temperature: plunges.temperature })
         .from(plunges).where(eq(plunges.userId, friend.id)).orderBy(desc(plunges.createdAt));
 
       const latestScore = friendPlunges.length > 0 ? Number(friendPlunges[0].score) : null;
@@ -1885,7 +1903,23 @@ export class DatabaseStorage implements IStorage {
         username: friend.username,
         displayName: friend.displayName,
         avatarUrl: friend.username ? (avatarMap[friend.username.toLowerCase()] ?? null) : null,
-        featuredBadges: friend.username ? (badgeMap[friend.username.toLowerCase()] ?? "[]") : "[]",
+        featuredBadges: (() => {
+          const stored = friend.username ? (badgeMap[friend.username.toLowerCase()] ?? "[]") : "[]";
+          let ids: string[] = [];
+          try { ids = JSON.parse(stored); } catch { /* ignore */ }
+          if (ids.length > 0) return stored; // already has featured badges
+          // Auto-compute from plunge history when profile has none set
+          const autoIds: string[] = [];
+          const coldest = friendPlunges.reduce((min, p) => Math.min(min, p.temperature), Infinity);
+          if (coldest < Infinity) {
+            const tempTier = [...FRIEND_TEMP_TIERS].reverse().find(t => coldest <= t.maxTemp && coldest >= t.minTemp);
+            if (tempTier) autoIds.push(tempTier.id);
+          }
+          const uniqueDays = new Set(friendPlunges.map(p => new Date(p.createdAt).toDateString())).size;
+          const daysTier = FRIEND_DAYS_TIERS.find(t => uniqueDays >= t.days);
+          if (daysTier) autoIds.push(daysTier.id);
+          return JSON.stringify(autoIds);
+        })(),
         streak,
         plungedToday,
         latestScore,
