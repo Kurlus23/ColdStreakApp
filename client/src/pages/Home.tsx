@@ -164,7 +164,7 @@ function playAlarm(url: string, label: string, isCustom: boolean, stopAfterMs?: 
 type Screen = "timer" | "history" | "explore" | "gear" | "settings" | "legal" | "achievements" | "friends";
 
 
-import { getCompositionFactor, SEGMENTS, type SegmentId, computeThresholds, getMidSegmentIdx, getSecsToFinish } from "@/lib/benefitSegments";
+import { getCompositionFactor, getCompositionFactorForScore, SEGMENTS, type SegmentId, computeThresholds, getMidSegmentIdx, getSecsToFinish } from "@/lib/benefitSegments";
 import { CelebrationOverlay, GoalNudge, CountdownGoalHint } from "@/components/PlungeBenefitCoach";
 
 function plungeScore(
@@ -180,7 +180,7 @@ function plungeScore(
   if (tempF <= 50) coldFactor = 1.5;
   if (tempF <= 45) coldFactor = 1.9;
   if (tempF <= 40) coldFactor = 2.3;
-  return Number((minutes * coldFactor * getCompositionFactor(bodyFatPct, weightLbs, heightCm)).toFixed(2));
+  return Number((minutes * coldFactor * getCompositionFactorForScore(bodyFatPct, weightLbs, heightCm)).toFixed(2));
 }
 
 /**

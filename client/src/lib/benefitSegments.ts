@@ -43,10 +43,23 @@ export function getTempFactor(tempF: number): number {
 const NEUTRAL_BODY_FAT = 20; // %
 const NEUTRAL_BMI      = 22;
 
-/** Preferred: use body fat % directly. */
+/**
+ * Benefit-bar factor: higher body fat → higher factor → longer unlock thresholds.
+ * More insulation means you need more time to reach each benefit.
+ */
 export function getBodyFatFactor(bodyFatPct: number): number {
   if (bodyFatPct <= 0) return 1.0;
   return Math.min(1.35, Math.max(0.75, bodyFatPct / NEUTRAL_BODY_FAT));
+}
+
+/**
+ * Score factor: INVERTED direction vs benefit bar.
+ * Leaner = more thermogenically demanding = should score higher per minute.
+ * Higher body fat = more insulation = less physiological work = lower score.
+ */
+export function getBodyFatFactorForScore(bodyFatPct: number): number {
+  if (bodyFatPct <= 0) return 1.0;
+  return Math.min(1.35, Math.max(0.75, NEUTRAL_BODY_FAT / bodyFatPct));
 }
 
 /** Fallback: derive factor from BMI when body fat % is unknown. */
@@ -59,8 +72,8 @@ export function getBmiFactor(weightLbs: number, heightCm: number): number {
 }
 
 /**
- * Returns the body-composition factor using body fat % when available,
- * otherwise falls back to the BMI-derived factor.
+ * Composition factor for the BENEFIT BAR (thresholds).
+ * Higher body fat → longer thresholds (more insulation = harder to unlock benefits).
  */
 export function getCompositionFactor(
   bodyFatPct: number | null | undefined,
@@ -68,6 +81,20 @@ export function getCompositionFactor(
   heightCm: number,
 ): number {
   if (bodyFatPct != null && bodyFatPct > 0) return getBodyFatFactor(bodyFatPct);
+  return getBmiFactor(weightLbs, heightCm);
+}
+
+/**
+ * Composition factor for SCORING.
+ * Lower body fat → higher multiplier (leaner = more thermogenic work per minute).
+ * Falls back to BMI factor when body fat is not set.
+ */
+export function getCompositionFactorForScore(
+  bodyFatPct: number | null | undefined,
+  weightLbs: number,
+  heightCm: number,
+): number {
+  if (bodyFatPct != null && bodyFatPct > 0) return getBodyFatFactorForScore(bodyFatPct);
   return getBmiFactor(weightLbs, heightCm);
 }
 
