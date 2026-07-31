@@ -1867,12 +1867,10 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     const caller = extractUser(req);
     if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
 
-    // Recalculate calories (using lean mass when body_fat is known) and score
-    // (using body-fat factor when available, else BMI factor) for every plunge
-    // that has an associated user with body metrics stored.
-    //
-    // body_fat is stored as tenths on the users table (199 = 19.9 %).
-    // body_weight is in lbs.  body_height is in cm.
+    // Recalculate calories (lean-mass formula) and Cold Score (inverted body-fat
+    // factor: leaner → higher; neutral 1.0 when body fat not set, no BMI fallback)
+    // for every plunge that has an associated user account.
+    // body_fat stored as tenths (199 = 19.9 %), body_weight in lbs, body_height in cm.
     const count = await storage.recalculatePlungeStats();
     res.json({ success: true, updated: count });
   });

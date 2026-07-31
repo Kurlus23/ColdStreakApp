@@ -1925,7 +1925,7 @@ function RecalcPlungeStatsPanel() {
         <div>
           <p className="text-blue-200 font-semibold text-sm">🔄 Recalculate Plunge Stats</p>
           <p className="text-blue-400 text-xs mt-0.5">
-            Recomputes every user's calorie burn (lean-mass formula) and cold score (body-fat / BMI factor) using their current profile metrics. Run once after updating body composition data.
+            Recomputes every user's calorie burn (lean-mass formula) and Cold Score (inverted body-fat factor — leaner scores higher; neutral when unset) using their current profile metrics. Run after any formula or body-metrics update.
           </p>
         </div>
         <Button
