@@ -3656,8 +3656,7 @@ export default function Home() {
                       className="absolute top-1.5 right-2 text-blue-500 hover:text-white text-xs"
                     >✕</button>
                     <p className="text-blue-200 text-[10px] leading-relaxed">
-                      <span className="text-cyan-300 font-bold">Cold Score</span> = duration (min) × temperature factor × body composition.<br />
-                      40°F = <span className="text-cyan-300 font-bold">2.3×</span> · 50°F = <span className="text-cyan-300 font-bold">1.7×</span> · 60°F = <span className="text-cyan-300 font-bold">1.0×</span>
+                      <span className="text-cyan-300 font-bold">Cold Score</span> rewards colder water, longer duration, and is personalised by your body composition. The exact formula is proprietary.
                     </p>
                     <p className="text-blue-200 text-[10px] leading-relaxed mt-2">
                       Tap to cycle: <span className="text-cyan-300 font-bold">today</span> → <span className="text-cyan-300 font-bold">this week</span> → <span className="text-yellow-300 font-bold">personal best</span>
