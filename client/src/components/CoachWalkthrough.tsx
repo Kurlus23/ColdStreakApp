@@ -60,7 +60,7 @@ const FIRST_OPEN_STEPS: Step[] = [
   {
     icon: "⚡",
     title: "Benefits bar",
-    body: "Fills as you plunge — Energy at 60 s, Mood at 2 min, Metabolism at 3 min, Recovery at 5 min.",
+    body: "Fills as you plunge through Energy, Mood, Metabolism, and Recovery. Thresholds are calculated — colder water and leaner body composition unlock each benefit faster.",
     highlight: '[data-testid="benefit-bar"]',
     hint: "↓ below",
   },
