@@ -67,7 +67,7 @@ const FIRST_OPEN_STEPS: Step[] = [
   {
     icon: "📊",
     title: "History tab",
-    body: "After your first plunge, tap History to see your log, Sweet Spot, and Cold Adaptation trend.",
+    body: "After your first plunge, tap History to see your full plunge log and mood check-ins. Sweet Spot and Cold Adaptation live in Profile → Stats tab.",
     highlight: '[data-testid="nav-history"]',
     hint: "↓ bottom nav",
   },

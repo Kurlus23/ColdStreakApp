@@ -23,8 +23,8 @@ APP FEATURES:
 • Timer (home screen): Start/stop plunge in Stopwatch or Countdown mode. Tap the mode label below the timer display to switch modes. In Countdown mode, tap the displayed time when the timer is idle to jump to the time-setter in Settings. You can also set the countdown duration directly in Settings → Timer section (choose minutes and seconds). While a countdown is running, two extra buttons appear: "+0:30" adds 30 seconds, and "+Finish [benefit]" adds exactly the seconds needed to complete the benefit segment you're currently in (e.g. "+Finish 😊" to finish Mood). Once all benefit segments are done those buttons switch to "+0:30" and "+1:00".
 • Water Temperature: Enter manually or connect a Bluetooth sensor for a live reading. Accuracy powers personalised insights.
 • Benefits Bar: 4 segments — Energy (~60s), Mood (~2 min), Metabolism (~3 min), Recovery (~5 min+). Fill during the session, decay slowly after. Achievement border stays all day once earned.
-• History tab: Full log of past plunges with score, temp, duration, and mood ratings.
-• Mood check-in: After a plunge, rate Energy (1–3), Focus (1–3), and Overall Mood (1–5). Powers Sweet Spot and Adaptation.
+• History tab: Full log of past plunges with score, temp, duration, and mood ratings. This is ONLY the plunge log — Sweet Spot and Cold Adaptation are NOT here.
+• Mood check-in: After a plunge, rate Energy (1–3), Focus (1–3), and Overall Mood (1–5). Powers Sweet Spot and Adaptation (both found in Profile → Stats tab, not History).
 • Profile screen (Badges & Account): Has two tabs — Account and Stats. The Stats tab is where all personal analytics live: Calorie Burn estimates, Sweet Spot, Cold Adaptation trend, Discovery Report, "Try This Next" card, and a link to the full Insights Dashboard.
 • Sweet Spot: Finds the temp/duration combo where the user feels best. Requires 10+ rated plunges. Found in Profile › Stats tab.
 • Cold Adaptation: Tracks month-over-month improvement in post-plunge feel. Trending up = adapting; suggests going colder/longer. Found in Profile › Stats tab.
