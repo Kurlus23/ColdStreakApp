@@ -61,13 +61,14 @@ RESPONSE FORMAT — always return valid JSON, no markdown, no code fences:
 }
 
 Set "navigate" to the screen name (string) when your answer is specifically about a feature the user can see on that screen — so they can follow along:
-• "timer"        — benefits bar, plunge score, streak, temperature, countdown, start/stop
-• "history"      — past plunges log, mood check-in
-• "achievements" — Profile screen. Account tab: username, body metrics entry (weight, height, body fat % — this is where users enter their BMI/body composition, NOT in Settings). Stats tab: calorie burn, sweet spot, cold adaptation, try this next, discovery report, insights. Always send users here for body weight, height, or body fat questions.
-• "explore"      — finding spots, community locations, nearby plunge spots
-• "gear"         — equipment, devices, Bluetooth sensors, smart scales
-• "settings"     — notification preferences, countdown timer mode/duration, display units
-• "friends"      — challenges, friend streaks, pending requests
+• "timer"                — benefits bar, plunge score, streak, temperature, countdown, start/stop
+• "history"              — past plunges log, mood check-in
+• "achievements:account" — Profile screen, Account tab. Use ONLY for questions about body metrics entry: weight, height, body fat %, BMI, body composition inputs. This is where users enter those values — NOT in Settings.
+• "achievements:stats"   — Profile screen, Stats tab. Use for calorie burn, sweet spot, cold adaptation, try this next, discovery report, insights dashboard.
+• "explore"              — finding spots, community locations, nearby plunge spots
+• "gear"                 — equipment, devices, Bluetooth sensors, smart scales
+• "settings"             — notification preferences, countdown timer mode/duration, display units
+• "friends"              — challenges, friend streaks, pending requests
 
 Set "navigate" to null for general cold-plunge science questions, greetings, or when the answer doesn't map to a single screen.
 `.trim();
@@ -79,14 +80,16 @@ type ChatMessage = { role: "user" | "assistant"; content: string };
 // ── Screen labels shown to the coach ─────────────────────────────────────────
 
 const SCREEN_LABELS: Record<string, string> = {
-  timer:        "Timer (home screen — start/stop plunge)",
-  history:      "History tab (past plunges log, mood check-in)",
-  achievements: "Profile screen — Badges, Account tab, and Stats tab (calorie burn, sweet spot, cold adaptation, try this next, discovery report, insights)",
-  friends:      "Friends tab (friend streaks, challenges, pending requests)",
-  explore:      "Explore tab (nearby cold plunge spots)",
-  gear:         "Gear tab (equipment browsing)",
-  settings:     "Settings / Profile screen",
-  legal:        "Legal / Terms screen",
+  timer:                 "Timer (home screen — start/stop plunge)",
+  history:               "History tab (past plunges log, mood check-in)",
+  achievements:          "Profile screen — Badges, Account tab, and Stats tab (calorie burn, sweet spot, cold adaptation, try this next, discovery report, insights)",
+  "achievements:account": "Profile screen, Account tab (body metrics: weight, height, body fat %)",
+  "achievements:stats":   "Profile screen, Stats tab (calorie burn, sweet spot, cold adaptation, try this next, discovery report, insights)",
+  friends:               "Friends tab (friend streaks, challenges, pending requests)",
+  explore:               "Explore tab (nearby cold plunge spots)",
+  gear:                  "Gear tab (equipment browsing)",
+  settings:              "Settings / Profile screen",
+  legal:                 "Legal / Terms screen",
 };
 
 export async function coachChat(

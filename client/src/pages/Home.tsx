@@ -8786,10 +8786,20 @@ export default function Home() {
       {auth.user && (
         <>
           <CoachFAB authToken={localStorage.getItem("coldstreak-auth-token")} screen={screen} isPlunging={(isActive && screen === "timer") || photoPromptId !== null} onNavigate={(s) => {
-              navTo(s as Parameters<typeof navTo>[0]);
+              // Sub-tab routing: "achievements:account" / "achievements:stats"
+              const [baseScreen, subTab] = s.split(":");
+              navTo(baseScreen as Parameters<typeof navTo>[0]);
               // When the coach sends the user to Settings, open the body-metrics
               // sub-tab (not the default Support tab) so they land on the right page.
-              if (s === "settings") setTimeout(() => setSettingsTab("settings"), 50);
+              if (baseScreen === "settings") setTimeout(() => setSettingsTab("settings"), 50);
+              // When the coach sends the user to Profile, open the correct tab.
+              if (baseScreen === "achievements") {
+                const tab = subTab === "stats" ? "stats" : subTab === "account" ? "account" : null;
+                if (tab) setTimeout(() => {
+                  setProfileTab(tab as 'account' | 'stats');
+                  localStorage.setItem('coldstreak-profile-tab', tab);
+                }, 50);
+              }
             }} />
           {showFirstOpenWalkthrough && (
             <CoachWalkthrough

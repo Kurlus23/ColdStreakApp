@@ -127,13 +127,15 @@ async function sendMessage(
 }
 
 const NAV_LABELS: Record<string, string> = {
-  timer:        "Timer",
-  history:      "History",
-  explore:      "Explore",
-  gear:         "Gear",
-  settings:     "Settings",
-  achievements: "Profile › Stats",
-  friends:      "Friends",
+  timer:                  "Timer",
+  history:                "History",
+  explore:                "Explore",
+  gear:                   "Gear",
+  settings:               "Settings",
+  achievements:           "Profile",
+  "achievements:account": "Profile › Account",
+  "achievements:stats":   "Profile › Stats",
+  friends:                "Friends",
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -569,7 +571,7 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
                         </button>
                       )}
                       {/* Navigation chip */}
-                      {msg.role === "assistant" && msg.navigate && NAV_LABELS[msg.navigate] && onNavigate && msg.navigate !== screen && (
+                      {msg.role === "assistant" && msg.navigate && NAV_LABELS[msg.navigate] && onNavigate && msg.navigate.split(":")[0] !== screen && (
                         <button
                           onClick={() => { closePanel(); setTimeout(() => onNavigate(msg.navigate!), 320); }}
                           className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-600/20 border border-cyan-500/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-600/30 active:scale-95 transition-all"
