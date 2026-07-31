@@ -62,7 +62,10 @@ export function getBodyFatFactorForScore(bodyFatPct: number): number {
   return Math.min(1.35, Math.max(0.75, NEUTRAL_BODY_FAT / bodyFatPct));
 }
 
-/** Fallback: derive factor from BMI when body fat % is unknown. */
+/**
+ * Benefit-bar fallback: higher BMI → higher factor → longer unlock thresholds.
+ * More body mass means more thermal load, so more time is needed to unlock benefits.
+ */
 export function getBmiFactor(weightLbs: number, heightCm: number): number {
   if (heightCm <= 0 || weightLbs <= 0) return 1.0;
   const weightKg = weightLbs / 2.205;
@@ -72,8 +75,24 @@ export function getBmiFactor(weightLbs: number, heightCm: number): number {
 }
 
 /**
+ * Score fallback: INVERTED direction vs benefit bar.
+ * Lower BMI (lighter, less thermal mass) = higher thermogenic efficiency = higher score.
+ * Consistent with getBodyFatFactorForScore.
+ */
+export function getBmiFactorForScore(weightLbs: number, heightCm: number): number {
+  if (heightCm <= 0 || weightLbs <= 0) return 1.0;
+  const weightKg = weightLbs / 2.205;
+  const heightM  = heightCm / 100;
+  const bmi = weightKg / (heightM * heightM);
+  return Math.min(1.35, Math.max(0.75, NEUTRAL_BMI / bmi));
+}
+
+/**
  * Composition factor for the BENEFIT BAR (thresholds).
- * Higher body fat → longer thresholds (more insulation = harder to unlock benefits).
+ * Higher body fat → higher factor → longer unlock thresholds (more insulation).
+ * When body fat % is not set, returns 1.0 (neutral) — height/weight BMI is not
+ * a reliable proxy for insulation and would unfairly penalise heavier users who
+ * may have the same body fat % as lighter ones.
  */
 export function getCompositionFactor(
   bodyFatPct: number | null | undefined,
@@ -81,13 +100,13 @@ export function getCompositionFactor(
   heightCm: number,
 ): number {
   if (bodyFatPct != null && bodyFatPct > 0) return getBodyFatFactor(bodyFatPct);
-  return getBmiFactor(weightLbs, heightCm);
+  return 1.0; // neutral baseline when body fat is unknown
 }
 
 /**
  * Composition factor for SCORING.
  * Lower body fat → higher multiplier (leaner = more thermogenic work per minute).
- * Falls back to BMI factor when body fat is not set.
+ * When body fat % is not set, returns 1.0 (neutral) — same reasoning as above.
  */
 export function getCompositionFactorForScore(
   bodyFatPct: number | null | undefined,
@@ -95,7 +114,7 @@ export function getCompositionFactorForScore(
   heightCm: number,
 ): number {
   if (bodyFatPct != null && bodyFatPct > 0) return getBodyFatFactorForScore(bodyFatPct);
-  return getBmiFactor(weightLbs, heightCm);
+  return 1.0; // neutral baseline when body fat is unknown
 }
 
 // ─── Threshold & earned computation ──────────────────────────────────────────
