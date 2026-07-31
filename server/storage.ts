@@ -70,7 +70,7 @@ export interface IStorage {
   deletePlunge(id: number): Promise<void>;
   claimPlunges(clientId: string, userId: number): Promise<void>;
   // Leaderboard
-  getLeaderboard(locationId: string, limit?: number): Promise<(LeaderboardEntry & { foundingPlunger: boolean })[]>;
+  getLeaderboard(locationId: string, limit?: number): Promise<(LeaderboardEntry & { foundingPlunger: boolean; featuredBadges: string })[]>;
   addLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry>;
   deleteLeaderboardEntry(id: number): Promise<void>;
   // Pro users
@@ -342,7 +342,7 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(plunges.clientId, clientId), isNull(plunges.userId)));
   }
 
-  async getLeaderboard(locationId: string, limit = 10): Promise<(LeaderboardEntry & { foundingPlunger: boolean })[]> {
+  async getLeaderboard(locationId: string, limit = 10): Promise<(LeaderboardEntry & { foundingPlunger: boolean; featuredBadges: string })[]> {
     const rows = await db
       .select({
         id: leaderboardEntries.id,
