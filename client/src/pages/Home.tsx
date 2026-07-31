@@ -8785,7 +8785,12 @@ export default function Home() {
       {/* ── AI Coach ── */}
       {auth.user && (
         <>
-          <CoachFAB authToken={localStorage.getItem("coldstreak-auth-token")} screen={screen} isPlunging={(isActive && screen === "timer") || photoPromptId !== null} onNavigate={(s) => navTo(s as Parameters<typeof navTo>[0])} />
+          <CoachFAB authToken={localStorage.getItem("coldstreak-auth-token")} screen={screen} isPlunging={(isActive && screen === "timer") || photoPromptId !== null} onNavigate={(s) => {
+              navTo(s as Parameters<typeof navTo>[0]);
+              // When the coach sends the user to Settings, open the body-metrics
+              // sub-tab (not the default Support tab) so they land on the right page.
+              if (s === "settings") setTimeout(() => setSettingsTab("settings"), 50);
+            }} />
           {showFirstOpenWalkthrough && (
             <CoachWalkthrough
               tourType="first-open"

@@ -66,7 +66,7 @@ Set "navigate" to the screen name (string) when your answer is specifically abou
 • "achievements" — badges, passport, Account tab, Stats tab (calorie burn, sweet spot, cold adaptation, try this next, discovery report, insights)
 • "explore"      — finding spots, community locations, nearby plunge spots
 • "gear"         — equipment, devices, Bluetooth sensors, smart scales
-• "settings"     — weight, height, body fat, notifications
+• "settings"     — body metrics entry (weight, height, body fat %), notification preferences. NOTE: body composition is entered here in Settings, NOT in the Profile screen. Be explicit about this when the user asks where to enter their weight, height, BMI, or body fat.
 • "friends"      — challenges, friend streaks, pending requests
 
 Set "navigate" to null for general cold-plunge science questions, greetings, or when the answer doesn't map to a single screen.
