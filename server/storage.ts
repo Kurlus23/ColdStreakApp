@@ -225,7 +225,7 @@ export interface IStorage {
   unbanEventParticipant(eventId: number, userId: number): Promise<void>;
   isEventBanned(eventId: number, userId: number): Promise<boolean>;
   // Event leaderboard
-  getEventLeaderboard(eventId: number): Promise<Array<{ username: string; userId: number; totalScore: number; plungeCount: number }>>;
+  getEventLeaderboard(eventId: number): Promise<Array<{ username: string; userId: number; totalScore: number; plungeCount: number; featuredBadges: string; foundingPlunger: boolean }>>;
   // Location view tracking
   incrementLocationView(id: number): Promise<void>;
   // Business analytics
@@ -1223,7 +1223,7 @@ export class DatabaseStorage implements IStorage {
     return deleted.length;
   }
 
-  async getEventLeaderboard(eventId: number): Promise<Array<{ username: string; userId: number; totalScore: number; plungeCount: number }>> {
+  async getEventLeaderboard(eventId: number): Promise<Array<{ username: string; userId: number; totalScore: number; plungeCount: number; featuredBadges: string; foundingPlunger: boolean }>> {
     const evt = await this.getEventById(eventId);
     if (!evt) return [];
     const windowStart = new Date(evt.eventDate);
@@ -1248,12 +1248,27 @@ export class DatabaseStorage implements IStorage {
       .groupBy(plunges.userId);
 
     const scoreMap = new Map(rows.map((r) => [r.userId!, { totalScore: Number(r.totalScore), plungeCount: Number(r.plungeCount) }]));
-    const result = participants.map((p) => ({
-      userId: p.userId,
-      username: p.username,
-      totalScore: scoreMap.get(p.userId)?.totalScore ?? 0,
-      plungeCount: scoreMap.get(p.userId)?.plungeCount ?? 0,
-    }));
+
+    // Fetch badge profiles for all participant usernames in one query
+    const usernames = participants.map((p) => p.username).filter(Boolean) as string[];
+    const badgeRows = usernames.length > 0
+      ? await db.select({ username: badgeProfiles.username, featuredBadges: badgeProfiles.featuredBadges, foundingPlunger: badgeProfiles.foundingPlunger })
+          .from(badgeProfiles)
+          .where(inArray(badgeProfiles.username, usernames))
+      : [];
+    const badgeMap = new Map(badgeRows.map((b) => [b.username, { featuredBadges: b.featuredBadges ?? "[]", foundingPlunger: b.foundingPlunger ?? false }]));
+
+    const result = participants.map((p) => {
+      const badge = badgeMap.get(p.username) ?? { featuredBadges: "[]", foundingPlunger: false };
+      return {
+        userId: p.userId,
+        username: p.username,
+        totalScore: scoreMap.get(p.userId)?.totalScore ?? 0,
+        plungeCount: scoreMap.get(p.userId)?.plungeCount ?? 0,
+        featuredBadges: badge.featuredBadges,
+        foundingPlunger: badge.foundingPlunger,
+      };
+    });
     return result.sort((a, b) => b.totalScore - a.totalScore);
   }
 

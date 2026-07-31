@@ -953,7 +953,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   });
 
   // Event leaderboard query — fetches cold scores for all participants during event window
-  type EventLeaderboardEntry = { username: string; userId: number; totalScore: number; plungeCount: number };
+  type EventLeaderboardEntry = { username: string; userId: number; totalScore: number; plungeCount: number; featuredBadges: string; foundingPlunger: boolean };
   const { data: eventLeaderboard } = useQuery<EventLeaderboardEntry[]>({
     queryKey: ["/api/events/leaderboard", selectedEvent?.id],
     queryFn: () => fetch(`/api/events/${selectedEvent!.id}/leaderboard`).then((r) => r.json()),
@@ -2907,9 +2907,19 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                           </span>
                           <button
                             onClick={() => setViewingProfile(entry.username)}
-                            className="flex-1 text-left text-white text-xs font-medium hover:text-cyan-300 transition-colors truncate"
+                            className="flex-1 text-left text-white text-xs font-medium hover:text-cyan-300 transition-colors truncate flex items-center gap-1"
                           >
-                            {entry.username}
+                            <span className="truncate">{entry.username}</span>
+                            {(() => {
+                              const chips: string[] = [];
+                              if (entry.foundingPlunger) chips.push("🎖️");
+                              try {
+                                const ids: string[] = JSON.parse(entry.featuredBadges ?? "[]");
+                                ids.slice(0, 3).forEach((id) => { const e = badgeEmojiLookup[id]; if (e) chips.push(e); });
+                              } catch { /* ignore */ }
+                              if (!chips.length) return null;
+                              return <span className="text-sm leading-none shrink-0" title="Badges">{chips.join("")}</span>;
+                            })()}
                           </button>
                           {entry.totalScore > 0 ? (
                             <div className="text-right flex-shrink-0">
