@@ -19,7 +19,7 @@ import { useState, useEffect, useCallback } from "react";
 
 // ── localStorage keys ─────────────────────────────────────────────────────────
 
-export const FIRST_OPEN_KEY   = "coach-walkthrough-first-open-v2";
+export const FIRST_OPEN_KEY   = "coach-walkthrough-first-open-v3";
 export const POST_PLUNGE_KEY  = "coach-walkthrough-post-plunge-v1";
 export const PROFILE_TIP_KEY  = "coach-tip-profile-v1";
 export const FRIENDS_TIP_KEY  = "coach-tip-friends-v1";
@@ -46,7 +46,7 @@ const FIRST_OPEN_STEPS: Step[] = [
   {
     icon: "⏱️",
     title: "Your plunge timer",
-    body: "Hit Start when you're in the water, Stop when you get out.",
+    body: "Hit Start when you're in the water, Stop when you get out. Tap the mode label below the timer to toggle between Stopwatch and Countdown — in Countdown mode, tap the time display to set your target duration.",
     highlight: '[data-testid="card-timer"]',
     hint: "↓ below",
   },
@@ -60,7 +60,7 @@ const FIRST_OPEN_STEPS: Step[] = [
   {
     icon: "⚡",
     title: "Benefits bar",
-    body: "Fills as you plunge through Energy, Mood, Metabolism, and Recovery. Thresholds are calculated — colder water and leaner body composition unlock each benefit faster.",
+    body: "Fills as you plunge through Energy, Mood, Metabolism, and Recovery. Thresholds are personalised — colder water and leaner body composition unlock each benefit faster. Tap the goal label at the top of the bar to set or change your target benefit.",
     highlight: '[data-testid="benefit-bar"]',
     hint: "↓ below",
   },
