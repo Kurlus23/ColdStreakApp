@@ -6172,28 +6172,50 @@ export default function Home() {
                     </div>
 
 
-                    {/* Stepper */}
+                    {/* Scroll-wheel picker — same pattern as temperature selector */}
                     {(() => {
-                      const pct = bodyFatPct ?? 20;
-                      const saveFat = (val: number) => {
-                        const clamped = Math.round(Math.min(60, Math.max(3, val)) * 10) / 10;
-                        setBodyFatPct(clamped);
-                        // Manually editing clears the Apple Health provenance
-                        setBodyFatRecordedAt(null);
-                        localStorage.setItem("coldstreak-body-fat", String(clamped));
-                        localStorage.removeItem("coldstreak-body-fat-recorded-at");
-                        const tok = localStorage.getItem("coldstreak-auth-token");
-                        // stored as tenths server-side (19.9 → 199)
-                        if (tok) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bodyFat: Math.round(clamped * 10) }) }).catch(() => {});
+                      const saveFat = (val: number | null) => {
+                        if (val === null) {
+                          setBodyFatPct(null);
+                          setBodyFatRecordedAt(null);
+                          localStorage.removeItem("coldstreak-body-fat");
+                          localStorage.removeItem("coldstreak-body-fat-recorded-at");
+                          const tok = localStorage.getItem("coldstreak-auth-token");
+                          if (tok) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bodyFat: 0 }) }).catch(() => {});
+                        } else {
+                          const clamped = Math.round(Math.min(60, Math.max(3, val)) * 10) / 10;
+                          setBodyFatPct(clamped);
+                          setBodyFatRecordedAt(null);
+                          localStorage.setItem("coldstreak-body-fat", String(clamped));
+                          localStorage.removeItem("coldstreak-body-fat-recorded-at");
+                          const tok = localStorage.getItem("coldstreak-auth-token");
+                          // stored as tenths server-side (19.9 → 199)
+                          if (tok) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bodyFat: Math.round(clamped * 10) }) }).catch(() => {});
+                        }
                       };
-                      const btnCls = "w-8 h-8 rounded-lg bg-blue-800/80 border border-blue-600 text-white text-lg font-bold flex items-center justify-center active:scale-95 hover:border-cyan-400 select-none";
-                      const valCls = "w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center select-none";
-
+                      // Steps: 3.0, 3.5, 4.0 … 60.0 in 0.5% increments
+                      const steps = Array.from({ length: (60 - 3) / 0.5 + 1 }, (_, i) => Math.round((3 + i * 0.5) * 10) / 10);
                       return (
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => saveFat(Math.round((pct - 0.1) * 10) / 10)} className={btnCls}>−</button>
-                          <div className={valCls}>{pct.toFixed(1)}%</div>
-                          <button onClick={() => saveFat(Math.round((pct + 0.1) * 10) / 10)} className={btnCls}>+</button>
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <select
+                              value={bodyFatPct ?? ""}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                saveFat(v === "" ? null : Number(v));
+                              }}
+                              className="appearance-none bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-1.5 text-white text-sm font-bold text-center focus:outline-none focus:border-cyan-400 cursor-pointer pr-7"
+                              style={{ minWidth: "90px" }}
+                            >
+                              <option value="">Not set</option>
+                              {steps.map((v) => (
+                                <option key={v} value={v}>{v.toFixed(1)}%</option>
+                              ))}
+                            </select>
+                            <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
                           {bodyFatPct !== null ? (
                             <span className="text-cyan-400 text-xs font-semibold">✓ Active — overrides BMI</span>
                           ) : (
