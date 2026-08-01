@@ -180,31 +180,47 @@ const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct
 
 interface MonthStats {
   key: string; label: string; fullLabel: string; year: number; month: number;
-  avgMood: number | null; avgEnergy: number | null; avgFocus: number | null; count: number;
+  avgMood: number | null; avgEnergy: number | null;
+  avgFocus: number | null;     // moodFocus on non-recovery check-ins
+  avgFatigue: number | null;   // moodFatigue on recovery check-ins
+  avgRecovery: number | null;  // moodFocus on recovery check-ins
+  count: number;
 }
 
 function computeMonthly(plunges: Plunge[]): MonthStats[] {
   const rated = plunges.filter((p) => p.mood != null);
-  const map = new Map<string, { moodSum: number; energySum: number; focusSum: number; moodC: number; energyC: number; focusC: number; year: number; month: number }>();
+  const map = new Map<string, {
+    moodSum: number; energySum: number;
+    focusSum: number; fatigueSum: number; recoverySum: number;
+    moodC: number; energyC: number; focusC: number; fatigueC: number; recoveryC: number;
+    year: number; month: number;
+  }>();
   for (const p of rated) {
     const d = new Date(p.createdAt);
     const year = d.getUTCFullYear(), month = d.getUTCMonth();
     const key = `${year}-${String(month).padStart(2, "0")}`;
-    if (!map.has(key)) map.set(key, { moodSum: 0, energySum: 0, focusSum: 0, moodC: 0, energyC: 0, focusC: 0, year, month });
+    if (!map.has(key)) map.set(key, { moodSum: 0, energySum: 0, focusSum: 0, fatigueSum: 0, recoverySum: 0, moodC: 0, energyC: 0, focusC: 0, fatigueC: 0, recoveryC: 0, year, month });
     const s = map.get(key)!;
-    if (p.mood       != null) { s.moodSum   += p.mood;       s.moodC++;   }
-    if (p.moodEnergy != null) { s.energySum += p.moodEnergy; s.energyC++; }
-    if (p.moodFocus  != null) { s.focusSum  += p.moodFocus;  s.focusC++;  }
+    if (p.mood        != null) { s.moodSum    += p.mood;        s.moodC++;    }
+    if (p.moodEnergy  != null) { s.energySum  += p.moodEnergy;  s.energyC++;  }
+    if (p.moodFatigue != null) { s.fatigueSum += p.moodFatigue; s.fatigueC++; }
+    if (p.moodFocus   != null) {
+      // moodFatigue present → recovery check-in: moodFocus = "Recovery feeling"
+      if (p.moodFatigue != null) { s.recoverySum += p.moodFocus; s.recoveryC++; }
+      else                       { s.focusSum    += p.moodFocus; s.focusC++;    }
+    }
   }
   return Array.from(map.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, s]): MonthStats => ({
       key, year: s.year, month: s.month,
-      label:     MONTH_LABELS[s.month],
-      fullLabel: `${MONTH_LABELS[s.month]} ${s.year}`,
-      avgMood:   s.moodC   > 0 ? Math.round((s.moodSum   / s.moodC)   * 10) / 10 : null,
-      avgEnergy: s.energyC > 0 ? Math.round((s.energySum / s.energyC) * 10) / 10 : null,
-      avgFocus:  s.focusC  > 0 ? Math.round((s.focusSum  / s.focusC)  * 10) / 10 : null,
+      label:      MONTH_LABELS[s.month],
+      fullLabel:  `${MONTH_LABELS[s.month]} ${s.year}`,
+      avgMood:    s.moodC    > 0 ? Math.round((s.moodSum    / s.moodC)    * 10) / 10 : null,
+      avgEnergy:  s.energyC  > 0 ? Math.round((s.energySum  / s.energyC)  * 10) / 10 : null,
+      avgFocus:   s.focusC   > 0 ? Math.round((s.focusSum   / s.focusC)   * 10) / 10 : null,
+      avgFatigue: s.fatigueC > 0 ? Math.round((s.fatigueSum / s.fatigueC) * 10) / 10 : null,
+      avgRecovery:s.recoveryC> 0 ? Math.round((s.recoverySum/ s.recoveryC)* 10) / 10 : null,
       count: s.moodC,
     }));
 }
@@ -704,28 +720,48 @@ export default function Insights() {
             </section>
 
             {/* ── Monthly Trend ── */}
+            {(() => {
+              const showEnergy   = months.some((m) => m.avgEnergy   != null);
+              const showFocus    = months.some((m) => m.avgFocus    != null);
+              const showFatigue  = months.some((m) => m.avgFatigue  != null);
+              const showRecovery = months.some((m) => m.avgRecovery != null);
+              const metricLabels = ["Mood", ...(showEnergy ? ["Energy"] : []), ...(showFatigue ? ["Fatigue"] : []), ...(showRecovery ? ["Recovery"] : []), ...(showFocus ? ["Focus"] : [])];
+              const subtitle = hasMonthly ? `Your average ${metricLabels.join(", ")} rating by month` : undefined;
+              return (
             <section>
               <SectionHeader
                 emoji="📅"
                 title="Monthly Trend"
-                subtitle={hasMonthly ? "Your average Mood, Energy & Focus rating by month" : undefined}
+                subtitle={subtitle}
               />
               {hasMonthly ? (
                 <div className="bg-blue-900/40 border border-blue-800/50 rounded-2xl p-5">
 
                   {/* Legend */}
-                  <div className="flex items-center gap-5 mb-5">
+                  <div className="flex flex-wrap items-center gap-4 mb-5">
                     <div className="flex items-center gap-1.5">
                       <span className="inline-block w-3 h-3 rounded-sm" style={{ background: "#22d3ee" }} />
                       <span className="text-blue-300 text-xs">Mood (1–5)</span>
                     </div>
-                    {months.some((m) => m.avgEnergy != null) && (
+                    {showEnergy && (
                       <div className="flex items-center gap-1.5">
                         <span className="inline-block w-3 h-3 rounded-sm" style={{ background: "#fbbf24" }} />
                         <span className="text-blue-300 text-xs">Energy (1–3)</span>
                       </div>
                     )}
-                    {months.some((m) => m.avgFocus != null) && (
+                    {showFatigue && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="inline-block w-3 h-3 rounded-sm" style={{ background: "#f97316" }} />
+                        <span className="text-blue-300 text-xs">Fatigue (1–3)</span>
+                      </div>
+                    )}
+                    {showRecovery && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="inline-block w-3 h-3 rounded-sm" style={{ background: "#34d399" }} />
+                        <span className="text-blue-300 text-xs">Recovery (1–3)</span>
+                      </div>
+                    )}
+                    {showFocus && (
                       <div className="flex items-center gap-1.5">
                         <span className="inline-block w-3 h-3 rounded-sm" style={{ background: "#a78bfa" }} />
                         <span className="text-blue-300 text-xs">Focus (1–3)</span>
@@ -736,11 +772,11 @@ export default function Insights() {
                   {/* Bar chart */}
                   <div className="flex items-end gap-2 sm:gap-4 bg-blue-950/50 rounded-xl px-4 pt-4 pb-2">
                     {months.map((m) => {
-                      const moodPct   = m.avgMood   != null ? Math.round(((m.avgMood   - 1) / 4) * 100) : 0;
-                      const energyPct = m.avgEnergy != null ? Math.round(((m.avgEnergy - 1) / 2) * 100) : 0;
-                      const focusPct  = m.avgFocus  != null ? Math.round(((m.avgFocus  - 1) / 2) * 100) : 0;
-                      const showEnergy = months.some((mm) => mm.avgEnergy != null);
-                      const showFocus  = months.some((mm) => mm.avgFocus  != null);
+                      const moodPct     = m.avgMood     != null ? Math.round(((m.avgMood     - 1) / 4) * 100) : 0;
+                      const energyPct   = m.avgEnergy   != null ? Math.round(((m.avgEnergy   - 1) / 2) * 100) : 0;
+                      const fatiguePct  = m.avgFatigue  != null ? Math.round(((m.avgFatigue  - 1) / 2) * 100) : 0;
+                      const recoveryPct = m.avgRecovery != null ? Math.round(((m.avgRecovery - 1) / 2) * 100) : 0;
+                      const focusPct    = m.avgFocus    != null ? Math.round(((m.avgFocus    - 1) / 2) * 100) : 0;
                       return (
                         <div key={m.key} className="flex-1 flex flex-col items-center gap-1 group">
                           <div className="w-full flex items-end justify-center gap-[3px] h-24">
@@ -750,6 +786,16 @@ export default function Insights() {
                             {showEnergy && (
                               <div className="flex-1 flex flex-col justify-end" style={{ maxWidth: 14 }}>
                                 <div className="rounded-t-sm transition-all duration-500" style={{ height: `${energyPct}%`, backgroundColor: "#fbbf24", minHeight: energyPct > 0 ? 2 : 0 }} />
+                              </div>
+                            )}
+                            {showFatigue && (
+                              <div className="flex-1 flex flex-col justify-end" style={{ maxWidth: 14 }}>
+                                <div className="rounded-t-sm transition-all duration-500" style={{ height: `${fatiguePct}%`, backgroundColor: "#f97316", minHeight: fatiguePct > 0 ? 2 : 0 }} />
+                              </div>
+                            )}
+                            {showRecovery && (
+                              <div className="flex-1 flex flex-col justify-end" style={{ maxWidth: 14 }}>
+                                <div className="rounded-t-sm transition-all duration-500" style={{ height: `${recoveryPct}%`, backgroundColor: "#34d399", minHeight: recoveryPct > 0 ? 2 : 0 }} />
                               </div>
                             )}
                             {showFocus && (
@@ -778,8 +824,10 @@ export default function Insights() {
                         <tr className="text-blue-500 text-[10px] uppercase tracking-wider">
                           <td className="pb-2 text-left pl-1">Month</td>
                           <td className="pb-2" style={{ color: "#22d3ee" }}>Mood</td>
-                          {months.some((m) => m.avgEnergy != null) && <td className="pb-2" style={{ color: "#fbbf24" }}>Energy</td>}
-                          {months.some((m) => m.avgFocus  != null) && <td className="pb-2" style={{ color: "#a78bfa" }}>Focus</td>}
+                          {showEnergy   && <td className="pb-2" style={{ color: "#fbbf24" }}>Energy</td>}
+                          {showFatigue  && <td className="pb-2" style={{ color: "#f97316" }}>Fatigue</td>}
+                          {showRecovery && <td className="pb-2" style={{ color: "#34d399" }}>Recovery</td>}
+                          {showFocus    && <td className="pb-2" style={{ color: "#a78bfa" }}>Focus</td>}
                           <td className="pb-2 text-blue-600">Sessions</td>
                         </tr>
                       </thead>
@@ -788,8 +836,10 @@ export default function Insights() {
                           <tr key={m.key} className="border-t border-blue-900/60">
                             <td className="py-1.5 text-blue-300 text-left pl-1">{m.fullLabel}</td>
                             <td className="py-1.5 text-cyan-300 font-semibold">{m.avgMood?.toFixed(1) ?? "—"}</td>
-                            {months.some((mm) => mm.avgEnergy != null) && <td className="py-1.5 text-amber-300 font-semibold">{m.avgEnergy?.toFixed(1) ?? "—"}</td>}
-                            {months.some((mm) => mm.avgFocus  != null) && <td className="py-1.5 text-violet-300 font-semibold">{m.avgFocus?.toFixed(1)  ?? "—"}</td>}
+                            {showEnergy   && <td className="py-1.5 text-amber-300  font-semibold">{m.avgEnergy?.toFixed(1)   ?? "—"}</td>}
+                            {showFatigue  && <td className="py-1.5 text-orange-300 font-semibold">{m.avgFatigue?.toFixed(1)  ?? "—"}</td>}
+                            {showRecovery && <td className="py-1.5 text-emerald-300 font-semibold">{m.avgRecovery?.toFixed(1) ?? "—"}</td>}
+                            {showFocus    && <td className="py-1.5 text-violet-300 font-semibold">{m.avgFocus?.toFixed(1)    ?? "—"}</td>}
                             <td className="py-1.5 text-blue-500">{m.count}</td>
                           </tr>
                         ))}
@@ -814,6 +864,8 @@ export default function Insights() {
                 </div>
               )}
             </section>
+              );
+            })()}
 
             {/* Footer disclaimer */}
             <footer className="pb-8">
