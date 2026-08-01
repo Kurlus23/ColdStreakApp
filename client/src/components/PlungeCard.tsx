@@ -412,6 +412,8 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
     const calories = Math.round(estimateCalories(duration, temperature, bodyWeightLbs, bodyFatPct));
     const createdAt = new Date(`${editDate}T${editTime}:00`).toISOString();
 
+    // moodFatigue and moodFocus are intentionally excluded from the patch so that
+    // recovery check-in badges are preserved exactly as recorded after an edit.
     updatePlunge.mutate(
       { id: plunge.id, patch: { locationId, locationName, duration, temperature, score, calories, createdAt } },
       {
@@ -769,13 +771,19 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
                     </span>
                   )}
                   {fatigue && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-orange-300">
+                    <span
+                      data-testid={`badge-fatigue-${plunge.id}`}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-orange-300"
+                    >
                       <span className="text-[8px] text-slate-500 font-normal">Fatigue:</span>
                       {fatigue.emoji} {fatigue.label}
                     </span>
                   )}
                   {focus && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-purple-300">
+                    <span
+                      data-testid={`badge-recovery-${plunge.id}`}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-purple-300"
+                    >
                       {isRecoveryCheckin && <span className="text-[8px] text-slate-500 font-normal">Recovery:</span>}
                       {focus.emoji} {focus.label}
                     </span>
