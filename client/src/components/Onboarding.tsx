@@ -4,6 +4,7 @@ import { usernameSchema } from "@shared/schema";
 import { Eye, EyeOff, Loader2, Check, X, HeartPulse } from "lucide-react";
 
 const ONBOARDING_KEY = "coldstreak-onboarded";
+const PRIMARY_BENEFIT_KEY = "coldstreak-primary-benefit";
 
 export function hasCompletedOnboarding() {
   return localStorage.getItem(ONBOARDING_KEY) === "true";
@@ -15,6 +16,15 @@ interface OnboardingProps {
   onImportWeight: () => Promise<{ lbs: number | null; message?: string }>;
   healthKitAvailable: boolean;
 }
+
+const BENEFIT_OPTIONS = [
+  { id: "mood",       emoji: "😊", label: "Mood Boost",   description: "Feel calmer & happier" },
+  { id: "energy",     emoji: "⚡", label: "Energy",        description: "Beat fatigue, feel electric" },
+  { id: "metabolism", emoji: "🔥", label: "Metabolism",    description: "Burn more, recover faster" },
+  { id: "recovery",   emoji: "💪", label: "Recovery",      description: "Reduce soreness, bounce back" },
+] as const;
+
+type BenefitId = typeof BENEFIT_OPTIONS[number]["id"];
 
 const slides = [
   {
@@ -50,6 +60,13 @@ const slides = [
     ],
   },
   {
+    // Benefit goal picker — rendered as a custom step (see benefit branch below).
+    icon: "🎯",
+    title: "What's Your Primary Goal?",
+    subtitle: "We'll tailor your coaching to it",
+    benefit: true,
+  },
+  {
     // Account creation step — rendered as a custom form (see renderAccountSlide).
     icon: "👤",
     title: "Create Your Account",
@@ -62,6 +79,11 @@ type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid";
 
 export default function Onboarding({ onComplete, onRegister, onImportWeight, healthKitAvailable }: OnboardingProps) {
   const [slide, setSlide] = useState(0);
+
+  // Benefit goal picker state — persisted to localStorage immediately on selection.
+  const [selectedBenefit, setSelectedBenefit] = useState<BenefitId | null>(
+    () => (localStorage.getItem(PRIMARY_BENEFIT_KEY) as BenefitId) || null
+  );
 
   // Account form state
   const [email, setEmail] = useState("");
@@ -79,6 +101,13 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const checkSeqRef = useRef(0);
+
+  function pickBenefit(id: BenefitId) {
+    setSelectedBenefit(id);
+    // Persist to localStorage immediately so the post-login profile sync picks it
+    // up even if the user skips account creation.
+    localStorage.setItem(PRIMARY_BENEFIT_KEY, id);
+  }
 
   function finish(skipped: boolean) {
     localStorage.setItem(ONBOARDING_KEY, "true");
@@ -180,6 +209,21 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
     try {
       const result = await onRegister({ email: e, password, username: parsed.data, bodyWeight: w, bodyHeight: h, bodyFat: bf });
       if (result.ok) {
+        // If the user picked a benefit, push it to the server immediately.
+        // The token is stored in localStorage by auth.register before returning.
+        // The post-login profile-sync effect also handles this as a fallback, but
+        // firing it here avoids any race with the effect's timing.
+        const benefit = selectedBenefit ?? (localStorage.getItem(PRIMARY_BENEFIT_KEY) as BenefitId | null);
+        if (benefit) {
+          const tok = localStorage.getItem("coldstreak-auth-token");
+          if (tok) {
+            fetch("/api/auth/profile", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
+              body: JSON.stringify({ primaryBenefit: benefit }),
+            }).catch(() => {});
+          }
+        }
         finish(false);
       } else {
         setFormError(result.error || "Could not create account. Please try again.");
@@ -190,6 +234,7 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
   }
 
   const current = slides[slide];
+  const isBenefit = !!(current as any).benefit;
   const isAccount = !!(current as any).account;
   const isLast = slide === slides.length - 1;
 
@@ -208,7 +253,43 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
       </div>
 
       {/* Slide content */}
-      {isAccount ? (
+      {isBenefit ? (
+        <div className="flex-1 flex flex-col justify-center w-full max-w-sm gap-5 py-4">
+          <div className="text-center">
+            <div className="text-6xl leading-none mb-2">{current.icon}</div>
+            <h2 className="text-2xl font-bold text-white mb-1">{current.title}</h2>
+            <p className="text-blue-300 text-sm font-medium">{current.subtitle}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {BENEFIT_OPTIONS.map((opt) => {
+              const active = selectedBenefit === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  data-testid={`button-onboarding-benefit-${opt.id}`}
+                  onClick={() => pickBenefit(opt.id)}
+                  className={`flex flex-col items-center gap-2 rounded-2xl px-3 py-4 border-2 transition-all active:scale-95 ${
+                    active
+                      ? "bg-cyan-500/20 border-cyan-400 text-white"
+                      : "bg-blue-900/50 border-blue-700 text-blue-100"
+                  }`}
+                >
+                  <span className="text-3xl">{opt.emoji}</span>
+                  <span className="font-bold text-sm">{opt.label}</span>
+                  <span className={`text-[11px] text-center leading-snug ${active ? "text-cyan-200" : "text-blue-400"}`}>
+                    {opt.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {!selectedBenefit && (
+            <p className="text-blue-400 text-xs text-center">Pick one — you can change it anytime</p>
+          )}
+        </div>
+      ) : isAccount ? (
         <div className="flex-1 flex flex-col justify-center w-full max-w-sm gap-4 py-4">
           <div className="text-center">
             <div className="text-6xl leading-none mb-2">{current.icon}</div>
@@ -378,9 +459,9 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
             <p className="text-blue-100 text-sm leading-relaxed">{current.body}</p>
           )}
 
-          {current.steps && (
+          {(current as any).steps && (
             <div className="w-full flex flex-col gap-3">
-              {current.steps.map((step, i) => (
+              {(current as any).steps.map((step: { emoji: string; label: string }, i: number) => (
                 <div key={i} className="flex items-center gap-3 bg-blue-900/50 rounded-xl px-4 py-3 text-left">
                   <span className="text-xl">{step.emoji}</span>
                   <span className="text-blue-100 text-sm font-medium">{step.label}</span>
@@ -389,9 +470,9 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
             </div>
           )}
 
-          {current.features && (
+          {(current as any).features && (
             <div className="w-full grid grid-cols-2 gap-3">
-              {current.features.map((f, i) => (
+              {(current as any).features.map((f: { emoji: string; label: string }, i: number) => (
                 <div key={i} className="flex flex-col items-center gap-1.5 bg-blue-900/50 rounded-xl px-3 py-4">
                   <span className="text-2xl">{f.emoji}</span>
                   <span className="text-blue-100 text-xs font-medium text-center leading-snug">{f.label}</span>
@@ -419,7 +500,8 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
         <button
           data-testid="button-onboarding-next"
           onClick={next}
-          className="w-full max-w-sm py-4 rounded-2xl bg-cyan-500 hover:bg-cyan-400 active:scale-95 transition-all text-blue-950 font-bold text-base"
+          disabled={isBenefit && !selectedBenefit}
+          className="w-full max-w-sm py-4 rounded-2xl bg-cyan-500 hover:bg-cyan-400 active:scale-95 transition-all text-blue-950 font-bold text-base disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {isLast ? "Get Started" : "Next"}
         </button>
