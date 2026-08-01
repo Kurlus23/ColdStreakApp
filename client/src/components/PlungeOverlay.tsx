@@ -1,6 +1,14 @@
 import { ColdTakeOverlay, MilestoneEvent } from "@/components/ColdTakeOverlay";
 import { BenefitBar } from "@/components/BenefitBar";
 import { MusicTransportMini } from "@/components/MusicWidget";
+import { SEGMENTS, type SegmentId, computeThresholds } from "@/lib/benefitSegments";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function fmtSecs(s: number) {
+  const m = Math.floor(s / 60);
+  const ss = Math.floor(Math.round(s) % 60);
+  return `${m}:${String(ss).padStart(2, "0")}`;
+}
 
 // ─── SVG ring helpers ─────────────────────────────────────────────────────────
 const CX = 140;
@@ -19,10 +27,21 @@ interface RingProps {
   progress: number;
   /** Label shown at the target marker (12 o'clock). Null = no marker (decorative ring). */
   targetLabel: string | null;
+  /** When set, overrides the cyan gradient with a solid segment colour */
+  accentColor?: string;
 }
 
-function ChallengeRing({ progress, targetLabel }: RingProps) {
-  const dot = anglePt(R, Math.min(progress, 0.999));
+function ChallengeRing({ progress, targetLabel, accentColor }: RingProps) {
+  const dot        = anglePt(R, Math.min(progress, 0.999));
+  const arcColor   = accentColor ?? "url(#progress-grad)";
+  const glowColor  = accentColor ? `${accentColor}88` : "rgba(34,211,238,0.55)";
+  const dotColor   = accentColor ?? "#22d3ee";
+  const dotGlow    = accentColor ? `drop-shadow(0 0 10px ${accentColor})` : "drop-shadow(0 0 10px rgba(34,211,238,1))";
+  const markerFill = accentColor ?? "#fb7185";
+  const markerGlow = accentColor
+    ? `drop-shadow(0 0 6px ${accentColor}cc)`
+    : "drop-shadow(0 0 6px rgba(244,63,94,0.9))";
+  const labelFill  = accentColor ? accentColor : "rgba(251,113,133,0.85)";
 
   return (
     <svg
@@ -41,24 +60,24 @@ function ChallengeRing({ progress, targetLabel }: RingProps) {
       <circle
         cx={CX} cy={CY} r={R}
         fill="none"
-        stroke="url(#progress-grad)"
+        stroke={arcColor}
         strokeWidth={STROKE}
         strokeLinecap="round"
         strokeDasharray={CIRC}
         strokeDashoffset={CIRC * (1 - Math.min(progress, 1))}
         transform={`rotate(-90 ${CX} ${CY})`}
-        style={{ filter: "drop-shadow(0 0 10px rgba(34,211,238,0.55))" }}
+        style={{ filter: `drop-shadow(0 0 10px ${glowColor})` }}
       />
 
       {/* Target marker at 12 o'clock */}
       {targetLabel && (
         <>
-          <circle cx={CX} cy={CY - R} r={5} fill="#fb7185"
-            style={{ filter: "drop-shadow(0 0 6px rgba(244,63,94,0.9))" }} />
+          <circle cx={CX} cy={CY - R} r={5} fill={markerFill}
+            style={{ filter: markerGlow }} />
           <text
             x={CX} y={CY - R - 11}
             textAnchor="middle"
-            fill="rgba(251,113,133,0.85)"
+            fill={labelFill}
             fontSize="9"
             fontFamily="sans-serif"
             fontWeight="700"
@@ -71,8 +90,8 @@ function ChallengeRing({ progress, targetLabel }: RingProps) {
 
       {/* Live leading dot */}
       {progress > 0.01 && (
-        <circle cx={dot.x} cy={dot.y} r={6} fill="#22d3ee"
-          style={{ filter: "drop-shadow(0 0 10px rgba(34,211,238,1))" }} />
+        <circle cx={dot.x} cy={dot.y} r={6} fill={dotColor}
+          style={{ filter: dotGlow }} />
       )}
 
       <defs>
@@ -80,7 +99,6 @@ function ChallengeRing({ progress, targetLabel }: RingProps) {
           <stop offset="0%"   stopColor="#0e7490" />
           <stop offset="100%" stopColor="#22d3ee" />
         </linearGradient>
-        {/* alias so the id is stable */}
         <linearGradient id="progress-grad" xlinkHref="#po-grad" />
       </defs>
     </svg>
@@ -109,6 +127,7 @@ interface PlungeOverlayProps {
   bodyHeightCm: number;
   bodyFatPct?: number | null;
   btConnected: boolean;
+  primaryBenefit?: SegmentId | null;
   milestoneEvent?: MilestoneEvent | null;
   onStop: () => void;
   onDismissChallenger: () => void;
@@ -136,11 +155,45 @@ export function PlungeOverlay({
   bodyHeightCm,
   bodyFatPct,
   btConnected,
+  primaryBenefit,
   milestoneEvent,
   onStop,
   onDismissChallenger,
 }: PlungeOverlayProps) {
-  // Ring shows progress toward challenger (challenge mode) or personal best (solo).
+  // ── Benefit-goal ring (replaces PB ring when user hasn't hit primary goal yet) ──
+  // Only active when: no challenger, primaryBenefit set, goal not yet reached.
+  const benefitThresholds = computeThresholds(temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct);
+  const totalBenefitElapsed = benefitCarryOver + elapsedSeconds;
+  const primarySegIdx = primaryBenefit
+    ? SEGMENTS.findIndex(s => s.id === primaryBenefit)
+    : -1;
+
+  // Which segment are we currently accumulating toward (up to primaryBenefit)?
+  let benefitSegIdx = -1;
+  if (primarySegIdx >= 0) {
+    for (let i = 0; i <= primarySegIdx; i++) {
+      if (totalBenefitElapsed < benefitThresholds[i]) { benefitSegIdx = i; break; }
+    }
+  }
+
+  const useBenefitRing = isActive && challengerScore === null && benefitSegIdx >= 0;
+  const currentBenefitSeg = useBenefitRing ? SEGMENTS[benefitSegIdx] : null;
+
+  const benefitRingProgress = useBenefitRing && currentBenefitSeg ? (() => {
+    const start = benefitSegIdx === 0 ? 0 : benefitThresholds[benefitSegIdx - 1];
+    const end   = benefitThresholds[benefitSegIdx];
+    return Math.max(0, Math.min(1, (totalBenefitElapsed - start) / (end - start)));
+  })() : 0;
+
+  // Session time (seconds elapsed in *this* session) when milestone will be hit
+  const benefitTargetSessionSecs = useBenefitRing
+    ? Math.max(0, benefitThresholds[benefitSegIdx] - benefitCarryOver)
+    : 0;
+  const benefitTargetLabel = useBenefitRing && currentBenefitSeg
+    ? `${currentBenefitSeg.emoji} ${fmtSecs(benefitTargetSessionSecs)}`
+    : null;
+
+  // ── Score / challenge ring (fallback when benefit goal already met or challenge mode) ──
   const ringTarget = challengerScore ?? (personalBest > 0 ? personalBest : null);
   const ringProgress = ringTarget && displayScore > 0
     ? Math.min(1, displayScore / ringTarget)
@@ -195,7 +248,11 @@ export function PlungeOverlay({
 
       {/* Ring + timer hero */}
       <div className="relative flex-1 flex items-center justify-center w-full z-10 shrink-0" style={{ minHeight: "300px" }}>
-        <ChallengeRing progress={ringProgress} targetLabel={targetLabel} />
+        <ChallengeRing
+          progress={useBenefitRing ? benefitRingProgress : ringProgress}
+          targetLabel={useBenefitRing ? benefitTargetLabel : targetLabel}
+          accentColor={useBenefitRing ? currentBenefitSeg?.barColor : undefined}
+        />
 
         <div className="relative z-10 flex flex-col items-center gap-0.5">
           <div

@@ -166,6 +166,7 @@ type Screen = "timer" | "history" | "explore" | "gear" | "settings" | "legal" | 
 
 import { getCompositionFactor, getCompositionFactorForScore, SEGMENTS, type SegmentId, computeThresholds, getMidSegmentIdx, getSecsToFinish } from "@/lib/benefitSegments";
 import { CelebrationOverlay, GoalNudge, CountdownGoalHint } from "@/components/PlungeBenefitCoach";
+import { ProgressionCoachCard } from "@/components/ProgressionCoachCard";
 
 function plungeScore(
   durationSeconds: number,
@@ -3800,6 +3801,18 @@ export default function Home() {
             goalAchieved={plungeAchieved.has(primaryBenefit)}
             allAchieved={plungeAchieved.has("recovery")}
           />
+
+          {/* ── Progression / time-of-day coaching card ── */}
+          {!isActive && plunges.length >= 5 && (
+            <ProgressionCoachCard
+              plunges={plunges}
+              primaryBenefit={primaryBenefit}
+              temperature={temperature}
+              bodyWeightLbs={bodyWeightLbs}
+              bodyHeightCm={bodyHeightCm}
+              bodyFatPct={bodyFatPct}
+            />
+          )}
 
           {/* ── Height nudge banner ── */}
           {auth.user && !heightNudgeDismissed && !localStorage.getItem("coldstreak-body-height") && (
@@ -8020,6 +8033,7 @@ export default function Home() {
           bodyHeightCm={bodyHeightCm}
           bodyFatPct={bodyFatPct}
           btConnected={btConnected}
+          primaryBenefit={primaryBenefit}
           milestoneEvent={milestoneEvent}
           onStop={handleStop}
           onDismissChallenger={() => setActiveChallengerUserId(null)}
