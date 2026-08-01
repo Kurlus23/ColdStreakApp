@@ -56,6 +56,7 @@ import { type Plunge, type UserLocation, usernameSchema } from "@shared/schema";
 import { pickColdTake, type ColdTakeContext } from "@shared/coldTakes";
 import { MoodCheckIn } from "@/components/MoodCheckIn";
 import { SweetSpotCard } from "@/components/SweetSpotCard";
+import { GoalSuccessCard } from "@/components/GoalSuccessCard";
 import { WelcomeBackCard } from "@/components/WelcomeBackCard";
 import { ColdAdaptationCard } from "@/components/ColdAdaptationCard";
 import { TryThisNextCard } from "@/components/TryThisNextCard";
@@ -6556,6 +6557,14 @@ export default function Home() {
                   )}
                   {/* Sweet Spot */}
                   <SweetSpotCard plunges={plunges} />
+                  {/* Goal Success Rate */}
+                  <GoalSuccessCard
+                    plunges={plunges}
+                    primaryBenefit={primaryBenefit}
+                    weightLbs={bodyWeightLbs}
+                    heightCm={bodyHeightCm}
+                    bodyFatPct={bodyFatPct}
+                  />
                   {/* Discovery report */}
                   <DiscoveryReportCard plunges={plunges} />
                   {/* Welcome back — shown after a 7+ day gap */}
