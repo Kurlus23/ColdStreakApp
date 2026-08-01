@@ -41,6 +41,9 @@ async function ensureRuntimeTables() {
     `);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS churn_surveys_user_id_idx ON churn_surveys(user_id)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS churn_surveys_sent_at_idx ON churn_surveys(sent_at DESC)`);
+
+    // Additive column: user's primary benefit goal (energy/mood/metabolism/recovery)
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS primary_benefit TEXT`);
   } catch (err) {
     console.error("[bootstrap] ensureRuntimeTables failed:", err);
   }

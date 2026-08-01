@@ -22,6 +22,7 @@ export const users = pgTable("users", {
   timezone: text("timezone"), // IANA tz from client (e.g., "America/Los_Angeles")
   country: text("country"),   // ISO-2 country code (e.g., "US", "GB")
   region: text("region"),     // State / region / city (free-form, geo-derived)
+  primaryBenefit: text("primary_benefit"), // "energy" | "mood" | "metabolism" | "recovery" — user's primary goal
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

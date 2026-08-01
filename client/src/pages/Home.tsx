@@ -1537,7 +1537,7 @@ export default function Home() {
         const localName   = localStorage.getItem("coldstreak-username") || "";
         const localWeight = Number(localStorage.getItem("coldstreak-body-weight")) || 0;
         const localHeight = Number(localStorage.getItem("coldstreak-body-height")) || 0;
-        const patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number } = {};
+        const patch: { displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number; primaryBenefit?: string } = {};
 
         if (data.username) {
           setAccountUsername(data.username);
@@ -1644,6 +1644,19 @@ export default function Home() {
           // a "Clear" action on one device propagates to all other devices.
           setBodyFatPct(null);
           localStorage.removeItem("coldstreak-body-fat");
+        }
+
+        // Sync primaryBenefit: server is truth; migrate localStorage value on first login.
+        const VALID_BENEFITS = ["energy", "mood", "metabolism", "recovery"] as const;
+        if (data.primaryBenefit && VALID_BENEFITS.includes(data.primaryBenefit)) {
+          setPrimaryBenefit(data.primaryBenefit as typeof VALID_BENEFITS[number]);
+          localStorage.setItem("coldstreak-primary-benefit", data.primaryBenefit);
+        } else {
+          // Server has no value yet — push up whatever localStorage has.
+          const localBenefit = localStorage.getItem("coldstreak-primary-benefit");
+          if (localBenefit && VALID_BENEFITS.includes(localBenefit as typeof VALID_BENEFITS[number])) {
+            patch.primaryBenefit = localBenefit;
+          }
         }
 
         if (Object.keys(patch).length > 0) {
@@ -8128,6 +8141,11 @@ export default function Home() {
                     setPrimaryBenefit(seg.id);
                     localStorage.setItem("coldstreak-primary-benefit", seg.id);
                     setShowBenefitPicker(false);
+                    // Sync to server so the goal persists across devices
+                    const tok = localStorage.getItem("coldstreak-auth-token");
+                    if (tok) {
+                      fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ primaryBenefit: seg.id }) }).catch(() => {});
+                    }
                   }}
                   className="w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-all active:scale-[0.98]"
                   style={{
