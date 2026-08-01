@@ -270,6 +270,11 @@ export function MoodCheckIn({
           </button>
         </div>
 
+        {/* Accuracy nudge — honest answers power Sweet Spot and recommendations */}
+        <p className="text-[10px] text-blue-400/70 italic leading-snug">
+          Your answers shape your Sweet Spot — the more honest, the smarter the coaching.
+        </p>
+
         {/* ── Recovery goal: mood + energy + muscle fatigue + recovery feeling ── */}
         {qset === "recovery" && (
           <>

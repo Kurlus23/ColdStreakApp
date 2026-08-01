@@ -190,67 +190,69 @@ export function BenefitBar({
         </button>
       )}
 
-      {/* Segmented progress bar */}
-      <div className="flex gap-1.5">
-        {SEGMENTS.map((seg, i) => {
-          const decayedFill = decayedFills[i];
-          const rawFill     = rawFills[i];
-          const achieved    = achievedToday[i];
-          const filling     = rawFill > 0 && rawFill < 100; // currently accumulating
+      {/* Segmented bar → Adaptation Zone once all benefits are maxed during a plunge */}
+      {isActive && achievedToday.every(Boolean) ? (
+        <div className="space-y-1.5">
+          <div className="relative h-2 rounded-full overflow-hidden bg-cyan-400/15">
+            <div
+              className="absolute inset-0 rounded-full animate-pulse"
+              style={{ backgroundColor: "#67e8f9", opacity: 0.7 }}
+            />
+          </div>
+          <div className="flex items-center justify-center gap-1.5">
+            <p className="text-[9px] font-semibold tracking-wide text-cyan-300 uppercase">
+              Adaptation Zone
+            </p>
+            <span className="text-[9px] text-slate-500">· Score only</span>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-1.5">
+          {SEGMENTS.map((seg, i) => {
+            const decayedFill = decayedFills[i];
+            const rawFill     = rawFills[i];
+            const achieved    = achievedToday[i];
+            const filling     = rawFill > 0 && rawFill < 100;
 
-          return (
-            <div key={seg.id} className="flex-1 min-w-0 space-y-2">
-              {/*
-                Outer div = achievement ring (stays all day once earned).
-                No overflow:hidden here so the ring is never clipped.
-                Inner div = clips the decaying fill bar.
-              */}
-              <div
-                className="relative h-2 rounded-full"
-                style={{
-                  backgroundColor: achieved
-                    ? seg.barColor + "18"
-                    : seg.dimColor + "44",
-                  // Achievement border — the "you earned this today" marker
-                  boxShadow: achieved
-                    ? `0 0 0 1px ${seg.barColor}cc`
-                    : "none",
-                  transition: "box-shadow 0.4s ease, background-color 0.4s ease",
-                }}
-              >
-                {/* Clip container for the decaying fill */}
-                <div className="absolute inset-0 rounded-full overflow-hidden">
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-full"
-                    style={{
-                      width: `${decayedFill}%`,
-                      backgroundColor: seg.barColor,
-                      opacity: decayedFill > 0 ? (filling ? 0.85 : 0.75) : 0,
-                      transition: "width 1s linear, opacity 0.6s ease",
-                      boxShadow: filling ? `0 0 6px 1px ${seg.barColor}66` : "none",
-                    }}
-                  />
+            return (
+              <div key={seg.id} className="flex-1 min-w-0 space-y-2">
+                <div
+                  className="relative h-2 rounded-full"
+                  style={{
+                    backgroundColor: achieved ? seg.barColor + "18" : seg.dimColor + "44",
+                    boxShadow: achieved ? `0 0 0 1px ${seg.barColor}cc` : "none",
+                    transition: "box-shadow 0.4s ease, background-color 0.4s ease",
+                  }}
+                >
+                  <div className="absolute inset-0 rounded-full overflow-hidden">
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-full"
+                      style={{
+                        width: `${decayedFill}%`,
+                        backgroundColor: seg.barColor,
+                        opacity: decayedFill > 0 ? (filling ? 0.85 : 0.75) : 0,
+                        transition: "width 1s linear, opacity 0.6s ease",
+                        boxShadow: filling ? `0 0 6px 1px ${seg.barColor}66` : "none",
+                      }}
+                    />
+                  </div>
                 </div>
+                <p
+                  className="text-center text-[9px] font-semibold leading-normal overflow-hidden whitespace-nowrap text-ellipsis"
+                  style={{
+                    color: achieved
+                      ? seg.barColor
+                      : filling ? seg.barColor + "bb" : "#1e3a5f",
+                    transition: "color 0.4s ease",
+                  }}
+                >
+                  {seg.emoji} {seg.label}
+                </p>
               </div>
-
-              {/* Label — full colour when achieved (border earned), dim otherwise */}
-              <p
-                className="text-center text-[9px] font-semibold leading-normal overflow-hidden whitespace-nowrap text-ellipsis"
-                style={{
-                  color: achieved
-                    ? seg.barColor          // achievement colour stays
-                    : filling
-                      ? seg.barColor + "bb"
-                      : "#1e3a5f",
-                  transition: "color 0.4s ease",
-                }}
-              >
-                {seg.emoji} {seg.label}
-              </p>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
