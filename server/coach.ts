@@ -135,6 +135,16 @@ export async function coachChat(
         ? `• Current screen: ${screenContext}`
         : null;
 
+  const benefitLabels: Record<string, string> = {
+    energy:     "Energy (feel alert and focused after each plunge)",
+    mood:       "Mood (dopamine/serotonin lift, emotional resilience)",
+    metabolism: "Metabolism (calorie burn, brown fat activation)",
+    recovery:   "Recovery (reduce soreness, anti-inflammatory)",
+  };
+  const primaryBenefitLine = user?.primaryBenefit && benefitLabels[user.primaryBenefit]
+    ? `• Primary benefit goal: ${benefitLabels[user.primaryBenefit]}`
+    : null;
+
   const userContext = `
 CURRENT USER:
 • Username: ${user?.username ?? "unknown"}
@@ -142,7 +152,7 @@ CURRENT USER:
 • Recent avg temp (last 5): ${avgTemp != null ? `${avgTemp}°F` : "no plunges yet"}
 • Rated plunges (last 5): ${ratedCount} / ${recentPlunges.length}
 • Height: ${user?.bodyHeight ? `${user.bodyHeight} cm` : "not set"}
-• Weight: ${user?.bodyWeight ? `${user.bodyWeight} lbs` : "not set"}${screenLine ? `\n${screenLine}` : ""}
+• Weight: ${user?.bodyWeight ? `${user.bodyWeight} lbs` : "not set"}${primaryBenefitLine ? `\n${primaryBenefitLine}` : ""}${screenLine ? `\n${screenLine}` : ""}
 `.trim();
 
   // ── Call Gemini via v1beta REST ───────────────────────────────────────────
