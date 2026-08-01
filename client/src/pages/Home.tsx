@@ -262,6 +262,248 @@ function openDirections(lat: number | string, lng: number | string) {
   }
 }
 
+// ─── Insights helpers (shared with /insights route) ──────────────────────────
+
+const _INSIGHT_TEMP_BANDS = [
+  { min: 0,   max: 40,  label: "35–40°F" },
+  { min: 40,  max: 45,  label: "40–45°F" },
+  { min: 45,  max: 50,  label: "45–50°F" },
+  { min: 50,  max: 55,  label: "50–55°F" },
+  { min: 55,  max: 60,  label: "55–60°F" },
+  { min: 60,  max: 999, label: "60°F+"   },
+];
+
+const _INSIGHT_DUR_BANDS = [
+  { min: 0,   max: 90,       label: "< 1.5 min"  },
+  { min: 90,  max: 180,      label: "1.5–3 min"  },
+  { min: 180, max: 360,      label: "3–6 min"    },
+  { min: 360, max: Infinity, label: "6+ min"     },
+];
+
+const _MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+interface _InsightBandStat {
+  label: string; moodSum: number; energySum: number;
+  count: number; moodCount: number; energyCount: number;
+}
+
+interface _InsightResult {
+  tempLabel: string | null; durLabel: string | null;
+  morningBest: boolean | null; morningAvg: number | null; otherAvg: number | null;
+  diminishing: boolean; sweetSpotFor: string | null; sampleSize: number;
+}
+
+function _analysePatterns(plunges: import("@shared/schema").Plunge[]): _InsightResult {
+  const rated = plunges.filter((p) => p.mood != null);
+  const result: _InsightResult = {
+    tempLabel: null, durLabel: null, morningBest: null,
+    morningAvg: null, otherAvg: null,
+    diminishing: false, sweetSpotFor: null, sampleSize: rated.length,
+  };
+  if (rated.length < 3) return result;
+
+  const tempMap = new Map<string, _InsightBandStat>();
+  for (const b of _INSIGHT_TEMP_BANDS)
+    tempMap.set(b.label, { label: b.label, moodSum: 0, energySum: 0, count: 0, moodCount: 0, energyCount: 0 });
+  for (const p of rated) {
+    const band = _INSIGHT_TEMP_BANDS.find((b) => p.temperature >= b.min && p.temperature < b.max) ?? _INSIGHT_TEMP_BANDS[_INSIGHT_TEMP_BANDS.length - 1];
+    const s = tempMap.get(band.label)!;
+    s.count++; s.moodSum += p.mood!; s.moodCount++;
+    if (p.moodEnergy != null) { s.energySum += p.moodEnergy; s.energyCount++; }
+  }
+  let bestTempScore = -1;
+  for (const s of Array.from(tempMap.values())) {
+    if (s.moodCount < 2) continue;
+    const moodNorm   = (s.moodSum / s.moodCount - 1) / 4;
+    const energyNorm = s.energyCount > 0 ? (s.energySum / s.energyCount - 1) / 2 : moodNorm;
+    const score = (moodNorm + energyNorm) / 2;
+    if (score > bestTempScore) { bestTempScore = score; result.tempLabel = s.label; }
+  }
+
+  const durMap = new Map<string, _InsightBandStat>();
+  for (const b of _INSIGHT_DUR_BANDS)
+    durMap.set(b.label, { label: b.label, moodSum: 0, energySum: 0, count: 0, moodCount: 0, energyCount: 0 });
+  for (const p of rated) {
+    const band = _INSIGHT_DUR_BANDS.find((b) => p.duration >= b.min && p.duration < b.max) ?? _INSIGHT_DUR_BANDS[_INSIGHT_DUR_BANDS.length - 1];
+    const s = durMap.get(band.label)!;
+    s.count++; s.moodSum += p.mood!; s.moodCount++;
+    if (p.moodEnergy != null) { s.energySum += p.moodEnergy; s.energyCount++; }
+  }
+  let bestDurScore = -1;
+  for (const s of Array.from(durMap.values())) {
+    if (s.moodCount < 2) continue;
+    const moodNorm   = (s.moodSum / s.moodCount - 1) / 4;
+    const energyNorm = s.energyCount > 0 ? (s.energySum / s.energyCount - 1) / 2 : moodNorm;
+    const score = (moodNorm + energyNorm) / 2;
+    if (score > bestDurScore) { bestDurScore = score; result.durLabel = s.label; }
+  }
+
+  const b36  = durMap.get("3–6 min");
+  const b6pl = durMap.get("6+ min");
+  if (b36 && b6pl && b36.moodCount >= 2 && b6pl.moodCount >= 2) {
+    result.diminishing = (b6pl.moodSum / b6pl.moodCount) < (b36.moodSum / b36.moodCount) - 0.3;
+  }
+
+  let morningSum = 0, morningN = 0, otherSum = 0, otherN = 0;
+  for (const p of rated) {
+    const h = new Date(p.createdAt).getUTCHours();
+    if (h >= 5 && h < 10) { morningSum += p.mood!; morningN++; }
+    else                   { otherSum   += p.mood!; otherN++;   }
+  }
+  if (morningN >= 2 && otherN >= 2) {
+    const ma = morningSum / morningN;
+    const oa = otherSum   / otherN;
+    result.morningBest = ma > oa + 0.25;
+    result.morningAvg  = Math.round(ma * 10) / 10;
+    result.otherAvg    = Math.round(oa * 10) / 10;
+  }
+
+  if (result.tempLabel && result.durLabel) {
+    const best = tempMap.get(result.tempLabel);
+    const moodGood   = best && best.moodCount   > 0 && (best.moodSum   / best.moodCount)   >= 4;
+    const energyGood = best && best.energyCount > 0 && (best.energySum / best.energyCount) >= 2.5;
+    result.sweetSpotFor = moodGood && energyGood ? "Mood + Energy" : moodGood ? "Mood" : energyGood ? "Energy" : "Overall";
+  }
+
+  return result;
+}
+
+function _compositeScore(p: import("@shared/schema").Plunge) {
+  const m = p.mood       != null ? (p.mood       - 1) / 4 : null;
+  const e = p.moodEnergy != null ? (p.moodEnergy - 1) / 2 : null;
+  if (m === null && e === null) return 0;
+  if (m === null) return e!;
+  if (e === null) return m;
+  return (m + e) / 2;
+}
+
+interface _AdaptationResult {
+  earlyAvg: number; recentAvg: number; delta: number;
+  deltaStr: string; metrics: string[];
+}
+
+function _computeAdaptation(plunges: import("@shared/schema").Plunge[]): _AdaptationResult | null {
+  const rated = plunges.filter((p) => p.mood != null)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  if (rated.length < 20) return null;
+  const first10  = rated.slice(0, 10);
+  const recent10 = rated.slice(-10);
+  const avg = (g: import("@shared/schema").Plunge[]) => g.map(_compositeScore).reduce((s, v) => s + v, 0) / g.length;
+  const earlyAvg  = avg(first10);
+  const recentAvg = avg(recent10);
+  const delta = recentAvg - earlyAvg;
+  if (Math.abs(delta) < 0.03) return null;
+  const avgOf = (g: import("@shared/schema").Plunge[], fn: (p: import("@shared/schema").Plunge) => number | null) => {
+    const vals = g.map(fn).filter((v): v is number => v != null);
+    return vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+  };
+  const metrics: string[] = [];
+  const em0 = avgOf(first10,  (p) => p.mood);
+  const em1 = avgOf(recent10, (p) => p.mood);
+  const ee0 = avgOf(first10,  (p) => p.moodEnergy);
+  const ee1 = avgOf(recent10, (p) => p.moodEnergy);
+  const ef0 = avgOf(first10,  (p) => p.moodFocus);
+  const ef1 = avgOf(recent10, (p) => p.moodFocus);
+  if (em0 != null && em1 != null && em1 > em0 + 0.2)  metrics.push("Mood");
+  if (ee0 != null && ee1 != null && ee1 > ee0 + 0.15) metrics.push("Energy");
+  if (ef0 != null && ef1 != null && ef1 > ef0 + 0.15) metrics.push("Focus");
+  if (metrics.length === 0) metrics.push("overall responses");
+  return { earlyAvg, recentAvg, delta, deltaStr: `${delta >= 0 ? "+" : ""}${Math.round(delta * 100)}%`, metrics };
+}
+
+interface _MonthStats {
+  key: string; label: string; fullLabel: string; year: number; month: number;
+  avgMood: number | null; avgEnergy: number | null;
+  avgFocus: number | null; avgFatigue: number | null; avgRecovery: number | null;
+  count: number;
+}
+
+function _computeMonthly(plunges: import("@shared/schema").Plunge[]): _MonthStats[] {
+  const rated = plunges.filter((p) => p.mood != null);
+  const map = new Map<string, {
+    moodSum: number; energySum: number;
+    focusSum: number; fatigueSum: number; recoverySum: number;
+    moodC: number; energyC: number; focusC: number; fatigueC: number; recoveryC: number;
+    year: number; month: number;
+  }>();
+  for (const p of rated) {
+    const d = new Date(p.createdAt);
+    const year = d.getUTCFullYear(), month = d.getUTCMonth();
+    const key = `${year}-${String(month).padStart(2, "0")}`;
+    if (!map.has(key)) map.set(key, { moodSum: 0, energySum: 0, focusSum: 0, fatigueSum: 0, recoverySum: 0, moodC: 0, energyC: 0, focusC: 0, fatigueC: 0, recoveryC: 0, year, month });
+    const s = map.get(key)!;
+    if (p.mood        != null) { s.moodSum    += p.mood;        s.moodC++;    }
+    if (p.moodEnergy  != null) { s.energySum  += p.moodEnergy;  s.energyC++;  }
+    if (p.moodFatigue != null) { s.fatigueSum += p.moodFatigue; s.fatigueC++; }
+    if (p.moodFocus   != null) {
+      if (p.moodFatigue != null) { s.recoverySum += p.moodFocus; s.recoveryC++; }
+      else                       { s.focusSum    += p.moodFocus; s.focusC++;    }
+    }
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, s]): _MonthStats => ({
+      key, year: s.year, month: s.month,
+      label:       _MONTH_LABELS[s.month],
+      fullLabel:   `${_MONTH_LABELS[s.month]} ${s.year}`,
+      avgMood:     s.moodC    > 0 ? Math.round((s.moodSum    / s.moodC)    * 10) / 10 : null,
+      avgEnergy:   s.energyC  > 0 ? Math.round((s.energySum  / s.energyC)  * 10) / 10 : null,
+      avgFocus:    s.focusC   > 0 ? Math.round((s.focusSum   / s.focusC)   * 10) / 10 : null,
+      avgFatigue:  s.fatigueC > 0 ? Math.round((s.fatigueSum / s.fatigueC) * 10) / 10 : null,
+      avgRecovery: s.recoveryC> 0 ? Math.round((s.recoverySum/ s.recoveryC)* 10) / 10 : null,
+      count: s.moodC,
+    }));
+}
+
+function _InsightSectionHeader({ emoji, title, subtitle }: { emoji: string; title: string; subtitle?: string }) {
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      <span className="text-xl">{emoji}</span>
+      <div>
+        <h2 className="text-white font-bold text-sm leading-tight">{title}</h2>
+        {subtitle && <p className="text-blue-400 text-xs mt-0.5">{subtitle}</p>}
+      </div>
+    </div>
+  );
+}
+
+function _InsightLockedSection({ title, emoji, need, have }: { title: string; emoji: string; need: number; have: number }) {
+  const pct = Math.min(100, Math.round((have / need) * 100));
+  return (
+    <div className="bg-blue-950/60 border border-blue-800/40 rounded-2xl p-4 opacity-70">
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-lg opacity-50">{emoji}</span>
+        <div>
+          <p className="text-blue-300 font-semibold text-xs">{title}</p>
+          <p className="text-blue-500 text-[11px] mt-0.5">
+            🔒 {need - have} more check-in{need - have === 1 ? "" : "s"} to unlock
+          </p>
+        </div>
+      </div>
+      <div className="h-1.5 bg-blue-900/80 rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: "linear-gradient(90deg,#1d4ed8,#22d3ee)" }} />
+      </div>
+      <p className="text-blue-600 text-[10px] mt-1.5">{have} of {need} check-ins</p>
+    </div>
+  );
+}
+
+function _InsightDistBar({ label, count, total, color }: { label: string; count: number; total: number; color: string }) {
+  if (count === 0) return null;
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-blue-300 w-28 shrink-0">{label}</span>
+      <div className="flex-1 h-2 bg-blue-900/70 rounded-full overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+      </div>
+      <span className="text-blue-400 text-xs w-14 text-right shrink-0">{count}× ({pct}%)</span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function Home() {
   const [, navigate] = useLocation();
   const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
@@ -6015,7 +6257,7 @@ export default function Home() {
                     <button
                       onClick={() => { setProfileTab('stats'); localStorage.setItem('coldstreak-profile-tab', 'stats'); }}
                       className={`flex-1 py-2 text-xs font-semibold transition-colors ${profileTab === 'stats' ? 'bg-blue-800/80 text-white' : 'text-blue-400 hover:text-blue-200'}`}
-                    >Stats</button>
+                    >Insights</button>
                   </div>
 
                   {profileTab === 'account' && (<>
@@ -6297,7 +6539,7 @@ export default function Home() {
                         <Flame className="w-3.5 h-3.5 text-orange-400" />
                         <span className="text-orange-300/90 text-xs font-semibold">~{Math.round(allTimeCalories).toLocaleString()} kcal all-time</span>
                       </div>
-                      <span className="text-orange-500/70 text-xs font-bold">Stats →</span>
+                      <span className="text-orange-500/70 text-xs font-bold">Insights →</span>
                     </button>
                   )}
 
@@ -6529,8 +6771,56 @@ export default function Home() {
                   </div>
                   </>)}
 
-                  {profileTab === 'stats' && (<>
-                  {/* Calorie breakdown — day / week / all-time */}
+                  {profileTab === 'stats' && (() => {
+                    // ── Insights data (computed from same plunges array) ──────────
+                    const _rated       = plunges.filter((p) => p.mood != null);
+                    const _ratedCount  = _rated.length;
+                    const _totalSec    = plunges.reduce((s, p) => s + p.duration, 0);
+                    const _totalMin    = Math.round(_totalSec / 60);
+                    const _uniqueDays  = new Set(plunges.map((p) => new Date(p.createdAt).toISOString().slice(0, 10))).size;
+
+                    const _insight    = _ratedCount >= 3 ? _analysePatterns(plunges) : null;
+                    const _adaptation = _computeAdaptation(plunges);
+                    const _months     = _computeMonthly(plunges);
+
+                    const _moodCounts:     Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+                    const _energyCounts:   Record<number, number> = { 1: 0, 2: 0, 3: 0 };
+                    const _fatigueCounts:  Record<number, number> = { 1: 0, 2: 0, 3: 0 };
+                    const _recoveryCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
+                    const _focusCounts:    Record<number, number> = { 1: 0, 2: 0, 3: 0 };
+                    for (const p of _rated) {
+                      _moodCounts[p.mood!]++;
+                      if (p.moodEnergy  != null) _energyCounts[p.moodEnergy]++;
+                      if (p.moodFatigue != null) _fatigueCounts[p.moodFatigue]++;
+                      if (p.moodFocus   != null) {
+                        if (p.moodFatigue != null) _recoveryCounts[p.moodFocus]++;
+                        else                       _focusCounts[p.moodFocus]++;
+                      }
+                    }
+                    const _energyResponded   = _rated.filter((p) => p.moodEnergy  != null).length;
+                    const _fatigueResponded  = _rated.filter((p) => p.moodFatigue != null).length;
+                    const _recoveryResponded = _rated.filter((p) => p.moodFatigue != null && p.moodFocus != null).length;
+                    const _focusResponded    = _rated.filter((p) => p.moodFatigue == null  && p.moodFocus != null).length;
+                    const _avgMood     = _ratedCount        > 0 ? (_rated.reduce((s, p) => s + p.mood!, 0) / _ratedCount) : null;
+                    const _avgEnergy   = _energyResponded   > 0 ? (_rated.filter((p) => p.moodEnergy  != null).reduce((s, p) => s + p.moodEnergy!,  0) / _energyResponded)   : null;
+                    const _avgFatigue  = _fatigueResponded  > 0 ? (_rated.filter((p) => p.moodFatigue != null).reduce((s, p) => s + p.moodFatigue!, 0) / _fatigueResponded)  : null;
+                    const _avgRecovery = _recoveryResponded > 0 ? (_rated.filter((p) => p.moodFatigue != null && p.moodFocus != null).reduce((s, p) => s + p.moodFocus!, 0) / _recoveryResponded) : null;
+                    const _avgFocus    = _focusResponded    > 0 ? (_rated.filter((p) => p.moodFatigue == null  && p.moodFocus != null).reduce((s, p) => s + p.moodFocus!,  0) / _focusResponded)    : null;
+
+                    const _hasMonthly   = _months.length >= 2;
+                    const _hasMorning   = _insight?.morningBest != null;
+                    const _hasSweetSpot = _ratedCount >= 10 && _insight?.tempLabel && _insight?.durLabel;
+                    const _hasAdaptation = _adaptation !== null;
+
+                    const _steps = [
+                      { label: "First plunge",     need: 1,  have: plunges.length, color: "#22d3ee" },
+                      { label: "Feel Patterns",    need: 5,  have: _ratedCount,    color: "#6ee7b7" },
+                      { label: "Sweet Spot",       need: 10, have: _ratedCount,    color: "#fbbf24" },
+                      { label: "Adaptation Trend", need: 20, have: _ratedCount,    color: "#a78bfa" },
+                    ];
+
+                    return (<>
+                  {/* ── Calorie Burn ── */}
                   {plunges.length > 0 ? (
                     <div className="bg-blue-900/40 rounded-2xl px-4 py-3 border border-blue-800/40">
                       <div className="flex items-center gap-1.5 mb-2.5">
@@ -6565,10 +6855,8 @@ export default function Home() {
                       </div>
                       <p className="text-blue-500/60 text-[9px] mt-2 leading-relaxed">Thermogenic estimate — not a precise measurement. Set weight in Account for best accuracy.</p>
                     </div>
-                  ) : (
-                    <p className="text-blue-500/60 text-xs text-center py-4">Log your first plunge to see stats.</p>
-                  )}
-                  {/* Sweet Spot */}
+                  ) : null}
+                  {/* Sweet Spot card */}
                   <SweetSpotCard plunges={plunges} />
                   {/* Goal Success Rate */}
                   <GoalSuccessCard
@@ -6586,21 +6874,354 @@ export default function Home() {
                   <ColdAdaptationCard plunges={plunges} />
                   {/* Try This Next nudge */}
                   <TryThisNextCard plunges={plunges} />
-                  {/* Link to full web insights dashboard */}
-                  <a
-                    href="/insights"
-                    className="flex items-center justify-between w-full px-4 py-3 rounded-2xl border border-cyan-500/25 bg-cyan-950/30 hover:bg-cyan-900/30 hover:border-cyan-500/50 transition-all active:scale-[0.98] group"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-lg">✨</span>
-                      <div>
-                        <p className="text-cyan-200 text-sm font-semibold leading-tight">Full Insights Dashboard</p>
-                        <p className="text-blue-400 text-[11px] leading-tight mt-0.5">Deeper charts & patterns on the web</p>
+
+                  {/* ── Insights Progress (unlock tracker) ── */}
+                  {_ratedCount < 20 && plunges.length > 0 && (
+                    <div className="bg-blue-900/30 border border-blue-800/40 rounded-2xl p-4 space-y-3">
+                      <_InsightSectionHeader emoji="🔓" title="Insights Progress" subtitle="Complete check-ins after plunges to unlock each section" />
+                      {_steps.map((s) => {
+                        const done = s.have >= s.need;
+                        const pct  = Math.min(100, Math.round((s.have / s.need) * 100));
+                        return (
+                          <div key={s.label}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className={`text-xs font-semibold ${done ? "text-white" : "text-blue-400"}`}>
+                                {done ? "✓ " : ""}{s.label}
+                              </span>
+                              <span className="text-blue-500 text-[10px]">{Math.min(s.have, s.need)}/{s.need}</span>
+                            </div>
+                            <div className="h-1.5 bg-blue-900 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: done ? s.color : "#1e40af" }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* ── Feel Patterns ── */}
+                  {plunges.length > 0 && (
+                    <div className="space-y-2">
+                      <_InsightSectionHeader
+                        emoji="💭"
+                        title="How You Feel After Plunging"
+                        subtitle={_ratedCount >= 5 ? `Based on ${_ratedCount} check-ins` : undefined}
+                      />
+                      {_ratedCount >= 5 ? (
+                        <div className="bg-blue-900/40 border border-blue-800/50 rounded-2xl p-4 space-y-5">
+                          {/* Avg summary row */}
+                          <div className={`grid gap-3 pb-4 border-b border-blue-800/40 ${_fatigueResponded > 0 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
+                            <div className="text-center">
+                              <p className="text-cyan-300 text-xl font-bold">{_avgMood != null ? _avgMood.toFixed(1) : "—"}</p>
+                              <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Avg Mood</p>
+                              <p className="text-blue-500 text-[9px]">out of 5</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-amber-300 text-xl font-bold">{_avgEnergy != null ? _avgEnergy.toFixed(1) : "—"}</p>
+                              <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Avg Energy</p>
+                              <p className="text-blue-500 text-[9px]">out of 3</p>
+                            </div>
+                            {_fatigueResponded > 0 ? (
+                              <>
+                                <div className="text-center">
+                                  <p className="text-orange-300 text-xl font-bold">{_avgFatigue != null ? _avgFatigue.toFixed(1) : "—"}</p>
+                                  <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Avg Fatigue</p>
+                                  <p className="text-blue-500 text-[9px]">out of 3</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-emerald-300 text-xl font-bold">{_avgRecovery != null ? _avgRecovery.toFixed(1) : "—"}</p>
+                                  <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Avg Recovery</p>
+                                  <p className="text-blue-500 text-[9px]">out of 3</p>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-center">
+                                <p className="text-violet-300 text-xl font-bold">{_avgFocus != null ? _avgFocus.toFixed(1) : "—"}</p>
+                                <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Avg Focus</p>
+                                <p className="text-blue-500 text-[9px]">out of 3</p>
+                              </div>
+                            )}
+                          </div>
+                          {/* Mood distribution */}
+                          <div className="space-y-1.5">
+                            <p className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest mb-2">😊 Mood distribution</p>
+                            <_InsightDistBar label="😄 Great (5)"  count={_moodCounts[5]} total={_ratedCount} color="#22d3ee" />
+                            <_InsightDistBar label="🙂 Good (4)"   count={_moodCounts[4]} total={_ratedCount} color="#38bdf8" />
+                            <_InsightDistBar label="😐 OK (3)"     count={_moodCounts[3]} total={_ratedCount} color="#6ee7b7" />
+                            <_InsightDistBar label="😕 Low (2)"    count={_moodCounts[2]} total={_ratedCount} color="#64748b" />
+                            <_InsightDistBar label="😞 Rough (1)"  count={_moodCounts[1]} total={_ratedCount} color="#475569" />
+                          </div>
+                          {_energyResponded >= 3 && (
+                            <div className="space-y-1.5">
+                              <p className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest mb-2">⚡ Energy distribution</p>
+                              <_InsightDistBar label="🔋 Energized (3)" count={_energyCounts[3]} total={_energyResponded} color="#fbbf24" />
+                              <_InsightDistBar label="⚡ Neutral (2)"   count={_energyCounts[2]} total={_energyResponded} color="#a3a3a3" />
+                              <_InsightDistBar label="💤 Drained (1)"   count={_energyCounts[1]} total={_energyResponded} color="#475569" />
+                            </div>
+                          )}
+                          {_focusResponded >= 3 && (
+                            <div className="space-y-1.5">
+                              <p className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest mb-2">🧠 Focus distribution</p>
+                              <_InsightDistBar label="🎯 Better (3)"  count={_focusCounts[3]} total={_focusResponded} color="#a78bfa" />
+                              <_InsightDistBar label="🧠 Same (2)"    count={_focusCounts[2]} total={_focusResponded} color="#a3a3a3" />
+                              <_InsightDistBar label="🌫️ Worse (1)"   count={_focusCounts[1]} total={_focusResponded} color="#475569" />
+                            </div>
+                          )}
+                          {_fatigueResponded >= 3 && (
+                            <div className="space-y-1.5">
+                              <p className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest mb-2">💪 Muscle fatigue</p>
+                              <_InsightDistBar label="💪 Relieved (3)"   count={_fatigueCounts[3]} total={_fatigueResponded} color="#f97316" />
+                              <_InsightDistBar label="😐 Neutral (2)"    count={_fatigueCounts[2]} total={_fatigueResponded} color="#a3a3a3" />
+                              <_InsightDistBar label="😣 Still sore (1)" count={_fatigueCounts[1]} total={_fatigueResponded} color="#475569" />
+                            </div>
+                          )}
+                          {_recoveryResponded >= 3 && (
+                            <div className="space-y-1.5">
+                              <p className="text-blue-300 text-[10px] font-semibold uppercase tracking-widest mb-2">🔄 Recovery distribution</p>
+                              <_InsightDistBar label="✨ Restored (3)"  count={_recoveryCounts[3]} total={_recoveryResponded} color="#34d399" />
+                              <_InsightDistBar label="😐 Somewhat (2)"  count={_recoveryCounts[2]} total={_recoveryResponded} color="#a3a3a3" />
+                              <_InsightDistBar label="😓 Not yet (1)"   count={_recoveryCounts[1]} total={_recoveryResponded} color="#475569" />
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <_InsightLockedSection title="Feel Patterns" emoji="💭" need={5} have={_ratedCount} />
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── Sweet Spot (Insights version with confidence) ── */}
+                  {plunges.length > 0 && (
+                    <div className="space-y-2">
+                      <_InsightSectionHeader
+                        emoji="🎯"
+                        title="Your Sweet Spot"
+                        subtitle={_hasSweetSpot ? "Temperature & duration with your best responses" : undefined}
+                      />
+                      {_hasSweetSpot && _insight ? (
+                        <div className="bg-gradient-to-br from-blue-950 to-slate-900 border border-cyan-500/30 rounded-2xl p-4">
+                          <div className="grid grid-cols-3 gap-2 mb-3">
+                            <div className="bg-blue-900/50 rounded-xl p-2.5 text-center">
+                              <p className="text-cyan-300 text-base font-bold">{_insight.tempLabel}</p>
+                              <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Temperature</p>
+                            </div>
+                            <div className="bg-blue-900/50 rounded-xl p-2.5 text-center">
+                              <p className="text-cyan-300 text-base font-bold">{_insight.durLabel}</p>
+                              <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Duration</p>
+                            </div>
+                            <div className="bg-blue-900/50 rounded-xl p-2.5 text-center">
+                              <p className="text-emerald-300 text-base font-bold">{_insight.sweetSpotFor}</p>
+                              <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Best for</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <p className="text-blue-400 text-[10px]">Based on {_ratedCount} check-ins</p>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border" style={{
+                              color: _ratedCount >= 30 ? "#22d3ee" : _ratedCount >= 15 ? "#fbbf24" : "#94a3b8",
+                              borderColor: (_ratedCount >= 30 ? "#22d3ee" : _ratedCount >= 15 ? "#fbbf24" : "#94a3b8") + "44",
+                              background:  (_ratedCount >= 30 ? "#22d3ee" : _ratedCount >= 15 ? "#fbbf24" : "#94a3b8") + "15",
+                            }}>
+                              {_ratedCount >= 30 ? "High confidence" : _ratedCount >= 15 ? "Medium confidence" : "Low confidence"}
+                            </span>
+                          </div>
+                          {_insight.diminishing && (
+                            <div className="mt-3 bg-amber-900/20 border border-amber-500/25 rounded-xl p-3">
+                              <p className="text-amber-300 text-xs font-semibold mb-1">📉 Diminishing returns detected</p>
+                              <p className="text-slate-400 text-[11px] leading-relaxed">Sessions longer than 6 min aren't associated with meaningfully higher Mood or Energy compared to your 3–6 min plunges.</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <_InsightLockedSection title="Sweet Spot" emoji="🎯" need={10} have={_ratedCount} />
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── Morning Advantage ── */}
+                  {_hasMorning && _insight && (
+                    <div className="space-y-2">
+                      <_InsightSectionHeader emoji="🌅" title="Morning Advantage" />
+                      <div className="bg-blue-900/40 border border-blue-800/50 rounded-2xl p-4">
+                        {_insight.morningBest ? (
+                          <>
+                            <p className="text-white text-xs font-semibold mb-3">Your pre-10 AM plunges score higher</p>
+                            <div className="grid grid-cols-2 gap-2 mb-3">
+                              <div className="bg-amber-900/20 border border-amber-500/30 rounded-xl p-2.5 text-center">
+                                <p className="text-amber-300 text-xl font-bold">{_insight.morningAvg?.toFixed(1)}</p>
+                                <p className="text-blue-400 text-[10px] mt-1">Morning avg mood</p>
+                                <p className="text-blue-500 text-[9px]">before 10 AM</p>
+                              </div>
+                              <div className="bg-blue-900/30 border border-blue-700/40 rounded-xl p-2.5 text-center">
+                                <p className="text-blue-300 text-xl font-bold">{_insight.otherAvg?.toFixed(1)}</p>
+                                <p className="text-blue-400 text-[10px] mt-1">Other times avg</p>
+                                <p className="text-blue-500 text-[9px]">10 AM or later</p>
+                              </div>
+                            </div>
+                            <p className="text-slate-400 text-[11px] leading-relaxed">Morning plunges are <em>associated with</em> higher self-reported mood. Correlational — other factors may be involved.</p>
+                          </>
+                        ) : (
+                          <p className="text-blue-300 text-xs leading-relaxed">No significant difference between morning and later plunges yet. Keep logging and patterns may emerge.</p>
+                        )}
                       </div>
                     </div>
-                    <span className="text-cyan-500 group-hover:text-cyan-300 transition-colors text-sm font-bold">→</span>
-                  </a>
-                  </>)}
+                  )}
+
+                  {/* ── Cold Adaptation Trend ── */}
+                  {plunges.length > 0 && (
+                    <div className="space-y-2">
+                      <_InsightSectionHeader
+                        emoji="📈"
+                        title="Cold Adaptation Trend"
+                        subtitle={_hasAdaptation ? "How your check-in ratings have shifted over time" : undefined}
+                      />
+                      {_hasAdaptation && _adaptation ? (
+                        <div className="bg-blue-900/40 border border-blue-800/50 rounded-2xl p-4">
+                          <div className="grid grid-cols-2 gap-2 mb-4">
+                            <div className="bg-blue-950/60 border border-blue-800/40 rounded-xl p-2.5 text-center">
+                              <p className="text-blue-300 text-xl font-bold">{Math.round(_adaptation.earlyAvg * 100)}%</p>
+                              <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">First 10 check-ins</p>
+                              <p className="text-blue-500 text-[9px]">composite score</p>
+                            </div>
+                            <div className={`border rounded-xl p-2.5 text-center ${_adaptation.delta >= 0 ? "bg-emerald-900/20 border-emerald-500/30" : "bg-red-900/20 border-red-500/30"}`}>
+                              <p className={`text-xl font-bold ${_adaptation.delta >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+                                {Math.round(_adaptation.recentAvg * 100)}%
+                              </p>
+                              <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Recent 10 check-ins</p>
+                              <p className={`text-xs font-bold mt-1 ${_adaptation.delta >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                {_adaptation.deltaStr} composite
+                              </p>
+                            </div>
+                          </div>
+                          <div className={`flex items-start gap-2.5 rounded-xl px-3 py-2.5 ${_adaptation.delta >= 0.05 ? "bg-emerald-900/20 border border-emerald-500/25" : "bg-blue-900/20 border border-blue-700/30"}`}>
+                            <span className="text-base mt-0.5">{_adaptation.delta >= 0.05 ? "📈" : _adaptation.delta <= -0.05 ? "📉" : "→"}</span>
+                            <div>
+                              {_adaptation.delta >= 0.05 ? (
+                                <>
+                                  <p className="text-emerald-300 text-xs font-semibold">Adaptation trend detected</p>
+                                  <p className="text-slate-400 text-[11px] leading-relaxed mt-1">Your <span className="text-emerald-300">{_adaptation.metrics.join(" & ")}</span> responses after plunging are <em>associated with</em> higher ratings vs. your first 10 check-ins.</p>
+                                </>
+                              ) : _adaptation.delta <= -0.05 ? (
+                                <>
+                                  <p className="text-blue-300 text-xs font-semibold">Recent scores are lower</p>
+                                  <p className="text-slate-400 text-[11px] leading-relaxed mt-1">Your recent check-ins score a little lower. This can reflect harder sessions, life stress, or natural variance.</p>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="text-blue-300 text-xs font-semibold">Holding steady</p>
+                                  <p className="text-slate-400 text-[11px] leading-relaxed mt-1">Your recent check-in scores are consistent with your early ones.</p>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <_InsightLockedSection title="Adaptation Trend" emoji="📈" need={20} have={_ratedCount} />
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── Monthly Trend ── */}
+                  {plunges.length > 0 && (() => {
+                    const _showEnergy   = _months.some((m) => m.avgEnergy   != null);
+                    const _showFocus    = _months.some((m) => m.avgFocus    != null);
+                    const _showFatigue  = _months.some((m) => m.avgFatigue  != null);
+                    const _showRecovery = _months.some((m) => m.avgRecovery != null);
+                    const _metricLabels = ["Mood", ...(_showEnergy ? ["Energy"] : []), ...(_showFatigue ? ["Fatigue"] : []), ...(_showRecovery ? ["Recovery"] : []), ...(_showFocus ? ["Focus"] : [])];
+                    const _subtitle = _hasMonthly ? `Avg ${_metricLabels.join(", ")} rating by month` : undefined;
+                    return (
+                      <div className="space-y-2">
+                        <_InsightSectionHeader emoji="📅" title="Monthly Trend" subtitle={_subtitle} />
+                        {_hasMonthly ? (
+                          <div className="bg-blue-900/40 border border-blue-800/50 rounded-2xl p-4">
+                            {/* Legend */}
+                            <div className="flex flex-wrap items-center gap-3 mb-4">
+                              <div className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "#22d3ee" }} /><span className="text-blue-300 text-[10px]">Mood (1–5)</span></div>
+                              {_showEnergy   && <div className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "#fbbf24" }} /><span className="text-blue-300 text-[10px]">Energy (1–3)</span></div>}
+                              {_showFatigue  && <div className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "#f97316" }} /><span className="text-blue-300 text-[10px]">Fatigue (1–3)</span></div>}
+                              {_showRecovery && <div className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "#34d399" }} /><span className="text-blue-300 text-[10px]">Recovery (1–3)</span></div>}
+                              {_showFocus    && <div className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "#a78bfa" }} /><span className="text-blue-300 text-[10px]">Focus (1–3)</span></div>}
+                            </div>
+                            {/* Bar chart */}
+                            <div className="flex items-end gap-1.5 bg-blue-950/50 rounded-xl px-3 pt-3 pb-1.5">
+                              {_months.map((m) => {
+                                const mPct  = m.avgMood     != null ? Math.round(((m.avgMood     - 1) / 4) * 100) : 0;
+                                const ePct  = m.avgEnergy   != null ? Math.round(((m.avgEnergy   - 1) / 2) * 100) : 0;
+                                const faPct = m.avgFatigue  != null ? Math.round(((m.avgFatigue  - 1) / 2) * 100) : 0;
+                                const rPct  = m.avgRecovery != null ? Math.round(((m.avgRecovery - 1) / 2) * 100) : 0;
+                                const foPct = m.avgFocus    != null ? Math.round(((m.avgFocus    - 1) / 2) * 100) : 0;
+                                return (
+                                  <div key={m.key} className="flex-1 flex flex-col items-center gap-0.5">
+                                    <div className="w-full flex items-end justify-center gap-[2px] h-20">
+                                      <div className="flex-1 flex flex-col justify-end" style={{ maxWidth: 12 }}>
+                                        <div className="rounded-t-sm" style={{ height: `${mPct}%`, backgroundColor: "#22d3ee", minHeight: mPct > 0 ? 2 : 0 }} />
+                                      </div>
+                                      {_showEnergy && <div className="flex-1 flex flex-col justify-end" style={{ maxWidth: 12 }}><div className="rounded-t-sm" style={{ height: `${ePct}%`, backgroundColor: "#fbbf24", minHeight: ePct > 0 ? 2 : 0 }} /></div>}
+                                      {_showFatigue && <div className="flex-1 flex flex-col justify-end" style={{ maxWidth: 12 }}><div className="rounded-t-sm" style={{ height: `${faPct}%`, backgroundColor: "#f97316", minHeight: faPct > 0 ? 2 : 0 }} /></div>}
+                                      {_showRecovery && <div className="flex-1 flex flex-col justify-end" style={{ maxWidth: 12 }}><div className="rounded-t-sm" style={{ height: `${rPct}%`, backgroundColor: "#34d399", minHeight: rPct > 0 ? 2 : 0 }} /></div>}
+                                      {_showFocus && <div className="flex-1 flex flex-col justify-end" style={{ maxWidth: 12 }}><div className="rounded-t-sm" style={{ height: `${foPct}%`, backgroundColor: "#a78bfa", minHeight: foPct > 0 ? 2 : 0 }} /></div>}
+                                    </div>
+                                    <p className="text-blue-400 text-[9px] font-semibold">{m.label}</p>
+                                    {m.avgMood != null && <p className="text-cyan-500 text-[8px]">{m.avgMood}</p>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {/* Table */}
+                            <div className="mt-3 overflow-x-auto">
+                              <table className="w-full text-[10px] text-center">
+                                <thead>
+                                  <tr className="text-blue-500 text-[9px] uppercase tracking-wider">
+                                    <td className="pb-1.5 text-left pl-1">Month</td>
+                                    <td className="pb-1.5" style={{ color: "#22d3ee" }}>Mood</td>
+                                    {_showEnergy   && <td className="pb-1.5" style={{ color: "#fbbf24" }}>Energy</td>}
+                                    {_showFatigue  && <td className="pb-1.5" style={{ color: "#f97316" }}>Fatigue</td>}
+                                    {_showRecovery && <td className="pb-1.5" style={{ color: "#34d399" }}>Recovery</td>}
+                                    {_showFocus    && <td className="pb-1.5" style={{ color: "#a78bfa" }}>Focus</td>}
+                                    <td className="pb-1.5 text-blue-600">Sessions</td>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {_months.map((m) => (
+                                    <tr key={m.key} className="border-t border-blue-900/60">
+                                      <td className="py-1 text-blue-300 text-left pl-1">{m.fullLabel}</td>
+                                      <td className="py-1 text-cyan-300 font-semibold">{m.avgMood?.toFixed(1) ?? "—"}</td>
+                                      {_showEnergy   && <td className="py-1 text-amber-300  font-semibold">{m.avgEnergy?.toFixed(1)   ?? "—"}</td>}
+                                      {_showFatigue  && <td className="py-1 text-orange-300 font-semibold">{m.avgFatigue?.toFixed(1)  ?? "—"}</td>}
+                                      {_showRecovery && <td className="py-1 text-emerald-300 font-semibold">{m.avgRecovery?.toFixed(1) ?? "—"}</td>}
+                                      {_showFocus    && <td className="py-1 text-violet-300 font-semibold">{m.avgFocus?.toFixed(1)    ?? "—"}</td>}
+                                      <td className="py-1 text-blue-500">{m.count}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-blue-950/60 border border-blue-800/40 rounded-2xl p-4 opacity-70">
+                            <div className="flex items-center gap-2.5 mb-2">
+                              <span className="text-lg opacity-50">📅</span>
+                              <div>
+                                <p className="text-blue-300 font-semibold text-xs">Monthly Trend</p>
+                                <p className="text-blue-500 text-[11px] mt-0.5">🔒 Unlocks after 2 months of check-ins</p>
+                              </div>
+                            </div>
+                            <p className="text-blue-600 text-[10px]">
+                              {_months.length < 2
+                                ? `You have ${_months.length} month${_months.length === 1 ? "" : "s"} of data. One more month unlocks your trend.`
+                                : "Keep logging check-ins to see monthly patterns."}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Disclaimer */}
+                  <p className="text-blue-700 text-[10px] leading-relaxed text-center px-2">
+                    Patterns shown here are based on self-reported check-ins and are correlational, not medical data. Not medical advice.
+                  </p>
+                    </>);
+                  })()}
                 </div>
               ) : forgotMode ? (
                 <div className="bg-blue-950/90 backdrop-blur-sm rounded-3xl px-5 py-5 border border-blue-800/50" data-testid="card-account-signedout">

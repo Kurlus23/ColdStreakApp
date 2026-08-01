@@ -134,7 +134,7 @@ const NAV_LABELS: Record<string, string> = {
   settings:               "Settings",
   achievements:           "Profile",
   "achievements:account": "Profile › Account",
-  "achievements:stats":   "Profile › Stats",
+  "achievements:stats":   "Profile › Insights",
   friends:                "Friends",
 };
 
