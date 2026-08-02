@@ -5490,18 +5490,23 @@ export default function Home() {
                   ))}
                 </div>
 
-                {/* Contact email (if not logged in) */}
+                {/* Contact email — required when no account email is on file */}
                 {!proEmail && (
                   <div>
-                    <label className="text-blue-400 text-xs font-semibold uppercase tracking-wide block mb-1">Your Email</label>
+                    <label className="text-blue-400 text-xs font-semibold uppercase tracking-wide block mb-1">
+                      Your Email <span className="text-red-400 normal-case font-normal">required to reply</span>
+                    </label>
                     <input
                       data-testid="input-support-email"
                       type="email"
                       value={supportEmail}
                       onChange={e => setSupportEmail(e.target.value)}
-                      placeholder="so we can reply to you"
-                      className="w-full bg-blue-900/60 border border-blue-700/50 rounded-xl px-3 py-2 text-white text-sm placeholder-blue-600 focus:outline-none focus:border-cyan-500/60"
+                      placeholder="your@email.com"
+                      className={`w-full bg-blue-900/60 border rounded-xl px-3 py-2 text-white text-sm placeholder-blue-600 focus:outline-none focus:border-cyan-500/60 ${
+                        supportEmail.trim() ? "border-blue-700/50" : "border-orange-500/50"
+                      }`}
                     />
+                    <p className="text-orange-400/70 text-[10px] mt-1">We can't reply without an email address.</p>
                   </div>
                 )}
 
@@ -5522,7 +5527,7 @@ export default function Home() {
                 {/* Send */}
                 <button
                   data-testid="button-send-support"
-                  disabled={supportSending || !supportMessage.trim()}
+                  disabled={supportSending || !supportMessage.trim() || (!proEmail && !supportEmail.trim())}
                   onClick={async () => {
                     if (!supportMessage.trim()) return;
                     setSupportSending(true);
