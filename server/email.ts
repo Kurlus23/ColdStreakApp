@@ -27,10 +27,13 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
     if (res.status === 403 && body.includes("not verified")) {
       console.warn("[email] Domain not verified, falling back to onboarding@resend.dev");
       res = await tryFrom(FALLBACK_FROM);
-    }
-    if (!res.ok) {
-      const errBody = await res.text();
-      console.error("[email] Resend API error:", res.status, errBody);
+      if (!res.ok) {
+        const errBody = await res.text();
+        console.error("[email] Resend API error (fallback):", res.status, errBody);
+        throw new Error("Failed to send email");
+      }
+    } else if (!res.ok) {
+      console.error("[email] Resend API error:", res.status, body);
       throw new Error("Failed to send email");
     }
   }
