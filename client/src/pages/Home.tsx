@@ -3293,10 +3293,15 @@ export default function Home() {
           return;
         }
         const elapsed = Math.max(0, Math.floor((Date.now() - s.startTime) / 1000));
+        // Seed temp samples with the current displayed temperature so at minimum the
+        // restore-entry reading and exit reading are both averaged by doLogPlunge.
+        // Pre-kill samples are unrecoverable, but this prevents a raw exit-only value.
+        const restoredTemp = Math.min(60, Math.max(25, Number(localStorage.getItem("coldstreak-temperature") ?? 50)));
         if (s.mode === "stopwatch") {
           if (!isRunningRef.current) {
             startTimeRef.current = s.startTime;
             setSeconds(elapsed);
+            tempSamplesRef.current = [restoredTemp];
             setIsRunning(true);
           }
         } else if (s.mode === "countdown") {
@@ -3307,6 +3312,7 @@ export default function Home() {
             if (typeof s.secondsInput === "number") setSecondsInput(s.secondsInput);
             countdownTotalRef.current = s.countdownTotal;
             countdownStartRef.current = s.startTime;
+            tempSamplesRef.current = [restoredTemp];
             if (remaining > 0) {
               setCountdown(remaining);
               setCountdownElapsed(Math.min(elapsed, s.countdownTotal));
