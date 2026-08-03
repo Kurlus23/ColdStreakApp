@@ -1529,7 +1529,7 @@ export default function Home() {
   });
   const ownAvatarUrl = ownBadgeProfile?.avatarUrl ?? null;
   // Plunge data stored for leaderboard submission after save
-  const promptPlungeRef = useRef<{ score: string; duration: number; temperature: number; timerUsed: boolean } | null>(null);
+  const promptPlungeRef = useRef<{ score: string; duration: number; temperature: number; timerUsed: boolean; tempMin?: number; tempMax?: number } | null>(null);
 
   const { toast } = useToast();
 
@@ -3117,6 +3117,8 @@ export default function Home() {
     const avgTemp = tempSamplesRef.current.length > 0
       ? Math.round(tempSamplesRef.current.reduce((a, b) => a + b, 0) / tempSamplesRef.current.length)
       : temperature;
+    const tempMin = tempSamplesRef.current.length > 0 ? Math.round(Math.min(...tempSamplesRef.current)) : undefined;
+    const tempMax = tempSamplesRef.current.length > 0 ? Math.round(Math.max(...tempSamplesRef.current)) : undefined;
     const score = plungeScore(durationSec, avgTemp, bodyWeightLbs, bodyHeightCm, bodyFatPct);
     const weightAtLogTime = Number(localStorage.getItem("coldstreak-body-weight") || 150);
     const bodyFatAtLogTime = Number(localStorage.getItem("coldstreak-body-fat") || 0) || null;
@@ -3145,8 +3147,10 @@ export default function Home() {
           } else {
             confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
           }
-          toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${avgTemp}°F` });
-          promptPlungeRef.current = { score: String(score), duration: durationSec, temperature: avgTemp, timerUsed: true };
+          const tempRangeStr = (tempMin !== undefined && tempMax !== undefined && tempMax - tempMin >= 1)
+            ? ` avg (${tempMin} → ${tempMax}°F)` : `°F`;
+          toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${avgTemp}${tempRangeStr}` });
+          promptPlungeRef.current = { score: String(score), duration: durationSec, temperature: avgTemp, timerUsed: true, tempMin, tempMax };
           if (!auth.user) setPendingSignupNudge(true);
           setPromptColdTake(unlockColdTake({
             seconds: durationSec,
@@ -8041,7 +8045,12 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <div className="flex-1 bg-blue-950/40 border border-blue-800/50 rounded-2xl p-3 flex flex-col items-center justify-center gap-1">
                   <Thermometer className="w-4 h-4 text-cyan-400" />
-                  <span data-testid="text-complete-temp" className="text-white font-bold text-sm">{promptPlungeRef.current.temperature}°F</span>
+                  <span data-testid="text-complete-temp" className="text-white font-bold text-sm">
+                    {promptPlungeRef.current.temperature}°F{(promptPlungeRef.current.tempMin !== undefined && promptPlungeRef.current.tempMax !== undefined && promptPlungeRef.current.tempMax - promptPlungeRef.current.tempMin >= 1) && <span className="text-cyan-400/70 font-normal"> avg</span>}
+                  </span>
+                  {(promptPlungeRef.current.tempMin !== undefined && promptPlungeRef.current.tempMax !== undefined && promptPlungeRef.current.tempMax - promptPlungeRef.current.tempMin >= 1) && (
+                    <span className="text-cyan-300/60 text-[10px] font-medium">{promptPlungeRef.current.tempMin} → {promptPlungeRef.current.tempMax}°F</span>
+                  )}
                   <span className="text-blue-400 text-[10px] uppercase tracking-wider font-semibold">Temp</span>
                 </div>
                 <div className="flex-1 bg-blue-950/40 border border-blue-800/50 rounded-2xl p-3 flex flex-col items-center justify-center gap-1">
