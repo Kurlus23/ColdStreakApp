@@ -609,6 +609,9 @@ export default function Home() {
   const [currentHR, setCurrentHR] = useState<number | null>(null);
   const [hrPeak, setHrPeak] = useState<number | null>(null);
   const hrReadingsRef = useRef<number[]>([]);
+  // Accumulates all temperature samples taken while a plunge is active so
+  // doLogPlunge can store the session average instead of the exit reading.
+  const tempSamplesRef = useRef<number[]>([]);
   // Watch HR troubleshooting modal — explains the HealthKit permission
   // requirements (Heart Rate, HRV, Active Energy) when the user reports
   // their watch HR isn't streaming live.
@@ -2203,7 +2206,7 @@ export default function Home() {
           }
           btProtocolRef.current = "beacon";
           setBtProtocol("beacon");
-          setTemperature(clampDisplayTempF(_det1.tempF + btTempOffsetRef.current).value);
+          { const _t1 = clampDisplayTempF(_det1.tempF + btTempOffsetRef.current).value; setTemperature(_t1); if (isRunningRef.current || countdownRunningRef.current) tempSamplesRef.current.push(_t1); }
           startThermoKeepalive(_det1.matchedDeviceId, "beacon");
           setBtConnected(true);
         } else {
@@ -2508,7 +2511,9 @@ export default function Home() {
             // First reading should display immediately; subsequent ones throttle.
             if (!firstResolved || nowMs - lastTempUiUpdateRef.current >= 3000) {
               lastTempUiUpdateRef.current = nowMs;
-              setTemperature(clampDisplayTempF(tempF + btTempOffsetRef.current).value);
+              const _clampedT = clampDisplayTempF(tempF + btTempOffsetRef.current).value;
+              setTemperature(_clampedT);
+              if (isRunningRef.current || countdownRunningRef.current) tempSamplesRef.current.push(_clampedT);
             }
 
             if (!firstResolved) {
@@ -2547,7 +2552,9 @@ export default function Home() {
           lastThermoNotifRef.current = nowMs;
           if (nowMs - lastTempUiUpdateRef.current >= 3000) {
             lastTempUiUpdateRef.current = nowMs;
-            setTemperature(clampDisplayTempF(tempF + btTempOffsetRef.current).value);
+            const _clampedT = clampDisplayTempF(tempF + btTempOffsetRef.current).value;
+            setTemperature(_clampedT);
+            if (isRunningRef.current || countdownRunningRef.current) tempSamplesRef.current.push(_clampedT);
           }
         }
       );
@@ -2841,7 +2848,7 @@ export default function Home() {
         btProtocolRef.current = "beacon";
         setBtProtocol("beacon");
         localStorage.setItem("coldstreak-bt-thermo-protocol", "beacon");
-        setTemperature(clampDisplayTempF(_det2.tempF + btTempOffsetRef.current).value);
+        { const _t2 = clampDisplayTempF(_det2.tempF + btTempOffsetRef.current).value; setTemperature(_t2); if (isRunningRef.current || countdownRunningRef.current) tempSamplesRef.current.push(_t2); }
         startThermoKeepalive(_det2.matchedDeviceId, "beacon");
         setBtConnected(true);
       } else {
@@ -2955,7 +2962,7 @@ export default function Home() {
         btProtocolRef.current = "beacon";
         setBtProtocol("beacon");
         localStorage.setItem("coldstreak-bt-thermo-protocol", "beacon");
-        setTemperature(clampDisplayTempF(_det3.tempF + btTempOffsetRef.current).value);
+        { const _t3 = clampDisplayTempF(_det3.tempF + btTempOffsetRef.current).value; setTemperature(_t3); if (isRunningRef.current || countdownRunningRef.current) tempSamplesRef.current.push(_t3); }
         startThermoKeepalive(_det3.matchedDeviceId, "beacon");
         setBtConnected(true);
       } else {
@@ -2991,7 +2998,7 @@ export default function Home() {
         btProtocolRef.current = "beacon";
         setBtProtocol("beacon");
         localStorage.setItem("coldstreak-bt-thermo-protocol", "beacon");
-        setTemperature(clampDisplayTempF(_det.tempF + btTempOffsetRef.current).value);
+        { const _t4 = clampDisplayTempF(_det.tempF + btTempOffsetRef.current).value; setTemperature(_t4); if (isRunningRef.current || countdownRunningRef.current) tempSamplesRef.current.push(_t4); }
         startThermoKeepalive(_det.matchedDeviceId, "beacon");
         setBtConnected(true);
       } else {
@@ -3104,10 +3111,16 @@ export default function Home() {
   // ─────────────────────────────────────────────────────────────────────────
 
   const doLogPlunge = useCallback(async (durationSec: number, startedAtOverride?: Date, challenger?: { userId: number; score: number }) => {
-    const score = plungeScore(durationSec, temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct);
+    // Use the average of all temperature samples collected during this session.
+    // Falls back to the current display value when no samples were collected
+    // (e.g. manual-entry plunges with no BLE thermometer connected).
+    const avgTemp = tempSamplesRef.current.length > 0
+      ? Math.round(tempSamplesRef.current.reduce((a, b) => a + b, 0) / tempSamplesRef.current.length)
+      : temperature;
+    const score = plungeScore(durationSec, avgTemp, bodyWeightLbs, bodyHeightCm, bodyFatPct);
     const weightAtLogTime = Number(localStorage.getItem("coldstreak-body-weight") || 150);
     const bodyFatAtLogTime = Number(localStorage.getItem("coldstreak-body-fat") || 0) || null;
-    const caloriesAtLogTime = Math.round(estimateCalories(durationSec, temperature, weightAtLogTime, bodyFatAtLogTime));
+    const caloriesAtLogTime = Math.round(estimateCalories(durationSec, avgTemp, weightAtLogTime, bodyFatAtLogTime));
 
     // Live BLE readings take priority if any were captured during this plunge.
     let hrAvg: number | null = hrReadingsRef.current.length > 0
@@ -3116,14 +3129,14 @@ export default function Home() {
 
     createPlunge.mutate(
       {
-        duration: durationSec, temperature, score: String(score), timerUsed: true, calories: caloriesAtLogTime,
+        duration: durationSec, temperature: avgTemp, score: String(score), timerUsed: true, calories: caloriesAtLogTime,
         hrAvg,
         spo2Avg: null,
         ...(challenger ? { challengerUserId: challenger.userId, challengerScore: challenger.score } : {}),
       },
       {
         onSuccess: (newPlunge) => {
-          Analytics.plungeLogged(durationSec, temperature, score);
+          Analytics.plungeLogged(durationSec, avgTemp, score);
           const result = (newPlunge as any).challengeResult as ChallengeResult | null | undefined;
           if (result) {
             // Gold confetti for winner, ice-blue for loser
@@ -3132,12 +3145,12 @@ export default function Home() {
           } else {
             confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
           }
-          toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${temperature}°F` });
-          promptPlungeRef.current = { score: String(score), duration: durationSec, temperature, timerUsed: true };
+          toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${avgTemp}°F` });
+          promptPlungeRef.current = { score: String(score), duration: durationSec, temperature: avgTemp, timerUsed: true };
           if (!auth.user) setPendingSignupNudge(true);
           setPromptColdTake(unlockColdTake({
             seconds: durationSec,
-            tempF: temperature,
+            tempF: avgTemp,
             isFirstPlunge: plunges.length === 0,
             streakDays: streak,
           }));
@@ -3364,12 +3377,14 @@ export default function Home() {
       countdownStartRef.current = now;
       setCountdownElapsed(0);
       setCountdown(total);
+      tempSamplesRef.current = [temperature];
       setCountdownRunning(true);
       localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "countdown", startTime: now, countdownTotal: total, minutesInput, secondsInput }));
     } else {
       if (shouldAutoPlay()) { try { openMusic(); } catch {} }
       const now = Date.now();
       startTimeRef.current = now;
+      tempSamplesRef.current = [temperature];
       setIsRunning(true);
       localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "stopwatch", startTime: now }));
     }
@@ -3456,6 +3471,7 @@ export default function Home() {
     if (countdownMode) { resetCountdown(); }
     else { setSeconds(0); setIsRunning(false); startTimeRef.current = null; }
     hrReadingsRef.current = [];
+    tempSamplesRef.current = [];
     setHrPeak(null);
     localStorage.removeItem(ACTIVE_SESSION_KEY);
   };
