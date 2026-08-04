@@ -763,35 +763,33 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
 
               {/* Check-in badges: Mood · Energy · [Muscle fatigue · Recovery] or [Focus] */}
               {hasCheckin && (
-                <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1 flex-wrap">
                   {mood && (
                     <span
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50"
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50"
                       style={{ color: mood.color }}
                     >
                       {mood.emoji} {mood.label}
                     </span>
                   )}
                   {energy && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-blue-300">
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-blue-300">
                       {energy.emoji} {energy.label}
                     </span>
                   )}
                   {fatigue && (
                     <span
                       data-testid={`badge-fatigue-${plunge.id}`}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-orange-300"
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-orange-300"
                     >
-                      <span className="text-[8px] text-slate-500 font-normal">Fatigue:</span>
                       {fatigue.emoji} {fatigue.label}
                     </span>
                   )}
                   {focus && (
                     <span
                       data-testid={`badge-recovery-${plunge.id}`}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-purple-300"
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-purple-300"
                     >
-                      {isRecoveryCheckin && <span className="text-[8px] text-slate-500 font-normal">Recovery:</span>}
                       {focus.emoji} {focus.label}
                     </span>
                   )}
