@@ -210,31 +210,66 @@ export function ChallengeMode() {
           </div>
         </div>
 
-        {/* Benefit bar (simplified) */}
-        <div style={{
-          borderRadius: 12, padding: "8px 14px",
-          background: "rgba(6,182,212,0.05)", border: "1px solid rgba(34,211,238,0.08)",
-          backdropFilter: "blur(8px)",
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <span style={{ fontSize: 9, color: "#22d3ee", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>🧠 Focus — 2:24 remaining</span>
-            <span style={{ fontSize: 9, color: "#64748b", fontWeight: 600 }}>Goal: Recovery</span>
-          </div>
-          <div style={{ height: 6, borderRadius: 999, background: "rgba(34,211,238,0.12)", overflow: "hidden" }}>
-            <div style={{ height: "100%", width: "62%", borderRadius: 999, background: "linear-gradient(to right, #0e7490, #22d3ee)", boxShadow: "0 0 8px rgba(34,211,238,0.4)" }} />
-          </div>
-          {/* Segment pips */}
-          <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
-            {["😊 Mood", "⚡ Energy", "🧠 Focus", "💤 Recovery"].map((label, i) => (
-              <div key={i} style={{
-                flex: 1, textAlign: "center", fontSize: 8, fontWeight: 600,
-                color: i < 2 ? "#22d3ee" : i === 2 ? "#67e8f9" : "#334155",
-                padding: "2px 0",
-                borderBottom: i < 2 ? "2px solid #0e7490" : i === 2 ? "2px solid rgba(34,211,238,0.35)" : "2px solid rgba(51,65,85,0.4)",
-              }}>{label}</div>
-            ))}
-          </div>
-        </div>
+        {/* Benefit bar */}
+        {(() => {
+          // Segments in real order with real colors
+          const segs = [
+            { label: "⚡ Energy",     color: "#22d3ee", dimColor: "#164e63", pct: 1.00 },
+            { label: "😊 Mood",       color: "#fbbf24", dimColor: "#78350f", pct: 0.85 },
+            { label: "🔥 Metabolism", color: "#f97316", dimColor: "#7c2d12", pct: 0.52 },
+            { label: "💪 Recovery",   color: "#34d399", dimColor: "#064e3b", pct: 0.00 },
+          ];
+          // Currently working toward Metabolism (index 2), 52% through that segment
+          const activeIdx = 2;
+          const activeColor = segs[activeIdx].color;
+          return (
+            <div style={{
+              borderRadius: 12, padding: "8px 14px",
+              background: "rgba(6,182,212,0.05)", border: "1px solid rgba(34,211,238,0.08)",
+              backdropFilter: "blur(8px)",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <span style={{ fontSize: 9, color: activeColor, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                  🔥 Metabolism — 2:24 remaining
+                </span>
+                <span style={{ fontSize: 9, color: "#64748b", fontWeight: 600 }}>Goal: Recovery</span>
+              </div>
+              {/* Segmented track */}
+              <div style={{ display: "flex", gap: 3 }}>
+                {segs.map((seg, i) => {
+                  const done = i < activeIdx;
+                  const active = i === activeIdx;
+                  const fill = done ? 1 : active ? seg.pct : 0;
+                  return (
+                    <div key={i} style={{ flex: 1, height: 6, borderRadius: 999, background: seg.dimColor, overflow: "hidden" }}>
+                      <div style={{
+                        height: "100%", width: `${fill * 100}%`, borderRadius: 999,
+                        background: seg.color,
+                        boxShadow: fill > 0 ? `0 0 6px ${seg.color}88` : "none",
+                        transition: "width 0.3s ease",
+                      }} />
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Labels */}
+              <div style={{ display: "flex", gap: 3, marginTop: 5 }}>
+                {segs.map((seg, i) => {
+                  const done = i < activeIdx;
+                  const active = i === activeIdx;
+                  return (
+                    <div key={i} style={{
+                      flex: 1, textAlign: "center", fontSize: 8, fontWeight: 600,
+                      color: done ? seg.color : active ? seg.color : "#334155",
+                      opacity: done ? 1 : active ? 1 : 0.4,
+                      padding: "2px 0",
+                    }}>{seg.label}</div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* STOP button */}
         <button style={{
