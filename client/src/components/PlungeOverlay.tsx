@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { ColdTakeOverlay, MilestoneEvent } from "@/components/ColdTakeOverlay";
 import { BenefitBar } from "@/components/BenefitBar";
 import { MusicTransportMini } from "@/components/MusicWidget";
@@ -160,25 +161,38 @@ export function PlungeOverlay({
   onStop,
   onDismissChallenger,
 }: PlungeOverlayProps) {
-  // ── Benefit-goal ring (replaces PB ring when user hasn't hit primary goal yet) ──
-  // Only active when: no challenger, primaryBenefit set, goal not yet reached.
+  // ── Benefit-goal ring ─────────────────────────────────────────────────────────
+  // Tracks dynamically with live temperature, but once a segment threshold is
+  // crossed it stays earned — temperature drift can't retreat a goal you hit.
+  const earnedSegmentsRef = useRef(new Set<number>());
+
   const benefitThresholds = computeThresholds(temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct);
   const totalBenefitElapsed = benefitCarryOver + elapsedSeconds;
   const primarySegIdx = primaryBenefit
     ? SEGMENTS.findIndex(s => s.id === primaryBenefit)
     : -1;
 
-  // Which segment are we currently accumulating toward (up to primaryBenefit)?
-  let benefitSegIdx = -1;
+  // Permanently mark any segment whose threshold has been crossed this session.
   if (primarySegIdx >= 0) {
     for (let i = 0; i <= primarySegIdx; i++) {
-      if (totalBenefitElapsed < benefitThresholds[i]) { benefitSegIdx = i; break; }
+      if (totalBenefitElapsed >= benefitThresholds[i]) earnedSegmentsRef.current.add(i);
     }
   }
 
-  // Suppress benefit ring whenever there's an active challenger, even if their
-  // score hasn't loaded yet — challenge mode takes priority.
-  const useBenefitRing = isActive && !challengerName && challengerScore === null && benefitSegIdx >= 0;
+  // Which segment are we currently accumulating toward? Skip already-earned ones.
+  let benefitSegIdx = -1;
+  if (primarySegIdx >= 0) {
+    for (let i = 0; i <= primarySegIdx; i++) {
+      if (!earnedSegmentsRef.current.has(i) && totalBenefitElapsed < benefitThresholds[i]) {
+        benefitSegIdx = i; break;
+      }
+    }
+  }
+
+  // Benefit ring always takes priority when there's an active goal in progress.
+  // Challenge context is shown via score boxes overlaid on the ring, not by
+  // replacing the ring with a challenge arc.
+  const useBenefitRing = isActive && benefitSegIdx >= 0;
   const currentBenefitSeg = useBenefitRing ? SEGMENTS[benefitSegIdx] : null;
 
   const benefitRingProgress = useBenefitRing && currentBenefitSeg ? (() => {
@@ -201,22 +215,16 @@ export function PlungeOverlay({
     ? Math.min(1, displayScore / ringTarget)
     : 0;
 
+  // ── Challenge score-box context ───────────────────────────────────────────────
   const shortName = challengerName?.split(" ")[0] ?? "them";
-  const targetLabel = challengerName && challengerScore !== null
-    ? `${challengerName.split(" ")[0].toUpperCase()} ${challengerScore.toFixed(1)}`
-    : challengerName
-      ? shortName.toUpperCase()          // named challenger but score not loaded yet
-      : personalBest > 0
-        ? `PB ${personalBest.toFixed(1)}`
-        : null;
+  // Ring 12-o'clock marker always shows PB (challenge shown via score boxes instead)
+  const targetLabel = personalBest > 0 ? `PB ${personalBest.toFixed(1)}` : null;
 
-  const winning = challengerScore !== null
-    ? displayScore >= challengerScore
-    : false;
+  const winning = challengerScore !== null && displayScore >= challengerScore;
 
   const statusLabel = challengerName
     ? challengerScore === null
-      ? `Competing with ${shortName} ❄️`   // score still loading
+      ? null                              // boxes show "—" while score loads
       : winning
         ? `You beat ${shortName}! ❄️`
         : `${(challengerScore - displayScore).toFixed(1)} pts to beat ${shortName}`
@@ -288,7 +296,7 @@ export function PlungeOverlay({
           )}
 
           {/* Dismiss challenger button */}
-          {challengerScore !== null && (
+          {challengerName && (
             <button
               onClick={onDismissChallenger}
               className="mt-1 text-slate-500 hover:text-slate-300 text-[10px] leading-none"
@@ -298,6 +306,51 @@ export function PlungeOverlay({
             </button>
           )}
         </div>
+
+        {/* ── Challenge score boxes — You vs Opponent ── */}
+        {challengerName && (
+          <div className="absolute bottom-4 left-0 right-0 flex items-end justify-between px-8 pointer-events-none">
+            {/* You */}
+            <div
+              className="flex flex-col items-center rounded-2xl px-4 py-2 min-w-[72px]"
+              style={{
+                background: winning ? "rgba(34,211,238,0.12)" : "rgba(7,26,50,0.75)",
+                border: winning ? "1px solid rgba(34,211,238,0.45)" : "1px solid rgba(30,58,95,0.7)",
+                backdropFilter: "blur(6px)",
+                boxShadow: winning ? "0 0 16px rgba(34,211,238,0.18)" : "none",
+              }}
+            >
+              <span className="text-[9px] uppercase tracking-widest font-semibold text-blue-400 mb-0.5">You</span>
+              <span
+                className="text-xl font-bold tabular-nums leading-none"
+                style={{ color: winning ? "#67e8f9" : "#e2e8f0" }}
+              >
+                {displayScore > 0 ? displayScore.toFixed(1) : "—"}
+              </span>
+            </div>
+
+            <span className="text-blue-700/60 text-xs font-bold self-center pb-1">vs</span>
+
+            {/* Opponent */}
+            <div
+              className="flex flex-col items-center rounded-2xl px-4 py-2 min-w-[72px]"
+              style={{
+                background: !winning && challengerScore !== null ? "rgba(251,113,133,0.10)" : "rgba(7,26,50,0.75)",
+                border: !winning && challengerScore !== null ? "1px solid rgba(251,113,133,0.35)" : "1px solid rgba(30,58,95,0.7)",
+                backdropFilter: "blur(6px)",
+                boxShadow: !winning && challengerScore !== null ? "0 0 16px rgba(251,113,133,0.12)" : "none",
+              }}
+            >
+              <span className="text-[9px] uppercase tracking-widest font-semibold text-blue-400 mb-0.5 truncate max-w-[64px]">{shortName}</span>
+              <span
+                className="text-xl font-bold tabular-nums leading-none"
+                style={{ color: !winning && challengerScore !== null ? "#fda4af" : "#94a3b8" }}
+              >
+                {challengerScore !== null ? challengerScore.toFixed(1) : "—"}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Cold Take */}
