@@ -3293,10 +3293,14 @@ export default function Home() {
           return;
         }
         const elapsed = Math.max(0, Math.floor((Date.now() - s.startTime) / 1000));
-        // Seed temp samples with the current displayed temperature so at minimum the
-        // restore-entry reading and exit reading are both averaged by doLogPlunge.
-        // Pre-kill samples are unrecoverable, but this prevents a raw exit-only value.
-        const restoredTemp = Math.min(60, Math.max(25, Number(localStorage.getItem("coldstreak-temperature") ?? 50)));
+        // Seed temp samples with the entry temperature recorded when the session
+        // started. This ensures kill/restore averages from the actual start temp,
+        // not the current (warmer/cooler) displayed value. Falls back to the last
+        // stored display temperature if the saved session pre-dates this field.
+        const _fallbackTemp = Math.min(60, Math.max(25, Number(localStorage.getItem("coldstreak-temperature") ?? 50)));
+        const restoredTemp = (typeof s.entryTemp === "number" && s.entryTemp >= 25 && s.entryTemp <= 60)
+          ? s.entryTemp
+          : _fallbackTemp;
         if (s.mode === "stopwatch") {
           if (!isRunningRef.current) {
             startTimeRef.current = s.startTime;
@@ -3389,14 +3393,14 @@ export default function Home() {
       setCountdown(total);
       tempSamplesRef.current = [temperature];
       setCountdownRunning(true);
-      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "countdown", startTime: now, countdownTotal: total, minutesInput, secondsInput }));
+      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "countdown", startTime: now, countdownTotal: total, minutesInput, secondsInput, entryTemp: temperature }));
     } else {
       if (shouldAutoPlay()) { try { openMusic(); } catch {} }
       const now = Date.now();
       startTimeRef.current = now;
       tempSamplesRef.current = [temperature];
       setIsRunning(true);
-      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "stopwatch", startTime: now }));
+      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "stopwatch", startTime: now, entryTemp: temperature }));
     }
   };
 
