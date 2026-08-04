@@ -16,6 +16,7 @@ export const modules: ModuleMap = {
   "./components/mockups/plunge-active/Current.tsx": () => import("../components/mockups/plunge-active/Current.tsx"),
   "./components/mockups/plunge-active/DeepGlow.tsx": () => import("../components/mockups/plunge-active/DeepGlow.tsx"),
   "./components/mockups/plunge-active/FocusMode.tsx": () => import("../components/mockups/plunge-active/FocusMode.tsx"),
+  "./components/mockups/plunge-active/NormalMode.tsx": () => import("../components/mockups/plunge-active/NormalMode.tsx"),
   "./components/mockups/plunge-complete/CelebrationFirst.tsx": () => import("../components/mockups/plunge-complete/CelebrationFirst.tsx"),
   "./components/mockups/plunge-complete/ColdTakeReveal.tsx": () => import("../components/mockups/plunge-complete/ColdTakeReveal.tsx"),
   "./components/mockups/plunge-complete/Current.tsx": () => import("../components/mockups/plunge-complete/Current.tsx"),
