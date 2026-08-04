@@ -217,20 +217,20 @@ export function ChallengeMode() {
           backdropFilter: "blur(8px)",
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <span style={{ fontSize: 9, color: "#a855f7", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>🧠 Focus — 2:24 remaining</span>
+            <span style={{ fontSize: 9, color: "#22d3ee", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>🧠 Focus — 2:24 remaining</span>
             <span style={{ fontSize: 9, color: "#64748b", fontWeight: 600 }}>Goal: Recovery</span>
           </div>
-          <div style={{ height: 6, borderRadius: 999, background: "rgba(168,85,247,0.15)", overflow: "hidden" }}>
-            <div style={{ height: "100%", width: "62%", borderRadius: 999, background: "linear-gradient(to right, #7c3aed, #a855f7)", boxShadow: "0 0 8px rgba(168,85,247,0.5)" }} />
+          <div style={{ height: 6, borderRadius: 999, background: "rgba(34,211,238,0.12)", overflow: "hidden" }}>
+            <div style={{ height: "100%", width: "62%", borderRadius: 999, background: "linear-gradient(to right, #0e7490, #22d3ee)", boxShadow: "0 0 8px rgba(34,211,238,0.4)" }} />
           </div>
           {/* Segment pips */}
           <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
             {["😊 Mood", "⚡ Energy", "🧠 Focus", "💤 Recovery"].map((label, i) => (
               <div key={i} style={{
                 flex: 1, textAlign: "center", fontSize: 8, fontWeight: 600,
-                color: i < 2 ? "#a855f7" : i === 2 ? "#c084fc" : "#334155",
+                color: i < 2 ? "#22d3ee" : i === 2 ? "#67e8f9" : "#334155",
                 padding: "2px 0",
-                borderBottom: i < 2 ? "2px solid #7c3aed" : i === 2 ? "2px solid rgba(168,85,247,0.4)" : "2px solid rgba(51,65,85,0.4)",
+                borderBottom: i < 2 ? "2px solid #0e7490" : i === 2 ? "2px solid rgba(34,211,238,0.35)" : "2px solid rgba(51,65,85,0.4)",
               }}>{label}</div>
             ))}
           </div>
