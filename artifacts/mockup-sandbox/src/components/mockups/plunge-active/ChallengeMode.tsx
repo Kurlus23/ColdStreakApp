@@ -175,9 +175,11 @@ export function ChallengeMode() {
           borderRadius: 14, padding: "10px 14px",
           background: "rgba(6,182,212,0.06)", border: "1px solid rgba(34,211,238,0.10)",
           backdropFilter: "blur(8px)", textAlign: "center",
-          color: "rgba(148,210,222,0.65)", fontSize: 11, fontStyle: "italic",
         }}>
-          "The cold doesn't get easier — you just get tougher."
+          <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.22em", color: "rgba(103,232,249,0.7)", marginBottom: 6 }}>⚔ Challenge Take</div>
+          <div style={{ color: "rgba(226,232,240,0.85)", fontSize: 11, fontStyle: "italic", lineHeight: 1.5 }}>
+            "Every second in here is a second Rachael has to think about what she started."
+          </div>
         </div>
       </div>
 
