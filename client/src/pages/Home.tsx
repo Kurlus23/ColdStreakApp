@@ -3306,6 +3306,10 @@ export default function Home() {
             startTimeRef.current = s.startTime;
             setSeconds(elapsed);
             tempSamplesRef.current = [restoredTemp];
+            // Set the ref immediately so BLE notification handlers that fire
+            // before the React render cycle completes still see isRunning=true
+            // and push their readings into tempSamplesRef (instead of dropping them).
+            isRunningRef.current = true;
             setIsRunning(true);
           }
         } else if (s.mode === "countdown") {
@@ -3317,6 +3321,10 @@ export default function Home() {
             countdownTotalRef.current = s.countdownTotal;
             countdownStartRef.current = s.startTime;
             tempSamplesRef.current = [restoredTemp];
+            // Set the ref immediately so BLE notification handlers that fire
+            // before the React render cycle completes still see running=true
+            // and push their readings into tempSamplesRef (instead of dropping them).
+            countdownRunningRef.current = true;
             if (remaining > 0) {
               setCountdown(remaining);
               setCountdownElapsed(Math.min(elapsed, s.countdownTotal));
