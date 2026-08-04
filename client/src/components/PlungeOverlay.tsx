@@ -176,7 +176,9 @@ export function PlungeOverlay({
     }
   }
 
-  const useBenefitRing = isActive && challengerScore === null && benefitSegIdx >= 0;
+  // Suppress benefit ring whenever there's an active challenger, even if their
+  // score hasn't loaded yet — challenge mode takes priority.
+  const useBenefitRing = isActive && !challengerName && challengerScore === null && benefitSegIdx >= 0;
   const currentBenefitSeg = useBenefitRing ? SEGMENTS[benefitSegIdx] : null;
 
   const benefitRingProgress = useBenefitRing && currentBenefitSeg ? (() => {
@@ -199,20 +201,25 @@ export function PlungeOverlay({
     ? Math.min(1, displayScore / ringTarget)
     : 0;
 
-  const targetLabel = challengerScore !== null && challengerName
+  const shortName = challengerName?.split(" ")[0] ?? "them";
+  const targetLabel = challengerName && challengerScore !== null
     ? `${challengerName.split(" ")[0].toUpperCase()} ${challengerScore.toFixed(1)}`
-    : personalBest > 0
-      ? `PB ${personalBest.toFixed(1)}`
-      : null;
+    : challengerName
+      ? shortName.toUpperCase()          // named challenger but score not loaded yet
+      : personalBest > 0
+        ? `PB ${personalBest.toFixed(1)}`
+        : null;
 
   const winning = challengerScore !== null
     ? displayScore >= challengerScore
     : false;
 
-  const statusLabel = challengerScore !== null
-    ? winning
-      ? `You beat ${challengerName?.split(" ")[0] ?? "them"}! ❄️`
-      : `${(challengerScore - displayScore).toFixed(1)} pts to beat ${challengerName?.split(" ")[0] ?? "them"}`
+  const statusLabel = challengerName
+    ? challengerScore === null
+      ? `Competing with ${shortName} ❄️`   // score still loading
+      : winning
+        ? `You beat ${shortName}! ❄️`
+        : `${(challengerScore - displayScore).toFixed(1)} pts to beat ${shortName}`
     : null;
 
   return (

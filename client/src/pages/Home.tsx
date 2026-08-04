@@ -612,6 +612,9 @@ export default function Home() {
   // Accumulates all temperature samples taken while a plunge is active so
   // doLogPlunge can store the session average instead of the exit reading.
   const tempSamplesRef = useRef<number[]>([]);
+  // Locks the temperature used for benefit-bar thresholds to the entry reading
+  // so the goal posts don't move mid-plunge as BLE readings drift.
+  const lockedTempRef = useRef<number | null>(null);
   // Watch HR troubleshooting modal — explains the HealthKit permission
   // requirements (Heart Rate, HRV, Active Energy) when the user reports
   // their watch HR isn't streaming live.
@@ -3400,6 +3403,7 @@ export default function Home() {
       setCountdownElapsed(0);
       setCountdown(total);
       tempSamplesRef.current = [temperature];
+      lockedTempRef.current  = temperature;
       setCountdownRunning(true);
       localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "countdown", startTime: now, countdownTotal: total, minutesInput, secondsInput, entryTemp: temperature }));
     } else {
@@ -3407,6 +3411,7 @@ export default function Home() {
       const now = Date.now();
       startTimeRef.current = now;
       tempSamplesRef.current = [temperature];
+      lockedTempRef.current  = temperature;
       setIsRunning(true);
       localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "stopwatch", startTime: now, entryTemp: temperature }));
     }
@@ -3492,8 +3497,9 @@ export default function Home() {
   const handleReset = () => {
     if (countdownMode) { resetCountdown(); }
     else { setSeconds(0); setIsRunning(false); startTimeRef.current = null; }
-    hrReadingsRef.current = [];
+    hrReadingsRef.current  = [];
     tempSamplesRef.current = [];
+    lockedTempRef.current  = null;
     setHrPeak(null);
     localStorage.removeItem(ACTIVE_SESSION_KEY);
   };
@@ -3637,7 +3643,9 @@ export default function Home() {
   const displayScore = isActive && displaySeconds > 0 ? plungeScore(elapsedSeconds, temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct) : todayScore;
 
   // Which benefit segment is the user currently mid-progress through?
-  const benefitThresholds = computeThresholds(temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct);
+  // Use the locked entry temp for threshold display so goals don't shift mid-plunge.
+  const thresholdTemp = isActive && lockedTempRef.current !== null ? lockedTempRef.current : temperature;
+  const benefitThresholds = computeThresholds(thresholdTemp, bodyWeightLbs, bodyHeightCm, bodyFatPct);
   const totalElapsedForBenefits = todayTotalSec + elapsedSeconds;
   const midSegmentIdx = getMidSegmentIdx(totalElapsedForBenefits, benefitThresholds);
 
@@ -4070,7 +4078,7 @@ export default function Home() {
             <BenefitBar
               todayPlungesData={todayPlunges}
               elapsedSeconds={elapsedSeconds}
-              tempF={temperature}
+              tempF={thresholdTemp}
               isActive={isActive}
               todayLoggedSeconds={todayTotalSec}
               bodyWeightLbs={bodyWeightLbs}
@@ -8615,7 +8623,7 @@ export default function Home() {
       )}
 
       {/* ─── POST-PLUNGE MOOD CHECK-IN ─── */}
-      <MoodCheckIn plunges={plunges} visible={photoPromptId === null && !showWebCamera} primaryBenefit={primaryBenefit} />
+      <MoodCheckIn plunges={plunges} visible={photoPromptId === null && !showWebCamera && (activeChallengerUserId === null || pendingChallengeModalDismissed)} primaryBenefit={primaryBenefit} />
 
       {/* ─── WEB CAMERA OVERLAY ─── */}
       {showWebCamera && (
@@ -8700,7 +8708,7 @@ export default function Home() {
           displaySeconds={displaySeconds}
           formattedTime={formatTime(displaySeconds)}
           displayScore={typeof displayScore === "number" ? displayScore : 0}
-          temperature={temperature}
+          temperature={thresholdTemp}
           tempDisplay={tempDisplay}
           personalBest={personalBest}
           challengerScore={challengerScore}
@@ -8753,7 +8761,7 @@ export default function Home() {
               )}
               <div className="flex flex-col gap-2.5 pt-1">
                 <button
-                  onClick={() => { navTo("timer"); }}
+                  onClick={() => { navTo("timer"); setPendingChallengeModalDismissed(true); }}
                   className="w-full py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 active:scale-[0.98] text-white font-bold text-sm transition-all"
                 >
                   Let's Go! →
