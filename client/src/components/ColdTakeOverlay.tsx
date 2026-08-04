@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { pickColdTake, pickMilestoneColdTake } from "@shared/coldTakes";
+import { pickColdTake, pickChallengeColdTake, pickMilestoneColdTake } from "@shared/coldTakes";
 
 type ColdTakeResponse = { seed: number; date: string };
 
@@ -29,6 +29,7 @@ export function ColdTakeOverlay({
   isFirstPlunge,
   streakDays,
   milestoneEvent,
+  challengerName,
 }: {
   isActive:        boolean;
   elapsedSeconds:  number;
@@ -36,6 +37,8 @@ export function ColdTakeOverlay({
   isFirstPlunge?:  boolean;
   streakDays?:     number | null;
   milestoneEvent?: MilestoneEvent | null;
+  /** When set, cold takes are drawn from the challenge-mode pool with the opponent's name woven in. */
+  challengerName?: string | null;
 }) {
   const { data } = useQuery<ColdTakeResponse>({
     queryKey:  ["/api/cold-take"],
@@ -98,6 +101,11 @@ export function ColdTakeOverlay({
     // Slots 1–4: use the milestone-themed take for that slot's segId
     const segId = slot > 0 ? (slotSegIdsRef.current[slot - 1] ?? null) : null;
     if (segId) return pickMilestoneColdTake(segId, data.seed, slot);
+    // Challenge mode: draw from the rivalry pool
+    if (challengerName) {
+      const firstName = challengerName.split(" ")[0];
+      return pickChallengeColdTake(firstName, data.seed, slot);
+    }
     // Slot 0 and post-recovery slots 5+: context-based pick
     return pickColdTake(
       { seconds: elapsedSeconds, tempF: tempF ?? null, isFirstPlunge, streakDays },

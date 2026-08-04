@@ -263,11 +263,14 @@ export function PlungeOverlay({
 
       {/* Ring + timer hero */}
       <div className="relative flex-1 flex items-center justify-center w-full z-10 shrink-0" style={{ minHeight: "300px" }}>
-        <ChallengeRing
-          progress={useBenefitRing ? benefitRingProgress : ringProgress}
-          targetLabel={useBenefitRing ? benefitTargetLabel : targetLabel}
-          accentColor={useBenefitRing ? currentBenefitSeg?.barColor : undefined}
-        />
+        {/* Ring only renders during challenge mode */}
+        {challengerName && (
+          <ChallengeRing
+            progress={useBenefitRing ? benefitRingProgress : ringProgress}
+            targetLabel={useBenefitRing ? benefitTargetLabel : targetLabel}
+            accentColor={useBenefitRing ? currentBenefitSeg?.barColor : undefined}
+          />
+        )}
 
         <div className="relative z-10 flex flex-col items-center gap-0.5">
           <div
@@ -362,6 +365,7 @@ export function PlungeOverlay({
           isFirstPlunge={plungesCount === 0}
           streakDays={streak}
           milestoneEvent={milestoneEvent}
+          challengerName={challengerName}
         />
       </div>
 

@@ -400,6 +400,37 @@ export const GENERAL: string[] = [
   "Freezing so beautifully even Elsa would be jealous.",
 ];
 
+// ── Challenge-mode takes ──────────────────────────────────────────────────────
+// {name} is replaced at render time with the challenger's first name.
+
+export const CHALLENGE: string[] = [
+  "{name} is watching. So is everyone who doubted you. Stay in.",
+  "The cold doesn't care who challenged who. But you do.",
+  "{name} set the bar. You're about to trip over it on the way to higher.",
+  "You didn't get challenged. You got an invitation to embarrass someone.",
+  "{name} thought this would be close. Adorable.",
+  "Every second in here is a second {name} has to think about what they started.",
+  "Losing to {name} is still an option. A terrible, avoidable option.",
+  "The score updates in real time. So does your regret if you tap out.",
+  "You vs {name}. The cold is Switzerland. Entirely unhelpful.",
+  "{name} has done this before. So have you. One of you trained harder.",
+  "This is not the time to 'see how it goes.' {name} already went.",
+  "Somewhere, {name} is watching the score. Make them nervous.",
+  "The only thing colder than this water is your silence after you win.",
+  "{name} issued the challenge. You get to write the ending.",
+  "Breathe. Stay still. Let {name} wonder what you're capable of.",
+  "Personal best is nice. Beating {name} is better. Don't let anyone tell you otherwise.",
+  "Your body wants out. {name} is counting on exactly that.",
+  "The scoreboard is live. Your excuses aren't. Stay in.",
+  "{name} will say it was close. Make sure that part is true.",
+  "Cold water has no loyalty. But you do. Stay in for the win.",
+  "This isn't just a plunge. This is a statement. Write it in seconds.",
+  "{name} has seen your score before. They haven't seen your ceiling.",
+  "The gap between you and {name} shrinks by one second at a time.",
+  "Every cold plunger has an origin story. Today might be yours.",
+  "You came here to beat the cold. And {name}. Mostly {name}.",
+];
+
 // ── Milestone-specific takes ──────────────────────────────────────────────────
 // Served as the cold take AFTER each benefit milestone notification clears.
 // Tone: same irreverent / witty style, but themed to the benefit just unlocked.
@@ -538,6 +569,12 @@ export function pickColdTake(
 
   const idx = Math.abs((seed * 31 + slot * 1009) % candidates.length);
   return candidates[idx];
+}
+
+/** Pick a challenge-mode take and substitute {name} with the opponent's first name. */
+export function pickChallengeColdTake(challengerFirstName: string, seed: number, slot: number): string {
+  const idx = Math.abs((seed * 31 + slot * 1009) % CHALLENGE.length);
+  return CHALLENGE[idx].replace(/\{name\}/g, challengerFirstName);
 }
 
 /** Pick a take themed to the milestone segment just unlocked.

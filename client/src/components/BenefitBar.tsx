@@ -171,10 +171,32 @@ export function BenefitBar({
 
   const goalSeg = primaryBenefit ? SEGMENTS.find(s => s.id === primaryBenefit) : null;
 
+  // Active segment countdown — first segment not yet fully earned
+  const activeSegIdx = isActive ? rawFills.findIndex(f => f < 100) : -1;
+  const activeSeg = activeSegIdx >= 0 ? SEGMENTS[activeSegIdx] : null;
+  const secsRemaining = activeSeg
+    ? Math.max(0, cumulative[activeSegIdx] - totalElapsed)
+    : 0;
+  const fmtRemaining = (s: number) => {
+    const m = Math.floor(s / 60);
+    const ss = Math.floor(s % 60);
+    return `${m}:${String(ss).padStart(2, "0")}`;
+  };
+
   return (
     <div className="px-0.5 space-y-0.5 mt-0.5 mb-0">
-      {/* Goal tap line — small label; hidden when no primaryBenefit passed */}
-      {goalSeg && (
+      {/* Active countdown — shown while a session is running and goal not yet maxed */}
+      {isActive && activeSeg && !achievedToday.every(Boolean) ? (
+        <div className="w-full flex items-center justify-between mb-1 px-0.5">
+          <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: activeSeg.barColor }}>
+            {activeSeg.emoji} {activeSeg.label} — {fmtRemaining(secsRemaining)} remaining
+          </span>
+          {goalSeg && goalSeg.id !== activeSeg.id && (
+            <span className="text-[9px] text-slate-500">Goal: {goalSeg.label}</span>
+          )}
+        </div>
+      ) : goalSeg && (
+        /* Goal tap line — shown at rest when no countdown is active */
         <button
           onClick={() => { if (!isActive) onGoalTap?.(); }}
           disabled={isActive}
