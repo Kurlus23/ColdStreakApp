@@ -213,6 +213,13 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
   const [showChallengePicker, setShowChallengePicker] = useState(false);
   const [challengingFriendId, setChallengingFriendId] = useState<number | null>(null);
 
+  // Inline retrospective mood rating (shown on card when check-in was missed)
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const [retMood,    setRetMood]    = useState<number | null>(null);
+  const [retEnergy,  setRetEnergy]  = useState<number | null>(null);
+  const [retFocus,   setRetFocus]   = useState<number | null>(null);
+  const [retSaved,   setRetSaved]   = useState(false);
+
   const calories = plunge.calories ?? Math.round(estimateCalories(plunge.duration, plunge.temperature, bodyWeightLbs, bodyFatPct));
 
   useEffect(() => {
@@ -789,6 +796,80 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
                     </span>
                   )}
                 </div>
+              )}
+
+              {/* ── Retrospective mood rating (shown when check-in was missed) ── */}
+              {!hasCheckin && !retSaved && (
+                <div>
+                  {!ratingOpen ? (
+                    <button
+                      onClick={() => setRatingOpen(true)}
+                      className="text-[10px] text-blue-500 hover:text-blue-300 font-semibold transition-colors"
+                    >
+                      + Rate how you felt
+                    </button>
+                  ) : (
+                    <div className="mt-1 bg-slate-900/70 border border-blue-700/40 rounded-xl p-3 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-300 text-[10px] font-semibold uppercase tracking-wide">How did this plunge affect you?</span>
+                        <button onClick={() => setRatingOpen(false)} className="text-blue-600 hover:text-blue-400 text-[10px]">✕</button>
+                      </div>
+                      {/* Mood */}
+                      <div className="space-y-1">
+                        <span className="text-slate-400 text-[9px] uppercase tracking-wide font-semibold">😊 Mood</span>
+                        <div className="flex gap-1">
+                          {([{v:1,e:"😞",l:"Rough"},{v:2,e:"😕",l:"Low"},{v:3,e:"😐",l:"OK"},{v:4,e:"🙂",l:"Good"},{v:5,e:"😄",l:"Great"}] as const).map(o => (
+                            <button key={o.v} onClick={() => setRetMood(o.v)}
+                              className={`flex-1 flex flex-col items-center py-1.5 rounded-lg border text-[9px] font-semibold transition-all active:scale-95 ${retMood===o.v ? "bg-cyan-500/20 border-cyan-400/60 text-cyan-300" : "bg-blue-900/40 border-blue-700/30 text-blue-400 hover:border-blue-500/50"}`}>
+                              <span className="text-base leading-none">{o.e}</span>{o.l}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Energy */}
+                      <div className="space-y-1">
+                        <span className="text-slate-400 text-[9px] uppercase tracking-wide font-semibold">⚡ Energy</span>
+                        <div className="flex gap-1">
+                          {([{v:1,e:"💤",l:"Drained"},{v:2,e:"⚡",l:"Neutral"},{v:3,e:"🔋",l:"Energized"}] as const).map(o => (
+                            <button key={o.v} onClick={() => setRetEnergy(o.v)}
+                              className={`flex-1 flex flex-col items-center py-1.5 rounded-lg border text-[9px] font-semibold transition-all active:scale-95 ${retEnergy===o.v ? "bg-cyan-500/20 border-cyan-400/60 text-cyan-300" : "bg-blue-900/40 border-blue-700/30 text-blue-400 hover:border-blue-500/50"}`}>
+                              <span className="text-base leading-none">{o.e}</span>{o.l}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Focus */}
+                      <div className="space-y-1">
+                        <span className="text-slate-400 text-[9px] uppercase tracking-wide font-semibold">🧠 Focus</span>
+                        <div className="flex gap-1">
+                          {([{v:1,e:"🌫️",l:"Worse"},{v:2,e:"🧠",l:"Same"},{v:3,e:"🎯",l:"Better"}] as const).map(o => (
+                            <button key={o.v} onClick={() => setRetFocus(o.v)}
+                              className={`flex-1 flex flex-col items-center py-1.5 rounded-lg border text-[9px] font-semibold transition-all active:scale-95 ${retFocus===o.v ? "bg-cyan-500/20 border-cyan-400/60 text-cyan-300" : "bg-blue-900/40 border-blue-700/30 text-blue-400 hover:border-blue-500/50"}`}>
+                              <span className="text-base leading-none">{o.e}</span>{o.l}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Save */}
+                      <button
+                        disabled={retMood === null || retEnergy === null || retFocus === null}
+                        onClick={() => {
+                          if (retMood === null || retEnergy === null || retFocus === null) return;
+                          updatePlunge.mutate(
+                            { id: plunge.id, patch: { mood: retMood, moodEnergy: retEnergy, moodFocus: retFocus } },
+                            { onSuccess: () => { setRetSaved(true); setRatingOpen(false); toast({ title: "Check-in saved ❄️" }); } }
+                          );
+                        }}
+                        className={`w-full py-2 rounded-xl text-xs font-semibold transition-all ${retMood !== null && retEnergy !== null && retFocus !== null ? "bg-cyan-500/20 border border-cyan-400/60 text-cyan-300 hover:bg-cyan-500/30 active:scale-95" : "bg-blue-900/30 border border-blue-700/30 text-blue-600 cursor-not-allowed"}`}
+                      >
+                        {retMood !== null && retEnergy !== null && retFocus !== null ? "Save check-in" : "Answer all three to save"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+              {retSaved && (
+                <p className="text-[10px] text-cyan-400/70 font-semibold">✓ Check-in saved</p>
               )}
             </div>
           );
