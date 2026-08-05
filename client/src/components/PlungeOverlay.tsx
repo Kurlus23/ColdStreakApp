@@ -161,9 +161,10 @@ export function PlungeOverlay({
   onStop,
   onDismissChallenger,
 }: PlungeOverlayProps) {
-  // ── Benefit-goal ring ─────────────────────────────────────────────────────────
-  // Tracks dynamically with live temperature, but once a segment threshold is
-  // crossed it stays earned — temperature drift can't retreat a goal you hit.
+  // ── Goal-progress ring ────────────────────────────────────────────────────────
+  // One continuous arc sweeping 0→100% as the user approaches their primary
+  // benefit goal (e.g. Recovery). Segment milestones are still tracked for the
+  // BenefitBar, but the ring itself only cares about the final goal threshold.
   const earnedSegmentsRef = useRef(new Set<number>());
 
   const benefitThresholds = computeThresholds(temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct);
@@ -172,54 +173,34 @@ export function PlungeOverlay({
     ? SEGMENTS.findIndex(s => s.id === primaryBenefit)
     : -1;
 
-  // Permanently mark any segment whose threshold has been crossed this session.
+  // Permanently mark earned segments (used by BenefitBar countdown).
   if (primarySegIdx >= 0) {
     for (let i = 0; i <= primarySegIdx; i++) {
       if (totalBenefitElapsed >= benefitThresholds[i]) earnedSegmentsRef.current.add(i);
     }
   }
 
-  // Which segment are we currently accumulating toward? Skip already-earned ones.
-  let benefitSegIdx = -1;
-  if (primarySegIdx >= 0) {
-    for (let i = 0; i <= primarySegIdx; i++) {
-      if (!earnedSegmentsRef.current.has(i) && totalBenefitElapsed < benefitThresholds[i]) {
-        benefitSegIdx = i; break;
-      }
-    }
-  }
+  // ── Ring: tracks overall goal (0 → primary goal threshold) ───────────────────
+  const primarySeg        = primarySegIdx >= 0 ? SEGMENTS[primarySegIdx] : null;
+  const primaryGoalThresh = primarySegIdx >= 0 ? benefitThresholds[primarySegIdx] : 0;
 
-  // Benefit ring always takes priority when there's an active goal in progress.
-  // Challenge context is shown via score boxes overlaid on the ring, not by
-  // replacing the ring with a challenge arc.
-  const useBenefitRing = isActive && benefitSegIdx >= 0;
-  const currentBenefitSeg = useBenefitRing ? SEGMENTS[benefitSegIdx] : null;
+  // Single sweep from 0 to 1 representing total progress to the goal.
+  const goalRingProgress = primaryGoalThresh > 0
+    ? Math.min(1, totalBenefitElapsed / primaryGoalThresh)
+    : (personalBest > 0 && displayScore > 0 ? Math.min(1, displayScore / personalBest) : 0);
 
-  const benefitRingProgress = useBenefitRing && currentBenefitSeg ? (() => {
-    const start = benefitSegIdx === 0 ? 0 : benefitThresholds[benefitSegIdx - 1];
-    const end   = benefitThresholds[benefitSegIdx];
-    return Math.max(0, Math.min(1, (totalBenefitElapsed - start) / (end - start)));
-  })() : 0;
-
-  // Session time (seconds elapsed in *this* session) when milestone will be hit
-  const benefitTargetSessionSecs = useBenefitRing
-    ? Math.max(0, benefitThresholds[benefitSegIdx] - benefitCarryOver)
+  const goalSecsRemaining = primaryGoalThresh > 0
+    ? Math.max(0, primaryGoalThresh - totalBenefitElapsed)
     : 0;
-  const benefitTargetLabel = useBenefitRing && currentBenefitSeg
-    ? `${currentBenefitSeg.emoji} ${fmtSecs(benefitTargetSessionSecs)}`
-    : null;
-
-  // ── Score / challenge ring (fallback when benefit goal already met or challenge mode) ──
-  const ringTarget = challengerScore ?? (personalBest > 0 ? personalBest : null);
-  const ringProgress = ringTarget && displayScore > 0
-    ? Math.min(1, displayScore / ringTarget)
-    : 0;
+  const goalTargetLabel = primarySeg
+    ? (goalSecsRemaining > 0
+        ? `${primarySeg.emoji} ${fmtSecs(goalSecsRemaining)}`
+        : `${primarySeg.emoji} Done!`)
+    : (personalBest > 0 ? `PB ${personalBest.toFixed(1)}` : null);
+  const goalAccentColor = primarySeg?.barColor;
 
   // ── Challenge score-box context ───────────────────────────────────────────────
   const shortName = challengerName?.split(" ")[0] ?? "them";
-  // Ring 12-o'clock marker always shows PB (challenge shown via score boxes instead)
-  const targetLabel = personalBest > 0 ? `PB ${personalBest.toFixed(1)}` : null;
-
   const winning = challengerScore !== null && displayScore >= challengerScore;
 
   const statusLabel = challengerName
@@ -263,14 +244,12 @@ export function PlungeOverlay({
 
       {/* Ring + timer hero */}
       <div className="relative flex-1 flex items-center justify-center w-full z-10 shrink-0" style={{ minHeight: "300px" }}>
-        {/* Ring only renders during challenge mode */}
-        {challengerName && (
-          <ChallengeRing
-            progress={useBenefitRing ? benefitRingProgress : ringProgress}
-            targetLabel={useBenefitRing ? benefitTargetLabel : targetLabel}
-            accentColor={useBenefitRing ? currentBenefitSeg?.barColor : undefined}
-          />
-        )}
+        {/* Goal-progress ring — always visible; challenge score boxes overlay it */}
+        <ChallengeRing
+          progress={goalRingProgress}
+          targetLabel={goalTargetLabel}
+          accentColor={goalAccentColor}
+        />
 
         <div className="relative z-10 flex flex-col items-center gap-0.5">
           <div
