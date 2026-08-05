@@ -197,11 +197,14 @@ export function PlungeOverlay({
         ? `${primarySeg.emoji} ${fmtSecs(goalSecsRemaining)}`
         : `${primarySeg.emoji} Done!`)
     : (personalBest > 0 ? `PB ${personalBest.toFixed(1)}` : null);
-  const goalAccentColor = primarySeg?.barColor;
-
   // ── Challenge score-box context ───────────────────────────────────────────────
   const shortName = challengerName?.split(" ")[0] ?? "them";
   const winning = challengerScore !== null && displayScore >= challengerScore;
+
+  // In challenge mode the ring adopts the race colour (cyan = winning, pink = losing).
+  const goalAccentColor = challengerName
+    ? (winning ? "#67e8f9" : "#fda4af")
+    : primarySeg?.barColor;
 
   const statusLabel = challengerName
     ? challengerScore === null
