@@ -528,25 +528,45 @@ export async function registerRoutes(
           ])
         : [[] as import("@shared/schema").Plunge[], []];
 
+      // challengeResultSent is server-only: always start as false regardless of
+      // what the client may have sent (it is omitted from insertPlungeSchema, but
+      // we also set it explicitly here for defence-in-depth).
+      plungeData.challengeResultSent = false;
+
+      // Store challengerUserId on the plunge only if there is a real pending challenge
+      // from that user (verified server-side). This prevents a user from manufacturing
+      // a pending challenge by creating and then deleting a plunge with an arbitrary
+      // challengerUserId.
+      let verifiedChallengerId: number | undefined;
+      if (authUser && challengerUserId) {
+        const pending = await storage.getPendingChallenge(authUser.userId);
+        if (pending && pending.fromUserId === challengerUserId) {
+          verifiedChallengerId = challengerUserId;
+          plungeData.challengerUserId = challengerUserId;
+        }
+      }
+
       const newPlunge = await storage.createPlunge(plungeData);
 
       // ── Challenge resolution ────────────────────────────────────────────────
       let challengeResult: { won: boolean; myScore: number; theirScore: number; opponentName: string; opponentId: number } | null = null;
 
-      if (authUser && challengerUserId && challengerScore != null) {
+      // Only resolve the challenge if the server verified a matching pending row.
+      if (authUser && verifiedChallengerId && challengerScore != null) {
         const myScore   = Number(input.score);
         const theirScore = Number(challengerScore);
         const iWon = myScore > theirScore;
 
         const [me, them] = await Promise.all([
           storage.getUserById(authUser.userId),
-          storage.getUserById(challengerUserId),
+          storage.getUserById(verifiedChallengerId),
         ]);
         const myName   = me?.displayName   || me?.username   || "Someone";
         const theirName = them?.displayName || them?.username || "Someone";
 
         // Push notification to the challenger
-        const theirSubs = await storage.getPushSubscriptionsByUser(challengerUserId);
+        const theirSubs = await storage.getPushSubscriptionsByUser(verifiedChallengerId);
+        let resultPushSent = false;
         if (theirSubs.length > 0) {
           const payload = JSON.stringify(iWon
             ? {
@@ -565,6 +585,7 @@ export async function registerRoutes(
                 { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
                 payload
               );
+              resultPushSent = true;
             } catch (err: any) {
               if (err.statusCode === 410 || err.statusCode === 404) {
                 await storage.deletePushSubscription(sub.endpoint);
@@ -573,10 +594,21 @@ export async function registerRoutes(
           }
         }
 
-        // Clean up the pending challenge row (challenger opened app via fallback path)
-        await storage.deletePendingChallenge(authUser.userId).catch(() => {});
+        // Mark whether the challenger received a result push so a discard can
+        // tell whether it's safe to restore the pending challenge.
+        // Do NOT swallow failures — if we can't mark it sent, a subsequent
+        // discard would incorrectly restore the challenge whose result was
+        // already delivered.
+        if (resultPushSent) {
+          await storage.markChallengeResultSent(newPlunge.id);
+        }
 
-        challengeResult = { won: iWon, myScore, theirScore, opponentName: theirName, opponentId: challengerUserId };
+        // Conditionally consume the pending challenge row: delete only the
+        // specific (toUserId, fromUserId) pair so that a newer challenge that
+        // arrived after verification is not accidentally wiped.
+        await storage.consumePendingChallenge(authUser.userId, verifiedChallengerId).catch(() => {});
+
+        challengeResult = { won: iWon, myScore, theirScore, opponentName: theirName, opponentId: verifiedChallengerId };
       }
 
       // ── Push notification after plunge ──────────────────────────────────────
@@ -730,6 +762,22 @@ export async function registerRoutes(
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
     const owner = await assertPlungeOwnership(req, id);
     if (!owner.ok) return res.status(owner.status).json({ message: owner.message });
+
+    // Before deleting, check whether this plunge consumed a pending challenge.
+    // If the challenge result push was never sent (e.g. the user discarded on the
+    // completion screen), restore the pending_challenges row so the challenger's
+    // challenge modal re-appears on their next app open.
+    //
+    // Use insertPendingChallengeIfNone (ON CONFLICT DO NOTHING) so that a newer
+    // challenge that arrived after the original was consumed is never overwritten.
+    const plunge = await storage.getPlungeById(id);
+    if (plunge?.challengerUserId && !plunge.challengeResultSent && plunge.userId) {
+      // Restore the pending challenge. If this throws, we return 500 and do NOT
+      // delete the plunge — better to leave the plunge than silently lose the
+      // challenge permanently.
+      await storage.insertPendingChallengeIfNone(plunge.challengerUserId, plunge.userId);
+    }
+
     await storage.deletePlunge(id);
     res.status(204).send();
   });

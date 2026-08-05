@@ -209,9 +209,11 @@ describe("useCreatePlunge — nudgeSent dismiss behaviour", () => {
       mood:           4,
       moodEnergy:     null,
       moodFocus:      null,
-      moodFatigue:    null,
-      moodPromptedAt: null,
-      createdAt:      new Date(Date.now() - (10 - i) * 3_600_000),
+      moodFatigue:        null,
+      moodPromptedAt:     null,
+      challengerUserId:   null,
+      challengeResultSent: false,
+      createdAt:          new Date(Date.now() - (10 - i) * 3_600_000),
     }));
 
     render(React.createElement(TryThisNextCard, { plunges }));

@@ -66,6 +66,11 @@ export const plunges = pgTable("plunges", {
   moodFocus:   integer("mood_focus"),   // post-plunge focus check-in:   1 (worse)   → 3 (better),   nullable
   moodFatigue: integer("mood_fatigue"), // post-plunge fatigue check-in: 1 (sore)    → 3 (relieved),  nullable
   moodPromptedAt: timestamp("mood_prompted_at"), // when the 1-hour mood push was sent (nullable)
+  // Challenge tracking — set when this plunge was logged in response to a pending challenge.
+  // challengeResultSent flips true once the challenger receives a win/loss push notification.
+  // Used to restore the pending_challenges row if the user discards the plunge before a result fires.
+  challengerUserId: integer("challenger_user_id"), // nullable — the user whose challenge this plunge answers
+  challengeResultSent: boolean("challenge_result_sent").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -138,6 +143,9 @@ export type SpotifyAccount = typeof spotifyAccounts.$inferSelect;
 export const insertPlungeSchema = createInsertSchema(plunges).omit({
   id: true,
   createdAt: true,
+  // Server-only tracking fields — never accepted from client payloads.
+  challengerUserId:    true,
+  challengeResultSent: true,
 });
 
 export const updatePlungeSchema = insertPlungeSchema.partial().pick({

@@ -197,8 +197,17 @@ export interface IStorage {
   getAllPushSubscriptions(): Promise<PushSubscription[]>;
   // Pending challenges (fallback when push subscription is missing)
   upsertPendingChallenge(fromUserId: number, toUserId: number): Promise<void>;
+  /**
+   * Consume a pending challenge atomically: deletes only the row where BOTH
+   * toUserId and fromUserId match. Returns true if the row was deleted, false
+   * if it was already replaced by a newer challenge (different fromUserId).
+   */
+  consumePendingChallenge(toUserId: number, fromUserId: number): Promise<boolean>;
+  /** Restore a consumed pending challenge only if no newer challenge already occupies the slot. */
+  insertPendingChallengeIfNone(fromUserId: number, toUserId: number): Promise<void>;
   getPendingChallenge(toUserId: number): Promise<{ fromUserId: number } | null>;
   deletePendingChallenge(toUserId: number): Promise<void>;
+  markChallengeResultSent(plungeId: number): Promise<void>;
   // Events
   getEvents(): Promise<Event[]>;
   getEventByCode(shareCode: string): Promise<Event | null>;
@@ -331,7 +340,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updatePlunge(id: number, patch: UpdatePlunge): Promise<Plunge> {
-    const [updated] = await db.update(plunges).set(patch).where(eq(plunges.id, id)).returning();
+    // Cast through `any` because UpdatePlunge.createdAt is typed as string (for
+    // the history-edit UI) while drizzle's set() expects Date | SQL. The actual
+    // DB layer handles both at runtime.
+    const [updated] = await db.update(plunges).set(patch as any).where(eq(plunges.id, id)).returning();
     return updated;
   }
 
@@ -1137,6 +1149,28 @@ export class DatabaseStorage implements IStorage {
 
   async deletePendingChallenge(toUserId: number): Promise<void> {
     await db.delete(pendingChallenges).where(eq(pendingChallenges.toUserId, toUserId));
+  }
+
+  async consumePendingChallenge(toUserId: number, fromUserId: number): Promise<boolean> {
+    // Conditionally delete only the specific challenge pair so that a newer
+    // challenge (different fromUserId) arriving after verification is preserved.
+    const deleted = await db.delete(pendingChallenges)
+      .where(and(eq(pendingChallenges.toUserId, toUserId), eq(pendingChallenges.fromUserId, fromUserId)))
+      .returning({ id: pendingChallenges.id });
+    return deleted.length > 0;
+  }
+
+  async insertPendingChallengeIfNone(fromUserId: number, toUserId: number): Promise<void> {
+    // ON CONFLICT DO NOTHING: if a newer challenge already occupies the slot, leave it untouched.
+    await db.insert(pendingChallenges)
+      .values({ fromUserId, toUserId })
+      .onConflictDoNothing({ target: pendingChallenges.toUserId });
+  }
+
+  async markChallengeResultSent(plungeId: number): Promise<void> {
+    await db.update(plunges)
+      .set({ challengeResultSent: true })
+      .where(eq(plunges.id, plungeId));
   }
 
   async getEvents(): Promise<Event[]> {

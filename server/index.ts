@@ -44,6 +44,12 @@ async function ensureRuntimeTables() {
 
     // Additive column: user's primary benefit goal (energy/mood/metabolism/recovery)
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS primary_benefit TEXT`);
+
+    // Challenge-restore tracking: store which challenger's plunge this answers and
+    // whether the win/loss push was already delivered (so a discard can tell whether
+    // it is safe to reinstate the pending_challenges row).
+    await db.execute(sql`ALTER TABLE plunges ADD COLUMN IF NOT EXISTS challenger_user_id INTEGER`);
+    await db.execute(sql`ALTER TABLE plunges ADD COLUMN IF NOT EXISTS challenge_result_sent BOOLEAN NOT NULL DEFAULT FALSE`);
   } catch (err) {
     console.error("[bootstrap] ensureRuntimeTables failed:", err);
   }
@@ -338,6 +344,10 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
+  // Run schema migrations synchronously before accepting any traffic so that
+  // newly-added columns exist before the first request can reference them.
+  await ensureRuntimeTables();
+
   const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
     {
@@ -347,7 +357,6 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
-      void ensureRuntimeTables();
       void startChurnSurveyScheduler();
       void startReportScheduler();
     },
