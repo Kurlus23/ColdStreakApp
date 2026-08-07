@@ -3806,6 +3806,31 @@ export default function Home() {
       {screen === "timer" && (
         <div className="absolute bottom-20 left-0 right-0 px-3 pb-2">
 
+          {/* ── Goal nudge (live countdown / keep-going) ── */}
+          <GoalNudge
+            primaryBenefit={primaryBenefit}
+            totalElapsed={todayTotalSec + elapsedSeconds}
+            isActive={isActive}
+            tempF={temperature}
+            bodyWeightLbs={bodyWeightLbs}
+            bodyHeightCm={bodyHeightCm}
+            bodyFatPct={bodyFatPct}
+            goalAchieved={plungeAchieved.has(primaryBenefit)}
+            allAchieved={plungeAchieved.has("recovery")}
+          />
+
+          {/* ── Progression / time-of-day coaching card ── */}
+          {!isActive && plunges.length >= 5 && (
+            <ProgressionCoachCard
+              plunges={plunges}
+              primaryBenefit={primaryBenefit}
+              temperature={temperature}
+              bodyWeightLbs={bodyWeightLbs}
+              bodyHeightCm={bodyHeightCm}
+              bodyFatPct={bodyFatPct}
+            />
+          )}
+
           {/* ── Unified stat panel ── */}
           <div className="rounded-2xl mb-3 relative bg-blue-950/90 backdrop-blur-sm border border-blue-800/50" data-testid="card-stat-panel">
 
@@ -4082,31 +4107,6 @@ export default function Home() {
               onGoalTap={() => setShowBenefitPicker(true)}
             />
           </div>
-
-          {/* ── Goal nudge (live countdown / keep-going) ── */}
-          <GoalNudge
-            primaryBenefit={primaryBenefit}
-            totalElapsed={todayTotalSec + elapsedSeconds}
-            isActive={isActive}
-            tempF={temperature}
-            bodyWeightLbs={bodyWeightLbs}
-            bodyHeightCm={bodyHeightCm}
-            bodyFatPct={bodyFatPct}
-            goalAchieved={plungeAchieved.has(primaryBenefit)}
-            allAchieved={plungeAchieved.has("recovery")}
-          />
-
-          {/* ── Progression / time-of-day coaching card ── */}
-          {!isActive && plunges.length >= 5 && (
-            <ProgressionCoachCard
-              plunges={plunges}
-              primaryBenefit={primaryBenefit}
-              temperature={temperature}
-              bodyWeightLbs={bodyWeightLbs}
-              bodyHeightCm={bodyHeightCm}
-              bodyFatPct={bodyFatPct}
-            />
-          )}
 
           {/* ── Height nudge banner ── */}
           {auth.user && !heightNudgeDismissed && !localStorage.getItem("coldstreak-body-height") && (
