@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=390"><title>Dispatch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700;1,900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#040810;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.screen{width:390px;min-height:844px;background:#040810;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:48px 28px;position:relative;overflow:hidden;}
+.glow{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(251,191,36,0.09) 0%,transparent 65%);pointer-events:none;}
+.x{position:absolute;top:48px;right:20px;color:#1e293b;font-size:20px;}
+.win-badge{padding:4px 14px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:rgba(234,179,8,0.12);color:#fbbf24;border:1px solid rgba(234,179,8,0.25);z-index:1;}
+.cold-take-hero{flex:1;display:flex;align-items:center;justify-content:center;z-index:1;padding:32px 0;}
+.ct-big{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:900;font-size:42px;line-height:1.15;text-align:center;background:linear-gradient(135deg,#fef3c7 0%,#fbbf24 50%,#d97706 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 30px rgba(251,191,36,.25));}
+.scores-compact{display:flex;align-items:center;gap:16px;z-index:1;margin-bottom:4px;}
+.sc{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.sc-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#1e293b;}
+.sc-num{font-size:24px;font-weight:900;}
+.sc-num.win{color:#fbbf24;}
+.sc-num.lose{color:#334155;}
+.vs-sc{color:#1e293b;font-weight:700;}
+.caption{color:#334155;font-size:12px;letter-spacing:.04em;z-index:1;margin-bottom:8px;}
+.actions{width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px;z-index:1;}
+.btn-share{width:100%;padding:14px;border-radius:20px;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid rgba(234,179,8,0.5);cursor:pointer;background:rgba(234,179,8,0.08);color:#fbbf24;}
+.btn-continue{width:100%;padding:10px;background:none;border:none;color:#334155;font-size:14px;cursor:pointer;}
+</style></head>
+<body>
+<div class="screen">
+  <div class="glow"></div>
+  <span class="x">✕</span>
+  <div class="win-badge">You won ❄️</div>
+  <div class="cold-take-hero">
+    <div class="ct-big">Still thawing out, Rachael?</div>
+  </div>
+  <div class="scores-compact">
+    <div class="sc"><span class="sc-label">You</span><span class="sc-num win">11.7</span></div>
+    <span class="vs-sc">vs</span>
+    <div class="sc"><span class="sc-label">Rachael</span><span class="sc-num lose">11.4</span></div>
+  </div>
+  <div class="caption">Ice in your veins. ❄️</div>
+  <div class="actions">
+    <button class="btn-share">⬆ Share your brag 🏆</button>
+    <button class="btn-continue">Continue</button>
+  </div>
+</div>
+</body></html>

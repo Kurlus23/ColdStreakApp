@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=390"><title>Trophy</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#040f1e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.screen{width:390px;min-height:844px;background:#040f1e;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px;position:relative;overflow:hidden;}
+.glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(234,179,8,0.16) 0%,transparent 65%);pointer-events:none;}
+.x{position:absolute;top:48px;right:20px;color:#475569;font-size:20px;cursor:pointer;}
+.avatars{display:flex;align-items:center;gap:20px;margin-bottom:24px;z-index:1;}
+.avatar-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.avatar{width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;}
+.avatar.you{background:rgba(234,179,8,0.18);border:1px solid rgba(234,179,8,0.4);box-shadow:0 0 24px rgba(234,179,8,0.3);}
+.avatar.them{background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.25);}
+.av-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#64748b;}
+.vs-big{color:#1e3a5f;font-size:24px;font-weight:900;}
+.headline{font-size:30px;font-weight:900;text-align:center;letter-spacing:-.02em;margin-bottom:4px;z-index:1;background:linear-gradient(to bottom,#fde68a,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.sub{color:#64748b;font-size:14px;text-align:center;margin-bottom:28px;z-index:1;}
+.scores{width:100%;max-width:320px;background:rgba(14,30,54,0.8);border:1px solid rgba(34,211,238,0.15);border-radius:20px;padding:20px;display:flex;align-items:center;justify-content:space-around;margin-bottom:20px;z-index:1;}
+.score-col{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.s-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#334155;}
+.s-num{font-size:40px;font-weight:900;}
+.s-num.gold{color:#fbbf24;filter:drop-shadow(0 0 12px rgba(251,191,36,.6));}
+.s-num.cyan{color:#22d3ee;}
+.vs-sm{color:#334155;font-size:20px;font-weight:700;}
+.cold-take{width:100%;max-width:320px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.25);border-radius:20px;padding:14px 16px;text-align:center;margin-bottom:28px;z-index:1;}
+.ct-text{color:#fcd34d;font-size:14px;font-weight:600;line-height:1.4;}
+.ct-hint{color:#334155;font-size:10px;margin-top:4px;}
+.actions{width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px;z-index:1;}
+.btn-share{width:100%;padding:14px;border-radius:20px;font-weight:700;font-size:14px;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;background:linear-gradient(135deg,#d97706,#f59e0b);color:#1c1008;box-shadow:0 0 24px rgba(245,158,11,.4);}
+.btn-continue{width:100%;padding:10px;background:none;border:none;color:#475569;font-size:14px;cursor:pointer;}
+</style></head>
+<body>
+<div class="screen">
+  <div class="glow"></div>
+  <span class="x">✕</span>
+  <div class="avatars">
+    <div class="avatar-wrap"><div class="avatar you">🏆</div><span class="av-label">You</span></div>
+    <span class="vs-big">vs</span>
+    <div class="avatar-wrap"><div class="avatar them">🥶</div><span class="av-label">Rachael</span></div>
+  </div>
+  <div class="headline">Ice in your veins. ❄️</div>
+  <div class="sub">Rachael never stood a chance (+0.3)</div>
+  <div class="scores">
+    <div class="score-col"><span class="s-label">You</span><span class="s-num gold">11.7</span></div>
+    <span class="vs-sm">vs</span>
+    <div class="score-col"><span class="s-label">Rachael</span><span class="s-num cyan">11.4</span></div>
+  </div>
+  <div class="cold-take">
+    <div class="ct-text">Still thawing out, Rachael? ❄️</div>
+    <div class="ct-hint">Tap Share to send this to Rachael</div>
+  </div>
+  <div class="actions">
+    <button class="btn-share">⬆ Share your brag 🏆</button>
+    <button class="btn-continue">Continue</button>
+  </div>
+</div>
+</body></html>

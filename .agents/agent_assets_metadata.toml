@@ -785,3 +785,24 @@ id = "rtmIO04jYSEXjA7mgXl8M"
 uri = "file://exports/cold_takes.xlsx"
 type = "table"
 title = "ColdStreak Cold Takes (372 one-liners)"
+
+[[outputs]]
+id = "q72wHv6md_LfV9YypTpGg"
+uri = "file://client/public/mockup-trophy.html"
+type = "text"
+title = "Option 1 — Trophy"
+description = "Current gold style. Avatars at top, cold take callout card, gold Share button."
+
+[[outputs]]
+id = "rhElHaBZHKoqAqroOuJlT"
+uri = "file://client/public/mockup-rivalry.html"
+type = "text"
+title = "Option 2 — Rivalry"
+description = "Score-first. Your 11.7 vs Rachael's 11.4 as the huge hero element. Cold take as a quote below."
+
+[[outputs]]
+id = "xQsyL2xbRezeK0gNTVbDY"
+uri = "file://client/public/mockup-dispatch.html"
+type = "text"
+title = "Option 3 — Dispatch"
+description = "Cold take as the poster. 'Still thawing out, Rachael?' in big italic serif. Scores secondary."

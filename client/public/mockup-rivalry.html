@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=390"><title>Rivalry</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#05080f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.screen{width:390px;min-height:844px;background:#05080f;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:48px 24px;position:relative;overflow:hidden;}
+.glow{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);width:500px;height:300px;border-radius:50%;background:radial-gradient(ellipse,rgba(234,179,8,0.12) 0%,transparent 70%);pointer-events:none;}
+.x{position:absolute;top:48px;right:20px;color:#374151;font-size:20px;}
+.top-row{display:flex;align-items:center;gap:10px;z-index:1;}
+.mini-av{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.mini-av.you{background:rgba(234,179,8,0.18);border:1px solid rgba(234,179,8,0.35);}
+.mini-av.them{background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.2);}
+.mini-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#64748b;}
+.vs-tiny{color:#374151;font-size:13px;font-weight:900;}
+.scores-hero{display:flex;align-items:center;justify-content:center;gap:16px;z-index:1;width:100%;}
+.score-big{font-size:86px;font-weight:900;line-height:1;letter-spacing:-.04em;}
+.score-big.win{color:#fbbf24;filter:drop-shadow(0 0 30px rgba(251,191,36,.5));}
+.score-big.lose{color:#1e3a5f;}
+.vs-mid{color:#1e3a5f;font-size:28px;font-weight:900;padding-bottom:8px;}
+.margin-badge{z-index:1;padding:4px 14px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.06em;background:rgba(234,179,8,0.15);color:#fbbf24;border:1px solid rgba(234,179,8,0.3);}
+.headline-sec{text-align:center;z-index:1;}
+.hl{font-size:20px;font-weight:900;color:#f8fafc;letter-spacing:-.01em;}
+.hl-sub{font-size:12px;color:#334155;margin-top:2px;}
+.cold-take{width:100%;max-width:320px;z-index:1;}
+.ct-inner{background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.15);border-radius:20px;padding:14px 16px;text-align:center;}
+.ct-text{color:#67e8f9;font-size:13px;font-style:italic;font-weight:500;line-height:1.4;}
+.ct-hint{color:#1e3a5f;font-size:10px;margin-top:4px;}
+.actions{width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px;z-index:1;}
+.btn-share{width:100%;padding:14px;border-radius:20px;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;background:linear-gradient(135deg,#0e7490,#06b6d4);color:#001a2e;box-shadow:0 0 20px rgba(6,182,212,.3);}
+.btn-continue{width:100%;padding:10px;background:none;border:none;color:#374151;font-size:14px;cursor:pointer;}
+</style></head>
+<body>
+<div class="screen">
+  <div class="glow"></div>
+  <span class="x">✕</span>
+  <div class="top-row">
+    <div class="mini-av you">🏆</div>
+    <span class="mini-label">You</span>
+    <span class="vs-tiny">vs</span>
+    <span class="mini-label">Rachael</span>
+    <div class="mini-av them">🥶</div>
+  </div>
+  <div class="scores-hero">
+    <span class="score-big win">11.7</span>
+    <span class="vs-mid">vs</span>
+    <span class="score-big lose">11.4</span>
+  </div>
+  <div class="margin-badge">+0.3 pts ahead</div>
+  <div class="headline-sec">
+    <div class="hl">Ice in your veins. ❄️</div>
+    <div class="hl-sub">Rachael never stood a chance</div>
+  </div>
+  <div class="cold-take">
+    <div class="ct-inner">
+      <div class="ct-text">"Still thawing out, Rachael? ❄️"</div>
+      <div class="ct-hint">Tap Share to send this</div>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn-share">⬆ Share your brag 🏆</button>
+    <button class="btn-continue">Continue</button>
+  </div>
+</div>
+</body></html>
