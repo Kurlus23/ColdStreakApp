@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=390"><title>Dispatch 2</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700;1,900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#010509;font-family:'Inter',-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.screen{width:390px;min-height:844px;background:#010509;display:flex;flex-direction:column;padding:0;position:relative;overflow:hidden;}
+
+/* Top masthead bar */
+.masthead{width:100%;padding:18px 24px 14px;border-bottom:1px solid #0f1f30;display:flex;align-items:center;justify-content:space-between;}
+.mast-logo{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#1e3a5f;}
+.mast-tag{font-size:10px;color:#1e3a5f;font-style:italic;}
+.x{color:#1e3a5f;font-size:16px;cursor:pointer;}
+
+/* Winner ribbon across full width */
+.ribbon{width:100%;padding:9px 24px;background:rgba(234,179,8,0.1);border-bottom:1px solid rgba(234,179,8,0.2);display:flex;align-items:center;justify-content:space-between;}
+.rib-left{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#92400e;}
+.rib-right{font-size:10px;color:#334155;}
+
+/* Main editorial content */
+.editorial{flex:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:40px 28px 32px;}
+
+/* Quote mark */
+.quote-mark{font-family:'Playfair Display',Georgia,serif;font-size:120px;line-height:.6;color:rgba(251,191,36,0.12);margin-bottom:-8px;user-select:none;}
+
+/* Cold take headline */
+.ct-headline{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:900;font-size:38px;line-height:1.15;color:#fef3c7;margin-bottom:16px;letter-spacing:-.01em;}
+.ct-attribution{font-size:12px;color:#334155;font-style:italic;padding-left:2px;}
+
+/* Divider */
+.rule{width:40px;height:1.5px;background:rgba(251,191,36,0.35);margin:24px 0;}
+
+/* Score line */
+.score-line{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;}
+.sl-you{font-size:36px;font-weight:900;color:#fbbf24;}
+.sl-vs{font-size:14px;color:#1e3a5f;font-weight:700;}
+.sl-them{font-size:36px;font-weight:900;color:#1e3a5f;}
+.score-caption{font-size:12px;color:#334155;margin-bottom:32px;}
+
+/* Actions */
+.actions{padding:0 28px 48px;display:flex;flex-direction:column;gap:10px;}
+.btn-share{width:100%;padding:14px;border-radius:16px;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid rgba(251,191,36,0.4);cursor:pointer;background:transparent;color:#fbbf24;letter-spacing:.04em;}
+.btn-continue{width:100%;padding:10px;background:none;border:none;color:#1e3a5f;font-size:13px;cursor:pointer;}
+</style></head>
+<body>
+<div class="screen">
+  <div class="masthead">
+    <span class="mast-logo">ColdStreak ❄</span>
+    <span class="mast-tag">Challenge Dispatch</span>
+    <span class="x">✕</span>
+  </div>
+
+  <div class="ribbon">
+    <span class="rib-left">You won</span>
+    <span class="rib-right">vs Rachael · +0.3 pts</span>
+  </div>
+
+  <div class="editorial">
+    <div class="quote-mark">"</div>
+    <div class="ct-headline">Still thawing out, Rachael?</div>
+    <div class="ct-attribution">— Ice in your veins. ❄️</div>
+    <div class="rule"></div>
+    <div class="score-line">
+      <span class="sl-you">11.7</span>
+      <span class="sl-vs">vs</span>
+      <span class="sl-them">11.4</span>
+    </div>
+    <div class="score-caption">You · Rachael</div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-share">⬆ Share your brag 🏆</button>
+    <button class="btn-continue">Continue</button>
+  </div>
+</div>
+</body></html>

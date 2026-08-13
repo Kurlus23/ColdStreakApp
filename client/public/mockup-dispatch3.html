@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=390"><title>Dispatch 3</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400;1,700;1,900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.screen{width:390px;min-height:844px;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:56px 32px 48px;position:relative;overflow:hidden;}
+
+/* Single gold vertical accent line */
+.accent-line{position:absolute;left:32px;top:100px;bottom:100px;width:1.5px;background:linear-gradient(to bottom,transparent,rgba(251,191,36,.5) 30%,rgba(251,191,36,.5) 70%,transparent);}
+
+.x{position:absolute;top:20px;right:24px;color:#1a1a1a;font-size:18px;z-index:2;}
+
+/* Top: small win indicator */
+.top-section{display:flex;flex-direction:column;align-items:flex-start;width:100%;padding-left:20px;z-index:1;}
+.win-flag{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#92400e;margin-bottom:6px;}
+.opp-line{font-size:13px;color:#1a1a1a;}
+
+/* Middle: the cold take */
+.middle{flex:1;display:flex;align-items:center;justify-content:flex-start;width:100%;padding-left:20px;z-index:1;}
+.ct-wrap{max-width:300px;}
+.ct-big{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:900;font-size:44px;line-height:1.1;letter-spacing:-.02em;background:linear-gradient(160deg,#fffbeb 0%,#fbbf24 55%,#b45309 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+
+/* Bottom: scores + actions */
+.bottom{width:100%;z-index:1;display:flex;flex-direction:column;gap:20px;}
+.score-block{padding-left:20px;border-left:2px solid rgba(251,191,36,.3);}
+.score-nums{display:flex;align-items:baseline;gap:12px;}
+.sn-you{font-size:40px;font-weight:900;color:#fbbf24;}
+.sn-vs{font-size:13px;color:#1a1a1a;font-weight:700;}
+.sn-them{font-size:40px;font-weight:900;color:#111;}
+.score-labels{display:flex;align-items:center;gap:12px;margin-top:2px;}
+.sl-you{font-size:10px;font-weight:700;letter-spacing:.08em;color:#92400e;}
+.sl-vs-sp{width:13px;}
+.sl-them{font-size:10px;color:#1a1a1a;}
+.actions{display:flex;flex-direction:column;gap:10px;}
+.btn-share{width:100%;padding:14px;border-radius:14px;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;background:#fbbf24;color:#000;letter-spacing:.04em;}
+.btn-continue{width:100%;padding:10px;background:none;border:none;color:#1a1a1a;font-size:13px;cursor:pointer;}
+</style></head>
+<body>
+<div class="screen">
+  <div class="accent-line"></div>
+  <span class="x">✕</span>
+
+  <div class="top-section">
+    <div class="win-flag">You won ❄️</div>
+    <div class="opp-line">vs Rachael</div>
+  </div>
+
+  <div class="middle">
+    <div class="ct-wrap">
+      <div class="ct-big">Still thawing out, Rachael?</div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div class="score-block">
+      <div class="score-nums">
+        <span class="sn-you">11.7</span>
+        <span class="sn-vs">vs</span>
+        <span class="sn-them">11.4</span>
+      </div>
+      <div class="score-labels">
+        <span class="sl-you">YOU</span>
+        <span class="sl-vs-sp"></span>
+        <span class="sl-them">RACHAEL</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-share">⬆ Share your brag 🏆</button>
+      <button class="btn-continue">Continue</button>
+    </div>
+  </div>
+</div>
+</body></html>

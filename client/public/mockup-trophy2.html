@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=390"><title>Trophy 2</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#030c1a;font-family:'Inter',-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.screen{width:390px;min-height:844px;background:#030c1a;display:flex;flex-direction:column;align-items:center;padding:56px 28px 40px;position:relative;overflow:hidden;}
+
+/* Ambient glow layers */
+.glow-top{position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,rgba(251,191,36,0.13) 0%,transparent 65%);pointer-events:none;}
+.glow-bot{position:absolute;bottom:-80px;left:50%;transform:translateX(-50%);width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(6,182,212,0.07) 0%,transparent 65%);pointer-events:none;}
+
+.x{position:absolute;top:20px;right:20px;color:#1e3a5f;font-size:18px;cursor:pointer;z-index:2;}
+
+/* Crown graphic */
+.crown-wrap{margin-bottom:20px;z-index:1;}
+.crown{font-size:56px;filter:drop-shadow(0 0 20px rgba(251,191,36,0.6));}
+
+/* Winner headline */
+.winner-label{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#92400e;margin-bottom:8px;z-index:1;}
+.headline{font-size:28px;font-weight:900;letter-spacing:-.02em;text-align:center;color:#fef3c7;margin-bottom:4px;z-index:1;line-height:1.2;}
+.sub{font-size:13px;color:#334155;margin-bottom:32px;z-index:1;}
+
+/* Score ring / card */
+.score-ring{width:200px;height:200px;border-radius:50%;border:1.5px solid rgba(251,191,36,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:28px;z-index:1;position:relative;box-shadow:0 0 0 12px rgba(251,191,36,0.04), 0 0 0 24px rgba(251,191,36,0.02);}
+.score-ring::before{content:'';position:absolute;inset:6px;border-radius:50%;border:1px solid rgba(251,191,36,0.1);}
+.ring-you{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#92400e;margin-bottom:2px;}
+.ring-score{font-size:56px;font-weight:900;color:#fbbf24;line-height:1;filter:drop-shadow(0 0 16px rgba(251,191,36,.5));}
+.ring-margin{font-size:11px;color:#334155;margin-top:4px;}
+
+/* Opponent row */
+.opp-row{display:flex;align-items:center;gap:12px;width:100%;max-width:300px;background:rgba(6,182,212,0.04);border:1px solid rgba(6,182,212,0.1);border-radius:16px;padding:12px 16px;margin-bottom:20px;z-index:1;}
+.opp-av{width:36px;height:36px;border-radius:10px;background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.2);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.opp-info{flex:1;}
+.opp-name{font-size:13px;font-weight:700;color:#cbd5e1;}
+.opp-score{font-size:11px;color:#475569;}
+.opp-num{font-size:20px;font-weight:900;color:#22d3ee;margin-left:auto;}
+
+/* Cold take */
+.cold-take{width:100%;max-width:300px;margin-bottom:28px;z-index:1;}
+.ct-label{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#334155;margin-bottom:6px;text-align:center;}
+.ct-text{font-size:15px;font-weight:600;color:#fcd34d;text-align:center;line-height:1.4;}
+
+/* Actions */
+.actions{width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px;z-index:1;margin-top:auto;}
+.btn-share{width:100%;padding:14px;border-radius:16px;font-weight:800;font-size:13px;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;background:#fbbf24;color:#1c0f00;}
+.btn-continue{width:100%;padding:10px;background:none;border:none;color:#1e3a5f;font-size:13px;cursor:pointer;font-weight:600;}
+</style></head>
+<body>
+<div class="screen">
+  <div class="glow-top"></div>
+  <div class="glow-bot"></div>
+  <span class="x">✕</span>
+
+  <div class="crown-wrap"><div class="crown">👑</div></div>
+  <div class="winner-label">Challenge Complete</div>
+  <div class="headline">Ice in your veins. ❄️</div>
+  <div class="sub">You beat Rachael</div>
+
+  <div class="score-ring">
+    <div class="ring-you">Your score</div>
+    <div class="ring-score">11.7</div>
+    <div class="ring-margin">+0.3 ahead</div>
+  </div>
+
+  <div class="opp-row">
+    <div class="opp-av">🥶</div>
+    <div class="opp-info">
+      <div class="opp-name">Rachael</div>
+      <div class="opp-score">Their score</div>
+    </div>
+    <div class="opp-num">11.4</div>
+  </div>
+
+  <div class="cold-take">
+    <div class="ct-label">Cold Take</div>
+    <div class="ct-text">"Still thawing out, Rachael? ❄️"</div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-share">⬆ Share your brag 🏆</button>
+    <button class="btn-continue">Continue</button>
+  </div>
+</div>
+</body></html>
