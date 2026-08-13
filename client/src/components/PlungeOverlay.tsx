@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { ColdTakeOverlay, MilestoneEvent } from "@/components/ColdTakeOverlay";
 import { BenefitBar } from "@/components/BenefitBar";
 import { MusicTransportMini } from "@/components/MusicWidget";
-import { SEGMENTS, type SegmentId, computeThresholds } from "@/lib/benefitSegments";
+import { SEGMENTS, type SegmentId, computeThresholds, getCompositionFactorForScore } from "@/lib/benefitSegments";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtSecs(s: number) {
@@ -23,6 +23,20 @@ function anglePt(r: number, pct: number) {
   return { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) };
 }
 
+// Colours assigned to each challenger in order (rose, amber, violet, green)
+const CHALLENGER_COLORS = ["#fda4af", "#fbbf24", "#a78bfa", "#86efac"];
+
+interface ChallengerMark {
+  /** 0–1 position on the ring arc */
+  pct: number;
+  /** First name shown on the label */
+  name: string;
+  /** Accent colour for this challenger's mark */
+  color: string;
+  /** True when the user is currently beating this challenger */
+  beating: boolean;
+}
+
 interface RingProps {
   /** 0–1 fill of the arc */
   progress: number;
@@ -30,9 +44,11 @@ interface RingProps {
   targetLabel: string | null;
   /** When set, overrides the cyan gradient with a solid segment colour */
   accentColor?: string;
+  /** Per-challenger marks at their respective "time to beat" positions */
+  challengerMarks?: ChallengerMark[];
 }
 
-function ChallengeRing({ progress, targetLabel, accentColor }: RingProps) {
+function ChallengeRing({ progress, targetLabel, accentColor, challengerMarks = [] }: RingProps) {
   const dot        = anglePt(R, Math.min(progress, 0.999));
   const arcColor   = accentColor ?? "url(#progress-grad)";
   const glowColor  = accentColor ? `${accentColor}88` : "rgba(34,211,238,0.55)";
@@ -89,6 +105,39 @@ function ChallengeRing({ progress, targetLabel, accentColor }: RingProps) {
         </>
       )}
 
+      {/* Per-challenger "time to beat" marks */}
+      {challengerMarks.map((m, i) => {
+        const clampedPct = Math.min(m.pct, 1.0);
+        const pt = anglePt(R, clampedPct);
+        // Label offset: push outward from centre so it clears the ring
+        const outerPt = anglePt(R + 18, clampedPct);
+        const anchor = outerPt.x < CX - 4 ? "end" : outerPt.x > CX + 4 ? "start" : "middle";
+        const glow = `drop-shadow(0 0 6px ${m.color}bb)`;
+        return (
+          <g key={i}>
+            {/* Diamond mark on the ring */}
+            <polygon
+              points={`${pt.x},${pt.y - 5} ${pt.x + 4},${pt.y} ${pt.x},${pt.y + 5} ${pt.x - 4},${pt.y}`}
+              fill={m.color}
+              style={{ filter: glow }}
+            />
+            {/* Name label */}
+            <text
+              x={outerPt.x}
+              y={outerPt.y + 3}
+              textAnchor={anchor}
+              fill={m.color}
+              fontSize="8"
+              fontFamily="sans-serif"
+              fontWeight="700"
+              letterSpacing="0.04em"
+            >
+              {m.name.split(" ")[0]}
+            </text>
+          </g>
+        );
+      })}
+
       {/* Live leading dot */}
       {progress > 0.01 && (
         <circle cx={dot.x} cy={dot.y} r={6} fill={dotColor}
@@ -114,8 +163,8 @@ interface PlungeOverlayProps {
   temperature: number;
   tempDisplay: string;
   personalBest: number;
-  challengerScore: number | null;
-  challengerName: string | null;
+  /** All active challengers — one entry per pending challenge. */
+  challengers: Array<{ name: string; score: number | null }>;
   elapsedSeconds: number;
   benefitCarryOver: number;
   isActive: boolean;
@@ -142,8 +191,7 @@ export function PlungeOverlay({
   temperature,
   tempDisplay,
   personalBest,
-  challengerScore,
-  challengerName,
+  challengers,
   elapsedSeconds,
   benefitCarryOver,
   isActive,
@@ -197,21 +245,48 @@ export function PlungeOverlay({
         ? `${primarySeg.emoji} ${fmtSecs(goalSecsRemaining)}`
         : `${primarySeg.emoji} Done!`)
     : (personalBest > 0 ? `PB ${personalBest.toFixed(1)}` : null);
-  // ── Challenge score-box context ───────────────────────────────────────────────
-  const shortName = challengerName?.split(" ")[0] ?? "them";
-  const winning = challengerScore !== null && displayScore >= challengerScore;
+  // ── Multi-challenger ring marks & race status ─────────────────────────────────
+  const inChallenge = challengers.length > 0;
 
-  // In challenge mode the ring adopts the race colour (cyan = winning, pink = losing).
-  const goalAccentColor = challengerName
-    ? (winning ? "#67e8f9" : "#fda4af")
+  // Convert each challenger's score to a position on the goal-time ring.
+  // score = (secs/60) × coldFactor × compositionFactor  →  secs = score×60 / (cf×bf)
+  let coldFactor = 1;
+  if (temperature <= 55) coldFactor = 1.2;
+  if (temperature <= 50) coldFactor = 1.5;
+  if (temperature <= 45) coldFactor = 1.9;
+  if (temperature <= 40) coldFactor = 2.3;
+  const compositionFactor = getCompositionFactorForScore(bodyFatPct, bodyWeightLbs, bodyHeightCm);
+
+  const challengerMarks: ChallengerMark[] = primaryGoalThresh > 0
+    ? challengers
+        .filter((c) => c.score !== null)
+        .map((c, i) => {
+          const targetSecs = (c.score! * 60) / (coldFactor * compositionFactor);
+          const pct = targetSecs / primaryGoalThresh;
+          return {
+            pct,
+            name: c.name,
+            color: CHALLENGER_COLORS[i % CHALLENGER_COLORS.length],
+            beating: displayScore >= c.score!,
+          };
+        })
+    : [];
+
+  const scoredCount  = challengers.filter((c) => c.score !== null).length;
+  const beatingCount = challengers.filter((c) => c.score !== null && displayScore >= c.score!).length;
+  const allWinning   = inChallenge && scoredCount > 0 && beatingCount === scoredCount;
+
+  // Ring accent colour: cyan when beating everyone, pink when behind any.
+  const goalAccentColor = inChallenge
+    ? (allWinning ? "#67e8f9" : "#fda4af")
     : primarySeg?.barColor;
 
-  const statusLabel = challengerName
-    ? challengerScore === null
-      ? null                              // boxes show "—" while score loads
-      : winning
-        ? `You beat ${shortName}! ❄️`
-        : `${(challengerScore - displayScore).toFixed(1)} pts to beat ${shortName}`
+  const statusLabel = inChallenge && scoredCount > 0
+    ? challengers.length === 1
+      ? beatingCount === 1
+        ? `You beat ${challengers[0].name.split(" ")[0]}! ❄️`
+        : `${(challengers[0].score! - displayScore).toFixed(1)} pts to beat ${challengers[0].name.split(" ")[0]}`
+      : `Beating ${beatingCount} of ${challengers.length} ❄️`
     : null;
 
   return (
@@ -252,6 +327,7 @@ export function PlungeOverlay({
           progress={goalRingProgress}
           targetLabel={goalTargetLabel}
           accentColor={goalAccentColor}
+          challengerMarks={challengerMarks}
         />
 
         <div className="relative z-10 flex flex-col items-center gap-0.5">
@@ -271,17 +347,17 @@ export function PlungeOverlay({
             <div
               className="mt-2 px-3 py-0.5 rounded-full text-[10px] font-bold tracking-wide"
               style={{
-                background: winning ? "rgba(34,211,238,0.15)" : "rgba(251,113,133,0.15)",
-                border: winning ? "1px solid rgba(34,211,238,0.4)" : "1px solid rgba(251,113,133,0.4)",
-                color: winning ? "#67e8f9" : "#fda4af",
+                background: allWinning ? "rgba(34,211,238,0.15)" : "rgba(251,113,133,0.15)",
+                border: allWinning ? "1px solid rgba(34,211,238,0.4)" : "1px solid rgba(251,113,133,0.4)",
+                color: allWinning ? "#67e8f9" : "#fda4af",
               }}
             >
               {statusLabel}
             </div>
           )}
 
-          {/* Dismiss challenger button */}
-          {challengerName && (
+          {/* Dismiss all challenges button */}
+          {inChallenge && (
             <button
               onClick={onDismissChallenger}
               className="mt-1 text-slate-500 hover:text-slate-300 text-[10px] leading-none"
@@ -292,47 +368,60 @@ export function PlungeOverlay({
           )}
         </div>
 
-        {/* ── Challenge score boxes — You vs Opponent ── */}
-        {challengerName && (
-          <div className="absolute bottom-4 left-0 right-0 flex items-end justify-between px-8 pointer-events-none">
+        {/* ── Challenge score boxes — You vs all challengers ── */}
+        {inChallenge && (
+          <div className="absolute bottom-4 left-0 right-0 flex items-end justify-between px-6 pointer-events-none gap-2">
             {/* You */}
             <div
-              className="flex flex-col items-center rounded-2xl px-4 py-2 min-w-[72px]"
+              className="flex flex-col items-center rounded-2xl px-3 py-2 min-w-[60px]"
               style={{
-                background: winning ? "rgba(34,211,238,0.12)" : "rgba(7,26,50,0.75)",
-                border: winning ? "1px solid rgba(34,211,238,0.45)" : "1px solid rgba(30,58,95,0.7)",
+                background: allWinning ? "rgba(34,211,238,0.12)" : "rgba(7,26,50,0.75)",
+                border: allWinning ? "1px solid rgba(34,211,238,0.45)" : "1px solid rgba(30,58,95,0.7)",
                 backdropFilter: "blur(6px)",
-                boxShadow: winning ? "0 0 16px rgba(34,211,238,0.18)" : "none",
+                boxShadow: allWinning ? "0 0 16px rgba(34,211,238,0.18)" : "none",
               }}
             >
               <span className="text-[9px] uppercase tracking-widest font-semibold text-blue-400 mb-0.5">You</span>
               <span
                 className="text-xl font-bold tabular-nums leading-none"
-                style={{ color: winning ? "#67e8f9" : "#e2e8f0" }}
+                style={{ color: allWinning ? "#67e8f9" : "#e2e8f0" }}
               >
                 {displayScore > 0 ? displayScore.toFixed(1) : "—"}
               </span>
             </div>
 
-            <span className="text-blue-700/60 text-xs font-bold self-center pb-1">vs</span>
+            <span className="text-blue-700/60 text-xs font-bold self-center pb-1 shrink-0">vs</span>
 
-            {/* Opponent */}
-            <div
-              className="flex flex-col items-center rounded-2xl px-4 py-2 min-w-[72px]"
-              style={{
-                background: !winning && challengerScore !== null ? "rgba(251,113,133,0.10)" : "rgba(7,26,50,0.75)",
-                border: !winning && challengerScore !== null ? "1px solid rgba(251,113,133,0.35)" : "1px solid rgba(30,58,95,0.7)",
-                backdropFilter: "blur(6px)",
-                boxShadow: !winning && challengerScore !== null ? "0 0 16px rgba(251,113,133,0.12)" : "none",
-              }}
-            >
-              <span className="text-[9px] uppercase tracking-widest font-semibold text-blue-400 mb-0.5 truncate max-w-[64px]">{shortName}</span>
-              <span
-                className="text-xl font-bold tabular-nums leading-none"
-                style={{ color: !winning && challengerScore !== null ? "#fda4af" : "#94a3b8" }}
-              >
-                {challengerScore !== null ? challengerScore.toFixed(1) : "—"}
-              </span>
+            {/* One chip per challenger */}
+            <div className="flex flex-row flex-wrap justify-end gap-1.5 flex-1">
+              {challengers.map((c, i) => {
+                const chipColor = CHALLENGER_COLORS[i % CHALLENGER_COLORS.length];
+                const isBeating = c.score !== null && displayScore >= c.score;
+                return (
+                  <div
+                    key={i}
+                    className="flex flex-col items-center rounded-2xl px-3 py-2 min-w-[56px]"
+                    style={{
+                      background: isBeating ? "rgba(7,26,50,0.75)" : `${chipColor}1a`,
+                      border: isBeating ? "1px solid rgba(30,58,95,0.7)" : `1px solid ${chipColor}55`,
+                      backdropFilter: "blur(6px)",
+                    }}
+                  >
+                    <span
+                      className="text-[9px] uppercase tracking-widest font-semibold mb-0.5 truncate max-w-[56px]"
+                      style={{ color: chipColor }}
+                    >
+                      {c.name.split(" ")[0]}
+                    </span>
+                    <span
+                      className="text-xl font-bold tabular-nums leading-none"
+                      style={{ color: c.score !== null ? (isBeating ? "#94a3b8" : chipColor) : "#64748b" }}
+                    >
+                      {c.score !== null ? c.score.toFixed(1) : "—"}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -347,7 +436,7 @@ export function PlungeOverlay({
           isFirstPlunge={plungesCount === 0}
           streakDays={streak}
           milestoneEvent={milestoneEvent}
-          challengerName={challengerName}
+          challengerName={challengers[0]?.name ?? null}
         />
       </div>
 

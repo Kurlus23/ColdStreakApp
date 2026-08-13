@@ -648,12 +648,10 @@ export default function Home() {
   interface FriendRequest { friendshipId: number; requesterId: number; requesterUsername: string | null; requesterDisplayName: string | null; requesterAvatarUrl: string | null; requesterStreak: number; requesterPlungeCount: number; createdAt: string; }
   interface UserResult { id: number; username: string | null; displayName: string | null; avatarUrl: string | null; friendshipStatus: string | null; }
   const [friends, setFriends] = useState<FriendEntry[]>([]);
-  const [activeChallengerUserId, setActiveChallengerUserId] = useState<number | null>(null);
-  // Name stored from the pending-challenge API so the modal can render even
-  // before the friends list has loaded (avoids the race on first login).
-  const [pendingChallengerName, setPendingChallengerName] = useState<string | null>(null);
+  // Array of all users who have challenged the current user (pending challenges).
+  const [pendingChallengers, setPendingChallengers] = useState<Array<{userId: number; name: string}>>([]);
   // Tracks whether the user tapped "Later" — hides the modal but keeps the
-  // challenger context alive so the timer overlay still shows their score.
+  // challenger context alive so the timer overlay still shows their scores.
   const [pendingChallengeModalDismissed, setPendingChallengeModalDismissed] = useState(false);
   // Queue of challenge results — one card is shown at a time; dismiss pops the queue.
   const [challengeResults, setChallengeResults] = useState<ChallengeResult[]>([]);
@@ -740,10 +738,10 @@ export default function Home() {
   // Reset the "Later" dismissal whenever a new challenger is set so the modal
   // re-appears. Covers URL-param, SW-message, and repeated-challenge paths.
   useEffect(() => {
-    if (activeChallengerUserId !== null) {
+    if (pendingChallengers.length > 0) {
       setPendingChallengeModalDismissed(false);
     }
-  }, [activeChallengerUserId]);
+  }, [pendingChallengers.length]);
 
   // Persist challenged IDs to sessionStorage so the green "✓ Challenged"
   // button survives tab switches (the Home component stays mounted, but
@@ -1924,17 +1922,17 @@ export default function Home() {
     fetch("/api/friends/pending-challenge", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((data) => {
-        if (data.none || !data.fromUserId) return;
-        // Suppress re-showing the same challenge modal within the same browser session.
-        const shownKey = `coldstreak-shown-challenge-${data.fromUserId}`;
-        if (sessionStorage.getItem(shownKey)) return;
-        sessionStorage.setItem(shownKey, "1");
-        // Store the name from the API so the modal can render immediately,
-        // before the friends list has finished loading.
-        setPendingChallengerName(data.fromName ?? null);
-        // Reset dismissed so the modal shows for this new challenge.
-        setPendingChallengeModalDismissed(false);
-        setActiveChallengerUserId(data.fromUserId);
+        if (data.none || !data.challengers?.length) return;
+        // Filter out challengers already shown in this browser session.
+        const incoming = (data.challengers as Array<{ fromUserId: number; fromName: string }>)
+          .filter((c) => {
+            const key = `coldstreak-shown-challenge-${c.fromUserId}`;
+            if (sessionStorage.getItem(key)) return false;
+            sessionStorage.setItem(key, "1");
+            return true;
+          });
+        if (incoming.length === 0) return;
+        setPendingChallengers(incoming.map((c) => ({ userId: c.fromUserId, name: c.fromName })));
       })
       .catch(() => {});
   }, [auth.user]);
@@ -3432,10 +3430,15 @@ export default function Home() {
 
   const handleStop = () => {
     // Capture challenger context before any state changes
-    const challengerOpts = activeChallengerUserId != null && challengerScore != null
-      ? { userId: activeChallengerUserId, score: challengerScore }
+    const primaryChallenger = pendingChallengers[0] ?? null;
+    const primaryChallengerFriend = primaryChallenger
+      ? friends.find((f) => f.userId === primaryChallenger.userId) ?? null
+      : null;
+    const primaryChallengerScore = primaryChallengerFriend?.latestScore ?? primaryChallengerFriend?.bestScore ?? null;
+    const challengerOpts = primaryChallenger && primaryChallengerScore != null
+      ? { userId: primaryChallenger.userId, score: primaryChallengerScore }
       : undefined;
-    setActiveChallengerUserId(null);
+    setPendingChallengers([]);
 
     // Show encouragement when user stops before hitting their goal
     const maybeEncourage = (elapsedSec: number) => {
@@ -3540,11 +3543,19 @@ export default function Home() {
   // Benefit bar carry-over: only accumulate prior sessions if the most recent
   // one finished within 2 hours (interrupted / back-to-back session).
   // A fresh session after a long gap gets a clean bar.
-  // Active challenger — friend whose score we're competing against this plunge
-  const activeChallengerFriend = activeChallengerUserId
-    ? (friends.find((f) => f.userId === activeChallengerUserId) ?? null)
+  // Build per-challenger array from pending challengers + friends list
+  const challengers = pendingChallengers.map((pc) => {
+    const friend = friends.find((f) => f.userId === pc.userId);
+    return {
+      name: pc.name || friend?.displayName || friend?.username || "Friend",
+      score: (friend?.latestScore ?? friend?.bestScore ?? null) as number | null,
+    };
+  });
+  // Aliases kept for the pending-challenge modal (first challenger)
+  const primaryChallengerFriendForModal = pendingChallengers[0]
+    ? friends.find((f) => f.userId === pendingChallengers[0].userId) ?? null
     : null;
-  const challengerScore = activeChallengerFriend?.latestScore ?? activeChallengerFriend?.bestScore ?? null;
+  const challengerScore = challengers[0]?.score ?? null;
 
   const lastTodayPlunge = todayPlunges.length > 0
     ? todayPlunges.reduce((latest, p) =>
@@ -8706,10 +8717,7 @@ export default function Home() {
           temperature={temperature}
           tempDisplay={tempDisplay}
           personalBest={personalBest}
-          challengerScore={challengerScore}
-          challengerName={activeChallengerUserId !== null
-            ? (activeChallengerFriend?.displayName || activeChallengerFriend?.username || pendingChallengerName || "Friend")
-            : null}
+          challengers={challengers}
           elapsedSeconds={elapsedSeconds}
           benefitCarryOver={benefitCarryOver}
           isActive={isActive}
@@ -8725,13 +8733,13 @@ export default function Home() {
           primaryBenefit={primaryBenefit}
           milestoneEvent={milestoneEvent}
           onStop={handleStop}
-          onDismissChallenger={() => setActiveChallengerUserId(null)}
+          onDismissChallenger={() => setPendingChallengers([])}
         />
       )}
 
       {/* ─── PENDING CHALLENGE NOTIFICATION ─── */}
       {/* Shows on login when a friend challenged us while push was unavailable */}
-      {activeChallengerUserId !== null && !isActive && auth.user && !pendingChallengeModalDismissed && (
+      {pendingChallengers.length > 0 && !isActive && auth.user && !pendingChallengeModalDismissed && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: "rgba(5,12,30,0.82)", backdropFilter: "blur(6px)" }}>
           <div className="w-full max-w-xs rounded-3xl bg-blue-950 border border-cyan-600/50 shadow-2xl overflow-hidden"
                style={{ boxShadow: "0 0 40px rgba(34,211,238,0.18)" }}>
@@ -8740,20 +8748,33 @@ export default function Home() {
             <div className="px-6 pt-5 pb-6 text-center space-y-4">
               <div className="text-3xl">🧊</div>
               <div>
-                <p className="text-white font-bold text-lg leading-tight">You've been challenged!</p>
+                <p className="text-white font-bold text-lg leading-tight">
+                  {pendingChallengers.length === 1 ? "You've been challenged!" : `${pendingChallengers.length} friends challenged you!`}
+                </p>
                 <p className="text-blue-300 text-sm mt-1">
-                  <span className="text-cyan-300 font-semibold">
-                    {activeChallengerFriend?.displayName || activeChallengerFriend?.username || pendingChallengerName || "A friend"}
-                  </span>
-                  {" "}wants to see if you can beat their score.
+                  {pendingChallengers.length === 1 ? (
+                    <>
+                      <span className="text-cyan-300 font-semibold">
+                        {primaryChallengerFriendForModal?.displayName || primaryChallengerFriendForModal?.username || pendingChallengers[0].name}
+                      </span>
+                      {" "}wants to see if you can beat their score.
+                    </>
+                  ) : (
+                    <>Beat them all in a single plunge — one plunge settles everything.</>
+                  )}
                 </p>
               </div>
-              {challengerScore != null && (
-                <div className="inline-flex items-center gap-2 bg-blue-900/60 border border-cyan-700/40 rounded-2xl px-4 py-2">
-                  <span className="text-slate-400 text-xs uppercase tracking-wide font-semibold">Their score</span>
-                  <span className="text-cyan-300 text-2xl font-bold">{Number(challengerScore).toFixed(1)}</span>
-                </div>
-              )}
+              {/* Score chips — one per challenger */}
+              <div className="flex flex-col gap-2">
+                {challengers.map((c, i) => (
+                  c.score != null && (
+                    <div key={i} className="flex items-center justify-between bg-blue-900/60 border border-cyan-700/40 rounded-2xl px-4 py-2">
+                      <span className="text-slate-400 text-xs uppercase tracking-wide font-semibold truncate">{c.name.split(" ")[0]}</span>
+                      <span className="text-cyan-300 text-xl font-bold tabular-nums">{c.score.toFixed(1)}</span>
+                    </div>
+                  )
+                ))}
+              </div>
               <div className="flex flex-col gap-2.5 pt-1">
                 <button
                   onClick={() => setPendingChallengeModalDismissed(true)}

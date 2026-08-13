@@ -1874,10 +1874,16 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
   app.get("/api/friends/pending-challenge", async (req, res) => {
     const payload = extractUser(req);
     if (!payload) return res.status(401).json({ error: "Login required" });
-    const pending = await storage.getPendingChallenge(payload.userId);
-    if (!pending) return res.json({ none: true });
-    const from = await storage.getUserById(pending.fromUserId);
-    res.json({ fromUserId: pending.fromUserId, fromName: from?.displayName || from?.username || "Someone" });
+    const allPending = await storage.getAllPendingChallengesForUser(payload.userId);
+    const incoming = allPending.filter(p => p.toUserId === payload.userId);
+    if (incoming.length === 0) return res.json({ none: true });
+    const challengers = await Promise.all(
+      incoming.map(async (p) => {
+        const from = await storage.getUserById(p.fromUserId);
+        return { fromUserId: p.fromUserId, fromName: from?.displayName || from?.username || "Someone" };
+      })
+    );
+    res.json({ challengers });
   });
 
   // Clear a pending challenge (called once the client has consumed it)
