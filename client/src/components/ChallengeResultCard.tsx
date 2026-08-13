@@ -43,10 +43,23 @@ const LOSE_LINES: { headline: string; sub: (name: string, diff: string) => strin
   { headline: "Hypothermia: earned. Win: not yet. 🥶", sub: (n, d) => `${d} points behind ${n}` },
 ];
 
-const WIN_REMATCH = [
-  (n: string) => `Challenge ${n} again ❄️`,
-  (n: string) => `Make ${n} an offer they can't refuse ❄️`,
-  (n: string) => `Keep the pressure on ${n} 🧊`,
+// Trash-talk cold takes shown on the winner's card — shareable with the loser
+const WIN_COLD_TAKES: ((n: string) => string)[] = [
+  n => `Still thawing out, ${n}? ❄️`,
+  n => `The ice chose me today, ${n}.`,
+  n => `${n} thought they had me. The cold had other plans.`,
+  n => `Sorry ${n}, not sorry. 🏆`,
+  n => `Next time dress warmer, ${n}. 🧊`,
+  n => `The plunge doesn't lie, ${n}.`,
+  n => `Case closed, ${n}. ❄️`,
+  n => `Maybe stick to warm showers, ${n}. 🚿`,
+  n => `Ice doesn't negotiate, ${n}. Neither do I.`,
+  n => `${n} came. ${n} saw. ${n} melted. 🧊`,
+  n => `You trained for this, ${n}? 😤`,
+  n => `Not even close, ${n}. ❄️`,
+  n => `${n}: 0. Cold: 1. Me: 1. 🏆`,
+  n => `The gap says it all, ${n}.`,
+  n => `Unbothered. Moisturized. Winning. — Not you, ${n}. ❄️`,
 ];
 
 const LOSE_REMATCH = [
@@ -77,18 +90,21 @@ export function ChallengeResultCard({ result, onDismiss, onChallengeBack }: Prop
   const diff = Math.abs(myScore - theirScore).toFixed(1);
   const seed = myScore + theirScore * 7;
 
-  const line      = useMemo(() => pick(won ? WIN_LINES  : LOSE_LINES,  seed),        [won, seed]);
-  const rematch   = useMemo(() => pick(won ? WIN_REMATCH : LOSE_REMATCH, seed + 3),  [won, seed]);
-  const dismissTx = useMemo(() => pick(LOSE_DISMISS, seed + 11),                     [seed]);
+  const line      = useMemo(() => pick(won ? WIN_LINES : LOSE_LINES, seed),       [won, seed]);
+  const rematch   = useMemo(() => pick(LOSE_REMATCH, seed + 3),                    [seed]);
+  const dismissTx = useMemo(() => pick(LOSE_DISMISS, seed + 11),                   [seed]);
+  const coldTake  = useMemo(() => pick(WIN_COLD_TAKES, seed + 17)(firstName),      [seed, firstName]);
 
   const handleShare = async () => {
-    const text = `🏆 Just beat ${opponentName}'s cold plunge score on ColdStreak!\n❄️ My score: ${myScore.toFixed(1)} vs their ${theirScore.toFixed(1)}\n\nThink you can handle the cold? coldstreakapp.com`;
+    const brag = won
+      ? `🏆 Just beat ${opponentName} on ColdStreak!\n${coldTake}\n❄️ ${myScore.toFixed(1)} vs ${theirScore.toFixed(1)}\n\ncoldstreakapp.com`
+      : `🧊 Just took on ${opponentName} on ColdStreak!\n❄️ ${myScore.toFixed(1)} vs ${theirScore.toFixed(1)}\n\ncoldstreakapp.com`;
     try {
       if (navigator.share) {
-        await navigator.share({ text });
+        await navigator.share({ text: brag });
       } else {
-        await navigator.clipboard.writeText(text);
-        toast({ title: "Brag copied! 🏆", description: "Paste it anywhere to show off." });
+        await navigator.clipboard.writeText(brag);
+        toast({ title: won ? "Brag copied! 🏆" : "Score copied! ❄️", description: "Paste it anywhere." });
       }
     } catch { /* user cancelled */ }
   };
@@ -217,6 +233,17 @@ export function ChallengeResultCard({ result, onDismiss, onChallengeBack }: Prop
         </div>
       </div>
 
+      {/* Winner's cold take */}
+      {won && (
+        <div
+          className="w-full max-w-xs rounded-2xl px-4 py-3 mb-6 text-center"
+          style={{ background: "rgba(234,179,8,0.08)", border: "1px solid rgba(234,179,8,0.25)" }}
+        >
+          <p className="text-amber-300 text-sm font-semibold leading-snug">{coldTake}</p>
+          <p className="text-slate-500 text-[10px] mt-1">Tap Share to send this to {firstName}</p>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="w-full max-w-xs flex flex-col gap-3">
         {won ? (
@@ -231,13 +258,6 @@ export function ChallengeResultCard({ result, onDismiss, onChallengeBack }: Prop
               }}
             >
               <Share2 className="w-4 h-4" /> Share your brag 🏆
-            </button>
-            <button
-              onClick={handleChallengeBack}
-              disabled={challenging}
-              className="w-full py-3.5 rounded-2xl font-bold text-sm tracking-wide text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/10 transition-all active:scale-95 disabled:opacity-50"
-            >
-              {challenging ? "Sending…" : rematch(firstName)}
             </button>
             <button
               onClick={onDismiss}
