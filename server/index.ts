@@ -50,6 +50,12 @@ async function ensureRuntimeTables() {
     // it is safe to reinstate the pending_challenges row).
     await db.execute(sql`ALTER TABLE plunges ADD COLUMN IF NOT EXISTS challenger_user_id INTEGER`);
     await db.execute(sql`ALTER TABLE plunges ADD COLUMN IF NOT EXISTS challenge_result_sent BOOLEAN NOT NULL DEFAULT FALSE`);
+
+    // Multi-challenger support: drop the recipient-only unique constraint so multiple
+    // friends can challenge the same user simultaneously. Replace with a composite
+    // unique index so each (sender, recipient) pair remains unique.
+    await db.execute(sql`ALTER TABLE pending_challenges DROP CONSTRAINT IF EXISTS pending_challenges_to_user_id_key`);
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS pending_challenges_pair_idx ON pending_challenges (from_user_id, to_user_id)`);
   } catch (err) {
     console.error("[bootstrap] ensureRuntimeTables failed:", err);
   }

@@ -206,6 +206,8 @@ export interface IStorage {
   /** Restore a consumed pending challenge only if no newer challenge already occupies the slot. */
   insertPendingChallengeIfNone(fromUserId: number, toUserId: number): Promise<void>;
   getPendingChallenge(toUserId: number): Promise<{ fromUserId: number } | null>;
+  /** All pending challenges where userId is either the sender OR the recipient. */
+  getAllPendingChallengesForUser(userId: number): Promise<{ id: number; fromUserId: number; toUserId: number }[]>;
   deletePendingChallenge(toUserId: number): Promise<void>;
   markChallengeResultSent(plungeId: number): Promise<void>;
   // Events
@@ -1133,18 +1135,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertPendingChallenge(fromUserId: number, toUserId: number): Promise<void> {
+    // Use the composite (fromUserId, toUserId) pair as the conflict target.
+    // Multiple challengers can queue up for the same recipient; each (from, to) pair is unique.
     await db.insert(pendingChallenges)
       .values({ fromUserId, toUserId })
       .onConflictDoUpdate({
-        target: pendingChallenges.toUserId,
-        set: { fromUserId, createdAt: sql`now()` },
+        target: [pendingChallenges.fromUserId, pendingChallenges.toUserId],
+        set: { createdAt: sql`now()` },
       });
   }
 
   async getPendingChallenge(toUserId: number): Promise<{ fromUserId: number } | null> {
     const [row] = await db.select().from(pendingChallenges)
-      .where(eq(pendingChallenges.toUserId, toUserId));
+      .where(eq(pendingChallenges.toUserId, toUserId))
+      .orderBy(desc(pendingChallenges.createdAt))
+      .limit(1);
     return row ? { fromUserId: row.fromUserId } : null;
+  }
+
+  async getAllPendingChallengesForUser(userId: number): Promise<{ id: number; fromUserId: number; toUserId: number }[]> {
+    return db.select({
+      id: pendingChallenges.id,
+      fromUserId: pendingChallenges.fromUserId,
+      toUserId: pendingChallenges.toUserId,
+    }).from(pendingChallenges)
+      .where(or(eq(pendingChallenges.fromUserId, userId), eq(pendingChallenges.toUserId, userId)));
   }
 
   async deletePendingChallenge(toUserId: number): Promise<void> {
@@ -1152,8 +1167,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async consumePendingChallenge(toUserId: number, fromUserId: number): Promise<boolean> {
-    // Conditionally delete only the specific challenge pair so that a newer
-    // challenge (different fromUserId) arriving after verification is preserved.
+    // Conditionally delete only the specific challenge pair so that other challenges are preserved.
     const deleted = await db.delete(pendingChallenges)
       .where(and(eq(pendingChallenges.toUserId, toUserId), eq(pendingChallenges.fromUserId, fromUserId)))
       .returning({ id: pendingChallenges.id });
@@ -1161,10 +1175,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async insertPendingChallengeIfNone(fromUserId: number, toUserId: number): Promise<void> {
-    // ON CONFLICT DO NOTHING: if a newer challenge already occupies the slot, leave it untouched.
+    // ON CONFLICT DO NOTHING: if this exact pair already exists, leave it untouched.
     await db.insert(pendingChallenges)
       .values({ fromUserId, toUserId })
-      .onConflictDoNothing({ target: pendingChallenges.toUserId });
+      .onConflictDoNothing();
   }
 
   async markChallengeResultSent(plungeId: number): Promise<void> {

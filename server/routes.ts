@@ -533,82 +533,85 @@ export async function registerRoutes(
       // we also set it explicitly here for defence-in-depth).
       plungeData.challengeResultSent = false;
 
-      // Store challengerUserId on the plunge only if there is a real pending challenge
-      // from that user (verified server-side). This prevents a user from manufacturing
-      // a pending challenge by creating and then deleting a plunge with an arbitrary
-      // challengerUserId.
-      let verifiedChallengerId: number | undefined;
-      if (authUser && challengerUserId) {
-        const pending = await storage.getPendingChallenge(authUser.userId);
-        if (pending && pending.fromUserId === challengerUserId) {
-          verifiedChallengerId = challengerUserId;
-          plungeData.challengerUserId = challengerUserId;
+      // Store challengerUserId on the plunge for the most-recent pending challenger
+      // (kept for historical tracking; the actual resolution now covers all pending challenges).
+      if (authUser) {
+        const primaryPending = await storage.getPendingChallenge(authUser.userId);
+        if (primaryPending) {
+          plungeData.challengerUserId = primaryPending.fromUserId;
         }
       }
 
       const newPlunge = await storage.createPlunge(plungeData);
 
-      // ── Challenge resolution ────────────────────────────────────────────────
-      let challengeResult: { won: boolean; myScore: number; theirScore: number; opponentName: string; opponentId: number } | null = null;
+      // ── Challenge resolution (all pending) ──────────────────────────────────
+      // Resolve every pending challenge where this user is the recipient OR the
+      // sender — one plunge settles the whole queue simultaneously.
+      const challengeResults: { won: boolean; myScore: number; theirScore: number; opponentName: string; opponentId: number }[] = [];
 
-      // Only resolve the challenge if the server verified a matching pending row.
-      if (authUser && verifiedChallengerId && challengerScore != null) {
-        const myScore   = Number(input.score);
-        const theirScore = Number(challengerScore);
-        const iWon = myScore > theirScore;
+      if (authUser) {
+        const allPending = await storage.getAllPendingChallengesForUser(authUser.userId);
+        if (allPending.length > 0) {
+          const myScore = Number(input.score);
+          const me = await storage.getUserById(authUser.userId);
+          const myName = me?.displayName || me?.username || "Someone";
 
-        const [me, them] = await Promise.all([
-          storage.getUserById(authUser.userId),
-          storage.getUserById(verifiedChallengerId),
-        ]);
-        const myName   = me?.displayName   || me?.username   || "Someone";
-        const theirName = them?.displayName || them?.username || "Someone";
+          let anyPushSent = false;
+          for (const pending of allPending) {
+            // Determine who is the opponent (the other side of the challenge)
+            const opponentId = pending.fromUserId === authUser.userId ? pending.toUserId : pending.fromUserId;
 
-        // Push notification to the challenger
-        const theirSubs = await storage.getPushSubscriptionsByUser(verifiedChallengerId);
-        let resultPushSent = false;
-        if (theirSubs.length > 0) {
-          const payload = JSON.stringify(iWon
-            ? {
-                title: `❄️ ${myName} beat your score!`,
-                body: `Their score: ${myScore.toFixed(1)} vs your ${theirScore.toFixed(1)}. Challenge them back?`,
-                tag: `challenge-result-${authUser.userId}`,
-              }
-            : {
-                title: `🏆 You beat ${myName}'s challenge!`,
-                body: `Your score: ${theirScore.toFixed(1)} vs their ${myScore.toFixed(1)}. Well done!`,
-                tag: `challenge-result-${authUser.userId}`,
-              });
-          for (const sub of theirSubs) {
-            try {
-              await webpush.sendNotification(
-                { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-                payload
-              );
-              resultPushSent = true;
-            } catch (err: any) {
-              if (err.statusCode === 410 || err.statusCode === 404) {
-                await storage.deletePushSubscription(sub.endpoint);
+            // Look up opponent's most recent plunge score server-side
+            const opponentPlunges = await storage.getPlunges(undefined, opponentId);
+            const theirScore = opponentPlunges.length > 0 ? Number(opponentPlunges[0].score) : 0;
+            const iWon = myScore > theirScore;
+
+            const them = await storage.getUserById(opponentId);
+            const theirName = them?.displayName || them?.username || "Someone";
+
+            // Push notification to the opponent
+            const theirSubs = await storage.getPushSubscriptionsByUser(opponentId);
+            if (theirSubs.length > 0) {
+              const payload = JSON.stringify(iWon
+                ? {
+                    title: `❄️ ${myName} beat your score!`,
+                    body: `Their score: ${myScore.toFixed(1)} vs your ${theirScore.toFixed(1)}. Challenge them back?`,
+                    tag: `challenge-result-${authUser.userId}`,
+                  }
+                : {
+                    title: `🏆 You beat ${myName}'s challenge!`,
+                    body: `Your score: ${theirScore.toFixed(1)} vs their ${myScore.toFixed(1)}. Well done!`,
+                    tag: `challenge-result-${authUser.userId}`,
+                  });
+              for (const sub of theirSubs) {
+                try {
+                  await webpush.sendNotification(
+                    { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                    payload
+                  );
+                  anyPushSent = true;
+                } catch (err: any) {
+                  if (err.statusCode === 410 || err.statusCode === 404) {
+                    await storage.deletePushSubscription(sub.endpoint);
+                  }
+                }
               }
             }
-          }
-        }
 
-        // Mark whether the challenger received a result push so a discard can
-        // tell whether it's safe to restore the pending challenge.
-        // Do NOT swallow failures — if we can't mark it sent, a subsequent
-        // discard would incorrectly restore the challenge whose result was
-        // already delivered.
-        if (resultPushSent) {
+            // Consume this specific pending challenge pair
+            await storage.consumePendingChallenge(
+              pending.toUserId,
+              pending.fromUserId
+            ).catch(() => {});
+
+            challengeResults.push({ won: iWon, myScore, theirScore, opponentName: theirName, opponentId });
+          }
+
+          // Always mark the plunge as resolved so discard never incorrectly
+          // restores individual pending-challenge rows from a batch resolution.
+          // (The batch consumed every pending row; partial restoration is unsafe.)
           await storage.markChallengeResultSent(newPlunge.id);
         }
-
-        // Conditionally consume the pending challenge row: delete only the
-        // specific (toUserId, fromUserId) pair so that a newer challenge that
-        // arrived after verification is not accidentally wiped.
-        await storage.consumePendingChallenge(authUser.userId, verifiedChallengerId).catch(() => {});
-
-        challengeResult = { won: iWon, myScore, theirScore, opponentName: theirName, opponentId: verifiedChallengerId };
       }
 
       // ── Push notification after plunge ──────────────────────────────────────
@@ -708,7 +711,7 @@ export async function registerRoutes(
         }
       }
 
-      res.status(201).json({ ...newPlunge, challengeResult, nudgeSent, welcomeBackSent });
+      res.status(201).json({ ...newPlunge, challengeResults, nudgeSent, welcomeBackSent });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join('.') });

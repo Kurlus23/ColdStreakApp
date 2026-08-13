@@ -655,7 +655,8 @@ export default function Home() {
   // Tracks whether the user tapped "Later" — hides the modal but keeps the
   // challenger context alive so the timer overlay still shows their score.
   const [pendingChallengeModalDismissed, setPendingChallengeModalDismissed] = useState(false);
-  const [challengeResult, setChallengeResult] = useState<ChallengeResult | null>(null);
+  // Queue of challenge results — one card is shown at a time; dismiss pops the queue.
+  const [challengeResults, setChallengeResults] = useState<ChallengeResult[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [friendsView, setFriendsView] = useState<'friends' | 'add'>('friends');
@@ -1913,7 +1914,9 @@ export default function Home() {
   }, [auth.user]);
 
   // On login, check for a pending challenge (sent while push was unavailable).
-  // Consume it immediately so it doesn't fire again on the next open.
+  // Do NOT delete the row — it stays in the DB until the user plunges, at which
+  // point all pending challenges are resolved together. A sessionStorage flag
+  // prevents the modal from re-showing on every reload within the same session.
   useEffect(() => {
     if (!auth.user) return;
     const token = localStorage.getItem("coldstreak-auth-token");
@@ -1922,17 +1925,16 @@ export default function Home() {
       .then((r) => r.json())
       .then((data) => {
         if (data.none || !data.fromUserId) return;
+        // Suppress re-showing the same challenge modal within the same browser session.
+        const shownKey = `coldstreak-shown-challenge-${data.fromUserId}`;
+        if (sessionStorage.getItem(shownKey)) return;
+        sessionStorage.setItem(shownKey, "1");
         // Store the name from the API so the modal can render immediately,
         // before the friends list has finished loading.
         setPendingChallengerName(data.fromName ?? null);
         // Reset dismissed so the modal shows for this new challenge.
         setPendingChallengeModalDismissed(false);
         setActiveChallengerUserId(data.fromUserId);
-        // Delete it server-side — the client state now owns it
-        fetch("/api/friends/pending-challenge", {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }).catch(() => {});
       })
       .catch(() => {});
   }, [auth.user]);
@@ -3139,11 +3141,12 @@ export default function Home() {
       {
         onSuccess: (newPlunge) => {
           Analytics.plungeLogged(durationSec, avgTemp, score);
-          const result = (newPlunge as any).challengeResult as ChallengeResult | null | undefined;
-          if (result) {
-            // Gold confetti for winner, ice-blue for loser
-            confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 }, colors: result.won ? ["#fbbf24", "#f59e0b", "#ffffff", "#fde68a"] : ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
-            setChallengeResult(result);
+          const results = (newPlunge as any).challengeResults as ChallengeResult[] | null | undefined;
+          if (results && results.length > 0) {
+            // Gold confetti for at least one win, ice-blue if all losses
+            const anyWin = results.some((r) => r.won);
+            confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 }, colors: anyWin ? ["#fbbf24", "#f59e0b", "#ffffff", "#fde68a"] : ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
+            setChallengeResults(results);
           } else {
             confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#0ea5e9", "#ffffff", "#38bdf8", "#bae6fd"] });
           }
@@ -3241,7 +3244,7 @@ export default function Home() {
       }
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [temperature, createPlunge, toast, backgroundSync, setChallengeResult]);
+  }, [temperature, createPlunge, toast, backgroundSync, setChallengeResults]);
 
   // Keep running-state refs in sync for stale-closure-safe restore
   useEffect(() => { isRunningRef.current = isRunning; }, [isRunning]);
@@ -8830,11 +8833,11 @@ export default function Home() {
         </div>
       )}
 
-      {/* ─── CHALLENGE RESULT CARD ─── */}
-      {challengeResult && (
+      {/* ─── CHALLENGE RESULT CARD (queue — one at a time) ─── */}
+      {challengeResults.length > 0 && (
         <ChallengeResultCard
-          result={challengeResult}
-          onDismiss={() => setChallengeResult(null)}
+          result={challengeResults[0]}
+          onDismiss={() => setChallengeResults((prev) => prev.slice(1))}
           onChallengeBack={async (userId) => {
             const friend = friends.find((f) => f.userId === userId);
             await sendFriendChallengeImpl(userId, friend?.displayName || friend?.username || "Friend", {

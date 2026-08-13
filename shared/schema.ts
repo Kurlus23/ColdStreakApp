@@ -26,13 +26,16 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Persisted so the challenged user sees it on next open even without push
+// Persisted so the challenged user sees it on next open even without push.
+// Multiple people can challenge the same user simultaneously, so toUserId is
+// no longer unique. The composite (fromUserId, toUserId) pair is unique so
+// the same person can't send duplicate challenges.
 export const pendingChallenges = pgTable("pending_challenges", {
   id:         serial("id").primaryKey(),
   fromUserId: integer("from_user_id").notNull(),
-  toUserId:   integer("to_user_id").notNull().unique(), // one active challenge per recipient
+  toUserId:   integer("to_user_id").notNull(),
   createdAt:  timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [uniqueIndex("pending_challenges_pair_idx").on(t.fromUserId, t.toUserId)]);
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export type User = typeof users.$inferSelect;
