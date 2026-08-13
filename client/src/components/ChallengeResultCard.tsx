@@ -45,7 +45,7 @@ const LOSE_LINES: { headline: string; sub: (name: string, diff: string) => strin
 
 const WIN_REMATCH = [
   (n: string) => `Challenge ${n} again ❄️`,
-  (n: string) => `Make it ${n} can't refuse ❄️`,
+  (n: string) => `Make it one ${n} can't refuse ❄️`,
   (n: string) => `Keep the pressure on ${n} 🧊`,
 ];
 
