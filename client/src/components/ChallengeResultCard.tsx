@@ -45,7 +45,7 @@ const LOSE_LINES: { headline: string; sub: (name: string, diff: string) => strin
 
 const WIN_REMATCH = [
   (n: string) => `Challenge ${n} again ❄️`,
-  (n: string) => `Make it one ${n} can't refuse ❄️`,
+  (n: string) => `Make ${n} an offer they can't refuse ❄️`,
   (n: string) => `Keep the pressure on ${n} 🧊`,
 ];
 
@@ -98,7 +98,7 @@ export function ChallengeResultCard({ result, onDismiss, onChallengeBack }: Prop
     try {
       onChallengeBack(result.opponentId);
       toast({ title: `Challenge sent to ${firstName}! ❄️`, description: "They'll get a notification." });
-      onDismiss();
+      // Stay on the card so the user can still Share their brag
     } finally {
       setChallenging(false);
     }
