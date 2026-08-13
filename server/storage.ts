@@ -2293,8 +2293,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   // ── Admin: recalculate every plunge's calories + score from current user metrics ──
-  // Score formula (corrected): leaner body fat → higher factor (inverted ratio).
-  // When body fat is not set we use 1.0 (neutral) — no BMI fallback.
+  // Score formula: leaner body fat → higher factor (inverted ratio).
+  // Fallback chain: body fat % → BMI from height/weight → 1.0 neutral.
+  // BMI neutral = 22; body fat neutral = 20%. Factor clamped to [0.75, 1.35].
   async recalculatePlungeStats(): Promise<number> {
     const result = await db.execute(sql`
       UPDATE plunges p
@@ -2324,6 +2325,9 @@ export class DatabaseStorage implements IStorage {
               CASE
                 WHEN u.body_fat IS NOT NULL AND u.body_fat > 0
                   THEN 20.0 / (u.body_fat / 10.0)
+                WHEN u.body_weight IS NOT NULL AND u.body_weight > 0
+                 AND u.body_height IS NOT NULL AND u.body_height > 0
+                  THEN 22.0 / ((u.body_weight / 2.205) / POWER(u.body_height / 100.0, 2))
                 ELSE 1.0
               END
             ))

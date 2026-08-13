@@ -114,7 +114,8 @@ export function getCompositionFactorForScore(
   heightCm: number,
 ): number {
   if (bodyFatPct != null && bodyFatPct > 0) return getBodyFatFactorForScore(bodyFatPct);
-  return 1.0; // neutral baseline when body fat is unknown
+  if (weightLbs > 0 && heightCm > 0) return getBmiFactorForScore(weightLbs, heightCm);
+  return 1.0; // neutral baseline when nothing is known
 }
 
 // ─── Threshold & earned computation ──────────────────────────────────────────
