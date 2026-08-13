@@ -257,23 +257,29 @@ export function PlungeOverlay({
   if (temperature <= 40) coldFactor = 2.3;
   const compositionFactor = getCompositionFactorForScore(bodyFatPct, bodyWeightLbs, bodyHeightCm);
 
+  // Build per-challenger ring marks.
+  // Use the original index (i) from the full challengers array so that
+  // each mark's colour matches the corresponding score box below.
+  // Skip challengers whose score is null or ≤ 0 (no meaningful position).
   const challengerMarks: ChallengerMark[] = primaryGoalThresh > 0
     ? challengers
-        .filter((c) => c.score !== null)
         .map((c, i) => {
-          const targetSecs = (c.score! * 60) / (coldFactor * compositionFactor);
+          if (c.score === null || c.score <= 0) return null;
+          const targetSecs = (c.score * 60) / (coldFactor * compositionFactor);
           const pct = targetSecs / primaryGoalThresh;
           return {
             pct,
             name: c.name,
             color: CHALLENGER_COLORS[i % CHALLENGER_COLORS.length],
-            beating: displayScore >= c.score!,
+            beating: displayScore >= c.score,
           };
         })
+        .filter((m): m is ChallengerMark => m !== null)
     : [];
 
-  const scoredCount  = challengers.filter((c) => c.score !== null).length;
-  const beatingCount = challengers.filter((c) => c.score !== null && displayScore >= c.score!).length;
+  // Only count challengers with a real (> 0) score — same predicate used for ring marks.
+  const scoredCount  = challengers.filter((c) => c.score !== null && c.score > 0).length;
+  const beatingCount = challengers.filter((c) => c.score !== null && c.score > 0 && displayScore >= c.score).length;
   const allWinning   = inChallenge && scoredCount > 0 && beatingCount === scoredCount;
 
   // Ring accent colour: cyan when beating everyone, pink when behind any.
