@@ -1546,7 +1546,7 @@ export default function Home() {
   });
   const ownAvatarUrl = ownBadgeProfile?.avatarUrl ?? null;
   // Plunge data stored for leaderboard submission after save
-  const promptPlungeRef = useRef<{ score: string; duration: number; temperature: number; timerUsed: boolean; tempMin?: number; tempMax?: number } | null>(null);
+  const promptPlungeRef = useRef<{ score: string; duration: number; temperature: number; timerUsed: boolean; tempMin?: number; tempMax?: number; brainFreezeScore?: number } | null>(null);
 
   const { toast } = useToast();
 
@@ -3230,7 +3230,7 @@ export default function Home() {
           const tempRangeStr = (tempMin !== undefined && tempMax !== undefined && tempMax - tempMin >= 1)
             ? ` avg (${tempMin} → ${tempMax}°F)` : `°F`;
           toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${avgTemp}${tempRangeStr}` });
-          promptPlungeRef.current = { score: String(score), duration: durationSec, temperature: avgTemp, timerUsed: true, tempMin, tempMax };
+          promptPlungeRef.current = { score: String(score), duration: durationSec, temperature: avgTemp, timerUsed: true, tempMin, tempMax, ...(brainFreezeEnabled && brainFreezeScoreRef.current > 0 ? { brainFreezeScore: brainFreezeScoreRef.current } : {}) };
           if (!auth.user) setPendingSignupNudge(true);
           setPromptColdTake(unlockColdTake({
             seconds: durationSec,
@@ -8383,6 +8383,17 @@ export default function Home() {
                     {promptPlungeRef.current.score ? Number(promptPlungeRef.current.score).toFixed(1) : "—"}
                   </span>
                   <span className="text-blue-400 text-[10px] uppercase tracking-wider font-semibold">Score</span>
+                </div>
+              </div>
+            )}
+
+            {/* Brain Freeze score row */}
+            {promptPlungeRef.current?.brainFreezeScore != null && promptPlungeRef.current.brainFreezeScore > 0 && (
+              <div className="flex items-center gap-3 bg-blue-950/40 border border-cyan-800/40 rounded-2xl px-4 py-3">
+                <img src="/brain-freeze-icon.png" alt="Brain Freeze" className="w-7 h-7 rounded-lg object-cover shrink-0" style={{ boxShadow: "0 0 8px rgba(96,165,250,0.3)" }} />
+                <div className="flex-1">
+                  <span className="text-white font-bold text-sm">{promptPlungeRef.current.brainFreezeScore} correct</span>
+                  <span className="text-cyan-400/70 text-xs font-medium ml-1.5">· Brain Freeze</span>
                 </div>
               </div>
             )}
