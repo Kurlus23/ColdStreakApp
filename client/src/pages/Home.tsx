@@ -455,10 +455,13 @@ function _computeMonthly(plunges: import("@shared/schema").Plunge[]): _MonthStat
     }));
 }
 
-function _InsightSectionHeader({ emoji, title, subtitle }: { emoji: string; title: string; subtitle?: string }) {
+function _InsightSectionHeader({ emoji, imgSrc, title, subtitle }: { emoji?: string; imgSrc?: string; title: string; subtitle?: string }) {
   return (
     <div className="flex items-center gap-3 mb-4">
-      <span className="text-xl">{emoji}</span>
+      {imgSrc
+        ? <img src={imgSrc} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" style={{ boxShadow: "0 0 8px rgba(96,165,250,0.3)" }} />
+        : <span className="text-xl">{emoji}</span>
+      }
       <div>
         <h2 className="text-white font-bold text-sm leading-tight">{title}</h2>
         {subtitle && <p className="text-blue-400 text-xs mt-0.5">{subtitle}</p>}
@@ -3817,8 +3820,7 @@ export default function Home() {
             <button
               data-testid="button-header-brain-freeze"
               onClick={() => {
-                navTo("achievements");
-                setTimeout(() => setProfileTab("stats"), 60);
+                toast({ title: "Brain Freeze Lab", description: "Start a plunge — trivia questions will appear during your session." });
               }}
               className="relative w-9 h-9 rounded-xl overflow-hidden active:scale-90 transition-transform"
               style={{ boxShadow: "0 0 10px rgba(96,165,250,0.35), 0 0 4px rgba(147,197,253,0.2)" }}
@@ -4978,7 +4980,7 @@ export default function Home() {
             {/* Brain Freeze toggle */}
             <div className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40">
               <div className="flex items-center gap-2">
-                <span className="text-lg leading-none">🧠</span>
+                <img src="/brain-freeze-icon.png" alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" style={{ boxShadow: "0 0 8px rgba(96,165,250,0.3)" }} />
                 <div>
                   <span className="text-white font-semibold text-sm">Brain Freeze</span>
                   <p className="text-blue-400 text-xs">Trivia questions during your plunge</p>
@@ -7389,7 +7391,7 @@ export default function Home() {
                   {/* ── Brain Freeze Lab ── */}
                   <div className="space-y-2">
                     <_InsightSectionHeader
-                      emoji="🧠"
+                      imgSrc="/brain-freeze-icon.png"
                       title="Brain Freeze Lab"
                       subtitle={brainFreezeLabData?.inPlunge ? "Your cognitive performance in and out of the cold" : undefined}
                     />
