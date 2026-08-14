@@ -67,6 +67,7 @@ import { sendFriendRequest as sendFriendRequestImpl } from "@/lib/sendFriendRequ
 import { respondFriendRequest as respondFriendRequestImpl } from "@/lib/respondFriendRequest";
 import { sendFriendChallenge as sendFriendChallengeImpl } from "@/lib/sendFriendChallenge";
 import { handleSwMessage } from "@/lib/swMessageHandler";
+import { buildBrainFreezeField, shouldShowBrainFreezeRow, brainFreezeRowLabel } from "@/lib/completionCard";
 
 // Pick a fresh cold take the user hasn't unlocked yet and persist it to the
 // unlocked collection. Falls back to a repeat only if the pool is exhausted.
@@ -3205,7 +3206,7 @@ export default function Home() {
         duration: durationSec, temperature: avgTemp, score: String(score), timerUsed: true, calories: caloriesAtLogTime,
         hrAvg,
         spo2Avg: null,
-        ...(brainFreezeEnabled && brainFreezeScoreRef.current > 0 ? { brainFreezeScore: brainFreezeScoreRef.current } : {}),
+        ...buildBrainFreezeField(brainFreezeEnabled, brainFreezeScoreRef.current),
         ...(challenger ? { challengerUserId: challenger.userId, challengerScore: challenger.score } : {}),
       },
       {
@@ -3230,7 +3231,7 @@ export default function Home() {
           const tempRangeStr = (tempMin !== undefined && tempMax !== undefined && tempMax - tempMin >= 1)
             ? ` avg (${tempMin} → ${tempMax}°F)` : `°F`;
           toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${avgTemp}${tempRangeStr}` });
-          promptPlungeRef.current = { score: String(score), duration: durationSec, temperature: avgTemp, timerUsed: true, tempMin, tempMax, ...(brainFreezeEnabled && brainFreezeScoreRef.current > 0 ? { brainFreezeScore: brainFreezeScoreRef.current } : {}) };
+          promptPlungeRef.current = { score: String(score), duration: durationSec, temperature: avgTemp, timerUsed: true, tempMin, tempMax, ...buildBrainFreezeField(brainFreezeEnabled, brainFreezeScoreRef.current) };
           if (!auth.user) setPendingSignupNudge(true);
           setPromptColdTake(unlockColdTake({
             seconds: durationSec,
@@ -8388,11 +8389,11 @@ export default function Home() {
             )}
 
             {/* Brain Freeze score row */}
-            {promptPlungeRef.current?.brainFreezeScore != null && promptPlungeRef.current.brainFreezeScore > 0 && (
+            {shouldShowBrainFreezeRow(promptPlungeRef.current) && (
               <div className="flex items-center gap-3 bg-blue-950/40 border border-cyan-800/40 rounded-2xl px-4 py-3">
                 <img src="/brain-freeze-icon.png" alt="Brain Freeze" className="w-7 h-7 rounded-lg object-cover shrink-0" style={{ boxShadow: "0 0 8px rgba(96,165,250,0.3)" }} />
                 <div className="flex-1">
-                  <span className="text-white font-bold text-sm">{promptPlungeRef.current.brainFreezeScore} correct</span>
+                  <span className="text-white font-bold text-sm">{brainFreezeRowLabel(promptPlungeRef.current)}</span>
                   <span className="text-cyan-400/70 text-xs font-medium ml-1.5">· Brain Freeze</span>
                 </div>
               </div>
