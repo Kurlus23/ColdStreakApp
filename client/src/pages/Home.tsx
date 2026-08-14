@@ -641,6 +641,9 @@ export default function Home() {
   );
   const [showBenefitPicker, setShowBenefitPicker] = useState(false);
   const [celebrationFor, setCelebrationFor] = useState<SegmentId | null>(null);
+  // Goal suggestion: { segId, hitCount, sampleSize } when the user consistently
+  // completes a benefit segment they haven't set as their goal.
+  const [goalSuggestion, setGoalSuggestion] = useState<{ segId: SegmentId; hitCount: number; sampleSize: number } | null>(null);
   const [plungeAchieved, setPlungeAchieved] = useState<Set<SegmentId>>(new Set());
 
   // Friends
@@ -1936,6 +1939,39 @@ export default function Home() {
       })
       .catch(() => {});
   }, [auth.user]);
+
+  // ── Goal suggestion: prompt when user consistently hits an unset segment ──────
+  // Runs once per session after plunges and profile have loaded.
+  useEffect(() => {
+    if (!auth.user || plunges.length < 5) return;
+    if (sessionStorage.getItem("coldstreak-goal-suggestion-shown")) return;
+
+    const sample = plunges.slice(0, 10);
+    // Count how many plunges reach each segment as their highest completed
+    const segCounts = [0, 0, 0, 0];
+    for (const p of sample) {
+      const thresholds = computeThresholds(p.temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct);
+      let highest = -1;
+      for (let i = 0; i < SEGMENTS.length; i++) {
+        if (p.duration >= thresholds[i]) highest = i;
+      }
+      if (highest >= 0) segCounts[highest]++;
+    }
+
+    // Pick the most frequently achieved highest segment
+    let bestIdx = -1, bestCount = 0;
+    for (let i = 0; i < segCounts.length; i++) {
+      if (segCounts[i] > bestCount) { bestCount = segCounts[i]; bestIdx = i; }
+    }
+
+    const pct = bestCount / sample.length;
+    if (pct < 0.7 || bestIdx < 0) return;
+
+    const suggestedId = SEGMENTS[bestIdx].id as SegmentId;
+    if (suggestedId === primaryBenefit) return; // already their goal
+
+    setGoalSuggestion({ segId: suggestedId, hitCount: bestCount, sampleSize: sample.length });
+  }, [auth.user, plunges, bodyWeightLbs, bodyHeightCm, bodyFatPct, primaryBenefit]);
 
   // Subscribe to push notifications when permission is already granted
   useEffect(() => {
@@ -8798,6 +8834,68 @@ export default function Home() {
       )}
 
       {/* ─── BENEFIT GOAL PICKER ─── */}
+      {/* ── Goal suggestion nudge ─────────────────────────────────────────────── */}
+      {goalSuggestion && !isActive && auth.user && (() => {
+        const seg = SEGMENTS.find(s => s.id === goalSuggestion.segId)!;
+        return (
+          <div className="fixed bottom-24 left-4 right-4 z-[48] animate-in slide-in-from-bottom-4 duration-300">
+            <div
+              className="rounded-2xl px-4 py-4"
+              style={{
+                background: "rgba(10,22,50,0.97)",
+                border: `1px solid ${seg.barColor}50`,
+                boxShadow: `0 4px 32px rgba(0,0,0,0.6), 0 0 24px ${seg.barColor}18`,
+                backdropFilter: "blur(12px)",
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-2xl shrink-0">{seg.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-bold text-sm leading-tight">
+                    You routinely hit {seg.label}
+                  </p>
+                  <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+                    {goalSuggestion.hitCount} of your last {goalSuggestion.sampleSize} plunges reached this milestone. Want to make it your goal?
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => {
+                    setPrimaryBenefit(goalSuggestion.segId);
+                    localStorage.setItem("coldstreak-primary-benefit", goalSuggestion.segId);
+                    sessionStorage.setItem("coldstreak-goal-suggestion-shown", "1");
+                    setGoalSuggestion(null);
+                    const tok = localStorage.getItem("coldstreak-auth-token");
+                    if (tok) {
+                      fetch("/api/auth/profile", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
+                        body: JSON.stringify({ primaryBenefit: goalSuggestion.segId }),
+                      }).catch(() => {});
+                    }
+                  }}
+                  className="flex-1 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98]"
+                  style={{ background: seg.barColor, color: "#0a1628" }}
+                >
+                  Set as my goal
+                </button>
+                <button
+                  onClick={() => {
+                    sessionStorage.setItem("coldstreak-goal-suggestion-shown", "1");
+                    setGoalSuggestion(null);
+                  }}
+                  className="px-4 py-2.5 rounded-xl text-sm text-slate-400 hover:text-slate-200 transition-all"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}
+                >
+                  Not now
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {showBenefitPicker && (
         <div
           className="fixed inset-0 z-[55] flex items-end justify-center"
