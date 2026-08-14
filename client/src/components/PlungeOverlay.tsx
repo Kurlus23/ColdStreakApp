@@ -376,20 +376,21 @@ export function PlungeOverlay({
 
         {/* ── Challenge score boxes — You vs all challengers ── */}
         {inChallenge && (
-          <div className="absolute bottom-4 left-0 right-0 flex items-end justify-between px-6 pointer-events-none gap-2">
+          <div className="absolute bottom-4 left-0 right-0 flex items-end px-3 pointer-events-none gap-2">
             {/* You */}
             <div
-              className="flex flex-col items-center rounded-2xl px-3 py-2 min-w-[60px]"
+              className="flex flex-col items-center rounded-2xl px-3 py-2 shrink-0"
               style={{
                 background: allWinning ? "rgba(34,211,238,0.12)" : "rgba(7,26,50,0.75)",
                 border: allWinning ? "1px solid rgba(34,211,238,0.45)" : "1px solid rgba(30,58,95,0.7)",
                 backdropFilter: "blur(6px)",
                 boxShadow: allWinning ? "0 0 16px rgba(34,211,238,0.18)" : "none",
+                minWidth: "56px",
               }}
             >
               <span className="text-[9px] uppercase tracking-widest font-semibold text-blue-400 mb-0.5">You</span>
               <span
-                className="text-xl font-bold tabular-nums leading-none"
+                className="text-lg font-bold tabular-nums leading-none"
                 style={{ color: allWinning ? "#67e8f9" : "#e2e8f0" }}
               >
                 {displayScore > 0 ? displayScore.toFixed(1) : "—"}
@@ -398,29 +399,33 @@ export function PlungeOverlay({
 
             <span className="text-blue-700/60 text-xs font-bold self-center pb-1 shrink-0">vs</span>
 
-            {/* One chip per challenger */}
-            <div className="flex flex-row flex-wrap justify-end gap-1.5 flex-1">
+            {/* Challenger chips — horizontally scrollable strip so 3+ never wrap or overflow */}
+            <div
+              className="flex flex-row gap-1.5 flex-1 overflow-x-auto pointer-events-auto"
+              style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
+            >
               {challengers.map((c, i) => {
                 const chipColor = CHALLENGER_COLORS[i % CHALLENGER_COLORS.length];
                 const isBeating = c.score !== null && displayScore >= c.score;
                 return (
                   <div
                     key={i}
-                    className="flex flex-col items-center rounded-2xl px-3 py-2 min-w-[56px]"
+                    className="flex flex-col items-center rounded-2xl px-3 py-2 shrink-0"
                     style={{
                       background: isBeating ? "rgba(7,26,50,0.75)" : `${chipColor}1a`,
                       border: isBeating ? "1px solid rgba(30,58,95,0.7)" : `1px solid ${chipColor}55`,
                       backdropFilter: "blur(6px)",
+                      minWidth: "52px",
                     }}
                   >
                     <span
-                      className="text-[9px] uppercase tracking-widest font-semibold mb-0.5 truncate max-w-[56px]"
+                      className="text-[9px] uppercase tracking-widest font-semibold mb-0.5 truncate max-w-[52px]"
                       style={{ color: chipColor }}
                     >
                       {c.name.split(" ")[0]}
                     </span>
                     <span
-                      className="text-xl font-bold tabular-nums leading-none"
+                      className="text-lg font-bold tabular-nums leading-none"
                       style={{ color: c.score !== null ? (isBeating ? "#94a3b8" : chipColor) : "#64748b" }}
                     >
                       {c.score !== null ? c.score.toFixed(1) : "—"}
