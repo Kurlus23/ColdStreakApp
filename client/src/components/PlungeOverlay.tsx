@@ -376,7 +376,7 @@ export function PlungeOverlay({
 
         {/* ── Challenge score boxes — You vs all challengers ── */}
         {inChallenge && (
-          <div className="absolute bottom-4 left-0 right-0 flex items-end px-3 pointer-events-none gap-2">
+          <div className="absolute bottom-4 left-0 right-0 flex items-end justify-center px-3 pointer-events-none gap-2">
             {/* You */}
             <div
               className="flex flex-col items-center rounded-2xl px-3 py-2 shrink-0"
@@ -401,7 +401,7 @@ export function PlungeOverlay({
 
             {/* Challenger chips — horizontally scrollable strip so 3+ never wrap or overflow */}
             <div
-              className="flex flex-row gap-1.5 flex-1 overflow-x-auto pointer-events-auto"
+              className="flex flex-row gap-1.5 overflow-x-auto pointer-events-auto max-w-[60%]"
               style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
             >
               {challengers.map((c, i) => {
