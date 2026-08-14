@@ -1,0 +1,203 @@
+I think in the 15 seconds pause between questions it should revert back to the normal plunge screen and the Brain Freeze game is a pop-up that happens over the timer.  When it reverts back to the normal plunge screen, it shows a "Next Question in 5,4,3,2,1"
+
+Yes — I think that's substantially better. It preserves the ColdStreak experience as the primary screen and makes Brain Freeze feel like something that happens during the plunge, rather than replacing the plunge interface.
+
+I'd structure the entire interaction around that.
+
+🧊 The active plunge is always the home screen
+
+When you're not answering a question, you see your normal ColdStreak screen:
+
+Water temperature
+Elapsed time
+Heart rate
+Cold Score
+Benefit bar
+Current benefit stage
+Calories / other existing metrics
+
+Then Brain Freeze periodically takes over temporarily.
+
+Example
+
+You're 1:42 into a plunge.
+
+Normal screen:
+
+39°F
+1:42
+
+⚡ Energy ✓
+🧠 Mood 72%
+
+❤️ 118 BPM
+
+Brain Freeze
+
+Next question in...
+
+5... 4... 3... 2... 1...
+
+Then—
+
+🧠 BRAIN FREEZE
+
+The question pops over the active screen.
+
+The underlying plunge screen could even subtly dim/blur.
+
+Which animal has the
+highest blood pressure?
+
+A. Elephant
+
+B. Giraffe
+
+C. Blue Whale
+
+D. Polar Bear
+
+⏱ 12
+
+Huge buttons.
+
+Answer.
+
+⚡ CORRECT!
+
++118
+
+Giraffe
+
+Maybe the explanation appears for 1–2 seconds:
+
+🧊 COLD FACT
+Giraffes need unusually high blood pressure to pump blood all the way to their brain.
+
+Then the popup disappears.
+
+And you're immediately back in the plunge
+
+The user doesn't have to do anything.
+
+The normal screen returns:
+
+39°F
+2:00
+
+⚡ Energy ✓
+🧠 Mood ✓
+
+🔥 MOOD GOAL REACHED
+
+Next Question in
+
+5... 4... 3... 2... 1...
+
+Then:
+
+BRAIN FREEZE
+
+Question 5.
+
+That is a really clean loop.
+
+I'd actually make the countdown part of the game
+
+Instead of just:
+
+Next question in 5...
+
+Make it feel like Brain Freeze is warming up:
+
+5
+
+🧠 BRAIN FREEZE INCOMING
+
+4
+3
+2
+1
+
+FREEZE!
+
+Question appears.
+
+That's a little bit of theater, and it gives the player a moment to mentally switch gears.
+
+And here's why I like this architecture so much
+
+The user is going to spend far more time looking at the normal plunge screen than playing trivia.
+
+If you're doing a 5-minute plunge:
+
+~4 minutes of normal plunge experience
+~2 minutes total answering questions
+
+So ColdStreak doesn't become:
+
+"Trivia app with cold plunging."
+
+It remains:
+
+ColdStreak — with Brain Freeze built into the plunge experience.
+
+That's an important distinction.
+
+It also solves the UI problem completely
+
+We don't need to cram:
+
+Timer + temperature + heart rate + benefit bar + trivia + four buttons + streak + challenge + score
+
+onto one screen.
+
+We only need:
+
+Normal mode
+
+ColdStreak UI
+
+Brain Freeze mode
+
+Question + giant buttons
+
+That's it.
+
+And when the question disappears, the entire ColdStreak interface comes back exactly as it was.
+
+One thing I'd change from the earlier concept
+
+I'd probably make the question pop-up last closer to 10–15 seconds, but the 30-second cycle should remain fixed.
+
+For example:
+
+0:00 — plunge begins
+
+0:30 — Brain Freeze question
+
+0:40 — answer/result
+
+0:40–1:00 — normal plunge
+
+1:00 — next Brain Freeze
+
+So the user gets approximately:
+
+20 seconds ColdStreak → 10 seconds Brain Freeze → 20 seconds ColdStreak → 10 seconds Brain Freeze
+
+And if they answer in 3 seconds?
+
+Great. The popup closes early.
+
+They get more time to enjoy the plunge.
+
+That could actually make speed scoring feel even more meaningful:
+
+Answer quickly → earn more points → get back to your plunge sooner.
+
+So Brain Freeze isn't constantly demanding their attention.
+
+It interrupts the plunge briefly, rewards them for thinking fast, and gets out of the way.
+
+I think you've got the basic interaction model now. The next thing I'd nail down is exactly what happens during those 10–15 seconds: question → answer → score → explanation → transition, because that's going to determine whether this feels like a polished game or just a trivia popup.
