@@ -3398,6 +3398,16 @@ export default function Home() {
             }
           }
         }
+        // Restore challenger state so challenge mode survives a tab switch / WebView kill
+        if (Array.isArray(s.challengers) && s.challengers.length > 0) {
+          setPendingChallengers(
+            s.challengers.filter(
+              (c: unknown): c is { userId: number; name: string } =>
+                typeof (c as { userId?: unknown }).userId === "number" &&
+                typeof (c as { name?: unknown }).name === "string"
+            )
+          );
+        }
       } catch { localStorage.removeItem(ACTIVE_SESSION_KEY); }
     };
 
@@ -3463,14 +3473,14 @@ export default function Home() {
       setCountdown(total);
       tempSamplesRef.current = [temperature];
       setCountdownRunning(true);
-      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "countdown", startTime: now, countdownTotal: total, minutesInput, secondsInput, entryTemp: temperature }));
+      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "countdown", startTime: now, countdownTotal: total, minutesInput, secondsInput, entryTemp: temperature, challengers: pendingChallengers }));
     } else {
       if (shouldAutoPlay()) { try { openMusic(); } catch {} }
       const now = Date.now();
       startTimeRef.current = now;
       tempSamplesRef.current = [temperature];
       setIsRunning(true);
-      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "stopwatch", startTime: now, entryTemp: temperature }));
+      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "stopwatch", startTime: now, entryTemp: temperature, challengers: pendingChallengers }));
     }
   };
 
