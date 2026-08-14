@@ -252,6 +252,33 @@ export async function getLabStats(userId: number): Promise<BrainFreezeLabStats |
   };
 }
 
+// ─── Link in-plunge answers to a saved plunge record ────────────────────────
+
+/**
+ * After createPlunge succeeds, back-fill plungeId on any brain_freeze_answers
+ * that were logged during that session (inPlunge=true, plungeId IS NULL,
+ * answeredAt >= since, userId matches).
+ */
+export async function linkAnswersToPlunge(data: {
+  userId:   number;
+  plungeId: number;
+  since:    Date;
+}): Promise<number> {
+  const result = await db
+    .update(brainFreezeAnswers)
+    .set({ plungeId: data.plungeId })
+    .where(
+      and(
+        eq(brainFreezeAnswers.userId, data.userId),
+        eq(brainFreezeAnswers.inPlunge, true),
+        gte(brainFreezeAnswers.answeredAt, data.since),
+        sql`${brainFreezeAnswers.plungeId} IS NULL`,
+      )
+    )
+    .returning({ id: brainFreezeAnswers.id });
+  return result.length;
+}
+
 // ─── Quick summary for weekly/monthly email reports ───────────────────────────
 
 export interface BrainFreezeEmailStats {

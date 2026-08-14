@@ -3197,6 +3197,9 @@ export default function Home() {
       ? Math.round(hrReadingsRef.current.reduce((a, b) => a + b, 0) / hrReadingsRef.current.length)
       : null;
 
+    // Capture the session start time so we can back-fill plungeId on Brain Freeze answers.
+    const sessionStartedAt: Date = startedAtOverride ?? new Date(Date.now() - durationSec * 1000);
+
     createPlunge.mutate(
       {
         duration: durationSec, temperature: avgTemp, score: String(score), timerUsed: true, calories: caloriesAtLogTime,
@@ -3207,6 +3210,13 @@ export default function Home() {
       },
       {
         onSuccess: (newPlunge) => {
+          // Link any in-plunge Brain Freeze answers to this plunge record (fire-and-forget).
+          if (brainFreezeEnabled) {
+            apiRequest("POST", "/api/brain-freeze/link-plunge", {
+              plungeId: newPlunge.id,
+              since: sessionStartedAt.toISOString(),
+            }).catch((err) => console.warn("[brain-freeze] link-plunge failed:", err));
+          }
           Analytics.plungeLogged(durationSec, avgTemp, score);
           const results = (newPlunge as any).challengeResults as ChallengeResult[] | null | undefined;
           if (results && results.length > 0) {

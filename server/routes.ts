@@ -4125,6 +4125,28 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     }
   });
 
+  app.post("/api/brain-freeze/link-plunge", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    const parsed = z.object({
+      plungeId: z.number().int().positive(),
+      since:    z.string().datetime(),
+    }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid input" });
+    try {
+      const { linkAnswersToPlunge } = await import("./brain-freeze");
+      const updated = await linkAnswersToPlunge({
+        userId:   payload.userId,
+        plungeId: parsed.data.plungeId,
+        since:    new Date(parsed.data.since),
+      });
+      res.json({ ok: true, updated });
+    } catch (err) {
+      console.error("[brain-freeze] link-plunge error:", err);
+      res.status(500).json({ message: "Failed to link answers" });
+    }
+  });
+
   app.get("/api/brain-freeze/lab", async (req, res) => {
     const payload = extractUser(req);
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
