@@ -2310,6 +2310,12 @@ export class DatabaseStorage implements IStorage {
   // Score formula: leaner body fat → higher factor (inverted ratio).
   // Fallback chain: body fat % → BMI from height/weight → 1.0 neutral.
   // BMI neutral = 22; body fat neutral = 20%. Factor clamped to [0.75, 1.35].
+  //
+  // After updating plunges, the leaderboard_entries table is also resynced so
+  // that each (location, username) row reflects the new best score from plunges.
+  // Without this second step the leaderboard would remain stale because addLeaderboardEntry
+  // uses GREATEST() which only ratchets up — it would never correct a recalculated score
+  // downward (e.g. user with high BMI and no body-fat% gets a lower factor than neutral).
   async recalculatePlungeStats(): Promise<number> {
     const result = await db.execute(sql`
       UPDATE plunges p
@@ -2349,7 +2355,27 @@ export class DatabaseStorage implements IStorage {
       FROM users u
       WHERE p.user_id = u.id
     `);
-    return (result as any).rowCount ?? (result as any).count ?? 0;
+    const plungeCount = (result as any).rowCount ?? (result as any).count ?? 0;
+
+    // Resync leaderboard_entries with the new best score per (location, username).
+    // This replaces whatever was stored before, so scores that decreased after
+    // recalculation (high-BMI users without body-fat%) are also corrected.
+    await db.execute(sql`
+      UPDATE leaderboard_entries le
+      SET score = sub.best_score
+      FROM (
+        SELECT u.username, p.location_id, MAX(p.score) AS best_score
+        FROM plunges p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.location_id IS NOT NULL
+          AND u.username IS NOT NULL
+        GROUP BY u.username, p.location_id
+      ) sub
+      WHERE le.username = sub.username
+        AND le.location_id = sub.location_id
+    `);
+
+    return plungeCount;
   }
 }
 
