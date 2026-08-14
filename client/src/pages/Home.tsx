@@ -619,6 +619,7 @@ export default function Home() {
 
   // Countdown
   const [countdownMode, setCountdownMode] = useState(() => localStorage.getItem("coldstreak-countdown-mode") === "true");
+  const [brainFreezeEnabled, setBrainFreezeEnabled] = useState(() => localStorage.getItem("coldstreak-brain-freeze") !== "false");
   const [countdown, setCountdown] = useState(0);
   const [countdownRunning, setCountdownRunning] = useState(false);
   const [countdownElapsed, setCountdownElapsed] = useState(0);
@@ -1823,7 +1824,7 @@ export default function Home() {
         let resolvedSeconds = secondsInput;
         if (data.displayPrefs) {
           try {
-            const prefs = JSON.parse(data.displayPrefs) as { useCelsius?: boolean; countdownMode?: boolean; countdownMinutes?: number; countdownSeconds?: number };
+            const prefs = JSON.parse(data.displayPrefs) as { useCelsius?: boolean; countdownMode?: boolean; countdownMinutes?: number; countdownSeconds?: number; brainFreezeEnabled?: boolean };
             if (typeof prefs.useCelsius === "boolean") {
               hasExplicitCelsius = true;
               setUseCelsius(prefs.useCelsius);
@@ -1843,6 +1844,10 @@ export default function Home() {
               resolvedSeconds = prefs.countdownSeconds;
               setSecondsInput(prefs.countdownSeconds);
               localStorage.setItem("coldstreak-countdown-seconds", String(prefs.countdownSeconds));
+            }
+            if (typeof prefs.brainFreezeEnabled === "boolean") {
+              setBrainFreezeEnabled(prefs.brainFreezeEnabled);
+              localStorage.setItem("coldstreak-brain-freeze", String(prefs.brainFreezeEnabled));
             }
           } catch { /* ignore malformed prefs */ }
         }
@@ -2053,8 +2058,8 @@ export default function Home() {
 
   // Save an edited account username from the Profile menu (validates + handles 409).
   // ── Persistent display preferences (timer only) ─────────────────────────
-  const saveDisplayPrefs = (prefs: { useCelsius?: boolean; countdownMode?: boolean; countdownMinutes?: number; countdownSeconds?: number }) => {
-    const merged = { useCelsius, countdownMode, countdownMinutes: minutesInput, countdownSeconds: secondsInput, ...prefs };
+  const saveDisplayPrefs = (prefs: { useCelsius?: boolean; countdownMode?: boolean; countdownMinutes?: number; countdownSeconds?: number; brainFreezeEnabled?: boolean }) => {
+    const merged = { useCelsius, countdownMode, countdownMinutes: minutesInput, countdownSeconds: secondsInput, brainFreezeEnabled, ...prefs };
     const tok = localStorage.getItem("coldstreak-auth-token");
     if (!tok) return;
     fetch("/api/auth/profile", {
@@ -4920,6 +4925,29 @@ export default function Home() {
                 </div>
               </div>
             )}
+
+            {/* Brain Freeze toggle */}
+            <div className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40">
+              <div className="flex items-center gap-2">
+                <span className="text-lg leading-none">🧠</span>
+                <div>
+                  <span className="text-white font-semibold text-sm">Brain Freeze</span>
+                  <p className="text-blue-400 text-xs">Trivia questions during your plunge</p>
+                </div>
+              </div>
+              <button
+                data-testid="button-toggle-brain-freeze"
+                onClick={() => {
+                  const next = !brainFreezeEnabled;
+                  setBrainFreezeEnabled(next);
+                  localStorage.setItem("coldstreak-brain-freeze", String(next));
+                  saveDisplayPrefs({ brainFreezeEnabled: next });
+                }}
+                className={`relative w-11 h-6 rounded-full transition-colors ${brainFreezeEnabled ? "bg-cyan-500" : "bg-blue-800/80"}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${brainFreezeEnabled ? "translate-x-5" : "translate-x-0"}`} />
+              </button>
+            </div>
 
             {/* Countdown timer mode */}
             <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
