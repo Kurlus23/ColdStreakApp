@@ -40,23 +40,23 @@ export function Complete() {
           </div>
 
           {/* Challenge split result — plunge winner vs trivia winner */}
-          <section className="mb-3 rounded-xl border border-orange-500 bg-gradient-to-r from-[#92400e] to-[#78350f] px-4 py-2.5">
-            <h2 className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-amber-200">⚔️ Match vs Rachael</h2>
+          <section className="mb-3 rounded-xl border border-orange-500/20 bg-gradient-to-r from-orange-500/15 to-amber-500/5 px-4 py-3 shadow-[0_0_15px_rgba(249,115,22,0.1)]">
+            <h2 className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-orange-500/70">⚔️ Match vs Rachael</h2>
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-[12px]">
-                <span className="flex items-center gap-1.5 text-slate-300">🥶 Plunge</span>
+                <span className="flex items-center gap-1.5 text-orange-400/80">🥶 Plunge</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-white">You ✓ &nbsp;4.2</span>
-                  <span className="text-slate-400 text-[10px]">vs</span>
-                  <span className="text-slate-300">Rachael &nbsp;3.8</span>
+                  <span className="font-extrabold text-orange-400 tracking-wide">You ✓ &nbsp;4.2</span>
+                  <span className="text-orange-500/40 text-[10px]">vs</span>
+                  <span className="text-orange-400/50">Rachael &nbsp;3.8</span>
                 </div>
               </div>
               <div className="flex items-center justify-between text-[12px]">
-                <span className="flex items-center gap-1.5 text-slate-300">🧠 Trivia</span>
+                <span className="flex items-center gap-1.5 text-orange-400/80">🧠 Trivia</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-300">You &nbsp;2,840 &nbsp;8/10</span>
-                  <span className="text-slate-400 text-[10px]">vs</span>
-                  <span className="font-bold text-white">Rachael ✓ &nbsp;3,500 &nbsp;10/10</span>
+                  <span className="text-orange-400/50">You &nbsp;2,840 &nbsp;8/10</span>
+                  <span className="text-orange-500/40 text-[10px]">vs</span>
+                  <span className="font-extrabold text-orange-400 tracking-wide">Rachael ✓ &nbsp;3,500 &nbsp;10/10</span>
                 </div>
               </div>
             </div>
