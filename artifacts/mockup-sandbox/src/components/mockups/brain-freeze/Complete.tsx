@@ -62,17 +62,6 @@ export function Complete() {
             </div>
           </section>
 
-          <section className="mb-3 flex items-center gap-3 rounded-xl border border-orange-500 bg-gradient-to-r from-[#92400e] to-[#78350f] px-4 py-2">
-            <span className="text-[21px] leading-none">🔥</span>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-[15px] font-bold leading-5 text-white">21-Day Streak!</h2>
-              <p className="mt-0.5 text-[11px] text-slate-300">Keep it alive</p>
-            </div>
-            <div className="flex flex-col items-end gap-0.5 text-[8px] font-semibold">
-              <span className="rounded-full bg-amber-300/20 px-1.5 py-0.5 text-amber-200">🔥 21</span>
-              <span className="rounded-full bg-slate-400/20 px-1.5 py-0.5 text-slate-300">📅 47 days this year</span>
-            </div>
-          </section>
 
           <section className="mb-3 rounded-xl border border-cyan-300/20 bg-[#0d1b35] px-4 py-3">
             <h2 className="mb-1 text-[10px] font-bold uppercase tracking-[0.17em] text-cyan-300">🧠 Brain Freeze Score</h2>
