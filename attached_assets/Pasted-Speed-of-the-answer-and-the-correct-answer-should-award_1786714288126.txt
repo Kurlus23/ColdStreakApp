@@ -1,0 +1,197 @@
+Speed of the answer and the correct answer should award points.  Even if you answer wrong but answer quickly you get points
+
+Yes — that's better game design than making wrong = zero. It introduces a second skill: knowing the answer and making a decision quickly.
+
+I'd make the score for each question have three pieces:
+
+🧠 Brain Freeze Question Score
+
+Base value × accuracy bonus × speed bonus
+
+But I'd actually keep the math visually simple for the player.
+
+Say every question is worth 100 points.
+
+Correct answer:
+
+Answer immediately → 100
+Answer halfway through → 75
+Answer near the deadline → 55
+
+Wrong answer:
+
+Answer immediately → 25
+Answer halfway through → 15
+Answer at the last second → 5
+
+So even:
+
+❌ Wrong — but you knew enough to take a shot quickly
++23
+
+That is psychologically much better than:
+
+❌ Wrong
+0
+
+You're rewarding engagement and decisiveness, not just knowledge.
+
+But I'd add a "Perfect Answer" bonus
+
+If they answer correctly and quickly, they get something special:
+
+⚡ PERFECT! +125
+
+That becomes the thing people chase.
+
+For example:
+
+Result	Score
+Correct + instant	125
+Correct + fast	110
+Correct + normal	90
+Correct + slow	60
+Wrong + instant	25
+Wrong + fast	20
+Wrong + normal	10
+Wrong + barely answered	5
+No answer	0
+
+The exact numbers can be tuned later. The important concept is:
+
+Every question is an opportunity to score.
+
+And this makes the 30-second timer really useful
+
+Imagine the question appears:
+
+00:00
+
+🧠 Which organ consumes the most oxygen at rest?
+
+A. Heart
+B. Brain
+C. Liver
+D. Lungs
+
+A little visual timer starts:
+
+15... 14... 13...
+
+They tap B at 3 seconds.
+
+⚡ PERFECT ANSWER
+
++125
+
+Then:
+
+Next question in 27 seconds
+
+Now they aren't just waiting for the next question.
+
+They're thinking:
+
+"Can I get another Perfect?"
+
+This also makes streaks much more interesting
+
+I'd actually change our earlier streak concept slightly.
+
+Instead of simply:
+
+5 correct answers = streak
+
+I'd have:
+
+🔥 Brain Streak
+
+Correct answers increase it.
+
+Fast correct answers increase it faster.
+
+For example:
+
+Correct + fast → 🔥🔥
+Correct + slow → 🔥
+Wrong → streak drops
+
+So you could get:
+
+Q1: Correct fast → 🔥🔥
+Q2: Correct fast → 🔥🔥🔥🔥
+Q3: Correct slow → 🔥🔥🔥🔥🔥
+Q4: Wrong fast → 🔥
+Q5: Correct fast → 🔥🔥🔥
+
+You didn't completely lose everything.
+
+That gives the player a reason to recover from a wrong answer.
+
+Now combine that with the plunge streak
+
+This is where your overall scoring system starts getting really elegant.
+
+Your final Brain Freeze score could essentially be:
+
+Trivia performance
+× Cold progression
+× Plunge streak
+
+So:
+
+Kevin — Day 1
+
+Trivia: 1,000
+Cold: ×1.5
+Streak: ×1.0
+
+= 1,500
+
+Kevin — Day 21
+
+Same exact trivia performance:
+
+Trivia: 1,000
+Cold: ×1.5
+Streak: ×2.0
+
+= 3,000
+
+But another player can beat Kevin if they're better at Brain Freeze.
+
+That's important.
+
+The streak gives you progression, but skill still wins the leaderboard.
+
+And there's one really cool thing about this system
+
+Speed becomes a risk/reward decision.
+
+You know the answer?
+
+Tap it immediately.
+
+Not sure?
+
+You have a few seconds to think.
+
+Think too long and the potential score drops.
+
+But if you genuinely don't know:
+
+Take a guess.
+
+You might still get points.
+
+That feels much more like a game than a trivia quiz.
+
+And it fits the cold plunge beautifully because you're sitting there with a finite amount of time. The question isn't simply:
+
+"Do you know the answer?"
+
+It's:
+
+"How quickly can you figure it out?"
+
+That's where Brain Freeze starts feeling like an actual game rather than trivia bolted onto a timer.
