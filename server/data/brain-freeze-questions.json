@@ -5,7 +5,11 @@
     "difficulty": "easy",
     "question": "What causes your body to shiver when cold?",
     "correct": "Rapid involuntary muscle contractions",
-    "wrong": ["Increased blood flow to skin", "Adrenaline release", "Fat cell activation"],
+    "wrong": [
+      "Increased blood flow",
+      "Adrenaline release",
+      "Fat cell activation"
+    ],
     "explanation": "Shivering generates heat purely through muscle movement — it can increase your metabolic heat production by 2 to 5 times above resting levels."
   },
   {
@@ -13,8 +17,12 @@
     "category": "Cold Science",
     "difficulty": "easy",
     "question": "Which blood vessels constrict during cold exposure?",
-    "correct": "Blood vessels near the skin",
-    "wrong": ["Blood vessels in the heart", "Blood vessels in the brain", "Pulmonary blood vessels"],
+    "correct": "Blood vessels near skin",
+    "wrong": [
+      "Heart blood vessels",
+      "Brain blood vessels",
+      "Pulmonary blood vessels"
+    ],
     "explanation": "Peripheral vasoconstriction reduces blood flow to your skin and limbs, conserving core heat. That's why your fingers go white in the cold."
   },
   {
@@ -22,8 +30,12 @@
     "category": "Cold Science",
     "difficulty": "easy",
     "question": "Why is cold water more intense than cold air at the same temperature?",
-    "correct": "Water conducts heat away much faster",
-    "wrong": ["Water has a lower temperature", "Air contains more oxygen", "Water activates more pain receptors"],
+    "correct": "Water conducts heat faster",
+    "wrong": [
+      "Lower water temperature",
+      "Air has more oxygen",
+      "Activates more pain receptors"
+    ],
     "explanation": "Water conducts heat roughly 25 times more efficiently than air. That's why 60°F water feels brutally cold while 60°F air feels mild."
   },
   {
@@ -31,8 +43,12 @@
     "category": "Cold Science",
     "difficulty": "easy",
     "question": "What is the body's primary purpose of vasoconstriction in the cold?",
-    "correct": "Reduce heat loss from the body",
-    "wrong": ["Increase blood pressure permanently", "Speed up digestion", "Boost immune cell production"],
+    "correct": "Reduce body heat loss",
+    "wrong": [
+      "Increase blood pressure",
+      "Speed up digestion",
+      "Boost immune cells"
+    ],
     "explanation": "By narrowing blood vessels near the surface, your body creates a thermal barrier — keeping warm blood closer to your vital organs."
   },
   {
@@ -41,7 +57,11 @@
     "difficulty": "easy",
     "question": "Which hormone spikes significantly during cold water immersion?",
     "correct": "Norepinephrine",
-    "wrong": ["Insulin", "Melatonin", "Estrogen"],
+    "wrong": [
+      "Insulin",
+      "Melatonin",
+      "Estrogen"
+    ],
     "explanation": "Cold exposure can increase circulating norepinephrine by 200–300%. This is linked to the alertness and mood lift many plungers report."
   },
   {
@@ -50,7 +70,11 @@
     "difficulty": "easy",
     "question": "What triggers the 'gasp' reflex when you enter cold water?",
     "correct": "Cold shock response",
-    "wrong": ["Low blood sugar", "Oxygen depletion", "Heart arrhythmia"],
+    "wrong": [
+      "Low blood sugar",
+      "Oxygen depletion",
+      "Heart arrhythmia"
+    ],
     "explanation": "The cold shock response causes involuntary gasping and hyperventilation within the first 30 seconds — the most dangerous window in cold water."
   },
   {
@@ -58,8 +82,12 @@
     "category": "Cold Science",
     "difficulty": "easy",
     "question": "What happens to breathing when you first enter cold water?",
-    "correct": "It becomes rapid and uncontrolled",
-    "wrong": ["It slows dramatically", "It stops briefly", "It becomes deeper and slower"],
+    "correct": "Rapid, uncontrolled breathing",
+    "wrong": [
+      "Slows dramatically",
+      "Stops briefly",
+      "Deeper and slower"
+    ],
     "explanation": "Hyperventilation during cold shock can lower CO₂ levels enough to cause dizziness or loss of consciousness — especially dangerous in open water."
   },
   {
@@ -68,7 +96,11 @@
     "difficulty": "easy",
     "question": "What type of fat generates heat without shivering?",
     "correct": "Brown adipose tissue",
-    "wrong": ["White adipose tissue", "Visceral fat", "Subcutaneous fat"],
+    "wrong": [
+      "White adipose tissue",
+      "Visceral fat",
+      "Subcutaneous fat"
+    ],
     "explanation": "Brown fat is packed with mitochondria and burns calories to generate heat directly. Cold exposure may stimulate its activity and growth."
   },
   {
@@ -77,7 +109,11 @@
     "difficulty": "easy",
     "question": "Which nervous system activates immediately during cold exposure?",
     "correct": "Sympathetic nervous system",
-    "wrong": ["Parasympathetic nervous system", "Somatic nervous system", "Enteric nervous system"],
+    "wrong": [
+      "Parasympathetic nervous system",
+      "Somatic nervous system",
+      "Enteric nervous system"
+    ],
     "explanation": "The sympathetic 'fight or flight' response drives vasoconstriction, heart rate changes, and norepinephrine release during cold immersion."
   },
   {
@@ -86,7 +122,11 @@
     "difficulty": "easy",
     "question": "Does cold exposure increase your body's energy expenditure?",
     "correct": "Yes",
-    "wrong": ["No", "Only in extreme cold", "Only during shivering"],
+    "wrong": [
+      "No",
+      "Only extreme cold",
+      "Only while shivering"
+    ],
     "explanation": "Both shivering thermogenesis and non-shivering thermogenesis (via brown fat) increase calorie burn. The exact amount varies widely by person and temperature."
   },
   {
@@ -94,8 +134,12 @@
     "category": "Cold Science",
     "difficulty": "medium",
     "question": "What is non-shivering thermogenesis?",
-    "correct": "Heat generation without muscle contractions",
-    "wrong": ["Heat loss through sweating", "Heat from digestion", "Warmth from skin blood flow"],
+    "correct": "Heat without muscle contractions",
+    "wrong": [
+      "Heat from sweating",
+      "Heat from digestion",
+      "Warmth from blood flow"
+    ],
     "explanation": "Non-shivering thermogenesis happens mainly in brown adipose tissue and is driven by the uncoupling protein UCP1, which burns fat as heat instead of making ATP."
   },
   {
@@ -103,8 +147,12 @@
     "category": "Cold Science",
     "difficulty": "medium",
     "question": "What is cold habituation?",
-    "correct": "Reduced physiological response with repeated exposure",
-    "wrong": ["Building immunity to cold", "Permanent core temp lowering", "Increased shivering over time"],
+    "correct": "Reduced response with exposure",
+    "wrong": [
+      "Building cold immunity",
+      "Lowering core temperature",
+      "Increased shivering"
+    ],
     "explanation": "With repeated cold exposure, your cold shock response weakens — the gasping and heart rate surge diminish. This doesn't mean you're immune to hypothermia."
   },
   {
@@ -113,7 +161,11 @@
     "difficulty": "medium",
     "question": "Can cold adaptation reduce the cold-shock response intensity?",
     "correct": "Yes",
-    "wrong": ["No, it's hardwired", "Only in children", "Only after 10+ years"],
+    "wrong": [
+      "No, it's hardwired",
+      "Only in children",
+      "Only after years"
+    ],
     "explanation": "Studies show regular cold swimmers have significantly blunted cold-shock responses — less gasping, smaller heart rate spikes, and more controlled breathing."
   },
   {
@@ -122,7 +174,11 @@
     "difficulty": "medium",
     "question": "Does feeling comfortable in cold water mean your core temperature is safe?",
     "correct": "No",
-    "wrong": ["Yes", "Only if you've plunged before", "Yes, if water is above 50°F"],
+    "wrong": [
+      "Yes",
+      "If plunged before",
+      "If above 50F"
+    ],
     "explanation": "Experienced plungers can feel calm while their core temperature is still falling. Comfort can create false confidence — always respect time limits."
   },
   {
@@ -131,7 +187,11 @@
     "difficulty": "medium",
     "question": "What protein is key to brown fat's heat-generating ability?",
     "correct": "Uncoupling protein 1 (UCP1)",
-    "wrong": ["Collagen", "Myosin", "Leptin"],
+    "wrong": [
+      "Collagen",
+      "Myosin",
+      "Leptin"
+    ],
     "explanation": "UCP1 'uncouples' the mitochondrial electron transport chain from ATP production, releasing energy as heat instead of storing it — making brown fat a natural furnace."
   },
   {
@@ -140,7 +200,11 @@
     "difficulty": "medium",
     "question": "What happens to skin blood flow during cold immersion?",
     "correct": "It decreases significantly",
-    "wrong": ["It increases to warm the skin", "It stays the same", "It oscillates rapidly"],
+    "wrong": [
+      "It increases",
+      "It stays same",
+      "It oscillates"
+    ],
     "explanation": "Peripheral vasoconstriction can reduce skin blood flow by up to 80%, shunting warm blood to your core and creating that characteristic cold, pale skin."
   },
   {
@@ -148,8 +212,12 @@
     "category": "Cold Science",
     "difficulty": "medium",
     "question": "What is the 'afterdrop' phenomenon after cold immersion?",
-    "correct": "Core temperature keeps falling after exiting cold water",
-    "wrong": ["A surge of warmth after exiting", "Shivering that stops suddenly", "Blood pressure dropping on exit"],
+    "correct": "Core temperature falls after exit",
+    "wrong": [
+      "Surge of warmth",
+      "Shivering stops suddenly",
+      "Blood pressure drops"
+    ],
     "explanation": "When you exit cold water, cold blood from your extremities flows back to your core, continuing to lower core temperature for several minutes after you leave."
   },
   {
@@ -158,7 +226,11 @@
     "difficulty": "medium",
     "question": "Which nerve is often cited in cold exposure's effect on stress regulation?",
     "correct": "Vagus nerve",
-    "wrong": ["Sciatic nerve", "Trigeminal nerve", "Optic nerve"],
+    "wrong": [
+      "Sciatic nerve",
+      "Trigeminal nerve",
+      "Optic nerve"
+    ],
     "explanation": "The vagus nerve is the main highway of the parasympathetic system. Cold exposure may stimulate vagal tone, potentially supporting stress recovery and heart rate variability."
   },
   {
@@ -167,7 +239,11 @@
     "difficulty": "medium",
     "question": "Does cold water immersion cause significant fat loss on its own?",
     "correct": "No",
-    "wrong": ["Yes, immediately", "Yes, over 4 weeks", "Yes, but only in combination with exercise"],
+    "wrong": [
+      "Yes, immediately",
+      "Yes, over weeks",
+      "Yes, with exercise"
+    ],
     "explanation": "While cold increases energy expenditure, the effect is modest and variable. Cold plunging is not a reliable fat-loss tool by itself — the wellness benefits lie elsewhere."
   },
   {
@@ -175,8 +251,12 @@
     "category": "Cold Science",
     "difficulty": "medium",
     "question": "What causes the skin to turn red after leaving cold water?",
-    "correct": "Vasodilation as blood returns to the skin",
-    "wrong": ["Inflammation from cold damage", "Release of histamine", "Increased white blood cells"],
+    "correct": "Vasodilation",
+    "wrong": [
+      "Inflammation",
+      "Histamine release",
+      "White blood cells"
+    ],
     "explanation": "As your body warms back up, blood vessels dilate and flood the skin with warm blood — the same mechanism behind the classic 'lobster' look after a plunge."
   },
   {
@@ -184,8 +264,12 @@
     "category": "Cold Science",
     "difficulty": "medium",
     "question": "At what core body temperature does shivering typically begin?",
-    "correct": "Around 35–36°C (95–97°F)",
-    "wrong": ["Below 30°C (86°F)", "Below 32°C (90°F)", "Only when skin temp drops below 20°C"],
+    "correct": "35-36C (95-97F)",
+    "wrong": [
+      "Below 30C",
+      "Below 32C",
+      "Below 20C skin"
+    ],
     "explanation": "Shivering is an early defense mechanism triggered well before dangerous hypothermia sets in. It's your body buying time to restore core temperature."
   },
   {
@@ -193,8 +277,12 @@
     "category": "Cold Science",
     "difficulty": "medium",
     "question": "Does cold water immersion increase adiponectin levels?",
-    "correct": "Some research suggests yes",
-    "wrong": ["No, it suppresses it", "It has no effect", "Only in women"],
+    "correct": "Research suggests yes",
+    "wrong": [
+      "No, suppresses it",
+      "No effect",
+      "Only in women"
+    ],
     "explanation": "Adiponectin is an anti-inflammatory hormone linked to insulin sensitivity. Early research suggests cold exposure may modestly increase it, though evidence is still developing."
   },
   {
@@ -202,8 +290,12 @@
     "category": "Cold Science",
     "difficulty": "hard",
     "question": "What is the primary danger during the first 30 seconds of cold water immersion?",
-    "correct": "Cold shock response causing uncontrolled breathing",
-    "wrong": ["Hypothermia onset", "Cardiac arrest from cold", "Blood clotting"],
+    "correct": "Uncontrolled breathing",
+    "wrong": [
+      "Hypothermia onset",
+      "Cardiac arrest",
+      "Blood clotting"
+    ],
     "explanation": "Drowning risk is highest in the first 90 seconds due to cold shock. Gasping underwater is fatal — seasoned cold swimmers train breath control specifically for this window."
   },
   {
@@ -211,8 +303,12 @@
     "category": "Cold Science",
     "difficulty": "hard",
     "question": "Why is breath-holding immediately after cold immersion dangerous?",
-    "correct": "Cold shock causes involuntary inhalation",
-    "wrong": ["It raises core temperature too fast", "It prevents shivering", "It causes immediate hypothermia"],
+    "correct": "Involuntary inhalation",
+    "wrong": [
+      "Raises core temperature",
+      "Prevents shivering",
+      "Immediate hypothermia"
+    ],
     "explanation": "The cold-shock-induced gasp reflex is involuntary. If you're underwater and gasp, you inhale water. This is why jumping into cold water and submerging immediately is risky."
   },
   {
@@ -220,8 +316,12 @@
     "category": "Cold Science",
     "difficulty": "hard",
     "question": "Cold shock proteins (CSPs) primarily help cells by:",
-    "correct": "Stabilizing RNA and proteins at low temperatures",
-    "wrong": ["Generating heat in muscle cells", "Triggering vasoconstriction", "Activating the immune response"],
+    "correct": "Stabilizing RNA and proteins",
+    "wrong": [
+      "Generating muscle heat",
+      "Triggering vasoconstriction",
+      "Activating immune response"
+    ],
     "explanation": "Cold shock proteins are molecular chaperones — they prevent RNA and proteins from misfolding when temperature drops suddenly, keeping cellular machinery functional."
   },
   {
@@ -229,8 +329,12 @@
     "category": "Cold Science",
     "difficulty": "hard",
     "question": "What does hormesis mean in the context of cold exposure?",
-    "correct": "A beneficial response to a low dose of a stressor",
-    "wrong": ["An allergic reaction to cold", "Permanent cold tolerance", "Heat generation by hormones"],
+    "correct": "Beneficial low-stressor response",
+    "wrong": [
+      "Cold allergic reaction",
+      "Permanent cold tolerance",
+      "Hormonal heat generation"
+    ],
     "explanation": "Hormesis is the principle that moderate stress — including cold — triggers adaptive responses that make you more resilient. Too little has no effect; too much causes harm."
   },
   {
@@ -238,8 +342,12 @@
     "category": "Cold Science",
     "difficulty": "hard",
     "question": "What is the 'hunting reaction' or Lewis waves in cold hands?",
-    "correct": "Cycles of vasoconstriction and vasodilation in cold extremities",
-    "wrong": ["Involuntary hand tremors", "Numbness followed by pain", "Blood pooling in the fingers"],
+    "correct": "Vasoconstriction and vasodilation cycles",
+    "wrong": [
+      "Involuntary hand tremors",
+      "Numbness then pain",
+      "Blood finger pooling"
+    ],
     "explanation": "Named after O.J. Lewis in 1930, these 8–10 minute cycles of cold constriction followed by warm flushing protect fingers from frostbite by delivering periodic bursts of warm blood."
   },
   {
@@ -247,8 +355,12 @@
     "category": "Cold Science",
     "difficulty": "easy",
     "question": "Does cold water feel colder at 45°F than a cold room at 45°F?",
-    "correct": "Yes — water conducts heat away faster",
-    "wrong": ["No, temperature is the same", "Only if you're submerged", "No, air feels colder due to wind"],
+    "correct": "Yes - faster conduction",
+    "wrong": [
+      "No, same temperature",
+      "Only if submerged",
+      "No, air feels colder"
+    ],
     "explanation": "Temperature is the same, but perceived intensity differs enormously. Water's thermal conductivity makes it pull heat from your body far more aggressively than still air."
   },
   {
@@ -256,8 +368,12 @@
     "category": "Cold Science",
     "difficulty": "medium",
     "question": "When does the cold-shock response peak?",
-    "correct": "Within the first 30–90 seconds of immersion",
-    "wrong": ["After 5 minutes", "After 10 minutes", "Only on first exposure ever"],
+    "correct": "Within 30-90 seconds",
+    "wrong": [
+      "After 5 minutes",
+      "After 10 minutes",
+      "First exposure only"
+    ],
     "explanation": "Cold shock is maximal in the first 90 seconds as thermoreceptors fire intensely. This is why getting past the first minute is the hardest part of a cold plunge."
   },
   {
@@ -265,8 +381,12 @@
     "category": "Cold Science",
     "difficulty": "medium",
     "question": "How does cold exposure affect norepinephrine compared to normal resting levels?",
-    "correct": "It can increase it by 200–300%",
-    "wrong": ["It doubles it", "It reduces it slightly", "It has no significant effect"],
+    "correct": "Increase 200-300%",
+    "wrong": [
+      "It doubles",
+      "Reduces slightly",
+      "No significant effect"
+    ],
     "explanation": "Research by Huttunen et al. found cold water immersion dramatically elevates norepinephrine — a key driver of the focus and mood effects associated with cold plunging."
   },
   {
@@ -275,7 +395,11 @@
     "difficulty": "easy",
     "question": "What color does skin typically turn from vasoconstriction in cold?",
     "correct": "Pale or white",
-    "wrong": ["Red", "Blue immediately", "Yellow"],
+    "wrong": [
+      "Red",
+      "Blue",
+      "Yellow"
+    ],
     "explanation": "Reduced blood flow to the skin makes it look pale or white. Skin turns bluish (cyanosis) only if oxygen drops significantly — a sign to get out."
   },
   {
@@ -284,7 +408,11 @@
     "difficulty": "easy",
     "question": "Can cold exposure acclimation be lost if you stop regular exposure?",
     "correct": "Yes",
-    "wrong": ["No, it's permanent", "Only after 1 year without exposure", "No, it's genetic"],
+    "wrong": [
+      "No, it's permanent",
+      "Only after years",
+      "No, it's genetic"
+    ],
     "explanation": "Cold acclimation fades within weeks to months without regular cold exposure. Like fitness, it requires consistent practice to maintain."
   },
   {
@@ -293,7 +421,11 @@
     "difficulty": "medium",
     "question": "What primarily drives heat loss when swimming in cold water?",
     "correct": "Conduction and convection",
-    "wrong": ["Radiation only", "Evaporation", "Breathing"],
+    "wrong": [
+      "Radiation only",
+      "Evaporation",
+      "Breathing"
+    ],
     "explanation": "Moving water constantly sweeps away the thin warm layer around your skin (convection) while directly conducting heat out of your body — a brutal combination."
   },
   {
@@ -301,8 +433,12 @@
     "category": "Cold Science",
     "difficulty": "hard",
     "question": "Why might post-exercise cold immersion reduce muscle hypertrophy?",
-    "correct": "It blunts inflammation needed for muscle adaptation",
-    "wrong": ["It burns muscle protein for heat", "It dehydrates muscle cells", "It raises cortisol permanently"],
+    "correct": "Blunts muscle inflammation",
+    "wrong": [
+      "Burns muscle protein",
+      "Dehydrates muscle cells",
+      "Raises cortisol"
+    ],
     "explanation": "Inflammation post-workout is part of the adaptive signal for muscle growth. Cold may suppress this signal. Some research suggests avoiding cold immersion immediately after strength training."
   },
   {
@@ -310,8 +446,12 @@
     "category": "Cold Science",
     "difficulty": "medium",
     "question": "What is the role of thermoreceptors in cold exposure?",
-    "correct": "Detect temperature changes and signal the brain",
-    "wrong": ["Generate body heat", "Store cold energy", "Control vasoconstriction directly"],
+    "correct": "Detect and signal changes",
+    "wrong": [
+      "Generate body heat",
+      "Store cold energy",
+      "Control vasoconstriction"
+    ],
     "explanation": "TRPM8 ion channels in the skin act as cold sensors, firing rapidly when temperature drops and sending signals that trigger the cold-shock cascade within milliseconds."
   },
   {
@@ -319,8 +459,12 @@
     "category": "Cold Science",
     "difficulty": "easy",
     "question": "Is it safe to submerge your head during a cold plunge?",
-    "correct": "Generally yes, but with caution",
-    "wrong": ["Always dangerous", "Completely safe always", "Beneficial for all users"],
+    "correct": "Yes, with caution",
+    "wrong": [
+      "Always dangerous",
+      "Always safe",
+      "Beneficial for all"
+    ],
     "explanation": "Head submersion triggers the diving reflex and can cause rapid heart rate changes. People with heart conditions or high blood pressure should be especially cautious."
   },
   {
@@ -328,8 +472,12 @@
     "category": "Cold Science",
     "difficulty": "medium",
     "question": "What is the diving reflex triggered by cold water on the face?",
-    "correct": "Heart rate slows and blood shifts to core",
-    "wrong": ["Heart rate spikes", "Breathing deepens", "Lungs fill with air automatically"],
+    "correct": "Slow heart rate",
+    "wrong": [
+      "Heart rate spikes",
+      "Breathing deepens",
+      "Lungs fill automatically"
+    ],
     "explanation": "The mammalian dive reflex slows heart rate and constricts peripheral vessels to preserve oxygen for the brain and heart — it's triggered by cold water on the face."
   },
   {
@@ -338,7 +486,11 @@
     "difficulty": "hard",
     "question": "Which hormone does NOT reliably increase with a standard cold plunge?",
     "correct": "Testosterone",
-    "wrong": ["Norepinephrine", "Cortisol briefly", "Adrenaline"],
+    "wrong": [
+      "Norepinephrine",
+      "Cortisol",
+      "Adrenaline"
+    ],
     "explanation": "Despite popular wellness claims, rigorous research does not consistently show cold plunging increases testosterone. Norepinephrine and adrenaline responses are well-documented; testosterone is not."
   },
   {
@@ -346,8 +498,12 @@
     "category": "Cold Science",
     "difficulty": "medium",
     "question": "What does cold exposure do to your heart rate initially?",
-    "correct": "Causes it to spike rapidly",
-    "wrong": ["Immediately slows it", "Has no effect in the first minute", "Causes irregular heartbeat always"],
+    "correct": "Spikes rapidly",
+    "wrong": [
+      "Immediately slows",
+      "No initial effect",
+      "Irregular heartbeat"
+    ],
     "explanation": "The cold shock response initially accelerates heart rate as the sympathetic system fires. This can make the first moments feel alarming — it's normal and typically subsides."
   },
   {
@@ -356,7 +512,11 @@
     "difficulty": "easy",
     "question": "True or false: shivering requires energy.",
     "correct": "True",
-    "wrong": ["False", "Only in prolonged shivering", "False — it releases stored heat"],
+    "wrong": [
+      "False",
+      "Only prolonged",
+      "False - releases heat"
+    ],
     "explanation": "Shivering consumes ATP just like any muscle activity. That's why people feel exhausted after prolonged exposure to cold — the body has been burning fuel for hours."
   },
   {
@@ -364,8 +524,12 @@
     "category": "Cold Science",
     "difficulty": "hard",
     "question": "What is the approximate water temperature below which cold shock is most pronounced?",
-    "correct": "Below 15°C (59°F)",
-    "wrong": ["Below 25°C (77°F)", "Below 10°C (50°F) only", "Below 5°C (41°F) only"],
+    "correct": "Below 15C (59F)",
+    "wrong": [
+      "Below 25C",
+      "Below 10C",
+      "Below 5C"
+    ],
     "explanation": "Research by Tipton et al. identifies water below 15°C as the threshold for significant cold-shock response. This covers most cold plunge setups, which run 10–13°C."
   },
   {
@@ -374,7 +538,11 @@
     "difficulty": "medium",
     "question": "Can you become immune to hypothermia through cold adaptation?",
     "correct": "No",
-    "wrong": ["Yes, with enough practice", "Yes, after 5 years", "Yes, in trained athletes"],
+    "wrong": [
+      "Yes, with practice",
+      "Yes, after years",
+      "Yes, trained athletes"
+    ],
     "explanation": "Cold adaptation reduces your discomfort and cold-shock response but does not prevent core temperature loss. Experienced plungers can still get dangerously hypothermic."
   },
   {
@@ -383,7 +551,11 @@
     "difficulty": "easy",
     "question": "What is the process of generating heat through shivering called?",
     "correct": "Shivering thermogenesis",
-    "wrong": ["Non-shivering thermogenesis", "Metabolic convection", "Thermal compensation"],
+    "wrong": [
+      "Non-shivering thermogenesis",
+      "Metabolic convection",
+      "Thermal compensation"
+    ],
     "explanation": "Shivering thermogenesis can produce up to 5x resting metabolic heat output — a powerful emergency heating system that kicks in before your core temperature drops critically."
   },
   {
@@ -391,8 +563,12 @@
     "category": "Cold Science",
     "difficulty": "medium",
     "question": "Where is brown adipose tissue primarily found in adults?",
-    "correct": "Neck, collarbone area, and around organs",
-    "wrong": ["Primarily in the legs", "Under the skin of the abdomen", "Only in newborns"],
+    "correct": "Neck and organs",
+    "wrong": [
+      "Legs",
+      "Abdominal skin",
+      "Only in newborns"
+    ],
     "explanation": "Adults retain brown fat mainly in the supraclavicular region and around the spine and kidneys. Cold exposure and exercise may activate and expand these depots."
   },
   {
@@ -400,8 +576,12 @@
     "category": "Cold Science",
     "difficulty": "hard",
     "question": "What happens to insulin sensitivity after repeated cold exposure?",
-    "correct": "It may improve modestly in some research",
-    "wrong": ["It definitively doubles", "It decreases with each session", "There is no effect whatsoever"],
+    "correct": "May improve modestly",
+    "wrong": [
+      "Definitively doubles",
+      "Decreases",
+      "No effect"
+    ],
     "explanation": "Some studies suggest cold exposure can improve glucose uptake and insulin sensitivity, potentially through brown fat activation and muscle contraction — but results are not yet definitive."
   },
   {
@@ -409,8 +589,12 @@
     "category": "Cold Science",
     "difficulty": "easy",
     "question": "Does a longer cold plunge always produce better results?",
-    "correct": "No — diminishing returns and risks increase",
-    "wrong": ["Yes, longer is always better", "Yes, up to 30 minutes", "Only if water is warmer"],
+    "correct": "No - diminishing returns",
+    "wrong": [
+      "Yes, longer is better",
+      "Yes, to 30 minutes",
+      "Only if warmer"
+    ],
     "explanation": "Benefits from cold exposure appear to plateau, while hypothermia risk grows with time. Most research protocols use 2–10 minutes. More is not always more."
   },
   {
@@ -418,8 +602,12 @@
     "category": "Cold Science",
     "difficulty": "medium",
     "question": "Why do extremities (hands and feet) get cold first?",
-    "correct": "Peripheral vasoconstriction reduces blood flow there",
-    "wrong": ["They have less fat insulation", "They have fewer blood vessels", "They are furthest from the lungs"],
+    "correct": "Peripheral vasoconstriction",
+    "wrong": [
+      "Less fat insulation",
+      "Fewer blood vessels",
+      "Distance from lungs"
+    ],
     "explanation": "Vasoconstriction prioritizes blood flow to the body's core. Hands and feet — with high surface-area-to-volume ratios — lose heat fastest and get the least warm blood."
   },
   {
@@ -427,8 +615,12 @@
     "category": "Cold Science",
     "difficulty": "hard",
     "question": "What is the TRPM8 receptor's role in cold exposure?",
-    "correct": "It detects cold temperatures in the skin",
-    "wrong": ["It triggers vasoconstriction", "It produces norepinephrine", "It regulates core body temperature"],
+    "correct": "Detects skin cold",
+    "wrong": [
+      "Triggers vasoconstriction",
+      "Produces norepinephrine",
+      "Regulates core temperature"
+    ],
     "explanation": "TRPM8 is the primary cold sensor ion channel in sensory neurons — it's activated by temperatures below ~26°C and by menthol, which explains why mint feels 'cool.'"
   },
   {
@@ -436,8 +628,12 @@
     "category": "Cold Science",
     "difficulty": "easy",
     "question": "What is the recommended safe minimum temperature for a cold plunge?",
-    "correct": "There is no single universal standard",
-    "wrong": ["Exactly 32°F (0°C)", "Exactly 40°F (4°C)", "Exactly 50°F (10°C)"],
+    "correct": "No universal standard",
+    "wrong": [
+      "Exactly 32F",
+      "Exactly 40F",
+      "Exactly 50F"
+    ],
     "explanation": "Safe temperatures depend on individual health, experience, and duration. Most practitioners use 50–59°F (10–15°C) for beginners. Always start warmer and shorter."
   },
   {
@@ -445,8 +641,12 @@
     "category": "Cold Science",
     "difficulty": "medium",
     "question": "Can regular cold plunging change how you perceive cold over time?",
-    "correct": "Yes — it feels less intense",
-    "wrong": ["No, perception never changes", "Yes, it gets worse over time", "Only for water, not air"],
+    "correct": "Yes - feels less intense",
+    "wrong": [
+      "No, never changes",
+      "Yes, gets worse",
+      "Only for water"
+    ],
     "explanation": "Cold habituation reduces both the physiological response and the subjective perception of cold. Many regular plungers report what felt unbearable after weeks feels manageable."
   },
   {
@@ -455,7 +655,11 @@
     "difficulty": "easy",
     "question": "Which neurotransmitter is strongly linked to alertness after a cold plunge?",
     "correct": "Norepinephrine",
-    "wrong": ["Serotonin", "GABA", "Oxytocin"],
+    "wrong": [
+      "Serotonin",
+      "GABA",
+      "Oxytocin"
+    ],
     "explanation": "Norepinephrine is the brain's alertness chemical. Cold exposure spikes it dramatically, which is why many people feel mentally sharp and clear immediately after plunging."
   },
   {
@@ -464,7 +668,11 @@
     "difficulty": "easy",
     "question": "Does cold exposure activate the sympathetic nervous system?",
     "correct": "Yes",
-    "wrong": ["No", "Only in extreme cold", "Only the parasympathetic"],
+    "wrong": [
+      "No",
+      "Only in extreme cold",
+      "Only parasympathetic"
+    ],
     "explanation": "Sympathetic activation during cold immersion drives the cascade of responses: increased heart rate, vasoconstriction, adrenaline release, and heightened alertness."
   },
   {
@@ -472,8 +680,12 @@
     "category": "Brain & Performance",
     "difficulty": "easy",
     "question": "Why do some people feel euphoric after a cold plunge?",
-    "correct": "Release of endorphins and neurotransmitters",
-    "wrong": ["Oxygen deprivation", "Blood pressure normalization", "Warming of the brain"],
+    "correct": "Endorphins and neurotransmitters",
+    "wrong": [
+      "Oxygen deprivation",
+      "Blood pressure issues",
+      "Warming brain"
+    ],
     "explanation": "Cold stress triggers endorphin release and elevates dopamine and norepinephrine. This cocktail creates the 'post-plunge high' many cold plungers describe."
   },
   {
@@ -482,7 +694,11 @@
     "difficulty": "easy",
     "question": "What happens to fine motor control with significant cold exposure?",
     "correct": "It decreases",
-    "wrong": ["It improves temporarily", "It stays the same", "It improves then decreases"],
+    "wrong": [
+      "It improves temporarily",
+      "It stays unchanged",
+      "Improves then decreases"
+    ],
     "explanation": "As your hands cool, nerve conduction slows and muscle coordination degrades. This is why typing, threading, or delicate tasks become nearly impossible in cold hands."
   },
   {
@@ -491,7 +707,11 @@
     "difficulty": "easy",
     "question": "Does cognitive performance stay intact when someone becomes significantly hypothermic?",
     "correct": "No, it deteriorates",
-    "wrong": ["Yes, the brain is protected", "Yes, for up to an hour", "Only verbal skills suffer"],
+    "wrong": [
+      "Yes, brain protected",
+      "Yes, for an hour",
+      "Only verbal skills"
+    ],
     "explanation": "As core temperature drops below 35°C, confusion, slurred speech, and poor decision-making emerge. Hypothermic victims often feel warm and remove clothing — a fatal error."
   },
   {
@@ -500,7 +720,11 @@
     "difficulty": "medium",
     "question": "Does feeling mentally energized post-plunge mean core temperature has risen?",
     "correct": "No",
-    "wrong": ["Yes", "Only in experienced plungers", "Yes, within 10 minutes"],
+    "wrong": [
+      "Yes",
+      "Only experienced users",
+      "Yes, within minutes"
+    ],
     "explanation": "The mental energy boost comes from neurotransmitter changes, not core temperature recovery. Your body may still be warming up while your mind already feels sharp."
   },
   {
@@ -508,8 +732,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "What is deliberate discomfort and why do cold plungers value it?",
-    "correct": "Intentional stress exposure to build resilience",
-    "wrong": ["A pain management technique", "Ignoring physical pain signals", "A form of punishment training"],
+    "correct": "Building resilience through stress",
+    "wrong": [
+      "Pain management technique",
+      "Ignoring physical pain",
+      "Form of punishment"
+    ],
     "explanation": "Deliberately choosing discomfort — like cold water — trains your nervous system to handle stress better. The mental skill of staying calm in cold transfers to other high-pressure situations."
   },
   {
@@ -517,8 +745,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "How does cold exposure potentially benefit dopamine levels?",
-    "correct": "It may produce a sustained dopamine elevation",
-    "wrong": ["It immediately doubles dopamine", "It depletes dopamine temporarily", "It has no effect on dopamine"],
+    "correct": "Sustained dopamine elevation",
+    "wrong": [
+      "Doubles dopamine immediately",
+      "Temporarily depletes dopamine",
+      "Has no effect"
+    ],
     "explanation": "Research by Søberg et al. suggests cold water immersion can increase dopamine levels by up to 250%, with effects lasting hours — more prolonged than many acute dopamine triggers."
   },
   {
@@ -526,8 +758,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "What is 'stress inoculation' in the context of cold plunging?",
-    "correct": "Using cold stress to become more stress-resilient",
-    "wrong": ["A medical treatment for anxiety", "Preventing illness through cold", "Numbing yourself to stress"],
+    "correct": "Using stress for resilience",
+    "wrong": [
+      "Anxiety medical treatment",
+      "Preventing illness",
+      "Numbing to stress"
+    ],
     "explanation": "Stress inoculation is exposing yourself to manageable stress doses to train your nervous system. Cold plunging is one of the purest physical forms of this practice."
   },
   {
@@ -536,7 +772,11 @@
     "difficulty": "medium",
     "question": "Can cold exposure help with mood in some people?",
     "correct": "Evidence suggests it may",
-    "wrong": ["No evidence exists", "It reliably cures depression", "Only in warm climates"],
+    "wrong": [
+      "No evidence",
+      "Reliably cures depression",
+      "Only in warm climates"
+    ],
     "explanation": "Case studies and small trials suggest cold water immersion can reduce depressive symptoms in some people, possibly via norepinephrine and endorphin elevation — but it's not a replacement for treatment."
   },
   {
@@ -544,8 +784,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "What role does cortisol play during a cold plunge?",
-    "correct": "It spikes briefly as part of the stress response",
-    "wrong": ["It stays suppressed", "It chronically elevates", "It has no role"],
+    "correct": "Brief stress response spike",
+    "wrong": [
+      "Stays suppressed",
+      "Chronically elevates",
+      "Has no role"
+    ],
     "explanation": "Short-term cortisol spikes during cold are normal acute stress responses. Unlike chronic stress, brief cortisol elevations during cold are not considered harmful and may promote adaptation."
   },
   {
@@ -553,8 +797,12 @@
     "category": "Brain & Performance",
     "difficulty": "hard",
     "question": "Why might cold plunging improve mental clarity more than a hot shower?",
-    "correct": "Cold drives a larger catecholamine surge",
-    "wrong": ["Hot showers cause drowsiness", "Cold increases brain oxygen", "Hot water suppresses dopamine"],
+    "correct": "Larger catecholamine surge",
+    "wrong": [
+      "Hot showers cause drowsiness",
+      "Cold increases oxygen",
+      "Hot water suppresses dopamine"
+    ],
     "explanation": "Catecholamines (norepinephrine, dopamine, adrenaline) spike dramatically in cold — far more than in heat. This neurochemical surge is likely responsible for cold's superior alertness boost."
   },
   {
@@ -563,7 +811,11 @@
     "difficulty": "hard",
     "question": "What brain region is heavily involved in the emotional/cognitive response to cold?",
     "correct": "Anterior cingulate cortex",
-    "wrong": ["Cerebellum", "Occipital lobe", "Broca's area"],
+    "wrong": [
+      "Cerebellum",
+      "Occipital lobe",
+      "Broca's area"
+    ],
     "explanation": "The anterior cingulate cortex processes interoception and discomfort, and is activated strongly by cold. Deliberately staying calm during cold trains this region's regulation capacity."
   },
   {
@@ -571,8 +823,12 @@
     "category": "Brain & Performance",
     "difficulty": "hard",
     "question": "What is the likely mechanism behind cold plunging's alertness effect the next morning?",
-    "correct": "Prolonged dopamine and norepinephrine elevation",
-    "wrong": ["Better sleep quality alone", "Reduced melatonin production", "Caffeine-like adenosine blocking"],
+    "correct": "Prolonged dopamine, norepinephrine elevation",
+    "wrong": [
+      "Better sleep quality",
+      "Reduced melatonin",
+      "Adenosine blocking"
+    ],
     "explanation": "Research suggests catecholamine elevation from cold immersion can persist for hours, potentially explaining why many plungers report feeling sharper not just immediately after but the following day."
   },
   {
@@ -581,7 +837,11 @@
     "difficulty": "easy",
     "question": "Does controlled breathing help manage the cold-shock response?",
     "correct": "Yes",
-    "wrong": ["No, it's fully involuntary", "Only before entering water", "Only for experienced swimmers"],
+    "wrong": [
+      "No, fully involuntary",
+      "Only before water",
+      "Only experienced swimmers"
+    ],
     "explanation": "Slow, controlled exhales can help override the gasping reflex by activating the parasympathetic system. This is a core skill for cold swimmers and plungers."
   },
   {
@@ -589,8 +849,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "What is the 'top-down' cognitive benefit cold training may develop?",
-    "correct": "Better voluntary control over stress responses",
-    "wrong": ["Photographic memory", "Faster reaction time in sports", "Improved long-term memory"],
+    "correct": "Better voluntary stress control",
+    "wrong": [
+      "Photographic memory",
+      "Faster reaction time",
+      "Improved long-term memory"
+    ],
     "explanation": "Learning to control your reaction to cold — to stay calm when your body screams to escape — may strengthen prefrontal regulation of the amygdala's fear response."
   },
   {
@@ -598,8 +862,12 @@
     "category": "Brain & Performance",
     "difficulty": "easy",
     "question": "Does plunging immediately before a big task boost performance for some people?",
-    "correct": "Anecdotally, many report yes",
-    "wrong": ["It always impairs performance", "Only for athletes", "There is no evidence at all"],
+    "correct": "Anecdotally, many say yes",
+    "wrong": [
+      "Always impairs performance",
+      "Only for athletes",
+      "No evidence at all"
+    ],
     "explanation": "While large controlled trials are limited, the norepinephrine and dopamine spike from cold may genuinely boost focus, motivation, and mental readiness in the short term."
   },
   {
@@ -607,8 +875,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "Can cold exposure reduce symptoms of anxiety for some individuals?",
-    "correct": "Some evidence suggests it may",
-    "wrong": ["It reliably eliminates anxiety", "No evidence exists", "It always worsens anxiety"],
+    "correct": "Some evidence suggests it",
+    "wrong": [
+      "Reliably eliminates anxiety",
+      "No evidence exists",
+      "Always worsens anxiety"
+    ],
     "explanation": "Cold water immersion activates the same physiological systems as anxiety (rapid heart rate, gasping), and repeatedly managing those sensations may build tolerance to anxiety triggers."
   },
   {
@@ -616,8 +888,12 @@
     "category": "Brain & Performance",
     "difficulty": "hard",
     "question": "Neuroplasticity in the context of cold training refers to:",
-    "correct": "The brain adapting its stress response circuitry",
-    "wrong": ["Growing new neurons from cold", "Improved memory formation", "Physical changes in skull density"],
+    "correct": "Adapting stress circuitry",
+    "wrong": [
+      "Growing new neurons",
+      "Improved memory formation",
+      "Changing skull density"
+    ],
     "explanation": "Repeated cold stress may remodel prefrontal-amygdala circuitry involved in emotional regulation — making the brain more efficient at down-regulating fear and stress responses."
   },
   {
@@ -625,8 +901,12 @@
     "category": "Brain & Performance",
     "difficulty": "easy",
     "question": "What is one consistent finding about mood after cold water immersion?",
-    "correct": "Most people report improved mood",
-    "wrong": ["Most people feel worse", "No consistent effect", "Only women feel better"],
+    "correct": "Most report improved mood",
+    "wrong": [
+      "Most feel worse",
+      "No consistent effect",
+      "Only women benefit"
+    ],
     "explanation": "Despite the initial discomfort, the vast majority of regular cold plungers report significantly improved mood within minutes of exiting. The neurochemical response is real and measurable."
   },
   {
@@ -635,7 +915,11 @@
     "difficulty": "medium",
     "question": "Does the mental challenge of cold plunging translate to real-world resilience?",
     "correct": "Evidence suggests it can",
-    "wrong": ["No, it's context-specific", "Only for military personnel", "Not if done indoors"],
+    "wrong": [
+      "No, context-specific",
+      "Only military",
+      "Not if indoors"
+    ],
     "explanation": "The skill of tolerating discomfort and staying composed under cold stress appears to generalize. Many plungers report better stress management in work and personal challenges."
   },
   {
@@ -643,8 +927,12 @@
     "category": "Brain & Performance",
     "difficulty": "hard",
     "question": "Why might Wim Hof breathing before a plunge be counterproductive?",
-    "correct": "Hyperventilation lowers CO₂ and can cause blackout",
-    "wrong": ["It raises core temperature too much", "It suppresses norepinephrine", "It prevents the cold-shock response"],
+    "correct": "Lowered CO2 risks blackout",
+    "wrong": [
+      "Raises core temperature",
+      "Suppresses norepinephrine",
+      "Prevents cold-shock"
+    ],
     "explanation": "Wim Hof breathing (rapid deep breathing) lowers CO₂ dramatically. In water, low CO₂ can cause loss of consciousness before you feel the urge to breathe — a drowning risk."
   },
   {
@@ -652,8 +940,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "What is heart rate variability (HRV) and why do plungers track it?",
-    "correct": "Variation in time between heartbeats; a stress/recovery indicator",
-    "wrong": ["The maximum safe heart rate", "The difference between resting and active heart rate", "Heart rhythm during exercise"],
+    "correct": "Heartbeat variation; recovery indicator",
+    "wrong": [
+      "Maximum safe heart rate",
+      "Heart rate difference",
+      "Heart rhythm during exercise"
+    ],
     "explanation": "Higher HRV generally indicates better autonomic balance and recovery. Cold exposure may improve HRV over time, making it a useful metric for tracking cold training adaptations."
   },
   {
@@ -661,8 +953,12 @@
     "category": "Brain & Performance",
     "difficulty": "easy",
     "question": "What is one reason experienced plungers encourage beginners to keep their eyes open?",
-    "correct": "It helps maintain mental control and calm",
-    "wrong": ["To watch for hazards", "Eyes closed worsens cold shock", "It prevents the diving reflex"],
+    "correct": "Helps maintain mental calm",
+    "wrong": [
+      "Watch for hazards",
+      "Eyes closed worsens shock",
+      "Prevents diving reflex"
+    ],
     "explanation": "Keeping eyes open and focusing on a fixed point activates visual attention and can help override the panic instinct — a simple technique for managing the initial cold shock."
   },
   {
@@ -670,8 +966,12 @@
     "category": "Brain & Performance",
     "difficulty": "hard",
     "question": "Why is cold plunging potentially more powerful than meditation for some people as a mindfulness tool?",
-    "correct": "Cold forces present-moment focus with no option to drift",
-    "wrong": ["Cold is more accessible", "Cold lasts longer", "Cold involves more movement"],
+    "correct": "Forces present-moment focus",
+    "wrong": [
+      "Cold is accessible",
+      "Cold lasts longer",
+      "Cold involves movement"
+    ],
     "explanation": "Unlike seated meditation, cold water makes it physically impossible to mentally wander. The intensity of the sensation demands 100% present-moment attention — a forced mindfulness state."
   },
   {
@@ -679,8 +979,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "What is the 'catecholamine hypothesis' for cold exposure benefits?",
-    "correct": "Cold triggers catecholamines which drive most mental benefits",
-    "wrong": ["Cold produces a hormone called catecholamine", "Cold lowers catecholamines for calm", "Catecholamines are only released in exercise"],
+    "correct": "Catecholamines drive mental benefits",
+    "wrong": [
+      "Cold produces catecholamine",
+      "Cold lowers catecholamines",
+      "Only released during exercise"
+    ],
     "explanation": "Catecholamines (norepinephrine, dopamine, epinephrine) rise dramatically with cold. The hypothesis is that this chemical surge underlies most of cold's reported cognitive and mood benefits."
   },
   {
@@ -689,7 +993,11 @@
     "difficulty": "easy",
     "question": "Should people with serious heart conditions plunge without medical clearance?",
     "correct": "No",
-    "wrong": ["Yes, cold is always safe", "Only if water is above 50°F", "Yes, if experienced"],
+    "wrong": [
+      "Yes, always safe",
+      "Only above 50F",
+      "Yes, if experienced"
+    ],
     "explanation": "Cold immersion causes rapid heart rate and blood pressure changes that can be dangerous for those with certain cardiac conditions. Always consult a doctor before starting."
   },
   {
@@ -698,7 +1006,11 @@
     "difficulty": "medium",
     "question": "What brain chemical is sometimes called the 'molecule of more'?",
     "correct": "Dopamine",
-    "wrong": ["Serotonin", "Oxytocin", "Endorphin"],
+    "wrong": [
+      "Serotonin",
+      "Oxytocin",
+      "Endorphin"
+    ],
     "explanation": "Dopamine drives motivation, seeking behavior, and reward anticipation. Cold exposure's dopamine spike may explain why plungers feel energized, goal-focused, and eager to tackle challenges."
   },
   {
@@ -706,8 +1018,12 @@
     "category": "Brain & Performance",
     "difficulty": "hard",
     "question": "What separates 'acute' vs 'chronic' cold exposure benefits neurologically?",
-    "correct": "Acute = immediate chemical spike; chronic = structural adaptation",
-    "wrong": ["Acute is safer; chronic causes damage", "They have the same mechanism", "Chronic cold reduces norepinephrine permanently"],
+    "correct": "Acute spike; chronic adaptation",
+    "wrong": [
+      "Acute safer; chronic damaging",
+      "Same mechanism",
+      "Chronic reduces norepinephrine"
+    ],
     "explanation": "A single session delivers an immediate neurotransmitter boost. Regular practice over weeks may produce more lasting changes in stress response circuitry and baseline HRV."
   },
   {
@@ -715,8 +1031,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "Why do some people feel calmer AFTER the initial cold shock passes?",
-    "correct": "Parasympathetic rebound as sympathetic activity subsides",
-    "wrong": ["The body stops feeling cold", "Core temperature warms the brain", "Blood pressure normalizes to low"],
+    "correct": "Parasympathetic rebound",
+    "wrong": [
+      "Body stops feeling cold",
+      "Core warms brain",
+      "Blood pressure normalizes"
+    ],
     "explanation": "After the initial sympathetic surge, a parasympathetic rebound can create a calm, clear feeling. Many describe the 2–3 minute mark of a plunge as oddly peaceful."
   },
   {
@@ -724,8 +1044,12 @@
     "category": "Brain & Performance",
     "difficulty": "easy",
     "question": "Can regular cold plunging help build mental discipline?",
-    "correct": "Many practitioners and some research suggest yes",
-    "wrong": ["No evidence at all", "Only for trained athletes", "Only if combined with fasting"],
+    "correct": "Practitioners and research agree",
+    "wrong": [
+      "No evidence",
+      "Only trained athletes",
+      "Only with fasting"
+    ],
     "explanation": "The daily act of choosing discomfort and following through builds self-efficacy. Many plungers report the discipline carries over into diet, exercise, and work habits."
   },
   {
@@ -733,8 +1057,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "What role does breathing technique play during cold exposure?",
-    "correct": "It helps regulate the nervous system response",
-    "wrong": ["It generates additional body heat", "It prevents vasoconstriction", "It suppresses norepinephrine"],
+    "correct": "Regulates nervous system response",
+    "wrong": [
+      "Generates body heat",
+      "Prevents vasoconstriction",
+      "Suppresses norepinephrine"
+    ],
     "explanation": "Slow exhales activate the vagus nerve and engage the parasympathetic system, partially counteracting the cold-shock panic response and allowing more controlled immersion."
   },
   {
@@ -742,8 +1070,12 @@
     "category": "Brain & Performance",
     "difficulty": "easy",
     "question": "What happens to willpower when you regularly do things you don't want to do?",
-    "correct": "It strengthens through repeated practice",
-    "wrong": ["It depletes permanently", "It has no connection to habit", "It only applies to food choices"],
+    "correct": "Strengthens through repeated practice",
+    "wrong": [
+      "Depletes permanently",
+      "No connection",
+      "Applies to food only"
+    ],
     "explanation": "Willpower is like a muscle — using it in one domain (like cold plunging) may strengthen self-regulatory capacity in others. Cold plungers often describe improvements across life areas."
   },
   {
@@ -751,8 +1083,12 @@
     "category": "Brain & Performance",
     "difficulty": "hard",
     "question": "What does the research say about cold plunging and ADHD symptoms?",
-    "correct": "Some anecdotal and early evidence suggests norepinephrine boost may help focus",
-    "wrong": ["It's a proven ADHD treatment", "It worsens ADHD", "No possible mechanism exists"],
+    "correct": "Norepinephrine boost may help",
+    "wrong": [
+      "Proven ADHD treatment",
+      "Worsens ADHD",
+      "No possible mechanism"
+    ],
     "explanation": "ADHD involves low dopamine and norepinephrine signaling. Cold exposure spikes both. While no large clinical trials exist, the mechanism is plausible and anecdotal reports are compelling."
   },
   {
@@ -760,8 +1096,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "What is 'top-down control' of the body's stress response?",
-    "correct": "The brain consciously modulating automatic stress reactions",
-    "wrong": ["Blood flowing from head to body", "A military stress test", "The hypothalamus controlling everything"],
+    "correct": "Consciously modulating stress",
+    "wrong": [
+      "Blood flow direction",
+      "Military stress test",
+      "Hypothalamus controls all"
+    ],
     "explanation": "Top-down control means using your prefrontal cortex — your rational brain — to calm the amygdala's alarm signals. Cold training is essentially prefrontal control practice."
   },
   {
@@ -769,8 +1109,12 @@
     "category": "Brain & Performance",
     "difficulty": "easy",
     "question": "Is the mental challenge of cold plunging primarily about pain tolerance?",
-    "correct": "No — primarily about managing the urge to escape",
-    "wrong": ["Yes, entirely about pain", "Yes, it's about oxygen levels", "No, there is no mental challenge"],
+    "correct": "Managing escape urges",
+    "wrong": [
+      "Entirely about pain",
+      "About oxygen levels",
+      "No mental challenge"
+    ],
     "explanation": "Cold plunging is rarely about extreme pain — it's about tolerating the urgent instinct to get out. That instinct management is the mental skill that transfers to real-world stress."
   },
   {
@@ -778,8 +1122,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "What does 'flow state' have to do with cold plunging?",
-    "correct": "Cold can trigger high-focus states that resemble flow",
-    "wrong": ["Cold prevents flow by spiking stress", "Flow happens only during cold, not after", "There is no connection"],
+    "correct": "Triggers high-focus states",
+    "wrong": [
+      "Prevents flow",
+      "Only during cold",
+      "No connection"
+    ],
     "explanation": "The combination of forced present-moment focus, norepinephrine elevation, and post-plunge calm creates conditions that many people describe as flow-like — especially in the minutes after exiting."
   },
   {
@@ -787,8 +1135,12 @@
     "category": "Brain & Performance",
     "difficulty": "hard",
     "question": "What does research suggest about cold exposure timing and sleep?",
-    "correct": "Cold in the morning may improve sleep more than cold at night",
-    "wrong": ["Cold at night improves sleep directly", "Timing has no effect", "Cold always disrupts sleep"],
+    "correct": "Morning cold improves sleep",
+    "wrong": [
+      "Night cold improves sleep",
+      "Timing has no effect",
+      "Always disrupts sleep"
+    ],
     "explanation": "Morning cold exposure that raises cortisol and catecholamines early aligns with the natural cortisol awakening response, which may improve circadian alignment and sleep quality that night."
   },
   {
@@ -796,8 +1148,12 @@
     "category": "Brain & Performance",
     "difficulty": "easy",
     "question": "Is it normal to feel anxious before a cold plunge even if you've done it before?",
-    "correct": "Yes, anticipatory anxiety is normal",
-    "wrong": ["No, it means you're not adapted", "Only beginners feel anxious", "Anxiety means you should stop"],
+    "correct": "Yes, anticipatory anxiety normal",
+    "wrong": [
+      "Means not adapted",
+      "Only beginners feel anxious",
+      "Anxiety means stop"
+    ],
     "explanation": "Anticipatory anxiety before cold is nearly universal, even for experienced plungers. The discomfort reflex doesn't fully disappear — managing it is the ongoing practice."
   },
   {
@@ -805,8 +1161,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "Why might cold exposure have addictive qualities?",
-    "correct": "The dopamine spike creates a reward cycle",
-    "wrong": ["Cold is literally chemically addictive", "It depletes serotonin, creating craving", "It compresses pain receptors"],
+    "correct": "Dopamine reward cycle",
+    "wrong": [
+      "Chemically addictive",
+      "Depletes serotonin",
+      "Compresses pain receptors"
+    ],
     "explanation": "The dramatic dopamine elevation during and after cold creates a powerful reward signal. The brain learns to anticipate and crave that reward — similar to exercise dependence."
   },
   {
@@ -814,8 +1174,12 @@
     "category": "Brain & Performance",
     "difficulty": "hard",
     "question": "What is the proposed mechanism for cold improving resilience to psychological stress?",
-    "correct": "Repeated activation and calming of the stress-response circuit",
-    "wrong": ["Cold numbs the emotional brain", "Cortisol permanently decreases", "Cold permanently raises serotonin"],
+    "correct": "Activating/calming stress circuit",
+    "wrong": [
+      "Numbs emotional brain",
+      "Cortisol permanently decreases",
+      "Permanently raises serotonin"
+    ],
     "explanation": "Like exposure therapy, repeated activation of the fear/stress response (cold shock) followed by self-regulation may strengthen the brain's ability to recover quickly from stressful events."
   },
   {
@@ -823,8 +1187,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "Does serotonin play a role in post-plunge wellbeing?",
-    "correct": "Possibly — some evidence suggests cold affects serotonin",
-    "wrong": ["No, serotonin is unaffected by cold", "Yes, cold doubles serotonin always", "Serotonin decreases after cold"],
+    "correct": "Possibly, evidence exists",
+    "wrong": [
+      "No, serotonin unaffected",
+      "Yes, always doubles",
+      "Serotonin decreases"
+    ],
     "explanation": "Some research suggests cold water swimming may increase serotonin activity, potentially contributing to mood improvement — though the evidence is less robust than for norepinephrine and dopamine."
   },
   {
@@ -833,7 +1201,11 @@
     "difficulty": "easy",
     "question": "What is one practical mental strategy for managing cold shock?",
     "correct": "Slow, controlled exhaling",
-    "wrong": ["Hold your breath", "Focus on the pain", "Tighten all muscles"],
+    "wrong": [
+      "Hold breath",
+      "Focus on pain",
+      "Tighten muscles"
+    ],
     "explanation": "Extending your exhale — even to a count of 4 or 5 — activates the vagus nerve and dampens the cold-shock panic. It's one of the most powerful tools a plunger has."
   },
   {
@@ -841,8 +1213,12 @@
     "category": "Brain & Performance",
     "difficulty": "hard",
     "question": "What does 'autonomic flexibility' mean and why is cold training relevant?",
-    "correct": "The ability to rapidly switch between sympathetic and parasympathetic states",
-    "wrong": ["Stretching of the autonomic nerves", "Flexibility in choosing your heart rate", "Adapting to temperature at will"],
+    "correct": "Switching between nervous states",
+    "wrong": [
+      "Stretching autonomic nerves",
+      "Flexibility in heart rate",
+      "Adapting temperature at will"
+    ],
     "explanation": "Autonomic flexibility — the speed with which your nervous system can shift from alert to calm — is associated with mental health and resilience. Cold training exercises this shift repeatedly."
   },
   {
@@ -850,8 +1226,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "Is there strong evidence that cold plunging improves athletic performance?",
-    "correct": "Evidence is mixed — recovery benefits are clearer than performance gains",
-    "wrong": ["Yes, large trials confirm performance gains", "No evidence of any benefit", "It improves endurance but not strength"],
+    "correct": "Mixed evidence; recovery clear",
+    "wrong": [
+      "Large trials confirm gains",
+      "No evidence",
+      "Improves endurance only"
+    ],
     "explanation": "Cold immersion post-exercise may accelerate recovery and reduce perceived soreness. However, direct performance improvements (speed, strength, VO₂max) are less consistently documented."
   },
   {
@@ -859,8 +1239,12 @@
     "category": "Brain & Performance",
     "difficulty": "easy",
     "question": "What does 'cold is a teacher' mean in the plunge community?",
-    "correct": "Cold reveals and trains your mental responses",
-    "wrong": ["Cold teaches facts", "Cold improves academic memory", "It's a metaphor for winter training"],
+    "correct": "Trains mental responses",
+    "wrong": [
+      "Teaches facts",
+      "Improves academic memory",
+      "Winter training metaphor"
+    ],
     "explanation": "Cold strips away distraction and shows you exactly how your mind responds to stress. The unfiltered feedback loop — panic, control, calm — is the lesson."
   },
   {
@@ -868,8 +1252,12 @@
     "category": "Brain & Performance",
     "difficulty": "medium",
     "question": "What is the most immediate cognitive change most people notice after a cold plunge?",
-    "correct": "Increased alertness and mental clarity",
-    "wrong": ["Improved long-term memory recall", "Faster mathematical processing", "Improved spatial reasoning"],
+    "correct": "Alertness and mental clarity",
+    "wrong": [
+      "Long-term memory recall",
+      "Mathematical processing speed",
+      "Spatial reasoning"
+    ],
     "explanation": "The norepinephrine and adrenaline spike creates a state of heightened attention and clarity. It's the same chemistry behind the 'fight or flight' sharpening of the mind."
   },
   {
@@ -877,8 +1265,12 @@
     "category": "Brain & Performance",
     "difficulty": "easy",
     "question": "Can cold plunging help with motivation to tackle difficult tasks?",
-    "correct": "Many report it does through dopamine effects",
-    "wrong": ["No, it drains energy", "Only for physical tasks", "Only with caffeine combined"],
+    "correct": "Dopamine helps motivation",
+    "wrong": [
+      "Drains energy",
+      "Only physical tasks",
+      "Only with caffeine"
+    ],
     "explanation": "The dopamine elevation from cold plunging may carry over into a 2–4 hour window of increased drive and motivation — making it a popular pre-work or pre-study ritual."
   },
   {
@@ -887,7 +1279,11 @@
     "difficulty": "medium",
     "question": "What emotion do most regular plungers report most strongly after a session?",
     "correct": "Accomplishment and pride",
-    "wrong": ["Relief", "Hunger", "Drowsiness"],
+    "wrong": [
+      "Relief",
+      "Hunger",
+      "Drowsiness"
+    ],
     "explanation": "Beyond the biochemistry, the sense of having done something hard and choosing discomfort voluntarily generates a powerful psychological reward — one that compounds with each plunge."
   },
   {
@@ -895,8 +1291,12 @@
     "category": "Brain & Performance",
     "difficulty": "hard",
     "question": "What physiological marker best predicts who benefits most from cold plunging?",
-    "correct": "Research hasn't identified a reliable predictor yet",
-    "wrong": ["Resting heart rate", "Body fat percentage", "VO₂max"],
+    "correct": "No reliable predictor identified",
+    "wrong": [
+      "Resting heart rate",
+      "Body fat percentage",
+      "VO2max"
+    ],
     "explanation": "Individual responses to cold vary enormously. Genetics, baseline stress levels, brown fat mass, and psychological factors all play roles. What works spectacularly for one person may barely affect another."
   },
   {
@@ -904,8 +1304,12 @@
     "category": "Nature & Extremes",
     "difficulty": "easy",
     "question": "What is the coldest naturally occurring temperature ever recorded on Earth?",
-    "correct": "Around -89°C (-128°F) in Antarctica",
-    "wrong": ["-60°C (-76°F) in Siberia", "-100°C (-148°F) at the North Pole", "-72°C (-98°F) in Canada"],
+    "correct": "Around -89C in Antarctica",
+    "wrong": [
+      "-60C in Siberia",
+      "-100C at North Pole",
+      "-72C in Canada"
+    ],
     "explanation": "Recorded at Vostok Station, Antarctica in 1983, -89.2°C is the lowest air temperature ever documented. Antarctica also holds the satellite-detected record of -98°C in 2018."
   },
   {
@@ -913,8 +1317,12 @@
     "category": "Nature & Extremes",
     "difficulty": "easy",
     "question": "How do wood frogs survive being frozen solid in winter?",
-    "correct": "They use glucose as natural antifreeze",
-    "wrong": ["They enter true hibernation before freezing", "Their cells don't contain water", "They produce antifreeze proteins like fish"],
+    "correct": "Glucose as natural antifreeze",
+    "wrong": [
+      "Hibernates before freezing",
+      "Cells contain no water",
+      "Produces antifreeze proteins"
+    ],
     "explanation": "Wood frogs flood their cells with glucose when temperatures drop, preventing ice crystals from destroying cells. Their heart stops, they don't breathe, yet they thaw and hop away in spring."
   },
   {
@@ -922,8 +1330,12 @@
     "category": "Nature & Extremes",
     "difficulty": "easy",
     "question": "What is the first stage of hypothermia?",
-    "correct": "Shivering and increased heart rate",
-    "wrong": ["Loss of consciousness", "Stopping shivering and confusion", "Blue lips and slow pulse"],
+    "correct": "Shivering, high heart rate",
+    "wrong": [
+      "Loss of consciousness",
+      "Confusion, shivering stops",
+      "Blue lips, slow pulse"
+    ],
     "explanation": "Mild hypothermia (35–32°C core) involves vigorous shivering, rapid breathing, and impaired coordination. This is your body's all-out effort to maintain core temperature."
   },
   {
@@ -931,8 +1343,12 @@
     "category": "Nature & Extremes",
     "difficulty": "easy",
     "question": "How do penguins stay warm in Antarctica?",
-    "correct": "Dense feathers, fat, and huddling behavior",
-    "wrong": ["Generating heat by rapid movement only", "Thick skin that insulates like rubber", "Sleeping in underground burrows"],
+    "correct": "Feathers, fat, huddling",
+    "wrong": [
+      "Rapid movement only",
+      "Thick rubbery skin",
+      "Underground burrows"
+    ],
     "explanation": "Emperor penguins rotate through a huddle that can reach 37°C in the center, reducing individual heat loss by up to 50%. Their feathers trap air like a down jacket at 70 feathers per square inch."
   },
   {
@@ -940,8 +1356,12 @@
     "category": "Nature & Extremes",
     "difficulty": "easy",
     "question": "What technique do polar bears use to stay warm in Arctic waters?",
-    "correct": "Thick fat layer and dense water-repellent fur",
-    "wrong": ["Constant swimming to generate heat", "Hollow hairs that absorb sunlight", "Specialized kidney function"],
+    "correct": "Fat layer, dense fur",
+    "wrong": [
+      "Constant swimming",
+      "Hollow sunlight-absorbing hairs",
+      "Specialized kidney function"
+    ],
     "explanation": "Polar bear fur is actually translucent, not white. The fat layer beneath their skin can be up to 4.5 inches thick — providing extraordinary insulation in water as cold as 29°F."
   },
   {
@@ -950,7 +1370,11 @@
     "difficulty": "medium",
     "question": "What protein do Arctic fish produce to survive near-freezing water?",
     "correct": "Antifreeze proteins (AFPs)",
-    "wrong": ["Cold shock proteins", "Cryoglobulin", "Thermogenin"],
+    "wrong": [
+      "Cold shock proteins",
+      "Cryoglobulin",
+      "Thermogenin"
+    ],
     "explanation": "Arctic fish like the notothenioid produce antifreeze proteins that bind to ice crystals and stop them from growing — preventing their blood from freezing in water near -1.9°C."
   },
   {
@@ -958,8 +1382,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "What is the 'dangerous' stage of hypothermia where shivering stops?",
-    "correct": "Moderate hypothermia (28–32°C)",
-    "wrong": ["Mild hypothermia (32–35°C)", "Severe hypothermia (below 20°C)", "Terminal hypothermia"],
+    "correct": "Moderate hypothermia (28-32C)",
+    "wrong": [
+      "Mild hypothermia (32-35C)",
+      "Severe hypothermia (<20C)",
+      "Terminal hypothermia"
+    ],
     "explanation": "When shivering stops in a cold person, it's a red flag — not a good sign. It means the body has exhausted its shivering capacity, and core temperature is dropping more rapidly."
   },
   {
@@ -967,8 +1395,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "What is 'paradoxical undressing' seen in hypothermia victims?",
-    "correct": "Removing clothing while dangerously cold",
-    "wrong": ["Adding too many layers in mild cold", "Refusing to enter a warm shelter", "Falling asleep in cold water"],
+    "correct": "Removing clothes while cold",
+    "wrong": [
+      "Adding extra layers",
+      "Refusing warm shelter",
+      "Sleeping in water"
+    ],
     "explanation": "As hypothermia progresses, peripheral vasodilation creates a sensation of extreme warmth. Victims have been found naked after removing all clothing — a fatal misperception."
   },
   {
@@ -976,8 +1408,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "How deep is the coldest water in the ocean?",
-    "correct": "Deep water can be near -2°C (28°F) without freezing",
-    "wrong": ["Exactly 0°C at all depths", "Below -10°C in deep trenches", "Warmer than surface due to pressure"],
+    "correct": "Near -2C without freezing",
+    "wrong": [
+      "Exactly 0C",
+      "Below -10C",
+      "Warmer than surface"
+    ],
     "explanation": "Saltwater freezes around -1.8°C. Deep ocean water (like Antarctic Bottom Water) sits near -0.5 to -2°C and circulates slowly around the entire planet over hundreds of years."
   },
   {
@@ -985,8 +1421,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "What is cryonics?",
-    "correct": "Preserving humans at very low temperatures after death",
-    "wrong": ["A medical cold therapy", "Freezing sperm and eggs only", "A cold acclimatization technique"],
+    "correct": "Preserving humans after death",
+    "wrong": [
+      "Medical cold therapy",
+      "Freezing reproductive cells",
+      "Cold acclimatization technique"
+    ],
     "explanation": "Cryonics involves cooling a legally dead body to liquid nitrogen temperature (-196°C) in hopes future technology can revive it. Several hundred people are currently cryopreserved."
   },
   {
@@ -994,8 +1434,12 @@
     "category": "Nature & Extremes",
     "difficulty": "easy",
     "question": "What is permafrost?",
-    "correct": "Ground frozen continuously for at least two years",
-    "wrong": ["Ice that never melts", "The deepest layer of glaciers", "Seasonal frozen soil"],
+    "correct": "Frozen ground over two years",
+    "wrong": [
+      "Ice never melting",
+      "Deepest glacier layer",
+      "Seasonal frozen soil"
+    ],
     "explanation": "Permafrost covers about 25% of the Northern Hemisphere's land surface and can extend hundreds of meters deep, containing ancient carbon, organisms, and sometimes intact mammoths."
   },
   {
@@ -1003,8 +1447,12 @@
     "category": "Nature & Extremes",
     "difficulty": "hard",
     "question": "What is the 'Weddell seal' famous for in cold science?",
-    "correct": "Diving to 700m in near-freezing Antarctic water",
-    "wrong": ["Surviving out of water for months", "Living in the coldest recorded ocean water", "Being the only marine mammal with antifreeze blood"],
+    "correct": "Diving 700m in freezing water",
+    "wrong": [
+      "Surviving months out-of-water",
+      "Living in coldest ocean",
+      "Antifreeze blood"
+    ],
     "explanation": "Weddell seals dive deeper and longer than almost any mammal, spending over an hour at depth in -2°C water. Their blood has exceptional oxygen-carrying capacity for these extreme dives."
   },
   {
@@ -1012,8 +1460,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "What happens to an iceberg below the waterline?",
-    "correct": "About 90% of its mass is submerged",
-    "wrong": ["About 50% is submerged", "Less than 30% is below water", "Icebergs are hollow below the surface"],
+    "correct": "90% of mass submerged",
+    "wrong": [
+      "50% submerged",
+      "Less than 30% submerged",
+      "Icebergs are hollow"
+    ],
     "explanation": "Ice is less dense than saltwater, so about 90% of an iceberg's volume lies beneath the surface. The Titanic's iceberg was estimated at 400,000 tons, most invisible above water."
   },
   {
@@ -1022,7 +1474,11 @@
     "difficulty": "easy",
     "question": "What is the coldest inhabited place on Earth?",
     "correct": "Oymyakon, Russia",
-    "wrong": ["Barrow, Alaska", "Tromsø, Norway", "Iqaluit, Canada"],
+    "wrong": [
+      "Barrow, Alaska",
+      "Tromso, Norway",
+      "Iqaluit, Canada"
+    ],
     "explanation": "Oymyakon recorded -67.7°C (-89.9°F) in 1933, making it the coldest permanently inhabited place. Its 500 residents live with frozen eyelashes and cars that must run continuously in winter."
   },
   {
@@ -1030,8 +1486,12 @@
     "category": "Nature & Extremes",
     "difficulty": "hard",
     "question": "How does the notothenioid fish's blood work differently from most fish?",
-    "correct": "It lacks hemoglobin in some species",
-    "wrong": ["It freezes and thaws repeatedly", "It circulates twice as fast", "It contains salts that lower freezing point"],
+    "correct": "Lacks hemoglobin",
+    "wrong": [
+      "Freezes and thaws",
+      "Circulates twice as fast",
+      "Salt-lowered freezing point"
+    ],
     "explanation": "The icefish (family Channichthyidae) has evolved transparent, hemoglobin-free blood — unique among vertebrates. It compensates with an enormous heart and huge blood volume."
   },
   {
@@ -1039,8 +1499,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "What is the thermohaline circulation?",
-    "correct": "Ocean circulation driven by temperature and salinity",
-    "wrong": ["Ice formation at the poles", "Tidal movement of cold water", "Wind patterns over oceans"],
+    "correct": "Driven by temperature, salinity",
+    "wrong": [
+      "Ice formation",
+      "Tidal movement",
+      "Wind patterns"
+    ],
     "explanation": "Cold, dense, salty water sinks at the poles and drives a global ocean conveyor belt that redistributes heat across the planet — cold plunging at a planetary scale."
   },
   {
@@ -1048,8 +1512,12 @@
     "category": "Nature & Extremes",
     "difficulty": "easy",
     "question": "What makes the Arctic fox's fur remarkable?",
-    "correct": "It's the warmest fur relative to weight of any mammal",
-    "wrong": ["It changes color daily", "It generates heat chemically", "It repels water like oil"],
+    "correct": "Warmest relative to weight",
+    "wrong": [
+      "Changes color daily",
+      "Generates heat chemically",
+      "Waterproof like oil"
+    ],
     "explanation": "Arctic fox fur is so efficient it doesn't need to shiver until -70°C (-94°F). Its layered coat traps air in tiny pockets — nature's most sophisticated insulation for its weight."
   },
   {
@@ -1057,8 +1525,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "What is 'countercurrent heat exchange' used by animals in cold climates?",
-    "correct": "Warm arteries and cool veins running adjacent to share heat",
-    "wrong": ["Reversing blood flow direction in cold", "Alternating between hot and cold body regions", "Using external heat from the sun"],
+    "correct": "Adjacent arteries, veins share heat",
+    "wrong": [
+      "Reversing blood flow",
+      "Alternating body region temps",
+      "Using solar heat"
+    ],
     "explanation": "In penguin flippers and wolf paws, warm arterial blood transfers heat to cold returning venous blood — keeping the core warm while allowing extremities to be cold without energy loss."
   },
   {
@@ -1066,8 +1538,12 @@
     "category": "Nature & Extremes",
     "difficulty": "hard",
     "question": "How long can a wood frog survive in a frozen state?",
-    "correct": "Weeks to months through winter",
-    "wrong": ["Hours only", "Exactly 48 hours", "Indefinitely if kept cold"],
+    "correct": "Weeks to months",
+    "wrong": [
+      "Hours only",
+      "Exactly 48 hours",
+      "Indefinitely"
+    ],
     "explanation": "Wood frogs can survive repeated freeze-thaw cycles over an entire winter — heartbeat stopping, brain activity ceasing, blood clotting. In spring, they simply thaw and resume life."
   },
   {
@@ -1075,8 +1551,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "What is the world record for coldest sea water temperature (liquid)?",
-    "correct": "Around -2°C (28°F) in polar oceans",
-    "wrong": ["-5°C (23°F)", "0°C (32°F) exactly", "-10°C (14°F) in deep trenches"],
+    "correct": "Around -2C in polar oceans",
+    "wrong": [
+      "-5C",
+      "0C exactly",
+      "-10C in trenches"
+    ],
     "explanation": "Saltwater freezes around -1.8°C. Some Antarctic polynyas (open water areas) reach -1.9 to -2°C without freezing. Ice swimming competitions take place in water as cold as -2°C."
   },
   {
@@ -1084,8 +1564,12 @@
     "category": "Nature & Extremes",
     "difficulty": "easy",
     "question": "What is a polar vortex?",
-    "correct": "A large rotating mass of cold Arctic air",
-    "wrong": ["A storm at the North Pole", "A frozen ocean current", "A type of Arctic hurricane"],
+    "correct": "Rotating Arctic air mass",
+    "wrong": [
+      "North Pole storm",
+      "Frozen ocean current",
+      "Arctic hurricane"
+    ],
     "explanation": "The polar vortex is a persistent area of low pressure and cold air surrounding the poles. When it weakens, cold Arctic air can plunge into mid-latitudes, causing extreme cold events."
   },
   {
@@ -1093,8 +1577,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "Can humans survive falling into water at 32°F (0°C)?",
-    "correct": "Yes, but survival window is very short — minutes",
-    "wrong": ["No, death is immediate", "Yes, for up to an hour easily", "Only trained divers"],
+    "correct": "Yes, minutes long window",
+    "wrong": [
+      "No, immediate death",
+      "Yes, hour easily",
+      "Only trained divers"
+    ],
     "explanation": "At 32°F, incapacitation from cold shock can occur within 1-3 minutes. Without rescue, loss of swimming ability happens in under 10 minutes. Survival without help is rare beyond 30 minutes."
   },
   {
@@ -1102,8 +1590,12 @@
     "category": "Nature & Extremes",
     "difficulty": "hard",
     "question": "What makes narwhal behavior unique in extremely cold Arctic water?",
-    "correct": "They surface in sea ice leads and withstand near-freezing water year-round",
-    "wrong": ["They use antifreeze proteins like fish", "They hibernate under ice", "They generate internal heat through digestion alone"],
+    "correct": "Surfaces in ice leads",
+    "wrong": [
+      "Antifreeze proteins",
+      "Hibernation under ice",
+      "Metabolic heat generation"
+    ],
     "explanation": "Narwhals don't migrate south and instead spend winter under sea ice in some of the harshest Arctic waters. Their thick layer of blubber — up to 3 inches — makes this possible."
   },
   {
@@ -1111,8 +1603,12 @@
     "category": "Nature & Extremes",
     "difficulty": "easy",
     "question": "What is frostbite?",
-    "correct": "Freezing of body tissue, typically extremities",
-    "wrong": ["Severe sunburn from snow reflection", "Skin inflammation from rapid warming", "Temporary numbness from cold air"],
+    "correct": "Freezing of body tissue",
+    "wrong": [
+      "Sunburn from snow",
+      "Skin inflammation",
+      "Temporary numbness"
+    ],
     "explanation": "Frostbite occurs when tissue actually freezes. Ice crystals form between and inside cells, causing damage. Fingers, toes, ears, and nose are most vulnerable due to vasoconstriction."
   },
   {
@@ -1120,8 +1616,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "What is the world ice swimming association water temperature limit for official events?",
-    "correct": "Water must be 5°C (41°F) or lower",
-    "wrong": ["Water must be 0°C (32°F)", "Water must be 10°C (50°F) or lower", "No official standard exists"],
+    "correct": "5C or lower",
+    "wrong": [
+      "0C",
+      "10C or lower",
+      "No standard exists"
+    ],
     "explanation": "The International Ice Swimming Association defines 'ice swimming' as water at 5°C or below. Competitors in the Ice Mile (1 mile swim) regularly complete it in 1-4°C water."
   },
   {
@@ -1129,8 +1629,12 @@
     "category": "Nature & Extremes",
     "difficulty": "hard",
     "question": "What is 'supercooling' in biological systems?",
-    "correct": "Remaining liquid below normal freezing point",
-    "wrong": ["Rapid cooling with ice packs", "A type of hibernation", "Thermal protection via fat"],
+    "correct": "Liquid below freezing point",
+    "wrong": [
+      "Rapid ice-pack cooling",
+      "Type of hibernation",
+      "Thermal protection via fat"
+    ],
     "explanation": "Some insects and plants supercool — remaining liquid below 0°C without freezing. This is possible only in very pure water without ice nucleating particles. It's inherently unstable."
   },
   {
@@ -1138,8 +1642,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "What is Raynaud's phenomenon?",
-    "correct": "Extreme cold-triggered vasoconstriction in fingers and toes",
-    "wrong": ["A type of frostbite", "A cold-induced allergic reaction", "Hypothermia affecting only extremities"],
+    "correct": "Cold-triggered digit vasoconstriction",
+    "wrong": [
+      "Type of frostbite",
+      "Cold-induced allergy",
+      "Localized extremity hypothermia"
+    ],
     "explanation": "Raynaud's causes fingers to turn white, then blue, then red in response to cold or stress. The exaggerated vasoconstriction can be very painful and is more common in women."
   },
   {
@@ -1148,7 +1656,11 @@
     "difficulty": "easy",
     "question": "What percentage of Earth's fresh water is locked in ice?",
     "correct": "About 68-69%",
-    "wrong": ["About 30%", "About 50%", "About 15%"],
+    "wrong": [
+      "About 30%",
+      "About 50%",
+      "About 15%"
+    ],
     "explanation": "Glaciers and ice caps — primarily the Antarctic and Greenland ice sheets — hold roughly 68% of all fresh water on Earth. If they melted, sea levels would rise by over 200 feet."
   },
   {
@@ -1156,8 +1668,12 @@
     "category": "Nature & Extremes",
     "difficulty": "hard",
     "question": "What survival story involving cold water is often cited in cold-water immersion research?",
-    "correct": "Titanic survivors and cold-water incapacitation data",
-    "wrong": ["Edmund Hillary's Everest climb", "Shackleton's Antarctic crossing alone", "Lewis and Clark river crossings"],
+    "correct": "Titanic immersion data",
+    "wrong": [
+      "Everest climb",
+      "Antarctic crossing",
+      "River crossings"
+    ],
     "explanation": "The Titanic disaster provided early data on cold-water survival. Water at -2°C caused incapacitation in minutes — most victims died of cold shock before drowning, not hypothermia."
   },
   {
@@ -1165,8 +1681,12 @@
     "category": "Nature & Extremes",
     "difficulty": "easy",
     "question": "Do all mammals maintain a constant body temperature?",
-    "correct": "No — some like hedgehogs and bats allow it to drop",
-    "wrong": ["Yes, all mammals are endotherms", "No, only fish", "Yes, except aquatic mammals"],
+    "correct": "No, some fluctuate",
+    "wrong": [
+      "Yes, all endotherms",
+      "No, only fish",
+      "Yes, except aquatic"
+    ],
     "explanation": "Heterothermic mammals like hibernating bears, bats, and hedgehogs dramatically lower their body temperature seasonally to save energy — true hibernators can drop to near-freezing core temps."
   },
   {
@@ -1174,8 +1694,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "What is the coldest ocean on Earth?",
-    "correct": "Southern Ocean surrounding Antarctica",
-    "wrong": ["Arctic Ocean", "North Atlantic", "Pacific near Alaska"],
+    "correct": "Southern Ocean",
+    "wrong": [
+      "Arctic Ocean",
+      "North Atlantic",
+      "Pacific near Alaska"
+    ],
     "explanation": "The Southern Ocean has vast areas near -2°C and contains Antarctic Bottom Water, the densest, coldest water mass in the world that forms the base of the global thermohaline circulation."
   },
   {
@@ -1183,8 +1707,12 @@
     "category": "Nature & Extremes",
     "difficulty": "hard",
     "question": "What is unique about Tardigrades (water bears) in extreme cold?",
-    "correct": "They can survive near absolute zero in a desiccated state",
-    "wrong": ["They generate internal heat", "They use antifreeze proteins", "They hibernate for 100 years"],
+    "correct": "Survive near absolute zero",
+    "wrong": [
+      "Generate internal heat",
+      "Antifreeze proteins",
+      "Hibernate 100 years"
+    ],
     "explanation": "Tardigrades enter 'cryptobiosis,' replacing water in their cells with protective sugars. In this state they can survive -272°C (near absolute zero), radiation, and even the vacuum of space."
   },
   {
@@ -1193,7 +1721,11 @@
     "difficulty": "medium",
     "question": "What is the name for open water that persists within sea ice?",
     "correct": "Polynya",
-    "wrong": ["Ice lead", "Cryosphere gap", "Brine channel"],
+    "wrong": [
+      "Ice lead",
+      "Cryosphere gap",
+      "Brine channel"
+    ],
     "explanation": "Polynyas are areas of open water surrounded by ice, kept open by wind or upwelling. They serve as critical breathing holes for seals, narwhals, and birds in Arctic winter."
   },
   {
@@ -1201,8 +1733,12 @@
     "category": "Nature & Extremes",
     "difficulty": "easy",
     "question": "What was the coldest recorded winter air temperature in a US city?",
-    "correct": "Around -80°F (-62°C) in Alaska",
-    "wrong": ["-50°F (-46°C) in Minnesota", "-40°F (-40°C) in Chicago", "-60°F (-51°C) in Montana"],
+    "correct": "Around -80F in Alaska",
+    "wrong": [
+      "-50F in Minnesota",
+      "-40F in Chicago",
+      "-60F in Montana"
+    ],
     "explanation": "Prospect Creek Camp, Alaska recorded -80°F (-62.2°C) in January 1971. In the contiguous US, the record is -70°F (-57°C) in Montana in 1954."
   },
   {
@@ -1210,8 +1746,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "Why do some animals have darker skin or fur in colder climates?",
-    "correct": "Darker coloring absorbs more solar radiation",
-    "wrong": ["Camouflage in shadows", "Dark fur holds more heat internally", "Cold causes pigmentation"],
+    "correct": "Absorbs more solar radiation",
+    "wrong": [
+      "Camouflage in shadows",
+      "Dark fur insulates",
+      "Cold causes pigmentation"
+    ],
     "explanation": "Bergmann's Rule and Gloger's Rule describe how animals in colder climates tend to be larger (to reduce surface-area-to-volume ratio) and sometimes darker (to absorb solar heat)."
   },
   {
@@ -1219,8 +1759,12 @@
     "category": "Nature & Extremes",
     "difficulty": "hard",
     "question": "What is 'Antarctic toothfish' remarkable for in cold research?",
-    "correct": "They live near freezing in -1.9°C water using antifreeze glycoproteins",
-    "wrong": ["They generate body heat metabolically", "They survive frozen in sea ice", "They are the deepest-diving fish"],
+    "correct": "Freezing water, antifreeze glycoproteins",
+    "wrong": [
+      "Metabolic heat",
+      "Survive frozen ice",
+      "Deepest-diving fish"
+    ],
     "explanation": "Antarctic toothfish survive in water that would freeze most fish using antifreeze glycoproteins (AFGPs) that bind to ice crystals, preventing growth — one of evolution's most elegant cold adaptations."
   },
   {
@@ -1228,8 +1772,12 @@
     "category": "Nature & Extremes",
     "difficulty": "easy",
     "question": "What is the primary danger from falling into cold water in the first few minutes?",
-    "correct": "Cold shock — uncontrolled gasping and breathing",
-    "wrong": ["Hypothermia", "Frostbite", "Cardiac arrest from cold alone"],
+    "correct": "Cold shock, gasping",
+    "wrong": [
+      "Hypothermia",
+      "Frostbite",
+      "Cardiac arrest"
+    ],
     "explanation": "The first 90 seconds are the most lethal window in cold water — not from hypothermia (which takes longer) but from the cold shock response causing people to inhale water."
   },
   {
@@ -1237,8 +1785,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "What makes the Dead Sea different from standard cold plunge environments?",
-    "correct": "Its extreme salinity keeps swimmers buoyant and lowers freezing point",
-    "wrong": ["It is always near freezing", "It has warm springs fed by glaciers", "It has no effect on the body"],
+    "correct": "Salinity keeps swimmers buoyant",
+    "wrong": [
+      "Always near freezing",
+      "Glacial warm springs",
+      "No effect on body"
+    ],
     "explanation": "The Dead Sea is 10x saltier than ocean water — so dense that swimming is nearly impossible and buoyancy is effortless. It doesn't relate to cold, but highlights how salt dramatically affects water properties."
   },
   {
@@ -1246,8 +1798,12 @@
     "category": "Nature & Extremes",
     "difficulty": "hard",
     "question": "What is the significance of the 'Mpemba effect'?",
-    "correct": "Hot water sometimes freezes faster than cold water",
-    "wrong": ["Cold water heats faster than warm", "Freezing point changes with altitude", "Ice melts faster in salt water"],
+    "correct": "Hot water freezes faster",
+    "wrong": [
+      "Cold water heats faster",
+      "Altitude changes freezing",
+      "Salt water melts ice"
+    ],
     "explanation": "The Mpemba effect — observed but not fully explained — shows hot water can sometimes freeze faster than cold water. Explanations involve convection, dissolved gases, and hydrogen bonding."
   },
   {
@@ -1255,8 +1811,12 @@
     "category": "Nature & Extremes",
     "difficulty": "easy",
     "question": "Can humans survive hypothermia and be revived?",
-    "correct": "Yes — there are documented cases of remarkable recoveries",
-    "wrong": ["No, hypothermia is always fatal", "Only in mild cases above 32°C", "Only children can be revived"],
+    "correct": "Yes, remarkable recoveries",
+    "wrong": [
+      "No, always fatal",
+      "Only above 32C",
+      "Only children"
+    ],
     "explanation": "Anna Bågenholm survived 40 minutes under ice with a core temperature of 13.7°C — the lowest ever survived. The cold had protected her brain, and full recovery was made."
   },
   {
@@ -1264,8 +1824,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "What is the coldest temperature the human body can survive with full recovery?",
-    "correct": "Cases as low as 13.7°C core have survived",
-    "wrong": ["Below 30°C is always fatal", "Below 28°C is always fatal", "The minimum is 35°C"],
+    "correct": "Core as low as 13.7C",
+    "wrong": [
+      "Below 30C fatal",
+      "Below 28C fatal",
+      "Minimum 35C"
+    ],
     "explanation": "Anna Bågenholm's survival at 13.7°C core temperature (2000, Norway) remains the lowest recorded surviving core temperature — achieved because cold slowed her metabolism and protected her brain."
   },
   {
@@ -1274,7 +1838,11 @@
     "difficulty": "easy",
     "question": "What percentage of an iceberg is visible above water?",
     "correct": "About 10%",
-    "wrong": ["About 50%", "About 25%", "About 1%"],
+    "wrong": [
+      "About 50%",
+      "About 25%",
+      "About 1%"
+    ],
     "explanation": "Ice is about 9% less dense than seawater, so roughly 90% of an iceberg's mass lurks below the surface — the origin of the phrase 'tip of the iceberg.'"
   },
   {
@@ -1282,8 +1850,12 @@
     "category": "Nature & Extremes",
     "difficulty": "hard",
     "question": "How do emperor penguins incubate eggs in Antarctic winter temperatures of -40°C?",
-    "correct": "Males huddle and balance eggs on feet under a brood patch",
-    "wrong": ["They bury eggs in snow for insulation", "Both parents sit on eggs in underground nests", "They leave eggs and return when temps rise"],
+    "correct": "Huddle, eggs on feet",
+    "wrong": [
+      "Bury in snow",
+      "Underground nests",
+      "Leave and return"
+    ],
     "explanation": "Male emperor penguins stand for 65 days in darkness and -40°C blizzards, fasting while keeping eggs warm. The huddle's center reaches 37°C. It's one of nature's most extreme acts of parenting."
   },
   {
@@ -1291,8 +1863,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "What is the Beaufort Sea and why is it relevant to cold science?",
-    "correct": "A part of the Arctic Ocean with near-freezing temperatures year-round",
-    "wrong": ["A warm current that prevents Arctic ice", "A type of ice formation", "The sea beneath the Antarctic ice sheet"],
+    "correct": "Arctic Ocean near-freezing",
+    "wrong": [
+      "Prevents Arctic ice",
+      "Ice formation type",
+      "Antarctic sea floor"
+    ],
     "explanation": "The Beaufort Sea north of Alaska and Canada remains near -1.8°C year-round and hosts some of the thickest multi-year sea ice — a key region for studying polar ocean dynamics."
   },
   {
@@ -1300,8 +1876,12 @@
     "category": "Nature & Extremes",
     "difficulty": "easy",
     "question": "What is the 'flash freeze' effect in extremely cold air?",
-    "correct": "Liquid instantly freezes upon contact with very cold air",
-    "wrong": ["A cooking technique", "A sudden storm that freezes lakes", "Lightning striking ice"],
+    "correct": "Liquid freezes upon contact",
+    "wrong": [
+      "Cooking technique",
+      "Storm freezing lakes",
+      "Lightning striking ice"
+    ],
     "explanation": "In -40°C air, boiling water thrown into the air instantly turns to snow — the water's heat is lost to the cold air so rapidly that it freezes before hitting the ground."
   },
   {
@@ -1309,8 +1889,12 @@
     "category": "Nature & Extremes",
     "difficulty": "hard",
     "question": "What makes the Greenland shark remarkable among cold-water creatures?",
-    "correct": "It can live for 400+ years in near-freezing water",
-    "wrong": ["It survives frozen in ice", "It generates body heat like mammals", "It uses antifreeze proteins like Arctic fish"],
+    "correct": "400+ year lifespan",
+    "wrong": [
+      "Survives frozen",
+      "Generates heat",
+      "Antifreeze proteins"
+    ],
     "explanation": "Greenland sharks grow about 1cm per year in near-freezing Arctic waters. Radiocarbon dating suggests some individuals are over 400 years old — potentially the longest-lived vertebrate."
   },
   {
@@ -1318,8 +1902,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "What causes the 'wind chill' effect to make cold feel worse?",
-    "correct": "Wind removes the warm air layer near the skin",
-    "wrong": ["Wind lowers air temperature directly", "Wind causes moisture to freeze on skin", "Wind reduces oxygen available near skin"],
+    "correct": "Removes warm skin-air layer",
+    "wrong": [
+      "Lowers air temp",
+      "Freezes skin moisture",
+      "Reduces oxygen"
+    ],
     "explanation": "Your body creates a thin insulating layer of warm air at the skin surface. Wind strips this away, forcing your body to continuously reheat it — dramatically increasing heat loss."
   },
   {
@@ -1328,7 +1916,11 @@
     "difficulty": "easy",
     "question": "What is the name of the large ice sheet covering most of Antarctica?",
     "correct": "Antarctic Ice Sheet",
-    "wrong": ["Arctic Glacier", "Southern Icepack", "Polar Cap"],
+    "wrong": [
+      "Arctic Glacier",
+      "Southern Icepack",
+      "Polar Cap"
+    ],
     "explanation": "The Antarctic Ice Sheet is the largest single mass of ice on Earth — containing enough water to raise global sea levels by 200 feet if it melted. It averages 2.16km thick."
   },
   {
@@ -1336,8 +1928,12 @@
     "category": "Nature & Extremes",
     "difficulty": "hard",
     "question": "What is unique about the 'blood falls' in Antarctica?",
-    "correct": "A red iron-rich brine flows from under a glacier",
-    "wrong": ["A frozen waterfall of animal blood", "A microbe that produces red ice", "A volcanic heat source under ice"],
+    "correct": "Red iron-rich brine",
+    "wrong": [
+      "Frozen blood waterfall",
+      "Microbe producing ice",
+      "Volcanic heat source"
+    ],
     "explanation": "Taylor Glacier's Blood Falls oozes ancient, iron-rich saltwater brine trapped under the glacier for millions of years. Microbes in this sub-zero, oxygen-free, salty environment have evolved in total isolation."
   },
   {
@@ -1345,8 +1941,12 @@
     "category": "Nature & Extremes",
     "difficulty": "medium",
     "question": "How do reindeer (caribou) hooves adapt to cold environments?",
-    "correct": "Hooves harden in winter and act as shovels for digging",
-    "wrong": ["They grow thick fur between toes", "They reduce blood flow like humans", "They produce antifreeze in joints"],
+    "correct": "Harden for winter shoveling",
+    "wrong": [
+      "Fur between toes",
+      "Reduced blood flow",
+      "Antifreeze in joints"
+    ],
     "explanation": "Reindeer hooves soften in summer for grip on wet ground, then harden in winter to break through ice. The hoof edge also scrapes away snow to expose lichen underneath."
   },
   {
@@ -1354,8 +1954,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "Does cold water immersion reduce muscle soreness after exercise?",
-    "correct": "Evidence suggests it can reduce perceived soreness",
-    "wrong": ["No evidence at all", "It worsens soreness", "Only in professional athletes"],
+    "correct": "Reduces perceived soreness",
+    "wrong": [
+      "No evidence",
+      "Worsens soreness",
+      "Only for pros"
+    ],
     "explanation": "Cold immersion post-exercise appears to reduce delayed-onset muscle soreness (DOMS) in many studies. The mechanism likely involves reduced inflammation and nerve conduction velocity."
   },
   {
@@ -1363,8 +1967,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "What is contrast therapy in cold recovery?",
-    "correct": "Alternating hot and cold exposure",
-    "wrong": ["Cold ice directly on muscles", "Comparing cold and warm water benefits", "A type of stretching after cold"],
+    "correct": "Alternating hot and cold",
+    "wrong": [
+      "Direct ice on muscles",
+      "Comparing water benefits",
+      "Post-cold stretching"
+    ],
     "explanation": "Contrast therapy — alternating between hot (sauna, hot tub) and cold (ice bath, cold shower) — may boost circulation, reduce inflammation, and accelerate recovery more than cold alone."
   },
   {
@@ -1372,8 +1980,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "Should you eat before or after a cold plunge?",
-    "correct": "After is generally recommended",
-    "wrong": ["Always eat right before", "Never eat within 4 hours", "Eating has no effect"],
+    "correct": "After is recommended",
+    "wrong": [
+      "Always before",
+      "Never within 4 hours",
+      "No effect"
+    ],
     "explanation": "Plunging on a full stomach diverts blood flow competition between digestion and the cold stress response. Most practitioners recommend plunging before meals or at least 1-2 hours after."
   },
   {
@@ -1381,8 +1993,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "Does cold plunging help with inflammation?",
-    "correct": "Evidence suggests it can reduce acute inflammation",
-    "wrong": ["It causes inflammation", "No effect on inflammation", "Only reduces chronic inflammation"],
+    "correct": "Reduces acute inflammation",
+    "wrong": [
+      "Causes inflammation",
+      "No effect",
+      "Only chronic inflammation"
+    ],
     "explanation": "Cold causes vasoconstriction and slows metabolic activity, which can reduce acute inflammatory signaling. This is why ice has been applied to injuries for decades."
   },
   {
@@ -1390,8 +2006,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "What is the general guideline for cold plunge duration for beginners?",
-    "correct": "Start with 1-3 minutes",
-    "wrong": ["At least 15 minutes for benefit", "5 minutes minimum", "30 seconds is always enough"],
+    "correct": "Start 1-3 minutes",
+    "wrong": [
+      "15 minutes minimum",
+      "5 minutes minimum",
+      "30 seconds always enough"
+    ],
     "explanation": "Most research protocols and practitioners recommend starting with 1-3 minutes for beginners, then gradually extending. Cold shock response peaks early — even short exposures deliver stimulus."
   },
   {
@@ -1399,8 +2019,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "Why might cold immersion immediately after strength training reduce muscle growth?",
-    "correct": "It blunts the inflammatory signal needed for adaptation",
-    "wrong": ["It prevents protein synthesis entirely", "It reduces testosterone", "It dehydrates muscle cells"],
+    "correct": "Blunts inflammatory adaptation signal",
+    "wrong": [
+      "Prevents protein synthesis",
+      "Reduces testosterone",
+      "Dehydrates muscles"
+    ],
     "explanation": "Post-exercise inflammation is part of the muscle-building signal. Immediately cooling the muscle may suppress this signal. Some research suggests waiting 4+ hours after lifting before cold immersion."
   },
   {
@@ -1408,8 +2032,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "What is heart rate variability (HRV) and why do athletes track it?",
-    "correct": "Time variation between heartbeats; indicates recovery status",
-    "wrong": ["Maximum heart rate range", "Resting heart rate over time", "Heart rhythm irregularity"],
+    "correct": "Heartbeat variation; indicates recovery",
+    "wrong": [
+      "Max heart rate",
+      "Resting heart rate",
+      "Heart rhythm irregularity"
+    ],
     "explanation": "Higher HRV generally indicates better recovery and autonomic balance. Athletes track it to gauge readiness for training. Cold exposure may improve HRV over time in regular practitioners."
   },
   {
@@ -1417,8 +2045,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "What is box breathing and why is it useful for cold plunging?",
-    "correct": "4 count inhale, 4 hold, 4 exhale, 4 hold — calms the nervous system",
-    "wrong": ["Breathing only through the nose", "Rapid breath cycles before immersion", "Holding breath as long as possible"],
+    "correct": "4-count rhythm; calms nerves",
+    "wrong": [
+      "Nose breathing only",
+      "Rapid cycles",
+      "Max breath hold"
+    ],
     "explanation": "Box breathing activates the parasympathetic system and helps regulate the cold shock response. Many experienced plungers use it in the seconds before entering and in the first minutes of immersion."
   },
   {
@@ -1426,8 +2058,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "Does cold exposure improve sleep quality?",
-    "correct": "Some evidence suggests it can when done in the morning",
-    "wrong": ["It always disrupts sleep", "Only if done at night", "No effect on sleep"],
+    "correct": "Morning use helps",
+    "wrong": [
+      "Always disrupts sleep",
+      "Only at night",
+      "No effect"
+    ],
     "explanation": "Morning cold exposure aligns catecholamine and cortisol peaks with the body's natural awakening response, potentially improving circadian rhythm regulation and sleep pressure by night."
   },
   {
@@ -1435,8 +2071,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "What does research say about the optimal temperature for a cold plunge?",
-    "correct": "Around 10–15°C (50–59°F) for most benefit",
-    "wrong": ["As cold as possible is best", "Room temperature water is sufficient", "Exactly 0°C is optimal"],
+    "correct": "10-15C (50-59F)",
+    "wrong": [
+      "Colder is better",
+      "Room temperature sufficient",
+      "Exactly 0C"
+    ],
     "explanation": "Most research protocols use 10–15°C water. Below 10°C increases cold shock risk without proportional additional benefit for most people. The sweet spot balances stimulus and safety."
   },
   {
@@ -1444,8 +2084,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "Is hydration important after a cold plunge?",
-    "correct": "Yes — cold stress can be dehydrating",
-    "wrong": ["No, cold prevents dehydration", "Only in warm weather", "Only if you sweat during plunging"],
+    "correct": "Yes",
+    "wrong": [
+      "No",
+      "Only in heat",
+      "Only if sweating"
+    ],
     "explanation": "Cold causes respiratory water loss (visible as breath vapor) and can suppress the thirst response. Drinking water after a plunge supports recovery and nervous system function."
   },
   {
@@ -1453,8 +2097,12 @@
     "category": "Health & Recovery",
     "difficulty": "hard",
     "question": "Why might Wim Hof breathing before entering water be dangerous?",
-    "correct": "It lowers CO₂ dangerously, risking blackout in water",
-    "wrong": ["It raises blood pressure too high", "It prevents the cold-shock response entirely", "It overheats the core before immersion"],
+    "correct": "Lowers CO2; risks blackout",
+    "wrong": [
+      "Raises blood pressure",
+      "Prevents cold-shock",
+      "Overheats core"
+    ],
     "explanation": "The Wim Hof method involves hyperventilation that drops CO₂ to very low levels. Low CO₂ suppresses the urge to breathe. Doing this in water risks loss of consciousness and drowning."
   },
   {
@@ -1462,8 +2110,12 @@
     "category": "Health & Recovery",
     "difficulty": "hard",
     "question": "What is the proposed role of cold in reducing chronic inflammation?",
-    "correct": "Cold may reduce pro-inflammatory cytokine activity",
-    "wrong": ["Cold eliminates all inflammation", "Cold increases anti-inflammatory drugs' effect", "Cold directly removes inflammatory cells"],
+    "correct": "Reduces pro-inflammatory cytokines",
+    "wrong": [
+      "Eliminates all inflammation",
+      "Boosts drug effects",
+      "Removes immune cells"
+    ],
     "explanation": "Some research suggests cold exposure may reduce levels of pro-inflammatory cytokines like IL-6 and TNF-alpha, potentially benefiting people with chronic inflammatory conditions."
   },
   {
@@ -1471,8 +2123,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "What is the recommended approach to warming up after a cold plunge?",
-    "correct": "Allow the body to warm naturally rather than immediate hot shower",
-    "wrong": ["Jump straight into a hot shower", "Exercise vigorously immediately", "Stay cold as long as possible"],
+    "correct": "Allow natural warming",
+    "wrong": [
+      "Hot shower immediately",
+      "Vigorous exercise",
+      "Stay cold longer"
+    ],
     "explanation": "Many practitioners recommend 'self-generated warmth' after a plunge — moving gently, toweling off, and letting your body reheat itself rather than immediately jumping into hot water, to maximize catecholamine effects."
   },
   {
@@ -1480,8 +2136,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "Can cold plunging help muscle recovery for endurance athletes?",
-    "correct": "Evidence suggests it can reduce recovery time",
-    "wrong": ["It harms endurance performance", "No benefit for endurance athletes", "Only for sprinters"],
+    "correct": "Reduces recovery time",
+    "wrong": [
+      "Harms endurance",
+      "No benefit",
+      "Only for sprinters"
+    ],
     "explanation": "Cold immersion post-endurance exercise consistently shows reductions in perceived soreness and fatigue markers, making it popular among runners, cyclists, and triathletes."
   },
   {
@@ -1489,8 +2149,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "Does cold plunging burn enough calories to matter for weight loss?",
-    "correct": "The effect is real but modest — don't rely on it alone",
-    "wrong": ["Yes, it burns 500+ calories per session", "No calories are burned at all", "It burns exactly the same as a workout"],
+    "correct": "Real but modest",
+    "wrong": [
+      "500+ calories",
+      "Zero calories",
+      "Matches workout"
+    ],
     "explanation": "Cold exposure does increase energy expenditure through shivering and brown fat activation, but the amounts are modest and highly variable. It's a supplement to, not a replacement for, other healthy habits."
   },
   {
@@ -1498,8 +2162,12 @@
     "category": "Health & Recovery",
     "difficulty": "hard",
     "question": "What is the 'inflammatory paradox' regarding cold plunging?",
-    "correct": "Cold acutely reduces inflammation but adaptation may require some inflammation",
-    "wrong": ["Cold causes inflammation but feels good", "Cold is only anti-inflammatory in warm people", "There is no paradox — cold always reduces inflammation"],
+    "correct": "Acute reduction; chronic adaptation",
+    "wrong": [
+      "Feels good",
+      "Works for warm people",
+      "No paradox"
+    ],
     "explanation": "Short-term cold reduces acute inflammation (beneficial for recovery). But long-term adaptation — including the beneficial stress adaptations — requires the body to experience and respond to inflammatory signals."
   },
   {
@@ -1507,8 +2175,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "What should people with Raynaud's phenomenon be cautious about with cold plunging?",
-    "correct": "Cold can trigger severe painful vasospasm in their extremities",
-    "wrong": ["Cold is actually curative for Raynaud's", "Only their core temperature is affected", "Cold has no special effect"],
+    "correct": "Triggers severe painful vasospasm",
+    "wrong": [
+      "It is curative",
+      "Only affects core",
+      "No special effect"
+    ],
     "explanation": "Raynaud's causes extreme vasoconstriction in response to cold. For sufferers, even brief cold exposure can trigger painful color changes and prolonged vasospasm in fingers and toes."
   },
   {
@@ -1516,8 +2188,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "Is it recommended to cold plunge alone?",
-    "correct": "No — a buddy or supervision is safer",
-    "wrong": ["Yes, it's safer alone", "Yes, companions cause distraction", "Only relevant for open water"],
+    "correct": "No",
+    "wrong": [
+      "Yes",
+      "Yes, prevents distraction",
+      "Only open water"
+    ],
     "explanation": "Cold shock can cause rapid incapacitation. Having someone present who can respond if you experience an adverse event — fainting, cardiac event, or involuntary submersion — is an important safety practice."
   },
   {
@@ -1525,8 +2201,12 @@
     "category": "Health & Recovery",
     "difficulty": "hard",
     "question": "What does research say about cold and immune function?",
-    "correct": "Acute cold increases some immune markers; evidence is mixed overall",
-    "wrong": ["Cold definitively strengthens immunity", "Cold always suppresses immunity", "Cold has zero effect on immune cells"],
+    "correct": "Acute increase; overall mixed",
+    "wrong": [
+      "Definitively strengthens",
+      "Always suppresses",
+      "Zero effect"
+    ],
     "explanation": "Some studies show cold increases circulating NK cells and leukocytes. But severe cold suppresses immunity. The relationship is dose-dependent and not fully understood."
   },
   {
@@ -1534,8 +2214,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "How does contrast therapy (hot/cold) compare to cold alone for recovery?",
-    "correct": "Some evidence suggests contrast may be superior for recovery",
-    "wrong": ["Cold alone is always better", "They are identical in effect", "Hot alone outperforms both"],
+    "correct": "Contrast potentially superior",
+    "wrong": [
+      "Cold alone better",
+      "Identical effects",
+      "Hot alone better"
+    ],
     "explanation": "The pumping action of vasoconstriction (cold) followed by vasodilation (heat) may more effectively flush metabolic waste from muscles than cold alone. Many elite teams use contrast protocols."
   },
   {
@@ -1543,8 +2227,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "What is DOMS and does cold help?",
-    "correct": "Delayed onset muscle soreness — cold may reduce it",
-    "wrong": ["A muscle injury — cold cures it", "Immediate soreness — not affected by cold", "A joint condition — cold worsens it"],
+    "correct": "Reduces DOMS",
+    "wrong": [
+      "Cures muscle injury",
+      "Not affected",
+      "Worsens joints"
+    ],
     "explanation": "DOMS peaks 24-48 hours after exercise and is linked to micro-tears and inflammation. Cold immersion consistently reduces its severity in research, though it may slightly reduce the adaptation signal."
   },
   {
@@ -1552,8 +2240,12 @@
     "category": "Health & Recovery",
     "difficulty": "hard",
     "question": "What is 'thermogenesis via muscle futile cycling' in cold exposure?",
-    "correct": "ATP generation and breakdown simultaneously to produce heat",
-    "wrong": ["Shivering too fast to contract muscles", "Heat from rapid digestion", "Blood circulation without muscle use"],
+    "correct": "Simultaneous ATP cycling",
+    "wrong": [
+      "Rapid shivering",
+      "Digestion heat",
+      "Circulation without movement"
+    ],
     "explanation": "In cold acclimated individuals, muscles can generate heat without visible shivering through sarcolipin-mediated futile cycling of calcium in the sarcoplasmic reticulum — a metabolically expensive but silent heat source."
   },
   {
@@ -1561,8 +2253,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "What is the effect of cold plunging on blood pressure?",
-    "correct": "It causes an acute increase in blood pressure",
-    "wrong": ["It immediately lowers blood pressure", "It has no effect on blood pressure", "It decreases blood pressure long-term only"],
+    "correct": "Causes acute increase",
+    "wrong": [
+      "Immediately lowers",
+      "No effect",
+      "Decreases long-term"
+    ],
     "explanation": "Vasoconstriction during cold immersion acutely raises blood pressure. This is why people with hypertension or cardiovascular disease should consult a doctor before starting a cold plunge practice."
   },
   {
@@ -1570,8 +2266,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "What does research say about daily cold plunging vs. 3-4 times per week?",
-    "correct": "3-4 times per week seems sufficient for most benefits",
-    "wrong": ["Daily is mandatory", "Once a week is optimal", "Only daily provides benefit"],
+    "correct": "3-4 times sufficient",
+    "wrong": [
+      "Daily mandatory",
+      "Once weekly optimal",
+      "Only daily works"
+    ],
     "explanation": "Research from Søberg et al. suggests approximately 11 minutes of cold immersion per week (across 2-4 sessions) produces measurable metabolic and neurochemical benefits."
   },
   {
@@ -1579,8 +2279,12 @@
     "category": "Health & Recovery",
     "difficulty": "hard",
     "question": "What is the relationship between cold exposure and longevity research?",
-    "correct": "Emerging evidence suggests it may activate longevity pathways",
-    "wrong": ["Cold definitively extends lifespan", "No research connects cold and longevity", "Cold shortens lifespan due to stress"],
+    "correct": "Activates longevity pathways",
+    "wrong": [
+      "Definitively extends life",
+      "No research",
+      "Shortens lifespan"
+    ],
     "explanation": "Cold exposure may activate AMPK, SIRT1, and other pathways associated with longevity research. It's an active area of study, but making definitive longevity claims from current evidence would be premature."
   },
   {
@@ -1588,8 +2292,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "What does Søberg et al. (2021) suggest about 11 minutes of cold immersion per week?",
-    "correct": "It produces measurable increases in brown fat and metabolic markers",
-    "wrong": ["It maximizes athletic performance", "It reverses aging", "It produces no measurable change"],
+    "correct": "Increases brown fat",
+    "wrong": [
+      "Maximizes performance",
+      "Reverses aging",
+      "No change"
+    ],
     "explanation": "The Søberg study found that 11 minutes total per week of cold water immersion (2-4 sessions) was associated with increased brown fat activity and norepinephrine elevation."
   },
   {
@@ -1597,8 +2305,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "Should pregnant women cold plunge?",
-    "correct": "Only with medical guidance — caution is warranted",
-    "wrong": ["Yes, it's recommended for pregnancy", "No, it's always dangerous", "Yes, cold is always safe for everyone"],
+    "correct": "Only with medical guidance",
+    "wrong": [
+      "Recommended for pregnancy",
+      "Always dangerous",
+      "Always safe"
+    ],
     "explanation": "Cold water causes significant cardiovascular stress and core temperature changes. Pregnant women should consult their OB/GYN before any cold water immersion — the evidence base is very limited for this group."
   },
   {
@@ -1606,8 +2318,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "What is the proposed benefit of cold on gut health?",
-    "correct": "Cold may reduce intestinal inflammation via vagal stimulation",
-    "wrong": ["Cold directly kills gut bacteria", "Cold increases stomach acid", "Cold slows all digestion permanently"],
+    "correct": "Vagal stimulation reduces inflammation",
+    "wrong": [
+      "Kills bacteria",
+      "Increases acid",
+      "Slows digestion"
+    ],
     "explanation": "Some researchers propose that vagal nerve stimulation during cold may help regulate gut inflammation and the gut-brain axis — though direct gut health research from cold immersion is still very limited."
   },
   {
@@ -1615,8 +2331,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "Can cold plunging be part of a sustainable wellness practice?",
-    "correct": "Yes — many practitioners report long-term adherence",
-    "wrong": ["No, it causes burnout quickly", "Only if combined with sauna", "Not for people over 40"],
+    "correct": "Yes",
+    "wrong": [
+      "No",
+      "Only with sauna",
+      "Not for 40+"
+    ],
     "explanation": "The neurochemical rewards of cold plunging — mood lift, energy, sense of accomplishment — make it one of the few wellness practices with strong self-reinforcing adherence. Many practitioners continue for years."
   },
   {
@@ -1624,8 +2344,12 @@
     "category": "Health & Recovery",
     "difficulty": "hard",
     "question": "What does the ΔFOSB transcription factor have to do with cold plunging?",
-    "correct": "It may be involved in the lasting neurological adaptations from repeated cold",
-    "wrong": ["It generates heat in brown fat", "It creates antifreeze proteins", "It is unrelated to cold exposure"],
+    "correct": "Involved in neurological adaptation",
+    "wrong": [
+      "Generates heat",
+      "Creates antifreeze",
+      "Unrelated"
+    ],
     "explanation": "ΔFosB accumulates in the brain with repeated stimulation and is associated with lasting behavioral changes. It's involved in addiction and may also mediate the long-term drive to seek cold water."
   },
   {
@@ -1633,8 +2357,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "Does cold plunging help with jet lag recovery?",
-    "correct": "Anecdotally yes — via circadian reset mechanism",
-    "wrong": ["It worsens jet lag", "No connection to circadian rhythms", "Only if done at local noon"],
+    "correct": "Anecdotally yes",
+    "wrong": [
+      "Worsens jet lag",
+      "No connection",
+      "Only at noon"
+    ],
     "explanation": "Cold exposure in the morning raises cortisol and catecholamines in a pattern similar to the natural cortisol awakening response, which may help reset the circadian clock when traveling across time zones."
   },
   {
@@ -1642,8 +2370,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "Is it normal to feel tired after a cold plunge?",
-    "correct": "Yes — the physiological effort is real",
-    "wrong": ["No — cold always energizes", "Only for beginners", "Tiredness means something went wrong"],
+    "correct": "Yes",
+    "wrong": [
+      "No",
+      "Only beginners",
+      "Means error"
+    ],
     "explanation": "A cold plunge is a genuine physiological stressor. While many people feel energized immediately after, tiredness later in the day is common as the body recovers from the thermal stress."
   },
   {
@@ -1651,8 +2383,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "What role does brown fat play in long-term cold training benefits?",
-    "correct": "It expands with regular cold exposure and burns more calories",
-    "wrong": ["It shrinks to maintain core temperature", "It converts to white fat over time", "It plays no role in trained adults"],
+    "correct": "Expands; burns calories",
+    "wrong": [
+      "Shrinks",
+      "Converts to white",
+      "No role"
+    ],
     "explanation": "Regular cold exposure appears to increase both the amount and activity of brown adipose tissue. More active brown fat means greater thermogenic capacity and potentially improved metabolic health."
   },
   {
@@ -1660,8 +2396,12 @@
     "category": "Health & Recovery",
     "difficulty": "hard",
     "question": "What is 'beige fat' and how does cold relate to it?",
-    "correct": "White fat cells that adopt brown-fat-like properties with cold stimulation",
-    "wrong": ["A rare type of fat found only in the neck", "Old brown fat that has lost function", "The fat surrounding organs"],
+    "correct": "White fat with brown-like properties",
+    "wrong": [
+      "Neck-only fat",
+      "Old brown fat",
+      "Organ fat"
+    ],
     "explanation": "Beige (or brite) adipocytes are white fat cells that can transdifferentiate into brown-fat-like cells with cold exposure and beta-adrenergic stimulation — expanding the body's thermogenic tissue."
   },
   {
@@ -1669,8 +2409,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "How does a sauna complement cold plunging in a recovery protocol?",
-    "correct": "Heat relaxes muscles and vasodilates after cold vasoconstriction",
-    "wrong": ["Sauna cancels out cold benefits", "They should never be combined", "Sauna only helps after running"],
+    "correct": "Relaxes muscles; vasodilates",
+    "wrong": [
+      "Cancels benefits",
+      "Never combine",
+      "Only helps running"
+    ],
     "explanation": "The sauna-cold combination creates a powerful contrast — heat relaxes tissue and opens vessels while cold constricts and reduces inflammation. Together, they create a strong circulation stimulus."
   },
   {
@@ -1678,8 +2422,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "Does plunging more frequently produce proportionally greater benefits?",
-    "correct": "Not necessarily — diminishing returns apply",
-    "wrong": ["Yes — more is always better", "Yes up to daily", "Only if water gets colder each session"],
+    "correct": "Diminishing returns apply",
+    "wrong": [
+      "More is better",
+      "Yes up to daily",
+      "Only if colder"
+    ],
     "explanation": "Benefits from cold exposure appear to plateau. Most research suggests 2-4 sessions per week provides most of the benefit. Doing 7 sessions may not be twice as effective as doing 3-4."
   },
   {
@@ -1687,8 +2435,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "Can cold plunging reduce exercise-induced oxidative stress?",
-    "correct": "Some evidence suggests it may",
-    "wrong": ["It significantly increases oxidative stress", "No evidence exists", "It eliminates oxidative stress entirely"],
+    "correct": "Evidence suggests it can",
+    "wrong": [
+      "Increases stress",
+      "No evidence",
+      "Eliminates stress"
+    ],
     "explanation": "Cold immersion may reduce markers of oxidative stress post-exercise by slowing metabolic activity and reducing free radical production. The evidence base is growing but not yet definitive."
   },
   {
@@ -1696,8 +2448,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "Should you plunge if you are actively sick with a fever?",
-    "correct": "No — wait until recovered",
-    "wrong": ["Yes, cold reduces fever", "Yes, it boosts immunity when needed", "Only if fever is below 101°F"],
+    "correct": "No",
+    "wrong": [
+      "Yes, reduces fever",
+      "Yes, boosts immunity",
+      "Yes if mild"
+    ],
     "explanation": "When sick, your body is in active immune response. Adding cold stress taxes an already-strained system and can impair recovery. Rest and hydration take priority over cold plunging when ill."
   },
   {
@@ -1705,8 +2461,12 @@
     "category": "Health & Recovery",
     "difficulty": "hard",
     "question": "What is the proposed mechanism for cold improving skin appearance?",
-    "correct": "Vasoconstriction reduces puffiness; vasodilation post-cold brings nutrients",
-    "wrong": ["Cold kills bacteria on skin surface", "Cold increases collagen production directly", "Cold permanently tightens pores"],
+    "correct": "Vasoconstriction reduces puffiness",
+    "wrong": [
+      "Kills bacteria",
+      "Increases collagen",
+      "Tightens pores"
+    ],
     "explanation": "The cold-induced vasoconstriction reduces swelling and puffiness. The subsequent vasodilation floods skin with oxygenated blood. The cycle may temporarily improve skin tone and reduce inflammation."
   },
   {
@@ -1714,8 +2474,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "What is 'cold thermogenesis' and who popularized the concept?",
-    "correct": "Using cold to stimulate metabolic adaptation — popularized by Jack Kruse and others",
-    "wrong": ["A new form of cryotherapy", "The study of cold-adapted animals", "Wim Hof's official protocol name"],
+    "correct": "Stimulate metabolic adaptation",
+    "wrong": [
+      "New cryotherapy",
+      "Cold-adapted animals",
+      "Wim Hof protocol"
+    ],
     "explanation": "Cold thermogenesis refers to deliberately using cold exposure to activate brown fat and metabolic pathways. Jack Kruse and later Andrew Huberman brought these concepts to mainstream wellness audiences."
   },
   {
@@ -1723,8 +2487,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "What is the key safety rule most cold plunge practitioners emphasize?",
-    "correct": "Never plunge alone, especially as a beginner",
-    "wrong": ["Always use ice, not cold tap water", "Never exceed 5 minutes ever", "Always consult a doctor before every plunge"],
+    "correct": "Never plunge alone",
+    "wrong": [
+      "Always use ice",
+      "Never exceed 5",
+      "Doctor before every"
+    ],
     "explanation": "The most fundamental cold plunge safety rule is to have someone present. Cold shock can cause rapid incapacitation, and an unconscious person in water faces immediate drowning risk."
   },
   {
@@ -1732,8 +2500,12 @@
     "category": "Health & Recovery",
     "difficulty": "hard",
     "question": "What does research suggest about cold timing relative to aerobic exercise for endurance training?",
-    "correct": "Cold after endurance training may preserve adaptation better than after strength training",
-    "wrong": ["Cold always blunts endurance adaptation", "Cold before endurance exercise is optimal", "Timing makes no difference for endurance"],
+    "correct": "May preserve endurance adaptation",
+    "wrong": [
+      "Always blunts",
+      "Before exercise optimal",
+      "No timing difference"
+    ],
     "explanation": "The inflammatory signal blunted by cold seems less critical for endurance adaptation (which relies more on mitochondrial biogenesis) than for hypertrophy, making post-endurance cold immersion less controversial."
   },
   {
@@ -1741,8 +2513,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "What is the role of glutathione in cold exposure?",
-    "correct": "It's an antioxidant that may increase with regular cold training",
-    "wrong": ["It acts as an antifreeze protein", "It generates heat in brown fat", "It has no role in cold physiology"],
+    "correct": "Antioxidant increases with training",
+    "wrong": [
+      "Antifreeze protein",
+      "Heat generator",
+      "No physiological role"
+    ],
     "explanation": "Some research indicates regular cold exposure may upregulate glutathione and other endogenous antioxidant enzymes — a hormetic adaptation to the oxidative stress of cold that makes cells more resilient."
   },
   {
@@ -1750,8 +2526,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "What should you do immediately after exiting a cold plunge?",
-    "correct": "Dry off, move gently, and let your body self-rewarm",
-    "wrong": ["Immediately run or do intense exercise", "Drink cold water immediately", "Stay still and avoid moving"],
+    "correct": "Dry off; move gently",
+    "wrong": [
+      "Intense exercise",
+      "Drink cold water",
+      "Stay still"
+    ],
     "explanation": "Gentle movement after a plunge helps generate self-warmth and promotes circulation. Most practitioners recommend avoiding an immediate hot shower to preserve the catecholamine elevation."
   },
   {
@@ -1759,8 +2539,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "Can cold plunging help with post-workout inflammation in tendons and joints?",
-    "correct": "Cold may reduce acute inflammation in soft tissue",
-    "wrong": ["It worsens tendon inflammation", "Only effective for muscles, not joints", "No effect on tendons"],
+    "correct": "Reduces acute inflammation",
+    "wrong": [
+      "Worsens inflammation",
+      "Only muscles",
+      "No effect"
+    ],
     "explanation": "Cold reduces blood flow and metabolic activity in stressed tissue, including tendons and joints. While it may reduce acute inflammation, it's not a treatment for chronic joint conditions."
   },
   {
@@ -1768,8 +2552,12 @@
     "category": "Health & Recovery",
     "difficulty": "hard",
     "question": "What is the 'eustress vs. distress' framework and how does it apply to cold?",
-    "correct": "Cold is eustress — beneficial stress that promotes adaptation",
-    "wrong": ["Cold is distress that should be minimized", "Cold causes both equally", "The framework doesn't apply to cold"],
+    "correct": "Beneficial stress",
+    "wrong": [
+      "Distress to avoid",
+      "Both equally",
+      "Framework invalid"
+    ],
     "explanation": "Hans Selye's eustress/distress model distinguishes beneficial challenge (eustress) from harmful overwhelm (distress). Cold plunging at appropriate intensity is eustress — enough to stimulate adaptation without causing damage."
   },
   {
@@ -1777,8 +2565,12 @@
     "category": "Health & Recovery",
     "difficulty": "easy",
     "question": "Can cold plunging complement a strength training program?",
-    "correct": "Yes, with careful timing to avoid blunting muscle adaptation",
-    "wrong": ["No, they are incompatible", "Yes, cold after every session maximizes muscle growth", "Only for professional athletes"],
+    "correct": "Yes, with careful timing",
+    "wrong": [
+      "Incompatible",
+      "Maximize every time",
+      "Only for pros"
+    ],
     "explanation": "Cold can support recovery between training days. The key is avoiding cold immersion immediately after strength sessions — spacing it by 4+ hours or doing it on rest days preserves the muscle-building signal."
   },
   {
@@ -1786,8 +2578,12 @@
     "category": "Health & Recovery",
     "difficulty": "medium",
     "question": "What evidence exists for cold plunging reducing chronic pain?",
-    "correct": "Anecdotal and some early evidence — limited controlled trials",
-    "wrong": ["Large trials definitively confirm chronic pain relief", "No evidence exists", "Cold worsens chronic pain always"],
+    "correct": "Limited early evidence",
+    "wrong": [
+      "Definitively confirmed",
+      "No evidence",
+      "Worsens pain"
+    ],
     "explanation": "While many chronic pain sufferers report relief from regular cold water immersion, rigorous controlled trials are still limited. Mechanisms may include reduced neuroinflammation and endorphin release."
   },
   {
@@ -1795,8 +2591,12 @@
     "category": "Health & Recovery",
     "difficulty": "hard",
     "question": "What would 'source-backed' cold plunge trivia require to be trustworthy?",
-    "correct": "Claims supported by peer-reviewed research, not anecdote or marketing",
-    "wrong": ["At least one celebrity endorsement", "A licensed medical professional creating it", "Matching the most popular wellness podcast claims"],
+    "correct": "Supported by research",
+    "wrong": [
+      "Celebrity endorsement",
+      "Medical professional",
+      "Podcast claims"
+    ],
     "explanation": "For cold science to be trustworthy, claims should trace to peer-reviewed physiology research or established mechanisms. Separating confirmed science from plausible-but-unproven wellness lore is what makes education genuinely valuable."
   }
 ]
