@@ -168,6 +168,7 @@ type Screen = "timer" | "history" | "explore" | "gear" | "settings" | "legal" | 
 import { getCompositionFactor, getCompositionFactorForScore, SEGMENTS, type SegmentId, computeThresholds, getMidSegmentIdx, getSecsToFinish } from "@/lib/benefitSegments";
 import { CelebrationOverlay, GoalNudge, CountdownGoalHint } from "@/components/PlungeBenefitCoach";
 import { ProgressionCoachCard } from "@/components/ProgressionCoachCard";
+import { BrainFreezeModal } from "@/components/BrainFreezeModal";
 
 function plungeScore(
   durationSeconds: number,
@@ -653,6 +654,7 @@ export default function Home() {
     () => (localStorage.getItem("coldstreak-primary-benefit") as SegmentId) || "mood"
   );
   const [showBenefitPicker, setShowBenefitPicker] = useState(false);
+  const [showBrainFreezeModal, setShowBrainFreezeModal] = useState(false);
   const [celebrationFor, setCelebrationFor] = useState<SegmentId | null>(null);
   // Goal suggestion: { segId, hitCount, sampleSize } when the user consistently
   // completes a benefit segment they haven't set as their goal.
@@ -3478,6 +3480,7 @@ export default function Home() {
       setCountdownElapsed(0);
       setCountdown(total);
       tempSamplesRef.current = [temperature];
+      brainFreezeScoreRef.current = 0;
       setCountdownRunning(true);
       localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "countdown", startTime: now, countdownTotal: total, minutesInput, secondsInput, entryTemp: temperature, challengers: pendingChallengers }));
     } else {
@@ -3485,6 +3488,7 @@ export default function Home() {
       const now = Date.now();
       startTimeRef.current = now;
       tempSamplesRef.current = [temperature];
+      brainFreezeScoreRef.current = 0;
       setIsRunning(true);
       localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "stopwatch", startTime: now, entryTemp: temperature, challengers: pendingChallengers }));
     }
@@ -3822,9 +3826,7 @@ export default function Home() {
           {auth.user && brainFreezeEnabled && (
             <button
               data-testid="button-header-brain-freeze"
-              onClick={() => {
-                toast({ title: "Brain Freeze Lab", description: "Start a plunge — trivia questions will appear during your session." });
-              }}
+              onClick={() => setShowBrainFreezeModal(true)}
               className="relative w-9 h-9 rounded-xl overflow-hidden active:scale-90 transition-transform"
               style={{ boxShadow: "0 0 10px rgba(96,165,250,0.35), 0 0 4px rgba(147,197,253,0.2)" }}
               aria-label="Brain Freeze Lab"
@@ -9134,6 +9136,8 @@ export default function Home() {
           </div>
         );
       })()}
+
+      <BrainFreezeModal isOpen={showBrainFreezeModal} onClose={() => setShowBrainFreezeModal(false)} />
 
       {showBenefitPicker && (
         <div
