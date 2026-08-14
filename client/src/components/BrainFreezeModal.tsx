@@ -10,16 +10,17 @@ interface Question {
   explanation: string;
 }
 
-type Phase = "loading" | "showing" | "answered";
+type Phase = "loading" | "showing" | "answered" | "done";
 
 interface BrainFreezeModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const QUESTION_TIMEOUT = 15;
+const QUESTION_TIMEOUT  = 15;
 const RESULT_DISPLAY_MS = 2600;
-const LABELS = ["A", "B", "C", "D"];
+const MAX_QUESTIONS     = 10;
+const LABELS            = ["A", "B", "C", "D"];
 
 function getToken() {
   try { return localStorage.getItem("coldstreak-auth-token"); } catch { return null; }
@@ -42,6 +43,10 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
   useEffect(() => { phaseRef.current = phase; }, [phase]);
 
   const fetchQuestion = useCallback(async () => {
+    if (questionNumRef.current >= MAX_QUESTIONS) {
+      setPhase("done");
+      return;
+    }
     const token = getToken();
     if (!token) return;
     setPhase("loading");
@@ -99,8 +104,11 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
 
     setSelected(ans);
     setPhase("answered");
-    setSessionTotal((t) => t + 1);
-    if (correct) setSessionCorrect((c) => c + 1);
+
+    let newTotal   = 0;
+    let newCorrect = 0;
+    setSessionTotal((t)  => { newTotal   = t + 1; return newTotal; });
+    setSessionCorrect((c) => { newCorrect = c + (correct ? 1 : 0); return newCorrect; });
 
     // Log to server
     const token = getToken();
@@ -117,11 +125,14 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
       }).catch(() => {});
     }
 
-    // Auto-advance after result display
-    setAutoAdvancing(true);
-    setTimeout(() => {
-      if (phaseRef.current === "answered") fetchQuestion();
-    }, RESULT_DISPLAY_MS);
+    // Auto-advance or finish
+    const isLast = questionNumRef.current >= MAX_QUESTIONS;
+    if (!isLast) {
+      setAutoAdvancing(true);
+      setTimeout(() => {
+        if (phaseRef.current === "answered") fetchQuestion();
+      }, RESULT_DISPLAY_MS);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question, fetchQuestion]);
 
@@ -129,15 +140,16 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
 
   const isCorrect = selected !== null && selected === question?.correct;
   const timedOut  = selected === null && phase === "answered";
+  const isLast    = questionNumRef.current >= MAX_QUESTIONS;
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center pb-8 px-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center px-4"
       style={{ background: "rgba(0,8,26,0.82)", backdropFilter: "blur(8px)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="w-full max-w-sm rounded-3xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300"
+        className="w-full max-w-sm rounded-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         style={{
           background: "rgba(3,18,52,0.98)",
           border: "1px solid rgba(96,165,250,0.28)",
@@ -157,11 +169,13 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
               Brain Freeze
             </p>
             <p className="text-blue-400/60 text-[10px] leading-none">
-              {sessionTotal > 0
-                ? `${sessionCorrect} / ${sessionTotal} correct`
-                : question
-                  ? `${question.category} · ${question.difficulty}`
-                  : "Loading…"}
+              {phase === "done"
+                ? "Session complete"
+                : sessionTotal > 0
+                  ? `${sessionCorrect} / ${sessionTotal} correct · Q${questionNumRef.current} of ${MAX_QUESTIONS}`
+                  : question
+                    ? `${question.category} · ${question.difficulty}`
+                    : "Loading…"}
             </p>
           </div>
 
@@ -196,6 +210,35 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
           />
         </div>
 
+        {/* Done / summary screen */}
+        {phase === "done" && (
+          <div className="flex flex-col items-center px-6 py-10 gap-4">
+            <img
+              src="/brain-freeze-icon.png"
+              alt=""
+              className="w-16 h-16 rounded-2xl object-cover"
+              style={{ boxShadow: "0 0 24px rgba(96,165,250,0.5)" }}
+            />
+            <p className="text-white text-lg font-bold">Session done!</p>
+            <p className="text-cyan-300 text-3xl font-black">
+              {sessionCorrect} <span className="text-blue-400/60 text-lg font-semibold">/ {MAX_QUESTIONS}</span>
+            </p>
+            <p className="text-blue-300/60 text-xs text-center">
+              {sessionCorrect >= 8 ? "🧊 Elite cold-brain performance" :
+               sessionCorrect >= 6 ? "Solid — keep chilling" :
+               sessionCorrect >= 4 ? "Getting sharper with every plunge" :
+               "The cold will make you smarter 💪"}
+            </p>
+            <button
+              onClick={onClose}
+              className="mt-2 px-8 py-2.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-95"
+              style={{ background: "rgba(34,211,238,0.18)", border: "1px solid rgba(34,211,238,0.3)" }}
+            >
+              Done
+            </button>
+          </div>
+        )}
+
         {/* Loading state */}
         {phase === "loading" && (
           <div className="flex items-center justify-center py-12">
@@ -204,7 +247,7 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
         )}
 
         {/* Question */}
-        {question && (
+        {question && phase !== "done" && (
           <>
             <div className="px-4 py-4">
               <p className="text-white text-sm font-semibold leading-snug">
@@ -279,19 +322,29 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
               </div>
             )}
 
-            {/* Footer: auto-advance indicator or manual next */}
+            {/* Footer */}
             {phase === "answered" && (
               <div className="px-4 py-4 flex items-center justify-between">
                 <p className="text-blue-500/60 text-[10px]">
-                  {autoAdvancing ? "Next question…" : ""}
+                  {isLast ? "Last question" : autoAdvancing ? "Next question…" : ""}
                 </p>
-                <button
-                  onClick={fetchQuestion}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-cyan-300 transition-all active:scale-95"
-                  style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.2)" }}
-                >
-                  Next →
-                </button>
+                {isLast ? (
+                  <button
+                    onClick={() => setPhase("done")}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-cyan-300 transition-all active:scale-95"
+                    style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.2)" }}
+                  >
+                    See results →
+                  </button>
+                ) : (
+                  <button
+                    onClick={fetchQuestion}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-cyan-300 transition-all active:scale-95"
+                    style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.2)" }}
+                  >
+                    Next →
+                  </button>
+                )}
               </div>
             )}
           </>
