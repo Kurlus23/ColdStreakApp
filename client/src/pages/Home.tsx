@@ -3174,6 +3174,8 @@ export default function Home() {
   // ─────────────────────────────────────────────────────────────────────────
   // ─────────────────────────────────────────────────────────────────────────
 
+  const brainFreezeScoreRef = useRef(0);
+
   const doLogPlunge = useCallback(async (durationSec: number, startedAtOverride?: Date, challenger?: { userId: number; score: number }) => {
     // Use the average of all temperature samples collected during this session.
     // Falls back to the current display value when no samples were collected
@@ -3198,6 +3200,7 @@ export default function Home() {
         duration: durationSec, temperature: avgTemp, score: String(score), timerUsed: true, calories: caloriesAtLogTime,
         hrAvg,
         spo2Avg: null,
+        ...(brainFreezeEnabled && brainFreezeScoreRef.current > 0 ? { brainFreezeScore: brainFreezeScoreRef.current } : {}),
         ...(challenger ? { challengerUserId: challenger.userId, challengerScore: challenger.score } : {}),
       },
       {
@@ -9004,6 +9007,8 @@ export default function Home() {
           milestoneEvent={milestoneEvent}
           onStop={handleStop}
           onDismissChallenger={() => setPendingChallengers([])}
+          brainFreezeEnabled={brainFreezeEnabled}
+          onBrainFreezeScore={(s) => { brainFreezeScoreRef.current = s; }}
         />
       )}
 

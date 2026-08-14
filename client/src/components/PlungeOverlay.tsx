@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { ColdTakeOverlay, MilestoneEvent } from "@/components/ColdTakeOverlay";
 import { BenefitBar } from "@/components/BenefitBar";
 import { MusicTransportMini } from "@/components/MusicWidget";
+import { BrainFreezeGame } from "@/components/BrainFreezeGame";
 import { SEGMENTS, type SegmentId, computeThresholds, getCompositionFactorForScore } from "@/lib/benefitSegments";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -181,6 +182,8 @@ interface PlungeOverlayProps {
   milestoneEvent?: MilestoneEvent | null;
   onStop: () => void;
   onDismissChallenger: () => void;
+  brainFreezeEnabled?: boolean;
+  onBrainFreezeScore?: (score: number) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -208,6 +211,8 @@ export function PlungeOverlay({
   milestoneEvent,
   onStop,
   onDismissChallenger,
+  brainFreezeEnabled = false,
+  onBrainFreezeScore,
 }: PlungeOverlayProps) {
   // ── Goal-progress ring ────────────────────────────────────────────────────────
   // One continuous arc sweeping 0→100% as the user approaches their primary
@@ -516,6 +521,15 @@ export function PlungeOverlay({
           </div>
         </button>
       </div>
+
+      {/* ── Brain Freeze trivia game ── renders as a full overlay on top */}
+      <BrainFreezeGame
+        elapsedSeconds={elapsedSeconds}
+        temperature={temperature}
+        isActive={isActive}
+        enabled={brainFreezeEnabled}
+        onScoreUpdate={onBrainFreezeScore}
+      />
     </div>
   );
 }
