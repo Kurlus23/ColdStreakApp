@@ -46,7 +46,7 @@ export function Complete() {
               <div className="flex items-center justify-between text-[12px]">
                 <span className="flex items-center gap-1.5 text-orange-400/80">🥶 Plunge</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-orange-400 tracking-wide">You ✓ &nbsp;4.2</span>
+                  <span className="font-extrabold text-white tracking-wide">You ✓ &nbsp;4.2</span>
                   <span className="text-orange-500/40 text-[10px]">vs</span>
                   <span className="text-orange-400/50">Rachael &nbsp;3.8</span>
                 </div>
@@ -56,7 +56,7 @@ export function Complete() {
                 <div className="flex items-center gap-2">
                   <span className="text-orange-400/50">You &nbsp;2,840 &nbsp;8/10</span>
                   <span className="text-orange-500/40 text-[10px]">vs</span>
-                  <span className="font-extrabold text-orange-400 tracking-wide">Rachael ✓ &nbsp;3,500 &nbsp;10/10</span>
+                  <span className="font-extrabold text-white tracking-wide">Rachael ✓ &nbsp;3,500 &nbsp;10/10</span>
                 </div>
               </div>
             </div>
