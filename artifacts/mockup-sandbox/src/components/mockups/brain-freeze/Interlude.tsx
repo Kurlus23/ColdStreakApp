@@ -1,104 +1,70 @@
-import { Thermometer, Zap, Smile, Flame, Dumbbell, Plus, Check } from "lucide-react";
-
 export function Interlude() {
-  const benefits = [
-    { label: "Energy", icon: Zap, fill: "100%", tone: "bg-cyan-300", iconTone: "text-cyan-200" },
-    { label: "Mood", icon: Smile, fill: "70%", tone: "bg-cyan-300/75", iconTone: "text-cyan-200" },
-    { label: "Metabolism", icon: Flame, fill: "0%", tone: "bg-transparent", iconTone: "text-slate-500" },
-    { label: "Recovery", icon: Dumbbell, fill: "0%", tone: "bg-transparent", iconTone: "text-slate-500" },
-  ] as const;
-
   return (
     <div
-      className="w-[390px] h-[844px] overflow-hidden relative text-[#e2e8f0]"
+      className="relative h-[844px] w-[390px] overflow-hidden text-[#e2e8f0]"
       style={{
-        backgroundColor: "#071428",
+        background: "linear-gradient(180deg, #0c2a42 0%, #071a2e 50%, #040f1e 100%)",
         fontFamily: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
       }}
     >
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.13]"
-        style={{
-          backgroundImage:
-            "linear-gradient(135deg, transparent 0%, rgba(148,163,184,.14) 49%, transparent 50%), linear-gradient(45deg, transparent 0%, rgba(34,211,238,.08) 49%, transparent 50%)",
-          backgroundSize: "130px 130px, 180px 180px",
-          maskImage: "linear-gradient(to bottom, black, transparent 85%)",
-        }}
-      />
-      <main className="relative flex h-full flex-col px-6 pb-7 pt-7">
-        <header className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-cyan-300">
-              <Thermometer size={20} strokeWidth={1.8} />
-              <span className="text-[27px] font-semibold leading-none tracking-[-0.04em]">39°F</span>
-            </div>
-            <p className="mt-2 pl-7 text-[10px] uppercase tracking-[0.22em] text-[#94a3b8]">water temperature</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-[#94a3b8]">cold score</p>
-            <p className="mt-1 text-[25px] font-bold leading-none text-[#e2e8f0]">4.2 <span className="text-cyan-300">❄</span></p>
-          </div>
-        </header>
+      <div className="pointer-events-none absolute -left-28 -top-32 h-[300px] w-[300px] rounded-full bg-cyan-400/[0.07] blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -right-36 h-[400px] w-[400px] rounded-full bg-cyan-400/[0.06] blur-3xl" />
 
-        <section className="mt-[48px] flex flex-col items-center">
-          <div className="relative flex h-[220px] w-[220px] items-center justify-center">
-            <svg className="absolute inset-0 -rotate-90" viewBox="0 0 220 220" fill="none" aria-hidden="true">
-              <circle cx="110" cy="110" r="102" stroke="#1e3a5f" strokeWidth="8" />
-              <circle cx="110" cy="110" r="102" stroke="#22d3ee" strokeWidth="8" strokeLinecap="round" strokeDasharray="641" strokeDashoffset="420" />
-            </svg>
-            <div className="text-center">
-              <p className="text-[10px] uppercase tracking-[0.27em] text-[#94a3b8]">in the cold</p>
-              <p className="mt-2 text-[52px] font-bold leading-none tracking-[-0.07em] text-[#e2e8f0]">01:42</p>
-              <p className="mt-3 text-[10px] tracking-[0.2em] text-cyan-300/80">KEEP GOING</p>
-            </div>
-          </div>
-          <div className="mt-6 flex items-center gap-2 rounded-full border border-cyan-300/25 bg-[#1e3a5f]/80 px-3.5 py-1.5 text-[11px] font-semibold text-cyan-100">
-            <Flame size={13} className="text-orange-300" fill="currentColor" /> Metabolism
+      <header className="relative pt-[55px] text-center">
+        <div
+          className="bg-gradient-to-r from-white via-cyan-200 to-teal-300 bg-clip-text text-[13px] font-semibold tracking-[0.2em] text-transparent"
+        >
+          COLDSTREAK
+        </div>
+        <div className="mt-2 text-[10px] font-medium uppercase tracking-[0.34em] text-cyan-300">BRAIN FREEZE MODE</div>
+      </header>
+
+      <main className="relative">
+        <section className="absolute left-1/2 top-[79px] flex h-[280px] w-[280px] -translate-x-1/2 items-center justify-center">
+          <svg className="absolute inset-0" viewBox="0 0 280 280" fill="none" aria-hidden="true">
+            <defs>
+              <filter id="arc-glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+            </defs>
+            <circle cx="140" cy="140" r="126" stroke="#22d3ee" strokeOpacity=".15" strokeWidth="9" />
+            <circle cx="140" cy="140" r="126" stroke="#22d3ee" strokeWidth="9" strokeLinecap="round" strokeDasharray="277 792" transform="rotate(-90 140 140)" filter="url(#arc-glow)" />
+            <circle cx="241.8" cy="214.1" r="5" fill="#67e8f9" filter="url(#arc-glow)" />
+          </svg>
+          <div className="relative text-center">
+            <div className="font-mono text-[4rem] font-bold leading-none tracking-[-0.08em] text-[#e2e8f0]" style={{ textShadow: "0 0 20px rgba(34,211,238,.55)" }}>01:42</div>
+            <div className="mt-3 text-[10px] tracking-[0.2em] text-[#94a3b8]">ELAPSED</div>
           </div>
         </section>
 
-        <section className="mt-[43px]">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.23em] text-[#94a3b8]">benefits unlocked</span>
-            <span className="text-[10px] text-cyan-300/75">1 of 4 complete</span>
-          </div>
-          <div className="grid grid-cols-4 gap-1.5">
-            {benefits.map(({ label, icon: Icon, fill, tone, iconTone }) => (
-              <div key={label}>
-                <div className="h-2 overflow-hidden rounded-full bg-[#1e3a5f]">
-                  <div className={`h-full rounded-full ${tone}`} style={{ width: fill }} />
-                </div>
-                <div className={`mt-2 flex items-center gap-1 text-[9px] ${iconTone}`}>
-                  <Icon size={11} strokeWidth={2.2} />
-                  <span>{label}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-auto">
-          <div
-            className="relative overflow-hidden rounded-2xl border border-cyan-300/70 bg-[#0f1f3d]/95 px-5 pb-4 pt-3 text-center"
-            style={{ boxShadow: "0 0 0 1px rgba(34,211,238,.18), 0 0 26px rgba(34,211,238,.22), inset 0 1px 0 rgba(226,232,240,.08)", backdropFilter: "blur(10px)" }}
-          >
-            <div className="absolute inset-x-0 top-0 h-px bg-cyan-200/80" />
-            <div className="flex items-center justify-center gap-2 text-[10px] font-bold tracking-[0.2em] text-cyan-200">
-              <span className="text-[17px]">🧠</span> BRAIN FREEZE INCOMING
-            </div>
-            <div className="mt-1 animate-pulse text-[66px] font-bold leading-none tracking-[-0.08em] text-[#e2e8f0]">3</div>
-            <p className="mt-1 text-[11px] text-[#94a3b8]">Get ready...</p>
-          </div>
-          <div className="mt-3 flex gap-3">
-            <button type="button" className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#31506d] bg-[#0f1f3d]/80 text-[12px] font-semibold text-[#cbd5e1]">
-              <Plus size={15} /> Add 0:30
-            </button>
-            <button type="button" className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-cyan-300/40 bg-cyan-300/10 text-[12px] font-semibold text-cyan-100">
-              <Check size={15} /> Finish 😊
-            </button>
-          </div>
+        <section className="absolute left-5 right-5 top-[399px] rounded-xl border border-cyan-300/40 bg-cyan-400/[0.06] px-4 py-3 backdrop-blur-md">
+          <div className="text-[9px] font-bold uppercase tracking-[0.22em] text-cyan-300">⚡ COLD TAKE</div>
+          <p className="mt-1 font-serif text-[13px] italic leading-[18px] text-[#e2e8f0]">"You're 37% of the way to today's Energy goal. Keep going."</p>
         </section>
       </main>
+
+      <footer className="absolute bottom-10 left-6 right-6">
+        <div className="absolute -top-[40px] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-cyan-300/50 bg-cyan-400/[0.12] px-4 py-2 backdrop-blur-md">
+          <span className="text-[12px] text-[#94a3b8]">🧠 Brain Freeze in </span><strong className="text-[18px] font-bold text-cyan-300">3</strong>
+        </div>
+        <div className="flex items-center justify-between rounded-full border border-cyan-300/35 bg-cyan-400/[0.07] px-6 py-3">
+          <div className="text-center"><div className="text-[9px] text-[#94a3b8]">LIVE TEMP</div><div className="mt-0.5 text-[22px] font-bold leading-none">39°F</div></div>
+          <div className="h-9 w-px bg-gradient-to-b from-transparent via-cyan-300/40 to-transparent" />
+          <div className="text-center"><div className="text-[9px] text-cyan-300">COLD SCORE</div><div className="mt-0.5 text-[22px] font-bold leading-none text-cyan-300">4.2</div></div>
+          <div className="h-9 w-px bg-gradient-to-b from-transparent via-cyan-300/40 to-transparent" />
+          <div className="text-center"><div className="text-[9px] text-amber-300">PERS. BEST</div><div className="mt-0.5 text-[22px] font-bold leading-none text-amber-300">6.1</div></div>
+        </div>
+        <div className="mt-4">
+          <div className="flex h-2 gap-1 overflow-hidden rounded-full">
+            <div className="h-full flex-1 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,.8)]" />
+            <div className="h-full flex-1 rounded-full bg-slate-700"><div className="h-full w-[70%] rounded-full bg-cyan-300/80" /></div>
+            <div className="h-full flex-1 rounded-full bg-slate-700" /><div className="h-full flex-1 rounded-full bg-slate-700" />
+          </div>
+          <div className="mt-1 flex justify-between text-[9px] text-[#94a3b8]"><span>⚡ Energy</span><span>😊 Mood</span><span>🔥 Metabolism</span><span>💪 Recovery</span></div>
+        </div>
+        <button type="button" className="mt-4 h-[68px] w-full rounded-2xl bg-gradient-to-b from-red-500 to-red-700 text-[20px] font-bold text-white shadow-[0_0_28px_rgba(239,68,68,.38)]">STOP</button>
+      </footer>
     </div>
   );
 }

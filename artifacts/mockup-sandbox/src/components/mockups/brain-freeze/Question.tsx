@@ -12,98 +12,66 @@ export function Question() {
 
   return (
     <div
-      className="w-[390px] h-[844px] overflow-hidden relative"
+      className="w-[390px] h-[844px] overflow-hidden relative flex items-center justify-center"
       style={{
-        backgroundColor: "#071428",
         color: "#e2e8f0",
-        fontFamily:
-          '"Avenir Next", Avenir, ui-sans-serif, system-ui, sans-serif',
+        fontFamily: '"Avenir Next", Avenir, ui-sans-serif, system-ui, sans-serif',
+        background: "linear-gradient(155deg, #0c2a42 0%, #071a2e 48%, #040f1e 100%)",
       }}
     >
-      {/* The timer stays present underneath the question: it is the visual context,
-          not a second screen. */}
-      <div
-        className="absolute inset-0"
-        style={{
-          opacity: 0.35,
-          filter: "blur(4px)",
-          transform: "scale(1.025)",
-        }}
-      >
-        <div className="flex h-full flex-col px-6 pt-7">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: "#94a3b8" }}>
-                Water temp
-              </p>
-              <p className="mt-1 text-[29px] font-bold tracking-[-0.06em]">39°F</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: "#94a3b8" }}>
-                Cold score
-              </p>
-              <p className="mt-1 text-[25px] font-bold tracking-[-0.04em]">4.2 <span style={{ color: "#22d3ee" }}>❄</span></p>
+      <div className="absolute inset-0" style={{ opacity: 0.3, filter: "blur(3px)", transform: "scale(1.025)" }}>
+        <div className="flex h-full flex-col items-center px-6 pt-8">
+          <div className="text-[15px] font-bold tracking-[0.34em]" style={{ color: "#e2e8f0" }}>COLDSTREAK</div>
+          <div className="mt-12 flex h-[280px] w-[280px] items-center justify-center rounded-full border-[8px]" style={{ borderColor: "#22d3ee", boxShadow: "inset 0 0 0 10px rgba(34,211,238,.16)" }}>
+            <div className="text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: "#94a3b8" }}>Remaining</p>
+              <p className="mt-2 text-[52px] font-semibold tracking-[-0.08em]">01:42</p>
             </div>
           </div>
-          <div className="flex flex-1 items-center justify-center">
-            <div className="relative flex h-[244px] w-[244px] items-center justify-center rounded-full border-[8px]" style={{ borderColor: "#22d3ee", boxShadow: "inset 0 0 0 9px #112d4d" }}>
-              <div className="text-center">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: "#94a3b8" }}>Remaining</p>
-                <p className="mt-2 text-[47px] font-semibold tracking-[-0.08em]">01:42</p>
-              </div>
+          <div className="mt-auto mb-8 w-full">
+            <div className="mx-auto mb-4 flex w-fit items-center gap-5 rounded-full border px-5 py-2 text-[12px] font-semibold" style={{ background: "rgba(6,182,212,.07)", borderColor: "rgba(34,211,238,.32)" }}>
+              <span>39°F</span><span style={{ color: "#22d3ee" }}>COLD SCORE 4.2</span>
             </div>
-          </div>
-          <div className="mb-[70px] rounded-2xl border px-4 py-4" style={{ backgroundColor: "#0f1f3d", borderColor: "rgba(34,211,238,.25)" }}>
-            <div className="mb-3 flex justify-between text-[12px] font-semibold"><span>Energy</span><span style={{ color: "#22d3ee" }}>88%</span></div>
-            <div className="h-2 rounded-full" style={{ backgroundColor: "#1e3a5f" }}><div className="h-full w-[88%] rounded-full" style={{ backgroundColor: "#22d3ee" }} /></div>
-            <div className="mt-4 mb-2 flex justify-between text-[12px] font-semibold"><span>Mood</span><span style={{ color: "#22d3ee" }}>70%</span></div>
-            <div className="h-2 rounded-full" style={{ backgroundColor: "#1e3a5f" }}><div className="h-full w-[70%] rounded-full" style={{ backgroundColor: "#22d3ee" }} /></div>
+            <div className="rounded-2xl border px-4 py-3" style={{ background: "rgba(6,182,212,.07)", borderColor: "rgba(34,211,238,.25)" }}>
+              <div className="mb-2 flex justify-between text-[11px]"><span>Benefit streak</span><span style={{ color: "#22d3ee" }}>72%</span></div>
+              <div className="h-2 rounded-full" style={{ background: "#1e3a5f" }}><div className="h-full w-[72%] rounded-full" style={{ background: "#22d3ee" }} /></div>
+            </div>
+            <button type="button" className="mt-4 h-12 w-full rounded-xl border text-[12px] font-bold tracking-[0.18em]" style={{ color: "#fca5a5", borderColor: "rgba(248,113,113,.45)", background: "rgba(127,29,29,.3)" }}>STOP PLUNGE</button>
           </div>
         </div>
       </div>
+      <div className="absolute inset-0" style={{ background: "rgba(0,0,0,.5)" }} />
 
       <section
-        className="absolute inset-x-0 bottom-0 h-[78%] rounded-t-[24px] px-5 pt-0"
-        style={{
-          backgroundColor: "#0f1f3d",
-          boxShadow: "0 -18px 45px rgba(2, 10, 25, .45)",
-          backgroundImage: "linear-gradient(135deg, rgba(255,255,255,.025) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.018) 50%, rgba(255,255,255,.018) 75%, transparent 75%)",
-          backgroundSize: "7px 7px",
-        }}
+        className="relative z-10 w-[360px] overflow-hidden rounded-[20px] border"
+        style={{ background: "#0f1f3d", borderColor: "rgba(34,211,238,.4)", boxShadow: "0 0 40px rgba(34,211,238,.15)" }}
         aria-label="Brain Freeze question"
       >
-        <div className="mt-[-1px] h-[6px] w-full overflow-hidden rounded-b-full" style={{ backgroundColor: "#273956" }}>
-          <div className="h-full w-[55%] rounded-r-full" style={{ backgroundColor: "#f59e0b" }} />
+        <div className="h-2 w-full" style={{ background: "#273956" }}>
+          <div className="h-full w-[45%] rounded-r-full" style={{ background: "#f59e0b" }} />
         </div>
-        <div className="mt-5 text-center text-[13px] font-bold tracking-[0.07em]" style={{ color: "#22d3ee" }}>
-          🧠 BRAIN FREEZE <span style={{ color: "#55718f" }}>·</span> Q4 <span style={{ color: "#55718f" }}>·</span> 🔥🔥🔥
+        <div className="flex items-center justify-between px-5 py-3">
+          <span className="text-[12px] font-semibold tracking-[0.04em]" style={{ color: "#22d3ee" }}>🧠 BRAIN FREEZE · Q4</span>
+          <span className="flex items-center gap-2 text-[12px]">🔥🔥🔥 <span className="rounded-full px-2 py-1 text-[10px] font-bold" style={{ color: "#fbbf24", background: "rgba(245,158,11,.16)" }}>×2.0</span></span>
         </div>
-        <h1 className="mx-auto mt-7 max-w-[340px] text-center text-[20px] font-bold leading-[1.3] tracking-[-0.025em]">
-          Which animal has the highest blood pressure?
-        </h1>
-        <div className="mt-7 flex flex-col gap-3" aria-label="Answers">
+        <div className="h-px w-full" style={{ background: "rgba(34,211,238,.5)" }} />
+        <h1 className="px-5 pt-4 pb-3 text-center text-[20px] font-bold leading-[1.4]">Which animal has the highest blood pressure?</h1>
+        <div className="flex flex-col gap-3 px-4" aria-label="Answers">
           {answers.map((answer) => (
             <button
               key={answer.letter}
               type="button"
-              className="flex h-[88px] w-full shrink-0 items-center gap-4 rounded-[13px] border px-4 text-left transition-transform active:scale-[0.985]"
-              style={{
-                backgroundColor: selected === answer.letter ? "#285078" : "#1e3a5f",
-                borderColor: selected === answer.letter ? "#22d3ee" : "rgba(34,211,238,.55)",
-              }}
+              className="flex h-[72px] w-full items-center gap-3 rounded-xl border px-4 text-left transition-transform active:scale-[0.985]"
+              style={{ background: selected === answer.letter ? "rgba(34,211,238,.2)" : "rgba(30,58,95,.8)", borderColor: selected === answer.letter ? "#22d3ee" : "rgba(34,211,238,.2)" }}
               onClick={() => setSelected(answer.letter)}
               aria-label={`${answer.letter}: ${answer.text}`}
             >
-              <span className="flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-full text-[14px] font-bold" style={{ backgroundColor: "#22d3ee", color: "#071428" }}>
-                {answer.letter}
-              </span>
-              <span className="text-[18px] font-semibold">{answer.text}</span>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-[14px] font-bold" style={{ borderColor: "#22d3ee", color: "#e2e8f0" }}>{answer.letter}</span>
+              <span className="text-[16px] font-medium">{answer.text}</span>
             </button>
           ))}
         </div>
-        <p className="mt-5 text-center text-[12px] font-medium tracking-[0.01em]" style={{ color: "#94a3b8" }}>
-          +100 pts <span style={{ color: "#526987" }}>·</span> ⚡ PERFECT for fast answer
-        </p>
+        <p className="px-5 py-3 text-center text-[11px]" style={{ color: "#94a3b8" }}>+100 pts&nbsp; · &nbsp;⚡ PERFECT if answered in 3s</p>
       </section>
     </div>
   );
