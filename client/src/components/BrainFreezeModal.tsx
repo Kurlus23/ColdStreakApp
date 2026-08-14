@@ -17,8 +17,8 @@ interface BrainFreezeModalProps {
   onClose: () => void;
 }
 
-const QUESTION_TIMEOUT  = 15;
-const RESULT_DISPLAY_MS = 2600;
+const QUESTION_TIMEOUT  = 20;    // seconds to answer
+const RESULT_DISPLAY_MS = 4500;  // ms to show correct/wrong before advancing
 const MAX_QUESTIONS     = 10;
 const LABELS            = ["A", "B", "C", "D"];
 
@@ -34,11 +34,12 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
   const [timeLeft, setTimeLeft]   = useState(QUESTION_TIMEOUT);
   const [sessionCorrect, setSessionCorrect] = useState(0);
   const [sessionTotal, setSessionTotal]     = useState(0);
-  const [autoAdvancing, setAutoAdvancing]   = useState(false);
 
-  const phaseRef       = useRef<Phase>("loading");
-  const shownAtRef     = useRef(Date.now());
-  const questionNumRef = useRef(0);
+  // Refs for values needed inside timeouts (avoid stale closures)
+  const phaseRef        = useRef<Phase>("loading");
+  const shownAtRef      = useRef(Date.now());
+  const questionNumRef  = useRef(0);
+  const correctCountRef = useRef(0);  // reliable score for done screen
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
 
@@ -52,7 +53,6 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
     setPhase("loading");
     setQuestion(null);
     setSelected(null);
-    setAutoAdvancing(false);
     try {
       const res = await fetch("/api/brain-freeze/question", {
         headers: { Authorization: `Bearer ${token}` },
@@ -75,6 +75,7 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
     setSessionCorrect(0);
     setSessionTotal(0);
     questionNumRef.current = 0;
+    correctCountRef.current = 0;
     fetchQuestion();
   }, [isOpen, fetchQuestion]);
 
@@ -84,7 +85,6 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
       setQuestion(null);
       setPhase("loading");
       setSelected(null);
-      setAutoAdvancing(false);
     }
   }, [isOpen]);
 
@@ -102,13 +102,11 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
     const correct = ans !== null && ans === question.correct;
     const elapsedMs = Math.min(Date.now() - shownAtRef.current, QUESTION_TIMEOUT * 1000);
 
+    if (correct) correctCountRef.current += 1;
     setSelected(ans);
     setPhase("answered");
-
-    let newTotal   = 0;
-    let newCorrect = 0;
-    setSessionTotal((t)  => { newTotal   = t + 1; return newTotal; });
-    setSessionCorrect((c) => { newCorrect = c + (correct ? 1 : 0); return newCorrect; });
+    setSessionTotal((t) => t + 1);
+    if (correct) setSessionCorrect((c) => c + 1);
 
     // Log to server
     const token = getToken();
@@ -125,14 +123,10 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
       }).catch(() => {});
     }
 
-    // Auto-advance or finish
-    const isLast = questionNumRef.current >= MAX_QUESTIONS;
-    if (!isLast) {
-      setAutoAdvancing(true);
-      setTimeout(() => {
-        if (phaseRef.current === "answered") fetchQuestion();
-      }, RESULT_DISPLAY_MS);
-    }
+    // Always auto-advance after result display — to next question or done screen
+    setTimeout(() => {
+      if (phaseRef.current === "answered") fetchQuestion();
+    }, RESULT_DISPLAY_MS);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question, fetchQuestion]);
 
@@ -140,7 +134,7 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
 
   const isCorrect = selected !== null && selected === question?.correct;
   const timedOut  = selected === null && phase === "answered";
-  const isLast    = questionNumRef.current >= MAX_QUESTIONS;
+  const qNum      = questionNumRef.current;
 
   return (
     <div
@@ -172,7 +166,7 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
               {phase === "done"
                 ? "Session complete"
                 : sessionTotal > 0
-                  ? `${sessionCorrect} / ${sessionTotal} correct · Q${questionNumRef.current} of ${MAX_QUESTIONS}`
+                  ? `${sessionCorrect} / ${sessionTotal} correct · Q${qNum} of ${MAX_QUESTIONS}`
                   : question
                     ? `${question.category} · ${question.difficulty}`
                     : "Loading…"}
@@ -204,7 +198,7 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
           <div
             className="h-full transition-all duration-1000 ease-linear"
             style={{
-              width: phase === "showing" ? `${(timeLeft / QUESTION_TIMEOUT) * 100}%` : phase === "answered" ? "0%" : "100%",
+              width: phase === "showing" ? `${(timeLeft / QUESTION_TIMEOUT) * 100}%` : "0%",
               background: timeLeft <= 5 ? "#f87171" : "#22d3ee",
             }}
           />
@@ -221,12 +215,12 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
             />
             <p className="text-white text-lg font-bold">Session done!</p>
             <p className="text-cyan-300 text-3xl font-black">
-              {sessionCorrect} <span className="text-blue-400/60 text-lg font-semibold">/ {MAX_QUESTIONS}</span>
+              {correctCountRef.current} <span className="text-blue-400/60 text-lg font-semibold">/ {MAX_QUESTIONS}</span>
             </p>
             <p className="text-blue-300/60 text-xs text-center">
-              {sessionCorrect >= 8 ? "🧊 Elite cold-brain performance" :
-               sessionCorrect >= 6 ? "Solid — keep chilling" :
-               sessionCorrect >= 4 ? "Getting sharper with every plunge" :
+              {correctCountRef.current >= 8 ? "🧊 Elite cold-brain performance" :
+               correctCountRef.current >= 6 ? "Solid — keep chilling" :
+               correctCountRef.current >= 4 ? "Getting sharper with every plunge" :
                "The cold will make you smarter 💪"}
             </p>
             <button
@@ -314,7 +308,7 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
                 }}
               >
                 <p className="text-[11px] font-semibold mb-0.5" style={{ color: isCorrect ? "#86efac" : timedOut ? "#94a3b8" : "#fca5a5" }}>
-                  {isCorrect ? "Correct! 🧊" : timedOut ? "Time's up" : `Correct answer: ${question.correct}`}
+                  {isCorrect ? "Correct! 🧊" : timedOut ? "Time's up" : `Answer: ${question.correct}`}
                 </p>
                 {question.explanation && (
                   <p className="text-blue-300/70 text-[11px] leading-snug">{question.explanation}</p>
@@ -322,29 +316,19 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
               </div>
             )}
 
-            {/* Footer */}
+            {/* Footer — skip button while waiting to advance */}
             {phase === "answered" && (
               <div className="px-4 py-4 flex items-center justify-between">
                 <p className="text-blue-500/60 text-[10px]">
-                  {isLast ? "Last question" : autoAdvancing ? "Next question…" : ""}
+                  {qNum >= MAX_QUESTIONS ? "Last question…" : "Next question…"}
                 </p>
-                {isLast ? (
-                  <button
-                    onClick={() => setPhase("done")}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-cyan-300 transition-all active:scale-95"
-                    style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.2)" }}
-                  >
-                    See results →
-                  </button>
-                ) : (
-                  <button
-                    onClick={fetchQuestion}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-cyan-300 transition-all active:scale-95"
-                    style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.2)" }}
-                  >
-                    Next →
-                  </button>
-                )}
+                <button
+                  onClick={fetchQuestion}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-cyan-300 transition-all active:scale-95"
+                  style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.2)" }}
+                >
+                  {qNum >= MAX_QUESTIONS ? "See results →" : "Skip →"}
+                </button>
               </div>
             )}
           </>
