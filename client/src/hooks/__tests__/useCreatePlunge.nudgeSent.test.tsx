@@ -53,10 +53,11 @@ function makePlungeResponse(overrides: Record<string, unknown> = {}) {
     moodEnergy:     null,
     moodFocus:      null,
     moodFatigue:    null,
-    moodPromptedAt: null,
-    createdAt:      new Date().toISOString(),
-    challengeResult: null,
-    nudgeSent:      false,
+    moodPromptedAt:    null,
+    brainFreezeScore:  null,
+    createdAt:         new Date().toISOString(),
+    challengeResult:   null,
+    nudgeSent:         false,
     ...overrides,
   };
 }
@@ -213,6 +214,7 @@ describe("useCreatePlunge — nudgeSent dismiss behaviour", () => {
       moodPromptedAt:     null,
       challengerUserId:   null,
       challengeResultSent: false,
+      brainFreezeScore:   null,
       createdAt:          new Date(Date.now() - (10 - i) * 3_600_000),
     }));
 

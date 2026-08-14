@@ -74,6 +74,7 @@ export const plunges = pgTable("plunges", {
   // Used to restore the pending_challenges row if the user discards the plunge before a result fires.
   challengerUserId: integer("challenger_user_id"), // nullable — the user whose challenge this plunge answers
   challengeResultSent: boolean("challenge_result_sent").default(false).notNull(),
+  brainFreezeScore: integer("brain_freeze_score"), // total Brain Freeze pts earned during this plunge (null if not played)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -476,6 +477,36 @@ export const reports = pgTable("reports", {
 export const insertReportSchema = createInsertSchema(reports).omit({ id: true, createdAt: true, status: true });
 export type Report = typeof reports.$inferSelect;
 export type InsertReport = z.infer<typeof insertReportSchema>;
+
+// ── Brain Freeze Questions ──────────────────────────────────────────────────
+export const brainFreezeQuestions = pgTable("brain_freeze_questions", {
+  id: serial("id").primaryKey(),
+  externalId: text("external_id").notNull().unique(), // "q001" from seed JSON
+  category: text("category").notNull(),   // "Cold Science" | "Brain & Performance" | "Nature & Extremes" | "Health & Recovery"
+  difficulty: text("difficulty").notNull(), // "easy" | "medium" | "hard"
+  question: text("question").notNull(),
+  correct: text("correct").notNull(),
+  wrong: jsonb("wrong").$type<string[]>().notNull(), // 3 wrong answer strings
+  explanation: text("explanation").notNull(), // "Cold Take" shown after answering
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ── Brain Freeze Answers ─────────────────────────────────────────────────────
+export const brainFreezeAnswers = pgTable("brain_freeze_answers", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  questionId: integer("question_id").notNull().references(() => brainFreezeQuestions.id),
+  isCorrect: boolean("is_correct").notNull(),
+  responseTimeMs: integer("response_time_ms").notNull(), // ms from question shown → answer tapped
+  inPlunge: boolean("in_plunge").notNull().default(false),
+  plungeElapsedSeconds: integer("plunge_elapsed_seconds"), // seconds into plunge (null if out-of-plunge)
+  waterTempF: integer("water_temp_f"),                     // water temp at answer time (null if out-of-plunge)
+  plungeId: integer("plunge_id").references(() => plunges.id, { onDelete: "set null" }),
+  answeredAt: timestamp("answered_at").defaultNow().notNull(),
+}, (t) => [index("bf_answers_user_idx").on(t.userId, t.answeredAt)]);
+
+export type BrainFreezeQuestion = typeof brainFreezeQuestions.$inferSelect;
+export type BrainFreezeAnswer   = typeof brainFreezeAnswers.$inferSelect;
 
 // ── Friendships ────────────────────────────────────────────────────────────────
 export const friendships = pgTable("friendships", {

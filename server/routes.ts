@@ -4087,6 +4087,57 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     res.json(result);
   });
 
+  // ── Brain Freeze ──────────────────────────────────────────────────────────
+  app.get("/api/brain-freeze/question", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    try {
+      const { getQuestion } = await import("./brain-freeze");
+      const q = await getQuestion(payload.userId);
+      if (!q) return res.status(404).json({ message: "No questions available" });
+      res.json(q);
+    } catch (err) {
+      console.error("[brain-freeze] question error:", err);
+      res.status(500).json({ message: "Failed to fetch question" });
+    }
+  });
+
+  app.post("/api/brain-freeze/answer", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    const parsed = z.object({
+      questionId:           z.number().int().positive(),
+      isCorrect:            z.boolean(),
+      responseTimeMs:       z.number().int().min(0).max(30000),
+      inPlunge:             z.boolean(),
+      plungeElapsedSeconds: z.number().int().min(0).optional().nullable(),
+      waterTempF:           z.number().int().optional().nullable(),
+      plungeId:             z.number().int().optional().nullable(),
+    }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid input" });
+    try {
+      const { logAnswer } = await import("./brain-freeze");
+      const row = await logAnswer({ userId: payload.userId, ...parsed.data });
+      res.json({ ok: true, id: row.id });
+    } catch (err) {
+      console.error("[brain-freeze] answer error:", err);
+      res.status(500).json({ message: "Failed to log answer" });
+    }
+  });
+
+  app.get("/api/brain-freeze/lab", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    try {
+      const { getLabStats } = await import("./brain-freeze");
+      const stats = await getLabStats(payload.userId);
+      res.json(stats ?? { totalAnswers: 0 });
+    } catch (err) {
+      console.error("[brain-freeze] lab error:", err);
+      res.status(500).json({ message: "Failed to fetch lab data" });
+    }
+  });
+
   // ── AI Coach ──────────────────────────────────────────────────────────────
   app.post("/api/coach/chat", async (req, res) => {
     const payload = extractUser(req);

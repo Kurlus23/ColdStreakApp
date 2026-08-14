@@ -620,6 +620,15 @@ export default function Home() {
   // Countdown
   const [countdownMode, setCountdownMode] = useState(() => localStorage.getItem("coldstreak-countdown-mode") === "true");
   const [brainFreezeEnabled, setBrainFreezeEnabled] = useState(() => localStorage.getItem("coldstreak-brain-freeze") !== "false");
+  const [brainFreezeLabData, setBrainFreezeLabData] = useState<null | {
+    totalAnswers: number;
+    minForStat?: number;
+    inPlunge?: { count: number; accuracy: number; avgResponseMs: number; fastestResponseMs: number } | null;
+    outOfPlunge?: { count: number; accuracy: number; avgResponseMs: number; fastestResponseMs: number } | null;
+    byMinute?: { label: string; accuracy: number; count: number }[] | null;
+    byTemp?: { label: string; accuracy: number; avgResponseMs: number; count: number }[] | null;
+    adaptation?: { early: { accuracy: number; avgResponseMs: number }; recent: { accuracy: number; avgResponseMs: number }; weeksTracked: number } | null;
+  }>(null);
   const [countdown, setCountdown] = useState(0);
   const [countdownRunning, setCountdownRunning] = useState(false);
   const [countdownElapsed, setCountdownElapsed] = useState(0);
@@ -2068,6 +2077,17 @@ export default function Home() {
       body: JSON.stringify({ displayPrefs: JSON.stringify(merged) }),
     }).catch(() => {});
   };
+
+  // Fetch Brain Freeze Lab stats whenever the Insights tab is opened
+  useEffect(() => {
+    if (profileTab !== 'stats') return;
+    const token = localStorage.getItem("coldstreak-auth-token");
+    if (!token) return;
+    fetch("/api/brain-freeze/lab", { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data != null) setBrainFreezeLabData(data); })
+      .catch(() => {/* silent */});
+  }, [profileTab]);
 
   const saveUnitSystem = (u: "imperial" | "metric") => {
     const celsius = u === "metric";
@@ -7336,6 +7356,161 @@ export default function Home() {
                       </div>
                     );
                   })()}
+
+                  {/* ── Brain Freeze Lab ── */}
+                  <div className="space-y-2">
+                    <_InsightSectionHeader
+                      emoji="🧠"
+                      title="Brain Freeze Lab"
+                      subtitle={brainFreezeLabData?.inPlunge ? "Your cognitive performance in and out of the cold" : undefined}
+                    />
+                    {brainFreezeLabData && (brainFreezeLabData.inPlunge || brainFreezeLabData.outOfPlunge) ? (
+                      <div className="bg-blue-900/40 border border-blue-800/50 rounded-2xl p-4 space-y-4">
+
+                        {/* ── Performance split table ── */}
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-2">Performance Split</p>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-[11px]">
+                              <thead>
+                                <tr className="text-[10px] uppercase tracking-wider">
+                                  <td className="pb-1.5 text-blue-500" />
+                                  <td className="pb-1.5 text-center text-cyan-400 font-bold">In Cold</td>
+                                  <td className="pb-1.5 text-center text-blue-400 font-bold">Outside</td>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {[
+                                  {
+                                    label: "Accuracy",
+                                    cold: brainFreezeLabData.inPlunge ? `${Math.round(brainFreezeLabData.inPlunge.accuracy * 100)}%` : "—",
+                                    out:  brainFreezeLabData.outOfPlunge ? `${Math.round(brainFreezeLabData.outOfPlunge.accuracy * 100)}%` : "—",
+                                  },
+                                  {
+                                    label: "Avg speed",
+                                    cold: brainFreezeLabData.inPlunge ? `${(brainFreezeLabData.inPlunge.avgResponseMs / 1000).toFixed(1)}s` : "—",
+                                    out:  brainFreezeLabData.outOfPlunge ? `${(brainFreezeLabData.outOfPlunge.avgResponseMs / 1000).toFixed(1)}s` : "—",
+                                  },
+                                  {
+                                    label: "Fastest",
+                                    cold: brainFreezeLabData.inPlunge ? `${(brainFreezeLabData.inPlunge.fastestResponseMs / 1000).toFixed(1)}s` : "—",
+                                    out:  brainFreezeLabData.outOfPlunge ? `${(brainFreezeLabData.outOfPlunge.fastestResponseMs / 1000).toFixed(1)}s` : "—",
+                                  },
+                                  {
+                                    label: "Answered",
+                                    cold: brainFreezeLabData.inPlunge?.count ?? "—",
+                                    out:  brainFreezeLabData.outOfPlunge?.count ?? "—",
+                                  },
+                                ].map(row => (
+                                  <tr key={row.label} className="border-t border-blue-900/60">
+                                    <td className="py-1.5 text-blue-300">{row.label}</td>
+                                    <td className="py-1.5 text-center font-bold text-white">{row.cold}</td>
+                                    <td className="py-1.5 text-center text-blue-300">{row.out}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {/* ── Consistency during plunge ── */}
+                        {brainFreezeLabData.byMinute && (
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-2">🔥 Consistency During Plunge</p>
+                            <div className="flex items-end gap-1.5 bg-blue-950/50 rounded-xl px-3 pt-3 pb-1.5">
+                              {brainFreezeLabData.byMinute.map((b) => {
+                                const pct = Math.round(b.accuracy * 100);
+                                return (
+                                  <div key={b.label} className="flex-1 flex flex-col items-center gap-0.5">
+                                    <div className="w-full flex items-end justify-center h-14">
+                                      <div
+                                        className="w-5 rounded-t-sm"
+                                        style={{ height: `${pct}%`, minHeight: pct > 0 ? 2 : 0, background: "#22d3ee" }}
+                                      />
+                                    </div>
+                                    <p className="text-blue-400 text-[8px] font-semibold text-center leading-tight">{b.label}</p>
+                                    <p className="text-cyan-400 text-[9px]">{pct}%</p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ── Temperature breakdown ── */}
+                        {brainFreezeLabData.byTemp && (
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-2">🌡️ By Temperature</p>
+                            <div className="space-y-1">
+                              {brainFreezeLabData.byTemp.map((t) => {
+                                const pct = Math.round(t.accuracy * 100);
+                                return (
+                                  <div key={t.label} className="flex items-center gap-2">
+                                    <span className="text-blue-400 text-[10px] w-16 shrink-0">{t.label}</span>
+                                    <div className="flex-1 bg-blue-950/60 rounded-full h-2 overflow-hidden">
+                                      <div className="h-full rounded-full bg-cyan-500" style={{ width: `${pct}%` }} />
+                                    </div>
+                                    <span className="text-white text-[10px] font-bold w-8 text-right">{pct}%</span>
+                                    <span className="text-blue-500 text-[9px] w-10 shrink-0">{(t.avgResponseMs / 1000).toFixed(1)}s avg</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ── Adaptation trend ── */}
+                        {brainFreezeLabData.adaptation && (() => {
+                          const a = brainFreezeLabData.adaptation!;
+                          const delta = a.recent.accuracy - a.early.accuracy;
+                          const isUp = delta >= 0.05;
+                          const isDown = delta <= -0.05;
+                          return (
+                            <div className={`flex items-start gap-2.5 rounded-xl px-3 py-2.5 ${isUp ? "bg-emerald-900/20 border border-emerald-500/25" : isDown ? "bg-red-900/20 border border-red-500/25" : "bg-blue-900/20 border border-blue-700/30"}`}>
+                              <span className="text-base mt-0.5">{isUp ? "📈" : isDown ? "📉" : "→"}</span>
+                              <div>
+                                <p className={`text-xs font-semibold ${isUp ? "text-emerald-300" : isDown ? "text-red-300" : "text-blue-300"}`}>
+                                  {isUp ? "Cold brain improving" : isDown ? "Some recent dip" : "Holding steady"} · {a.weeksTracked} weeks of data
+                                </p>
+                                <p className="text-slate-400 text-[11px] leading-relaxed mt-1">
+                                  Early in-cold accuracy: <span className="text-blue-200">{Math.round(a.early.accuracy * 100)}%</span>
+                                  {" → "}Recent: <span className={isUp ? "text-emerald-300" : isDown ? "text-red-300" : "text-blue-200"}>{Math.round(a.recent.accuracy * 100)}%</span>
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        <p className="text-blue-600 text-[9px] leading-relaxed">
+                          Performance data is personal and observational. Not a clinical finding.
+                        </p>
+                      </div>
+                    ) : brainFreezeLabData && brainFreezeLabData.totalAnswers > 0 ? (
+                      <div className="bg-blue-950/60 border border-blue-800/40 rounded-2xl p-4 opacity-80">
+                        <div className="flex items-center gap-2.5 mb-2">
+                          <span className="text-lg opacity-50">🧠</span>
+                          <div>
+                            <p className="text-blue-300 font-semibold text-xs">Brain Freeze Lab</p>
+                            <p className="text-blue-500 text-[11px] mt-0.5">
+                              🔒 Need {brainFreezeLabData.minForStat ?? 10} answers in each context — you have {brainFreezeLabData.totalAnswers} total
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-blue-600 text-[10px]">Keep answering trivia during and between plunges to unlock your comparison.</p>
+                      </div>
+                    ) : (
+                      <div className="bg-blue-950/60 border border-blue-800/40 rounded-2xl p-4 opacity-70">
+                        <div className="flex items-center gap-2.5 mb-2">
+                          <span className="text-lg opacity-50">🧠</span>
+                          <div>
+                            <p className="text-blue-300 font-semibold text-xs">Brain Freeze Lab</p>
+                            <p className="text-blue-500 text-[11px] mt-0.5">🔒 Unlocks after your first Brain Freeze sessions</p>
+                          </div>
+                        </div>
+                        <p className="text-blue-600 text-[10px]">Answer trivia during plunges and between them to see how cold affects your performance over time.</p>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Disclaimer */}
                   <p className="text-blue-700 text-[10px] leading-relaxed text-center px-2">

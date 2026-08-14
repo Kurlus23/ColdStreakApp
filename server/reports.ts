@@ -18,6 +18,7 @@
 import { db } from "./db";
 import { plunges, users } from "../shared/schema";
 import { and, gte, lt, isNotNull, eq, desc } from "drizzle-orm";
+import { getEmailLabStats } from "./brain-freeze";
 import { sendEmail } from "./email";
 import { analysePatterns, computeStats, type ReportRow, type PeriodStats } from "../shared/reportAnalysis";
 
@@ -92,14 +93,22 @@ function insightCard(emoji: string, title: string, body: string): string {
     </div>`;
 }
 
+interface BfEmailStats {
+  inColdAccuracy: number; outColdAccuracy: number;
+  inColdAvgMs: number; outColdAvgMs: number;
+  inPlungeCount: number; outPlungeCount: number;
+  accuracyDeltaPct: number; adaptationNote: string | null;
+}
+
 function buildReportHtml(opts: {
   name:       string;
   periodLabel: string;
   isMonthly:  boolean;
   stats:      PeriodStats;
   windowDays: number;
+  bfStats?:   BfEmailStats | null;
 }): string {
-  const { name, periodLabel, stats, windowDays } = opts;
+  const { name, periodLabel, stats, windowDays, bfStats } = opts;
   const greeting = name ? `Hey ${name},` : "Hey there,";
   const { insights } = stats;
 
@@ -263,6 +272,41 @@ function buildReportHtml(opts: {
 
   ${discoverySection}
 
+  ${bfStats ? `
+  <!-- Brain Freeze Lab -->
+  <div style="background:${BRAND_CARD};border-radius:12px;padding:18px;margin-bottom:20px;">
+    <h3 style="color:#fff;margin:0 0 14px;font-size:14px;text-transform:uppercase;letter-spacing:.08em;">
+      🧠 Brain Freeze Lab &nbsp;<span style="color:${BRAND_MUTED};font-weight:400;font-size:12px;">${bfStats.inPlungeCount + bfStats.outPlungeCount} questions this period</span>
+    </h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <tr>
+        <td style="padding:4px 0;color:${BRAND_MUTED};"></td>
+        <td style="padding:4px 8px;text-align:center;color:#22d3ee;font-weight:700;font-size:11px;text-transform:uppercase;">In Cold</td>
+        <td style="padding:4px 0;text-align:center;color:${BRAND_MUTED};font-size:11px;text-transform:uppercase;">Outside</td>
+      </tr>
+      <tr style="border-top:1px solid #0d1b2e;">
+        <td style="padding:7px 0;color:${BRAND_MUTED};">Accuracy</td>
+        <td style="padding:7px 8px;text-align:center;color:#fff;font-weight:700;">${Math.round(bfStats.inColdAccuracy * 100)}%</td>
+        <td style="padding:7px 0;text-align:center;color:${BRAND_TEXT};">${Math.round(bfStats.outColdAccuracy * 100)}%</td>
+      </tr>
+      <tr style="border-top:1px solid #0d1b2e;">
+        <td style="padding:7px 0;color:${BRAND_MUTED};">Avg response</td>
+        <td style="padding:7px 8px;text-align:center;color:#fff;font-weight:700;">${(bfStats.inColdAvgMs / 1000).toFixed(1)}s</td>
+        <td style="padding:7px 0;text-align:center;color:${BRAND_TEXT};">${(bfStats.outColdAvgMs / 1000).toFixed(1)}s</td>
+      </tr>
+    </table>
+    ${bfStats.accuracyDeltaPct !== 0 ? `
+    <div style="margin-top:12px;background:#0d1b2e;border-radius:8px;padding:10px 12px;">
+      <span style="color:${bfStats.accuracyDeltaPct > 0 ? "#6ee7b7" : "#94a3b8"};font-size:13px;">
+        ${bfStats.accuracyDeltaPct > 0 ? "✓" : "→"} You answered ${Math.abs(bfStats.accuracyDeltaPct).toFixed(0)} points ${bfStats.accuracyDeltaPct > 0 ? "more" : "fewer"} correctly in the cold than outside it this period.
+      </span>
+    </div>` : ""}
+    ${bfStats.adaptationNote ? `
+    <div style="margin-top:8px;background:#0d1b2e;border-radius:8px;padding:10px 12px;">
+      <span style="color:${BRAND_MUTED};font-size:12px;">📈 ${bfStats.adaptationNote}</span>
+    </div>` : ""}
+  </div>` : ""}
+
   <!-- Motivator -->
   <div style="border-left:3px solid ${BRAND_CYAN};padding-left:14px;margin-bottom:28px;">
     <p style="color:${BRAND_MUTED};font-size:13px;font-style:italic;margin:0;">${motivator}</p>
@@ -327,11 +371,12 @@ async function runReport(start: Date, end: Date, periodLabel: string, windowDays
   console.log(`[reports] ${periodLabel}: ${byUser.size} user(s) to email`);
 
   let sent = 0;
-  for (const [, { email, name, plunges: userPlunges }] of Array.from(byUser.entries())) {
+  for (const [userId, { email, name, plunges: userPlunges }] of Array.from(byUser.entries())) {
     try {
-      const stats = computeStats(userPlunges);
-      const html  = buildReportHtml({ name, periodLabel, isMonthly, stats, windowDays });
-      const subj  = isMonthly
+      const stats   = computeStats(userPlunges);
+      const bfStats = await getEmailLabStats(userId, start, end).catch(() => null);
+      const html    = buildReportHtml({ name, periodLabel, isMonthly, stats, windowDays, bfStats });
+      const subj    = isMonthly
         ? `🧊 Your ColdStreak ${periodLabel} Cold Response Report`
         : `🧊 Your ColdStreak Week in Review`;
       await sendEmail(email, subj, html);

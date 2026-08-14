@@ -53,6 +53,7 @@ function makePlunge(overrides: {
     moodPromptedAt:     null,
     challengerUserId:   null,
     challengeResultSent: false,
+    brainFreezeScore:   null,
     createdAt:          overrides.createdAt ?? new Date(),
   };
 }
