@@ -50,9 +50,7 @@ export function Question() {
         <div className="h-2 w-full" style={{ background: "#273956" }}>
           <div className="h-full w-[45%] rounded-r-full" style={{ background: "#f59e0b" }} />
         </div>
-        <div className="flex h-9 items-center justify-end px-5" aria-label="8 seconds remaining">
-          <span className="text-[28px] font-extrabold leading-none tracking-[-0.06em]" style={{ color: "#f59e0b" }}>8</span>
-        </div>
+        {/* No large number at 8s — bar alone carries urgency. Shows at 5, 3, 1 only. */}
         <div className="flex items-center justify-between px-5 py-3">
           <span className="text-[12px] font-semibold tracking-[0.04em]" style={{ color: "#22d3ee" }}>🧠 BRAIN FREEZE · Q4</span>
           <span className="flex items-center gap-2 text-[12px]">🔥🔥🔥 <span className="rounded-full px-2 py-1 text-[10px] font-bold" style={{ color: "#fbbf24", background: "rgba(245,158,11,.16)" }}>×2.0</span></span>
@@ -74,7 +72,25 @@ export function Question() {
             </button>
           ))}
         </div>
-        <p className="px-5 py-3 text-center text-[11px]" style={{ color: "#94a3b8" }}>+100 pts&nbsp; · &nbsp;⚡ PERFECT if answered in 3s</p>
+        {/* Dynamic score drain — shows potential points decreasing with time */}
+        <div className="px-5 pt-2 pb-4 flex flex-col items-center gap-1.5">
+          <p className="text-[10px] uppercase tracking-wider" style={{ color: "#64748b" }}>⚡ Answer quickly for more points</p>
+          <div className="flex items-center gap-2">
+            {/* Past tier — dimmed */}
+            <span className="text-[13px] font-semibold line-through" style={{ color: "#334155" }}>125</span>
+            <span style={{ color: "#334155", fontSize: 10 }}>›</span>
+            {/* Current tier — live, orange glow */}
+            <span
+              className="text-[22px] font-extrabold tabular-nums"
+              style={{ color: "#f97316", textShadow: "0 0 14px rgba(249,115,22,0.6)" }}
+            >
+              108
+            </span>
+            <span style={{ color: "#475569", fontSize: 10 }}>›</span>
+            {/* Next tier — dim */}
+            <span className="text-[13px] font-semibold" style={{ color: "#334155" }}>75</span>
+          </div>
+        </div>
       </section>
     </div>
   );
