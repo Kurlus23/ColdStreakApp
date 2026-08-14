@@ -33,10 +33,11 @@ const SERVER_SEGMENTS = [
 
 function prevWeekRange(): { start: Date; end: Date } {
   const now = new Date();
-  const dayOfWeek = now.getUTCDay();
-  const daysBack = dayOfWeek === 0 ? 6 : dayOfWeek;
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysBack));
-  const end   = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+  // "Previous week" = the 7 days that just ended at today's midnight UTC.
+  // Called on Monday at 07:00 UTC → covers Mon–Sun of the week that just finished.
+  const todayMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const end   = todayMidnight;
+  const start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
   return { start, end };
 }
 
