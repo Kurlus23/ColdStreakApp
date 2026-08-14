@@ -22,6 +22,7 @@ export const modules: ModuleMap = {
   "./components/mockups/founding-badge/BadgeProfileHeader.tsx": () => import("../components/mockups/founding-badge/BadgeProfileHeader.tsx"),
   "./components/mockups/founding-badge/LeaderboardEntry.tsx": () => import("../components/mockups/founding-badge/LeaderboardEntry.tsx"),
   "./components/mockups/founding-badge/UpgradeBanner.tsx": () => import("../components/mockups/founding-badge/UpgradeBanner.tsx"),
+  "./components/mockups/home-layout/CurrentHome.tsx": () => import("../components/mockups/home-layout/CurrentHome.tsx"),
   "./components/mockups/nav-preview/DevicesScreen.tsx": () => import("../components/mockups/nav-preview/DevicesScreen.tsx"),
   "./components/mockups/nav-preview/TimerScreen.tsx": () => import("../components/mockups/nav-preview/TimerScreen.tsx"),
   "./components/mockups/plunge-active/ChallengeMode.tsx": () => import("../components/mockups/plunge-active/ChallengeMode.tsx"),
