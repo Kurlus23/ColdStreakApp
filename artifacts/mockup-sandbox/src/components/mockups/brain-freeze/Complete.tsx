@@ -39,6 +39,29 @@ export function Complete() {
             ))}
           </div>
 
+          {/* Challenge split result — plunge winner vs trivia winner */}
+          <section className="mb-3 rounded-xl border border-slate-600/30 bg-[#0a1628] px-4 py-2.5">
+            <h2 className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500">⚔️ Match vs Rachael</h2>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="flex items-center gap-1.5 text-slate-400">🥶 Plunge</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-cyan-300">You ✓ &nbsp;4.2</span>
+                  <span className="text-slate-600 text-[10px]">vs</span>
+                  <span className="text-slate-500">Rachael &nbsp;3.8</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="flex items-center gap-1.5 text-slate-400">🧠 Trivia</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500">You &nbsp;2,840 &nbsp;8/10</span>
+                  <span className="text-slate-600 text-[10px]">vs</span>
+                  <span className="font-bold text-amber-300">Rachael ✓ &nbsp;3,500 &nbsp;10/10</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section className="mb-3 flex items-center gap-3 rounded-xl border border-orange-500 bg-gradient-to-r from-[#92400e] to-[#78350f] px-4 py-2">
             <span className="text-[21px] leading-none">🔥</span>
             <div className="min-w-0 flex-1">
@@ -76,7 +99,10 @@ export function Complete() {
 
         <footer className="mt-3 flex flex-col gap-2">
           {action !== "idle" && <p className="text-center text-[11px] font-bold text-cyan-300">{action === "playing" ? "Next round is ready." : "Session saved to your streak."}</p>}
-          <button type="button" onClick={() => setAction("playing")} className="w-full rounded-xl bg-gradient-to-r from-[#0891b2] to-[#0e7490] py-3 text-[18px] font-bold text-white shadow-[0_8px_22px_rgba(34,211,238,0.2)] active:scale-[0.98]">Keep Playing →</button>
+          <div>
+            <button type="button" onClick={() => setAction("playing")} className="w-full rounded-xl bg-gradient-to-r from-[#0891b2] to-[#0e7490] py-3 text-[18px] font-bold text-white shadow-[0_8px_22px_rgba(34,211,238,0.2)] active:scale-[0.98]">Keep Playing →</button>
+            <p className="mt-1 text-center text-[10px] text-slate-500">Your scores are saved — keep going just to learn</p>
+          </div>
           <button type="button" onClick={() => setAction("done")} className="w-full rounded-xl border border-cyan-300/30 bg-transparent py-3 text-[16px] text-slate-300 active:scale-[0.98]">Done</button>
         </footer>
       </div>
