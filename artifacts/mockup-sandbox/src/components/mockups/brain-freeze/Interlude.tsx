@@ -111,8 +111,7 @@ export function Interlude() {
       {/* Cold Take — with centered Brain Freeze countdown pill */}
       <div className="w-full px-5 pb-3 z-10 shrink-0">
         <div
-          className="w-full rounded-xl px-4 pt-3 backdrop-blur-sm relative"
-          style={{ paddingBottom: 40 }}
+          className="w-full rounded-xl px-4 pt-3 pb-3 backdrop-blur-sm"
           style={{
             background: "rgba(6,182,212,0.06)",
             border: "1px solid rgba(34,211,238,0.18)",
@@ -125,27 +124,25 @@ export function Interlude() {
             "Your nemesis: that little voice saying 'just get out.'"
           </p>
 
-          {/* Brain Freeze countdown — centered bottom of card */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 8,
-              left: "50%",
-              transform: "translateX(-50%)",
-              background: "rgba(6,182,212,0.15)",
-              border: "1px solid rgba(34,211,238,0.45)",
-              borderRadius: 999,
-              padding: "3px 14px",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              whiteSpace: "nowrap",
-              fontSize: 11,
-              color: "#94a3b8",
-            }}
-          >
-            🧠 Brain Freeze in{" "}
-            <strong style={{ fontSize: 13, fontWeight: 700, color: "#22d3ee" }}>3</strong>
+          {/* Brain Freeze countdown — centered below quote */}
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
+            <div
+              style={{
+                background: "rgba(6,182,212,0.15)",
+                border: "1px solid rgba(34,211,238,0.45)",
+                borderRadius: 999,
+                padding: "3px 14px",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                whiteSpace: "nowrap",
+                fontSize: 11,
+                color: "#94a3b8",
+              }}
+            >
+              🧠 Brain Freeze in{" "}
+              <strong style={{ fontSize: 13, fontWeight: 700, color: "#22d3ee" }}>3</strong>
+            </div>
           </div>
         </div>
       </div>
