@@ -41,21 +41,21 @@ export function Complete() {
 
           {/* Challenge split result — plunge winner vs trivia winner */}
           <section className="mb-3 rounded-xl border border-orange-500 bg-gradient-to-r from-[#92400e] to-[#78350f] px-4 py-2.5">
-            <h2 className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-orange-200">⚔️ Match vs Rachael</h2>
+            <h2 className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-amber-200">⚔️ Match vs Rachael</h2>
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-[12px]">
-                <span className="flex items-center gap-1.5 text-orange-100">🥶 Plunge</span>
+                <span className="flex items-center gap-1.5 text-slate-300">🥶 Plunge</span>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-white">You ✓ &nbsp;4.2</span>
-                  <span className="text-orange-300/60 text-[10px]">vs</span>
-                  <span className="text-orange-200/70">Rachael &nbsp;3.8</span>
+                  <span className="text-slate-400 text-[10px]">vs</span>
+                  <span className="text-slate-300">Rachael &nbsp;3.8</span>
                 </div>
               </div>
               <div className="flex items-center justify-between text-[12px]">
-                <span className="flex items-center gap-1.5 text-orange-100">🧠 Trivia</span>
+                <span className="flex items-center gap-1.5 text-slate-300">🧠 Trivia</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-orange-200/70">You &nbsp;2,840 &nbsp;8/10</span>
-                  <span className="text-orange-300/60 text-[10px]">vs</span>
+                  <span className="text-slate-300">You &nbsp;2,840 &nbsp;8/10</span>
+                  <span className="text-slate-400 text-[10px]">vs</span>
                   <span className="font-bold text-white">Rachael ✓ &nbsp;3,500 &nbsp;10/10</span>
                 </div>
               </div>
