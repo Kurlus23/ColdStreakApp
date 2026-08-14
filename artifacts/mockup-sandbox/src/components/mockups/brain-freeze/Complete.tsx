@@ -40,8 +40,8 @@ export function Complete() {
           </div>
 
           {/* Challenge split result — plunge winner vs trivia winner */}
-          <section className="mb-3 rounded-xl border border-slate-600/30 bg-[#0a1628] px-4 py-2.5">
-            <h2 className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500">⚔️ Match vs Rachael</h2>
+          <section className="mb-3 rounded-xl border border-orange-500 bg-gradient-to-r from-[#92400e] to-[#78350f] px-4 py-2.5">
+            <h2 className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-orange-200">⚔️ Match vs Rachael</h2>
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-[12px]">
                 <span className="flex items-center gap-1.5 text-slate-400">🥶 Plunge</span>
