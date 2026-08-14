@@ -17,9 +17,8 @@ interface BrainFreezeModalProps {
   onClose: () => void;
 }
 
-const QUESTION_TIMEOUT  = 20;    // seconds to answer
-const RESULT_DISPLAY_MS = 4500;  // ms to show correct/wrong before advancing
-const MAX_QUESTIONS     = 10;
+const QUESTION_TIMEOUT = 20;   // seconds to answer
+const MAX_QUESTIONS    = 10;
 const LABELS            = ["A", "B", "C", "D"];
 
 function getToken() {
@@ -123,10 +122,6 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
       }).catch(() => {});
     }
 
-    // Always auto-advance after result display — to next question or done screen
-    setTimeout(() => {
-      if (phaseRef.current === "answered") fetchQuestion();
-    }, RESULT_DISPLAY_MS);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question, fetchQuestion]);
 
@@ -316,18 +311,15 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
               </div>
             )}
 
-            {/* Footer — skip button while waiting to advance */}
+            {/* Footer — Next / See results button */}
             {phase === "answered" && (
-              <div className="px-4 py-4 flex items-center justify-between">
-                <p className="text-blue-500/60 text-[10px]">
-                  {qNum >= MAX_QUESTIONS ? "Last question…" : "Next question…"}
-                </p>
+              <div className="px-4 py-4 flex justify-end">
                 <button
                   onClick={fetchQuestion}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-cyan-300 transition-all active:scale-95"
-                  style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.2)" }}
+                  className="px-5 py-2 rounded-xl text-xs font-semibold text-cyan-300 transition-all active:scale-95"
+                  style={{ background: "rgba(34,211,238,0.15)", border: "1px solid rgba(34,211,238,0.3)" }}
                 >
-                  {qNum >= MAX_QUESTIONS ? "See results →" : "Skip →"}
+                  {qNum >= MAX_QUESTIONS ? "See results →" : "Next →"}
                 </button>
               </div>
             )}
