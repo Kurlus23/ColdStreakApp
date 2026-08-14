@@ -3812,7 +3812,25 @@ export default function Home() {
         >
           COLDSTREAK
         </h1>
-        <div className="w-20 flex justify-end">
+        <div className="w-20 flex justify-end items-center gap-2">
+          {auth.user && brainFreezeEnabled && (
+            <button
+              data-testid="button-header-brain-freeze"
+              onClick={() => {
+                navTo("achievements");
+                setTimeout(() => setProfileTab("stats"), 60);
+              }}
+              className="relative w-9 h-9 rounded-xl overflow-hidden active:scale-90 transition-transform"
+              style={{ boxShadow: "0 0 10px rgba(96,165,250,0.35), 0 0 4px rgba(147,197,253,0.2)" }}
+              aria-label="Brain Freeze Lab"
+            >
+              <img
+                src="/brain-freeze-icon.png"
+                alt="Brain Freeze"
+                className="w-full h-full object-cover"
+              />
+            </button>
+          )}
           {!auth.user && (
             <button
               data-testid="button-header-signin"
@@ -4193,44 +4211,6 @@ export default function Home() {
             />
           </div>
 
-          {/* ── Brain Freeze quick-launch card ── */}
-          {brainFreezeEnabled && auth.user && (
-            <button
-              data-testid="card-brain-freeze-launch"
-              onClick={() => {
-                navTo("achievements");
-                setTimeout(() => setProfileTab("stats"), 60);
-              }}
-              className="mt-2 w-full flex items-center gap-3 rounded-2xl bg-gradient-to-r from-violet-950/60 to-blue-950/60 border border-violet-600/30 px-3.5 py-3 backdrop-blur-sm active:scale-[0.98] transition-all hover:border-violet-500/50 hover:from-violet-900/50"
-            >
-              {/* Icon */}
-              <div className="w-10 h-10 rounded-xl bg-violet-900/60 border border-violet-500/30 flex items-center justify-center shrink-0">
-                <span className="text-xl leading-none select-none">🧠</span>
-              </div>
-
-              {/* Text */}
-              <div className="flex-1 min-w-0 text-left">
-                <p className="text-white text-sm font-bold leading-tight">Brain Freeze</p>
-                {brainFreezeLabData?.inPlunge ? (
-                  <p className="text-violet-300/70 text-[11px] mt-0.5 leading-tight">
-                    {Math.round(brainFreezeLabData.inPlunge.accuracy * 100)}% in-cold accuracy
-                    {brainFreezeLabData.outOfPlunge
-                      ? ` · ${Math.round(brainFreezeLabData.outOfPlunge.accuracy * 100)}% outside`
-                      : ` · ${brainFreezeLabData.inPlunge.count} questions`}
-                  </p>
-                ) : brainFreezeLabData && brainFreezeLabData.totalAnswers > 0 ? (
-                  <p className="text-violet-300/60 text-[11px] mt-0.5">{brainFreezeLabData.totalAnswers} questions answered · keep going</p>
-                ) : (
-                  <p className="text-violet-300/60 text-[11px] mt-0.5">Trivia questions during your plunge</p>
-                )}
-              </div>
-
-              {/* Arrow */}
-              <svg className="w-4 h-4 text-violet-400/50 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          )}
 
           {/* ── Height nudge banner ── */}
           {auth.user && !heightNudgeDismissed && !localStorage.getItem("coldstreak-body-height") && (
