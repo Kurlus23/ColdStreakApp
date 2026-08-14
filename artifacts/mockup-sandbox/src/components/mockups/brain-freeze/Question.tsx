@@ -50,6 +50,9 @@ export function Question() {
         <div className="h-2 w-full" style={{ background: "#273956" }}>
           <div className="h-full w-[45%] rounded-r-full" style={{ background: "#f59e0b" }} />
         </div>
+        <div className="flex h-9 items-center justify-end px-5" aria-label="8 seconds remaining">
+          <span className="text-[28px] font-extrabold leading-none tracking-[-0.06em]" style={{ color: "#f59e0b" }}>8</span>
+        </div>
         <div className="flex items-center justify-between px-5 py-3">
           <span className="text-[12px] font-semibold tracking-[0.04em]" style={{ color: "#22d3ee" }}>🧠 BRAIN FREEZE · Q4</span>
           <span className="flex items-center gap-2 text-[12px]">🔥🔥🔥 <span className="rounded-full px-2 py-1 text-[10px] font-bold" style={{ color: "#fbbf24", background: "rgba(245,158,11,.16)" }}>×2.0</span></span>

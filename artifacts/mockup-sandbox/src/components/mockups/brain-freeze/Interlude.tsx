@@ -33,8 +33,11 @@ export function Interlude() {
             <circle cx="241.8" cy="214.1" r="5" fill="#67e8f9" filter="url(#arc-glow)" />
           </svg>
           <div className="relative text-center">
-            <div className="font-mono text-[4rem] font-bold leading-none tracking-[-0.08em] text-[#e2e8f0]" style={{ textShadow: "0 0 20px rgba(34,211,238,.55)" }}>01:42</div>
-            <div className="mt-3 text-[10px] tracking-[0.2em] text-[#94a3b8]">ELAPSED</div>
+            <div className="font-mono text-[2rem] font-bold leading-none tracking-[-0.06em] text-[#e2e8f0]" style={{ textShadow: "0 0 12px rgba(34,211,238,.45)" }}>01:42</div>
+            <div className="mt-5">
+              <div className="text-[18px] leading-none">🧠</div>
+              <div className="mt-1 font-mono text-[2.5rem] font-bold leading-none text-cyan-300" style={{ textShadow: "0 0 10px rgba(34,211,238,.55)" }}>3</div>
+            </div>
           </div>
         </section>
 
@@ -45,9 +48,6 @@ export function Interlude() {
       </main>
 
       <footer className="absolute bottom-10 left-6 right-6">
-        <div className="absolute -top-[40px] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-cyan-300/50 bg-cyan-400/[0.12] px-4 py-2 backdrop-blur-md">
-          <span className="text-[12px] text-[#94a3b8]">🧠 Brain Freeze in </span><strong className="text-[18px] font-bold text-cyan-300">3</strong>
-        </div>
         <div className="flex items-center justify-between rounded-full border border-cyan-300/35 bg-cyan-400/[0.07] px-6 py-3">
           <div className="text-center"><div className="text-[9px] text-[#94a3b8]">LIVE TEMP</div><div className="mt-0.5 text-[22px] font-bold leading-none">39°F</div></div>
           <div className="h-9 w-px bg-gradient-to-b from-transparent via-cyan-300/40 to-transparent" />
