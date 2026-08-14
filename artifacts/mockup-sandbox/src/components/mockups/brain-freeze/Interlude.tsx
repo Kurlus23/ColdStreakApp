@@ -41,9 +41,26 @@ export function Interlude() {
           </div>
         </section>
 
-        <section className="absolute left-5 right-5 top-[399px] rounded-xl border border-cyan-300/40 bg-cyan-400/[0.06] px-4 py-3 backdrop-blur-md">
+        <section className="absolute left-5 right-5 top-[399px] rounded-xl border border-cyan-300/40 bg-cyan-400/[0.06] px-4 pb-6 pt-3 backdrop-blur-md" style={{ position: "relative" }}>
           <div className="text-[9px] font-bold uppercase tracking-[0.22em] text-cyan-300">⚡ COLD TAKE</div>
           <p className="mt-1 font-serif text-[13px] italic leading-[18px] text-[#e2e8f0]">"You're 37% of the way to today's Energy goal. Keep going."</p>
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 8,
+              right: 10,
+              background: 'rgba(6,182,212,0.15)',
+              border: '1px solid rgba(34,211,238,0.4)',
+              borderRadius: 999,
+              padding: '2px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              fontSize: 11,
+            }}
+          >
+            🧠 Brain Freeze in <strong style={{ fontSize: 13, fontWeight: 700, color: '#22d3ee' }}>3</strong>
+          </div>
         </section>
       </main>
 
