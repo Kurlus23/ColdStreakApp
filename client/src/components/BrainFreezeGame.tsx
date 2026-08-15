@@ -20,11 +20,10 @@ interface BrainFreezeGameProps {
   onScoreUpdate?: (score: number) => void;
 }
 
-const FIRST_QUESTION_AT   = 30;   // seconds into plunge before first question
-const BETWEEN_QUESTIONS   = 90;   // seconds between questions (after dismissal)
-const QUESTION_TIMEOUT    = 20;   // seconds allowed to answer
-const RESULT_DISPLAY_MS   = 4500; // ms to show correct/wrong before dismissing
-const LABELS              = ["A", "B", "C", "D"];
+const FIRST_QUESTION_AT = 30;  // seconds into plunge before first question
+const BETWEEN_QUESTIONS = 90;  // seconds between questions (after dismissal)
+const QUESTION_TIMEOUT  = 20;  // seconds allowed to answer
+const LABELS            = ["A", "B", "C", "D"];
 
 export function BrainFreezeGame({
   elapsedSeconds,
@@ -40,15 +39,24 @@ export function BrainFreezeGame({
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [timeLeft, setTimeLeft]   = useState(QUESTION_TIMEOUT);
 
-  const scoreRef              = useRef(0);
-  const phaseRef              = useRef<Phase>("idle");
-  const fetchingRef           = useRef(false);
-  const dismissedAtRef        = useRef<number | null>(null); // elapsed secs when last question dismissed
-  const firstShownRef         = useRef(false);               // whether we've shown the first question
-  const shownAtElapsedRef     = useRef(0);                   // elapsed when question was shown (for responseTime)
+  const scoreRef          = useRef(0);
+  const phaseRef          = useRef<Phase>("idle");
+  const fetchingRef       = useRef(false);
+  const dismissedAtRef    = useRef<number | null>(null);
+  const firstShownRef     = useRef(false);
+  const shownAtElapsedRef = useRef(0);
 
-  // Keep phaseRef in sync with state
+  // Refs for fast-changing props so callbacks don't need them as deps
+  const elapsedSecondsRef  = useRef(elapsedSeconds);
+  const temperatureRef     = useRef(temperature);
+  const timeLeftRef        = useRef(QUESTION_TIMEOUT);
+  const onScoreUpdateRef   = useRef(onScoreUpdate);
+
   useEffect(() => { phaseRef.current = phase; }, [phase]);
+  useEffect(() => { elapsedSecondsRef.current = elapsedSeconds; }, [elapsedSeconds]);
+  useEffect(() => { temperatureRef.current = temperature; }, [temperature]);
+  useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
+  useEffect(() => { onScoreUpdateRef.current = onScoreUpdate; }, [onScoreUpdate]);
 
   const getToken = () => {
     try { return localStorage.getItem("coldstreak-auth-token"); } catch { return null; }
@@ -69,9 +77,7 @@ export function BrainFreezeGame({
       if (!res.ok) { setPhase("idle"); return; }
       const q: Question = await res.json();
 
-      // Shuffle answers
       const all = [q.correct, ...q.wrong].sort(() => Math.random() - 0.5);
-
       shownAtElapsedRef.current = currentElapsed;
       setQuestion(q);
       setAnswers(all);
@@ -100,31 +106,20 @@ export function BrainFreezeGame({
 
     if (firstShownRef.current && dismissedAtRef.current !== null &&
         elapsedSeconds >= dismissedAtRef.current + BETWEEN_QUESTIONS) {
-      dismissedAtRef.current = null; // reset so we don't retrigger
+      dismissedAtRef.current = null;
       fetchQuestion(elapsedSeconds);
     }
   }, [elapsedSeconds, enabled, isActive, fetchQuestion]);
 
-  // Countdown while question is showing
-  useEffect(() => {
-    if (phase !== "showing") return;
-    if (timeLeft <= 0) {
-      handleAnswer(null); // timeout = wrong
-      return;
-    }
-    const t = setTimeout(() => setTimeLeft((tl) => tl - 1), 1000);
-    return () => clearTimeout(t);
-  });
-
+  // Answer handler — stable: uses refs for timeLeft, temperature, elapsedSeconds
   const handleAnswer = useCallback((ans: string | null) => {
     if (phaseRef.current !== "showing" || !question) return;
 
-    const correct = ans !== null && ans === question.correct;
-    const elapsedAnswering = QUESTION_TIMEOUT - timeLeft;
-    const responseMs = Math.min(
-      ans === null ? QUESTION_TIMEOUT * 1000 : elapsedAnswering * 1000,
-      QUESTION_TIMEOUT * 1000
-    );
+    const correct   = ans !== null && ans === question.correct;
+    const tl        = timeLeftRef.current;
+    const responseMs = ans === null
+      ? QUESTION_TIMEOUT * 1000
+      : Math.min((QUESTION_TIMEOUT - tl) * 1000, QUESTION_TIMEOUT * 1000);
 
     setSelected(ans);
     setIsCorrect(correct);
@@ -132,37 +127,44 @@ export function BrainFreezeGame({
 
     if (correct) {
       scoreRef.current += 1;
-      onScoreUpdate?.(scoreRef.current);
+      onScoreUpdateRef.current?.(scoreRef.current);
     }
 
-    // Log to server (fire-and-forget)
     const token = getToken();
     if (token) {
       fetch("/api/brain-freeze/answer", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           questionId:           question.id,
           isCorrect:            correct,
           responseTimeMs:       responseMs,
           inPlunge:             true,
           plungeElapsedSeconds: shownAtElapsedRef.current,
-          waterTempF:           Math.round(temperature),
+          waterTempF:           Math.round(temperatureRef.current),
         }),
       }).catch(() => {});
     }
+    // No auto-dismiss — user taps "Got it →"
+  }, [question]);
 
-    // Auto-dismiss after result display
-    setTimeout(() => {
-      dismissedAtRef.current = elapsedSeconds;
-      setPhase("idle");
-      setQuestion(null);
-    }, RESULT_DISPLAY_MS);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [question, timeLeft, temperature, elapsedSeconds, onScoreUpdate]);
+  // Dismiss handler — records when the user closes the card
+  const handleDismiss = useCallback(() => {
+    dismissedAtRef.current = elapsedSecondsRef.current;
+    setPhase("idle");
+    setQuestion(null);
+  }, []);
+
+  // Countdown — proper deps so it isn't cancelled by parent re-renders
+  useEffect(() => {
+    if (phase !== "showing") return;
+    if (timeLeft <= 0) {
+      handleAnswer(null);
+      return;
+    }
+    const t = setTimeout(() => setTimeLeft((tl) => tl - 1), 1000);
+    return () => clearTimeout(t);
+  }, [phase, timeLeft, handleAnswer]);
 
   if (!enabled || phase === "idle" || phase === "loading") return null;
 
@@ -196,13 +198,24 @@ export function BrainFreezeGame({
             </p>
           </div>
 
-          {/* Countdown number */}
-          <span
-            className="text-2xl font-black tabular-nums leading-none"
-            style={{ color: timeLeft <= 5 ? "#f87171" : "#67e8f9" }}
-          >
-            {phase === "showing" ? timeLeft : ""}
-          </span>
+          {/* Countdown or dismiss X */}
+          {phase === "showing" ? (
+            <span
+              className="text-2xl font-black tabular-nums leading-none"
+              style={{ color: timeLeft <= 5 ? "#f87171" : "#67e8f9" }}
+            >
+              {timeLeft}
+            </span>
+          ) : (
+            <button
+              onClick={handleDismiss}
+              className="w-7 h-7 flex items-center justify-center rounded-full text-blue-400 hover:text-white transition-colors"
+              style={{ background: "rgba(96,165,250,0.1)" }}
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         {/* Countdown bar */}
@@ -272,19 +285,33 @@ export function BrainFreezeGame({
           })}
         </div>
 
-        {/* Explanation */}
-        {phase === "answered" && question?.explanation && (
-          <div
-            className="mx-4 mb-4 rounded-2xl px-3 py-2.5"
-            style={{
-              background: "rgba(96,165,250,0.07)",
-              border: "1px solid rgba(96,165,250,0.14)",
-            }}
-          >
-            <p className="text-blue-300/75 text-[11px] leading-snug">
-              {question.explanation}
-            </p>
-          </div>
+        {/* Explanation + Got it button */}
+        {phase === "answered" && (
+          <>
+            {question?.explanation && (
+              <div
+                className="mx-4 rounded-2xl px-3 py-2.5"
+                style={{
+                  background: isCorrect ? "rgba(16,94,46,0.2)" : "rgba(96,165,250,0.07)",
+                  border: `1px solid ${isCorrect ? "rgba(34,197,94,0.25)" : "rgba(96,165,250,0.14)"}`,
+                }}
+              >
+                <p className="text-[11px] font-semibold mb-0.5" style={{ color: isCorrect ? "#86efac" : "#fca5a5" }}>
+                  {isCorrect ? "Correct! 🧊" : selected === null ? "Time's up" : `Answer: ${question.correct}`}
+                </p>
+                <p className="text-blue-300/75 text-[11px] leading-snug">{question.explanation}</p>
+              </div>
+            )}
+            <div className="px-4 py-4 flex justify-end">
+              <button
+                onClick={handleDismiss}
+                className="px-5 py-2 rounded-xl text-xs font-semibold text-cyan-300 transition-all active:scale-95"
+                style={{ background: "rgba(34,211,238,0.15)", border: "1px solid rgba(34,211,238,0.3)" }}
+              >
+                Got it →
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>

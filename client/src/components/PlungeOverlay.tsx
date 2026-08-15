@@ -461,6 +461,39 @@ export function PlungeOverlay({
       {/* Bottom HUD — no unified panel; each row floats independently */}
       <div className="w-full z-10 shrink-0 px-6 pb-10 flex flex-col gap-4">
 
+        {/* Brain Freeze incoming announcement — shown for first 30s when enabled */}
+        {brainFreezeEnabled && isActive && elapsedSeconds < 30 && (
+          <div
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl"
+            style={{
+              background: "rgba(34,211,238,0.09)",
+              border: "1px solid rgba(34,211,238,0.3)",
+              backdropFilter: "blur(8px)",
+              boxShadow: "0 0 20px rgba(34,211,238,0.08)",
+            }}
+          >
+            <img
+              src="/brain-freeze-icon.png"
+              alt=""
+              className="w-8 h-8 rounded-xl object-cover shrink-0"
+              style={{ boxShadow: "0 0 10px rgba(96,165,250,0.4)" }}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-cyan-300 text-xs font-bold leading-none mb-0.5">Brain Freeze Trivia</p>
+              <p className="text-blue-400/70 text-[10px] leading-none">
+                First question in {30 - elapsedSeconds}s
+              </p>
+            </div>
+            <button
+              onClick={() => onBrainFreezeToggle?.(false)}
+              className="shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-semibold text-slate-400 transition-all active:scale-95"
+              style={{ background: "rgba(15,30,70,0.7)", border: "1px solid rgba(59,130,246,0.2)" }}
+            >
+              Turn off
+            </button>
+          </div>
+        )}
+
         {/* Stats row — pill-shaped glass card */}
         <div
           className="flex items-center justify-between px-5 py-3 rounded-2xl"
