@@ -184,6 +184,7 @@ interface PlungeOverlayProps {
   onDismissChallenger: () => void;
   brainFreezeEnabled?: boolean;
   onBrainFreezeScore?: (score: number) => void;
+  onBrainFreezeToggle?: (enabled: boolean) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -213,6 +214,7 @@ export function PlungeOverlay({
   onDismissChallenger,
   brainFreezeEnabled = false,
   onBrainFreezeScore,
+  onBrainFreezeToggle,
 }: PlungeOverlayProps) {
   // ── Goal-progress ring ────────────────────────────────────────────────────────
   // One continuous arc sweeping 0→100% as the user approaches their primary
@@ -508,6 +510,28 @@ export function PlungeOverlay({
 
         {/* Music transport — its own floating card */}
         {isPro && <MusicTransportMini className="self-center" />}
+
+        {/* Brain Freeze toggle */}
+        <button
+          onClick={() => onBrainFreezeToggle?.(!brainFreezeEnabled)}
+          className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl transition-all active:scale-[0.98]"
+          style={{
+            background: brainFreezeEnabled ? "rgba(34,211,238,0.08)" : "rgba(6,18,52,0.55)",
+            border: `1px solid ${brainFreezeEnabled ? "rgba(34,211,238,0.22)" : "rgba(59,130,246,0.12)"}`,
+            backdropFilter: "blur(6px)",
+          }}
+        >
+          <div className="flex items-center gap-2.5">
+            <img src="/brain-freeze-icon.png" alt="" className="w-6 h-6 rounded-lg object-cover shrink-0" style={{ opacity: brainFreezeEnabled ? 1 : 0.4 }} />
+            <span className="text-xs font-semibold" style={{ color: brainFreezeEnabled ? "#67e8f9" : "#475569" }}>
+              Brain Freeze Trivia
+            </span>
+          </div>
+          {/* Toggle pill */}
+          <div className={`relative w-10 h-5 rounded-full transition-colors ${brainFreezeEnabled ? "bg-cyan-500" : "bg-slate-700"}`}>
+            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${brainFreezeEnabled ? "translate-x-5" : "translate-x-0"}`} />
+          </div>
+        </button>
 
         {/* Stop button — floats with just its glow halo */}
         <button

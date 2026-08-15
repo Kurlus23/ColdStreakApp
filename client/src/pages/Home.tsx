@@ -9033,6 +9033,11 @@ export default function Home() {
           onDismissChallenger={() => setPendingChallengers([])}
           brainFreezeEnabled={brainFreezeEnabled}
           onBrainFreezeScore={(s) => { brainFreezeScoreRef.current = s; }}
+          onBrainFreezeToggle={(next) => {
+            setBrainFreezeEnabled(next);
+            localStorage.setItem("coldstreak-brain-freeze", String(next));
+            saveDisplayPrefs({ brainFreezeEnabled: next });
+          }}
         />
       )}
 
