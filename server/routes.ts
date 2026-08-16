@@ -4091,6 +4091,30 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
   });
 
   // ── Brain Freeze ──────────────────────────────────────────────────────────
+
+  // Admin: delete all questions and re-seed from the JSON file.
+  // Requires header: X-Admin-Reset-Secret matching env ADMIN_RESET_SECRET.
+  app.post("/api/admin/brain-freeze/reseed", async (req, res) => {
+    const expected = process.env.ADMIN_RESET_SECRET;
+    if (!expected || expected.length < 8) {
+      return res.status(503).json({ message: "Endpoint not configured" });
+    }
+    const provided = req.headers["x-admin-reset-secret"];
+    if (typeof provided !== "string" || provided !== expected) {
+      console.warn("[brain-freeze-reseed] denied — bad/missing secret from", req.ip);
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    try {
+      const { reseedBrainFreezeQuestions } = await import("./brain-freeze");
+      const result = await reseedBrainFreezeQuestions();
+      console.log(`[brain-freeze-reseed] done: deleted=${result.deleted} inserted=${result.inserted}`);
+      res.json({ ok: true, ...result });
+    } catch (err) {
+      console.error("[brain-freeze-reseed] error:", err);
+      res.status(500).json({ message: "Reseed failed", error: String(err) });
+    }
+  });
+
   app.get("/api/brain-freeze/question", async (req, res) => {
     const payload = extractUser(req);
     if (!payload) return res.status(401).json({ message: "Unauthorized" });

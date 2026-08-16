@@ -7,7 +7,7 @@
 
 import { db } from "./db";
 import { brainFreezeQuestions, brainFreezeAnswers } from "../shared/schema";
-import { eq, and, notInArray, gte, desc, sql } from "drizzle-orm";
+import { eq, and, notInArray, inArray, gte, desc, sql } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 
@@ -15,13 +15,18 @@ import path from "path";
 
 let _seeded = false;
 
+// Categories present in the current (diverse) question bank.
+// If the DB is missing ALL of these, it still has the old cold-plunge-only set
+// and must be reseeded.
+const EXPECTED_CATEGORIES = [
+  "Human Body & Biology",
+  "Science & Technology",
+  "History & Famous Firsts",
+  "Sports & World Records",
+];
+
 async function ensureSeeded() {
   if (_seeded) return;
-  const [first] = await db
-    .select({ id: brainFreezeQuestions.id })
-    .from(brainFreezeQuestions)
-    .limit(1);
-  if (first) { _seeded = true; return; }
 
   const filePath = path.join(process.cwd(), "server/data/brain-freeze-questions.json");
   const raw = fs.readFileSync(filePath, "utf-8");
@@ -30,22 +35,103 @@ async function ensureSeeded() {
     question: string; correct: string; wrong: string[]; explanation: string;
   }> = JSON.parse(raw);
 
+  // Check whether the DB already has the new diverse question bank by looking
+  // for any of the expected new categories.
+  const [sampleRow] = await db
+    .select({ category: brainFreezeQuestions.category })
+    .from(brainFreezeQuestions)
+    .where(inArray(brainFreezeQuestions.category, EXPECTED_CATEGORIES))
+    .limit(1);
+
+  if (sampleRow) {
+    // DB already has the new question bank — nothing to do.
+    _seeded = true;
+    return;
+  }
+
+  // The DB is empty or only has the old cold-plunge-only categories.
+  // Use upsert (ON CONFLICT external_id DO UPDATE) so that:
+  //   - Existing rows are updated in-place → FK from brain_freeze_answers stays valid
+  //   - New rows are inserted if any external_id doesn't exist yet
+  // This preserves all user answer history while replacing question content.
   const CHUNK = 50;
+  let upserted = 0;
   for (let i = 0; i < questions.length; i += CHUNK) {
+    const batch = questions.slice(i, i + CHUNK).map(q => ({
+      externalId:  q.id,
+      category:    q.category,
+      difficulty:  q.difficulty,
+      question:    q.question,
+      correct:     q.correct,
+      wrong:       q.wrong,
+      explanation: q.explanation,
+    }));
     await db.insert(brainFreezeQuestions)
-      .values(questions.slice(i, i + CHUNK).map(q => ({
-        externalId: q.id,
-        category:   q.category,
-        difficulty: q.difficulty,
-        question:   q.question,
-        correct:    q.correct,
-        wrong:      q.wrong,
-        explanation: q.explanation,
-      })))
-      .onConflictDoNothing();
+      .values(batch)
+      .onConflictDoUpdate({
+        target: brainFreezeQuestions.externalId,
+        set: {
+          category:    sql`excluded.category`,
+          difficulty:  sql`excluded.difficulty`,
+          question:    sql`excluded.question`,
+          correct:     sql`excluded.correct`,
+          wrong:       sql`excluded.wrong`,
+          explanation: sql`excluded.explanation`,
+        },
+      });
+    upserted += batch.length;
   }
   _seeded = true;
-  console.log(`[brain-freeze] seeded ${questions.length} questions`);
+  console.log(`[brain-freeze] upserted ${upserted} questions (diverse bank)`);
+}
+
+/**
+ * Admin-only: delete all existing questions and re-seed from the JSON file.
+ * Safe to run while the server is live — the delete + insert is sequential.
+ */
+export async function reseedBrainFreezeQuestions(): Promise<{ upserted: number }> {
+  // Reset the in-memory seed flag
+  _seeded = false;
+
+  // Read the current question bank from disk
+  const filePath = path.join(process.cwd(), "server/data/brain-freeze-questions.json");
+  const raw = fs.readFileSync(filePath, "utf-8");
+  const questions: Array<{
+    id: string; category: string; difficulty: string;
+    question: string; correct: string; wrong: string[]; explanation: string;
+  }> = JSON.parse(raw);
+
+  // Upsert by externalId so FK references from brain_freeze_answers stay intact.
+  const CHUNK = 50;
+  let upserted = 0;
+  for (let i = 0; i < questions.length; i += CHUNK) {
+    const batch = questions.slice(i, i + CHUNK).map(q => ({
+      externalId:  q.id,
+      category:    q.category,
+      difficulty:  q.difficulty,
+      question:    q.question,
+      correct:     q.correct,
+      wrong:       q.wrong,
+      explanation: q.explanation,
+    }));
+    await db.insert(brainFreezeQuestions)
+      .values(batch)
+      .onConflictDoUpdate({
+        target: brainFreezeQuestions.externalId,
+        set: {
+          category:    sql`excluded.category`,
+          difficulty:  sql`excluded.difficulty`,
+          question:    sql`excluded.question`,
+          correct:     sql`excluded.correct`,
+          wrong:       sql`excluded.wrong`,
+          explanation: sql`excluded.explanation`,
+        },
+      });
+    upserted += batch.length;
+  }
+  _seeded = true;
+  console.log(`[brain-freeze] admin reseed complete: upserted=${upserted}`);
+  return { upserted };
 }
 
 // ─── Question serving ─────────────────────────────────────────────────────────
