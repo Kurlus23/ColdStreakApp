@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { ColdTakeOverlay, MilestoneEvent } from "@/components/ColdTakeOverlay";
 import { BenefitBar } from "@/components/BenefitBar";
-import { MusicTransportMini } from "@/components/MusicWidget";
 import { BrainFreezeGame } from "@/components/BrainFreezeGame";
 import { SEGMENTS, type SegmentId, computeThresholds, getCompositionFactorForScore } from "@/lib/benefitSegments";
 
@@ -578,11 +577,8 @@ export function PlungeOverlay({
           bodyFatPct={bodyFatPct}
         />
 
-        {/* Music transport — its own floating card */}
-        {isPro && <MusicTransportMini className="self-center" />}
-
-        {/* Brain Freeze toggle — hidden while the announcement card is already showing */}
-        {(localDisplaySecs >= 30 || !brainFreezeEnabled) && <button
+        {/* Brain Freeze toggle */}
+        <button
           onClick={() => onBrainFreezeToggle?.(!brainFreezeEnabled)}
           className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl transition-all active:scale-[0.98]"
           style={{
@@ -601,7 +597,7 @@ export function PlungeOverlay({
           <div className={`relative w-10 h-5 rounded-full transition-colors ${brainFreezeEnabled ? "bg-cyan-500" : "bg-slate-700"}`}>
             <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${brainFreezeEnabled ? "translate-x-5" : "translate-x-0"}`} />
           </div>
-        </button>}
+        </button>
 
         {/* Stop button — floats with just its glow halo */}
         <button
