@@ -601,7 +601,7 @@ export function PlungeOverlay({
           <div className={`relative w-10 h-5 rounded-full transition-colors ${brainFreezeEnabled ? "bg-cyan-500" : "bg-slate-700"}`}>
             <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${brainFreezeEnabled ? "translate-x-5" : "translate-x-0"}`} />
           </div>
-        </button>
+        </button>}
 
         {/* Stop button — floats with just its glow halo */}
         <button
