@@ -9031,6 +9031,7 @@ export default function Home() {
           milestoneEvent={milestoneEvent}
           onStop={handleStop}
           onDismissChallenger={() => setPendingChallengers([])}
+          plungeStartTime={startTimeRef.current}
           brainFreezeEnabled={brainFreezeEnabled}
           onBrainFreezeScore={(s) => { brainFreezeScoreRef.current = s; }}
           onBrainFreezeToggle={(next) => {
