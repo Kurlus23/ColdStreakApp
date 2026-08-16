@@ -12,6 +12,15 @@ export interface FriendEntry {
   plungedToday: boolean;
   latestScore: number | null;
   bestScore: number | null;
+  bfScoreThisPlunge?: number | null;
+  bfScoreToday?: number;
+  bfScoreAllTime?: number;
+}
+
+export interface BrainFreezeStats {
+  thisPlunge: number | null;
+  today: number;
+  allTime: number;
 }
 
 export interface FriendRequest {
@@ -32,6 +41,7 @@ export interface LoadFriendsDeps {
   setFriendsLoading: (v: boolean) => void;
   setFriends: (v: FriendEntry[]) => void;
   setPendingRequests: (v: FriendRequest[]) => void;
+  setMyBf?: (v: BrainFreezeStats) => void;
   clearAuthToken: () => void;
 }
 
@@ -69,7 +79,14 @@ export async function loadFriends(deps: LoadFriendsDeps): Promise<void> {
     }
 
     const [fr, pr] = await Promise.all([friendsRes.json(), requestsRes.json()]);
-    if (Array.isArray(fr)) setFriends(fr);
+    // fr is now { friends: FriendEntry[], myBf: BrainFreezeStats }
+    if (fr && Array.isArray(fr.friends)) {
+      setFriends(fr.friends);
+      if (fr.myBf && deps.setMyBf) deps.setMyBf(fr.myBf);
+    } else if (Array.isArray(fr)) {
+      // backward-compat fallback
+      setFriends(fr);
+    }
     if (Array.isArray(pr)) setPendingRequests(pr);
   } catch {
     toast({

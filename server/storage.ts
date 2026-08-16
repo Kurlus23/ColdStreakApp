@@ -46,6 +46,15 @@ export interface FriendWithStats {
   plungedToday: boolean;
   latestScore: number | null;
   bestScore: number | null;
+  bfScoreThisPlunge: number | null; // Brain Freeze pts from their latest plunge (null if not played)
+  bfScoreToday: number;             // sum of Brain Freeze pts earned today
+  bfScoreAllTime: number;           // sum of all Brain Freeze pts ever
+}
+
+export interface BrainFreezeStats {
+  thisPlunge: number | null;
+  today: number;
+  allTime: number;
 }
 
 export interface PendingFriendRequest {
@@ -286,6 +295,7 @@ export interface IStorage {
   respondFriendRequest(friendshipId: number, addresseeId: number, status: "accepted" | "declined"): Promise<boolean>;
   removeFriend(userId: number, friendId: number): Promise<void>;
   getFriends(userId: number): Promise<FriendWithStats[]>;
+  getUserBrainFreezeStats(userId: number): Promise<BrainFreezeStats>;
   getPendingFriendRequests(userId: number): Promise<PendingFriendRequest[]>;
   getFriendship(userId1: number, userId2: number): Promise<import("@shared/schema").Friendship | null>;
   searchUsers(query: string, excludeUserId: number): Promise<{ id: number; username: string | null; displayName: string | null; avatarUrl: string | null }[]>;
@@ -1974,10 +1984,11 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Get plunges for each friend to compute streak, latest score, best score
+    // Get plunges for each friend to compute streak, latest score, best score, and Brain Freeze pts
     const results: FriendWithStats[] = [];
+    const todayStrFriend = new Date().toDateString();
     for (const friend of friendUsers) {
-      const friendPlunges = await db.select({ score: plunges.score, createdAt: plunges.createdAt, temperature: plunges.temperature })
+      const friendPlunges = await db.select({ score: plunges.score, createdAt: plunges.createdAt, temperature: plunges.temperature, brainFreezeScore: plunges.brainFreezeScore })
         .from(plunges).where(eq(plunges.userId, friend.id)).orderBy(desc(plunges.createdAt));
 
       const latestScore = friendPlunges.length > 0 ? Number(friendPlunges[0].score) : null;
@@ -2023,12 +2034,33 @@ export class DatabaseStorage implements IStorage {
         plungedToday,
         latestScore,
         bestScore,
+        bfScoreThisPlunge: friendPlunges.length > 0 ? (friendPlunges[0].brainFreezeScore ?? null) : null,
+        bfScoreToday: friendPlunges
+          .filter(p => new Date(p.createdAt).toDateString() === todayStrFriend)
+          .reduce((s, p) => s + (p.brainFreezeScore ?? 0), 0),
+        bfScoreAllTime: friendPlunges.reduce((s, p) => s + (p.brainFreezeScore ?? 0), 0),
       });
     }
 
     // Sort by streak desc, then bestScore desc
     results.sort((a, b) => b.streak - a.streak || (b.bestScore ?? 0) - (a.bestScore ?? 0));
     return results;
+  }
+
+  async getUserBrainFreezeStats(userId: number): Promise<BrainFreezeStats> {
+    const rows = await db
+      .select({ brainFreezeScore: plunges.brainFreezeScore, createdAt: plunges.createdAt })
+      .from(plunges)
+      .where(eq(plunges.userId, userId))
+      .orderBy(desc(plunges.createdAt));
+    const todayStr = new Date().toDateString();
+    return {
+      thisPlunge: rows.length > 0 ? (rows[0].brainFreezeScore ?? null) : null,
+      today: rows
+        .filter(p => new Date(p.createdAt).toDateString() === todayStr)
+        .reduce((s, p) => s + (p.brainFreezeScore ?? 0), 0),
+      allTime: rows.reduce((s, p) => s + (p.brainFreezeScore ?? 0), 0),
+    };
   }
 
   async searchUsers(query: string, excludeUserId: number): Promise<{ id: number; username: string | null; displayName: string | null; avatarUrl: string | null }[]> {

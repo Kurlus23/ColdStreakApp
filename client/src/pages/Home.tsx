@@ -663,10 +663,11 @@ export default function Home() {
   const [plungeAchieved, setPlungeAchieved] = useState<Set<SegmentId>>(new Set());
 
   // Friends
-  interface FriendEntry { friendshipId: number; userId: number; username: string | null; displayName: string | null; avatarUrl: string | null; featuredBadges?: string; streak: number; plungedToday: boolean; latestScore: number | null; bestScore: number | null; }
+  interface FriendEntry { friendshipId: number; userId: number; username: string | null; displayName: string | null; avatarUrl: string | null; featuredBadges?: string; streak: number; plungedToday: boolean; latestScore: number | null; bestScore: number | null; bfScoreThisPlunge?: number | null; bfScoreToday?: number; bfScoreAllTime?: number; }
   interface FriendRequest { friendshipId: number; requesterId: number; requesterUsername: string | null; requesterDisplayName: string | null; requesterAvatarUrl: string | null; requesterStreak: number; requesterPlungeCount: number; createdAt: string; }
   interface UserResult { id: number; username: string | null; displayName: string | null; avatarUrl: string | null; friendshipStatus: string | null; }
   const [friends, setFriends] = useState<FriendEntry[]>([]);
+  const [myBf, setMyBf] = useState<{ thisPlunge: number | null; today: number; allTime: number }>({ thisPlunge: null, today: 0, allTime: 0 });
   // Array of all users who have challenged the current user (pending challenges).
   const [pendingChallengers, setPendingChallengers] = useState<Array<{userId: number; name: string}>>([]);
   // Tracks whether the user tapped "Later" — hides the modal but keeps the
@@ -716,6 +717,7 @@ export default function Home() {
       toast,
       setFriendsLoading,
       setFriends,
+      setMyBf,
       setPendingRequests,
       clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
     });
@@ -5905,6 +5907,9 @@ export default function Home() {
                       plungedToday: myPlungedToday,
                       latestScore: plunges.length > 0 ? parseFloat(String(plunges[0].score)) || null : null,
                       bestScore: myBestScore,
+                      bfScoreThisPlunge: myBf.thisPlunge,
+                      bfScoreToday: myBf.today,
+                      bfScoreAllTime: myBf.allTime,
                     };
                     const sorted = [meEntry, ...friends].sort((a, b) =>
                       friendsSort === 'daily'
@@ -6000,6 +6005,35 @@ export default function Home() {
                                     : "bg-orange-500/20 border border-orange-500/40 text-orange-300 hover:bg-orange-500/30"
                                 }`}
                               >{challengingId === f.userId ? "…" : challengedIds.has(f.userId) ? "✓ Challenged" : (f.plungedToday && f.latestScore != null && todayScore > 0 && f.latestScore > todayScore ? "🏆 Winner" : "⚡ Challenge")}</button>
+                            )}
+
+                            {/* Brain Freeze points row */}
+                            {((f.bfScoreAllTime ?? 0) > 0 || isMe) && (
+                              <div
+                                className="flex items-center gap-0 rounded-xl overflow-hidden"
+                                style={{ border: "1px solid rgba(34,211,238,0.13)", background: "rgba(8,30,60,0.55)" }}
+                                onClick={e => e.stopPropagation()}
+                              >
+                                <div className="flex items-center gap-1.5 px-2.5 py-1.5 flex-1 border-r border-cyan-900/40">
+                                  <img src="/brain-freeze-icon.png" alt="" className="w-3.5 h-3.5 rounded-sm object-cover shrink-0" style={{ opacity: 0.8 }} />
+                                  <span className="text-[9px] text-blue-500 uppercase tracking-widest font-semibold">This Plunge</span>
+                                  <span className="text-[11px] font-bold text-cyan-300 ml-auto">
+                                    {f.bfScoreThisPlunge != null ? f.bfScoreThisPlunge : "—"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 px-2.5 py-1.5 flex-1 border-r border-cyan-900/40">
+                                  <span className="text-[9px] text-blue-500 uppercase tracking-widest font-semibold">Today</span>
+                                  <span className="text-[11px] font-bold text-cyan-300 ml-auto">
+                                    {(f.bfScoreToday ?? 0) > 0 ? f.bfScoreToday : "—"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 px-2.5 py-1.5 flex-1">
+                                  <span className="text-[9px] text-blue-500 uppercase tracking-widest font-semibold">All Time</span>
+                                  <span className="text-[11px] font-bold text-cyan-300 ml-auto">
+                                    {(f.bfScoreAllTime ?? 0) > 0 ? f.bfScoreAllTime : "—"}
+                                  </span>
+                                </div>
+                              </div>
                             )}
                           </div>
                         );

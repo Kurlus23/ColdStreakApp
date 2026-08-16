@@ -1636,8 +1636,11 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
   app.get("/api/friends", async (req, res) => {
     const caller = extractUser(req);
     if (!caller) return res.status(401).json({ error: "Login required" });
-    const friends = await storage.getFriends(caller.userId);
-    res.json(friends);
+    const [friends, myBf] = await Promise.all([
+      storage.getFriends(caller.userId),
+      storage.getUserBrainFreezeStats(caller.userId),
+    ]);
+    res.json({ friends, myBf });
   });
 
   // Get pending incoming friend requests
