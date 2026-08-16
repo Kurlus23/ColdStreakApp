@@ -619,6 +619,8 @@ export function PlungeOverlay({
         isActive={isActive}
         enabled={brainFreezeEnabled}
         onScoreUpdate={onBrainFreezeScore}
+        onStopGame={() => onBrainFreezeToggle?.(false)}
+        onStopPlunge={onStop}
       />
     </div>
   );

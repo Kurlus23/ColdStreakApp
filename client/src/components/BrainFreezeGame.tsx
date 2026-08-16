@@ -18,6 +18,8 @@ interface BrainFreezeGameProps {
   isActive: boolean;
   enabled: boolean;
   onScoreUpdate?: (score: number) => void;
+  onStopGame?: () => void;
+  onStopPlunge?: () => void;
 }
 
 const FIRST_QUESTION_AT = 30;  // seconds into plunge before first question
@@ -31,6 +33,8 @@ export function BrainFreezeGame({
   isActive,
   enabled,
   onScoreUpdate,
+  onStopGame,
+  onStopPlunge,
 }: BrainFreezeGameProps) {
   const [question, setQuestion]   = useState<Question | null>(null);
   const [phase, setPhase]         = useState<Phase>("idle");
@@ -154,6 +158,14 @@ export function BrainFreezeGame({
     setPhase("idle");
     setQuestion(null);
   }, []);
+
+  // Stop game — dismisses overlay and turns off Brain Freeze
+  const handleStopGame = useCallback(() => {
+    dismissedAtRef.current = elapsedSecondsRef.current;
+    setPhase("idle");
+    setQuestion(null);
+    onStopGame?.();
+  }, [onStopGame]);
 
   // Countdown — proper deps so it isn't cancelled by parent re-renders
   useEffect(() => {
@@ -302,17 +314,43 @@ export function BrainFreezeGame({
                 <p className="text-blue-300/75 text-[11px] leading-snug">{question.explanation}</p>
               </div>
             )}
-            <div className="px-4 py-4 flex justify-end">
+            <div className="px-4 pt-3 flex justify-end">
               <button
                 onClick={handleDismiss}
                 className="px-5 py-2 rounded-xl text-xs font-semibold text-cyan-300 transition-all active:scale-95"
                 style={{ background: "rgba(34,211,238,0.15)", border: "1px solid rgba(34,211,238,0.3)" }}
               >
-                Got it →
+                Next →
               </button>
             </div>
           </>
         )}
+
+        {/* Stop controls — always visible */}
+        <div className="px-4 pb-4 pt-2 flex gap-2">
+          <button
+            onClick={handleStopGame}
+            className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95"
+            style={{
+              background: "rgba(30,41,59,0.7)",
+              border: "1px solid rgba(71,85,105,0.4)",
+              color: "#94a3b8",
+            }}
+          >
+            Stop game
+          </button>
+          <button
+            onClick={onStopPlunge}
+            className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95"
+            style={{
+              background: "rgba(127,29,29,0.55)",
+              border: "1px solid rgba(239,68,68,0.35)",
+              color: "#fca5a5",
+            }}
+          >
+            Stop plunge
+          </button>
+        </div>
       </div>
     </div>
   );
