@@ -4145,7 +4145,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     try {
       const { logAnswer } = await import("./brain-freeze");
       const row = await logAnswer({ userId: payload.userId, ...parsed.data });
-      res.json({ ok: true, id: row.id });
+      res.json({ ok: true, id: row.id, points: row.pointsEarned });
     } catch (err) {
       console.error("[brain-freeze] answer error:", err);
       res.status(500).json({ message: "Failed to log answer" });

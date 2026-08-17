@@ -9199,7 +9199,7 @@ export default function Home() {
         );
       })()}
 
-      <BrainFreezeModal isOpen={showBrainFreezeModal} onClose={() => setShowBrainFreezeModal(false)} />
+      <BrainFreezeModal isOpen={showBrainFreezeModal} onClose={() => setShowBrainFreezeModal(false)} onComplete={() => loadFriends()} />
 
       {showBenefitPicker && (
         <div

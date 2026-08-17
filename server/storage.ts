@@ -2,7 +2,7 @@ import { db } from "./db";
 import {
   plunges, leaderboardEntries, proUsers, promoCodes, userLocations, businessListings, users, badgeProfiles, pushSubscriptions,
   events, eventParticipants, eventCoordinators, eventBans, supportMessages, clientVisits, shareEvents,
-  verifiedBusinessSubs, reports, locationViews, locationClicks, friendships, pendingChallenges,
+  verifiedBusinessSubs, reports, locationViews, locationClicks, friendships, pendingChallenges, brainFreezeAnswers,
   type InsertPlunge, type UpdatePlunge, type Plunge,
   type InsertLeaderboardEntry, type LeaderboardEntry, type ProUser,
   type PromoCode, type UserLocation, type InsertUserLocation, type User, type BadgeProfile, type PushSubscription,
@@ -1987,8 +1987,9 @@ export class DatabaseStorage implements IStorage {
     // Get plunges for each friend to compute streak, latest score, best score, and Brain Freeze pts
     const results: FriendWithStats[] = [];
     const todayStrFriend = new Date().toDateString();
+    const todayStartFriend = new Date(); todayStartFriend.setHours(0, 0, 0, 0);
     for (const friend of friendUsers) {
-      const friendPlunges = await db.select({ score: plunges.score, createdAt: plunges.createdAt, temperature: plunges.temperature, brainFreezeScore: plunges.brainFreezeScore })
+      const friendPlunges = await db.select({ id: plunges.id, score: plunges.score, createdAt: plunges.createdAt, temperature: plunges.temperature, brainFreezeScore: plunges.brainFreezeScore })
         .from(plunges).where(eq(plunges.userId, friend.id)).orderBy(desc(plunges.createdAt));
 
       const latestScore = friendPlunges.length > 0 ? Number(friendPlunges[0].score) : null;
@@ -2034,11 +2035,25 @@ export class DatabaseStorage implements IStorage {
         plungedToday,
         latestScore,
         bestScore,
-        bfScoreThisPlunge: friendPlunges.length > 0 ? (friendPlunges[0].brainFreezeScore ?? null) : null,
-        bfScoreToday: friendPlunges
-          .filter(p => new Date(p.createdAt).toDateString() === todayStrFriend)
-          .reduce((s, p) => s + (p.brainFreezeScore ?? 0), 0),
-        bfScoreAllTime: friendPlunges.reduce((s, p) => s + (p.brainFreezeScore ?? 0), 0),
+        ...await (async () => {
+          const bfRows = await db
+            .select({ pointsEarned: brainFreezeAnswers.pointsEarned, plungeId: brainFreezeAnswers.plungeId, answeredAt: brainFreezeAnswers.answeredAt })
+            .from(brainFreezeAnswers)
+            .where(eq(brainFreezeAnswers.userId, friend.id));
+          const latestPlungeId = friendPlunges[0]?.id ?? null;
+          const thisPlunge = latestPlungeId !== null
+            ? bfRows.filter(r => r.plungeId === latestPlungeId).reduce((s, r) => s + r.pointsEarned, 0)
+            : 0;
+          const bfToday = bfRows
+            .filter(r => new Date(r.answeredAt) >= todayStartFriend)
+            .reduce((s, r) => s + r.pointsEarned, 0);
+          const bfAllTime = bfRows.reduce((s, r) => s + r.pointsEarned, 0);
+          return {
+            bfScoreThisPlunge: thisPlunge || null,
+            bfScoreToday: bfToday,
+            bfScoreAllTime: bfAllTime,
+          };
+        })(),
       });
     }
 
@@ -2048,18 +2063,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserBrainFreezeStats(userId: number): Promise<BrainFreezeStats> {
-    const rows = await db
-      .select({ brainFreezeScore: plunges.brainFreezeScore, createdAt: plunges.createdAt })
+    // Answers table is the source of truth — includes both in-plunge and standalone BF.
+    const answers = await db
+      .select({ pointsEarned: brainFreezeAnswers.pointsEarned, plungeId: brainFreezeAnswers.plungeId, answeredAt: brainFreezeAnswers.answeredAt })
+      .from(brainFreezeAnswers)
+      .where(eq(brainFreezeAnswers.userId, userId));
+
+    // Find the latest plunge id for "this plunge" bucket
+    const latestPlunge = await db
+      .select({ id: plunges.id })
       .from(plunges)
       .where(eq(plunges.userId, userId))
-      .orderBy(desc(plunges.createdAt));
-    const todayStr = new Date().toDateString();
+      .orderBy(desc(plunges.createdAt))
+      .limit(1);
+    const latestPlungeId = latestPlunge[0]?.id ?? null;
+
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const thisPlunge = latestPlungeId !== null
+      ? answers.filter(r => r.plungeId === latestPlungeId).reduce((s, r) => s + r.pointsEarned, 0)
+      : 0;
     return {
-      thisPlunge: rows.length > 0 ? (rows[0].brainFreezeScore ?? null) : null,
-      today: rows
-        .filter(p => new Date(p.createdAt).toDateString() === todayStr)
-        .reduce((s, p) => s + (p.brainFreezeScore ?? 0), 0),
-      allTime: rows.reduce((s, p) => s + (p.brainFreezeScore ?? 0), 0),
+      thisPlunge: thisPlunge || null,
+      today: answers.filter(r => new Date(r.answeredAt) >= todayStart).reduce((s, r) => s + r.pointsEarned, 0),
+      allTime: answers.reduce((s, r) => s + r.pointsEarned, 0),
     };
   }
 

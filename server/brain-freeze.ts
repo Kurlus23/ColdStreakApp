@@ -229,6 +229,18 @@ export async function getQuestion(userId: number) {
 
 // ─── Answer logging ───────────────────────────────────────────────────────────
 
+/** Points formula: 100 base (correct) + up to 50 speed bonus (scales linearly 0-20 s). */
+const ANSWER_BASE_POINTS  = 100;
+const ANSWER_SPEED_BONUS  = 50;
+const ANSWER_TIMEOUT_MS   = 20_000;
+
+export function computePoints(isCorrect: boolean, responseTimeMs: number): number {
+  if (!isCorrect) return 0;
+  const speedFraction = Math.max(0, 1 - responseTimeMs / ANSWER_TIMEOUT_MS);
+  return ANSWER_BASE_POINTS + Math.round(ANSWER_SPEED_BONUS * speedFraction);
+  // min 100 pts (answered at wire limit) · max 150 pts (near-instant answer)
+}
+
 export async function logAnswer(data: {
   userId:               number;
   questionId:           number;
@@ -239,6 +251,7 @@ export async function logAnswer(data: {
   waterTempF?:          number | null;
   plungeId?:            number | null;
 }) {
+  const pointsEarned = computePoints(data.isCorrect, data.responseTimeMs);
   const [row] = await db
     .insert(brainFreezeAnswers)
     .values({
@@ -246,6 +259,7 @@ export async function logAnswer(data: {
       questionId:           data.questionId,
       isCorrect:            data.isCorrect,
       responseTimeMs:       data.responseTimeMs,
+      pointsEarned,
       inPlunge:             data.inPlunge,
       plungeElapsedSeconds: data.plungeElapsedSeconds ?? null,
       waterTempF:           data.waterTempF ?? null,

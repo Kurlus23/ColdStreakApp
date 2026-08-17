@@ -15,6 +15,7 @@ type Phase = "loading" | "showing" | "answered" | "done";
 interface BrainFreezeModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onComplete?: () => void;
 }
 
 const QUESTION_TIMEOUT = 20;   // seconds to answer
@@ -25,7 +26,7 @@ function getToken() {
   try { return localStorage.getItem("coldstreak-auth-token"); } catch { return null; }
 }
 
-export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
+export function BrainFreezeModal({ isOpen, onClose, onComplete }: BrainFreezeModalProps) {
   const [question, setQuestion]   = useState<Question | null>(null);
   const [phase, setPhase]         = useState<Phase>("loading");
   const [answers, setAnswers]     = useState<string[]>([]);
@@ -33,12 +34,16 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
   const [timeLeft, setTimeLeft]   = useState(QUESTION_TIMEOUT);
   const [sessionCorrect, setSessionCorrect] = useState(0);
   const [sessionTotal, setSessionTotal]     = useState(0);
+  const [sessionPoints, setSessionPoints]   = useState(0);
 
   // Refs for values needed inside timeouts (avoid stale closures)
-  const phaseRef        = useRef<Phase>("loading");
-  const shownAtRef      = useRef(Date.now());
-  const questionNumRef  = useRef(0);
-  const correctCountRef = useRef(0);  // reliable score for done screen
+  const phaseRef          = useRef<Phase>("loading");
+  const shownAtRef        = useRef(Date.now());
+  const questionNumRef    = useRef(0);
+  const correctCountRef   = useRef(0);  // reliable score for done screen
+  const sessionPointsRef  = useRef(0);  // reliable points for done screen
+  const onCompleteRef     = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
 
@@ -68,13 +73,20 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
     } catch {}
   }, []);
 
+  // Fire onComplete once when session finishes
+  useEffect(() => {
+    if (phase === "done") onCompleteRef.current?.();
+  }, [phase]);
+
   // Fetch first question when modal opens
   useEffect(() => {
     if (!isOpen) return;
     setSessionCorrect(0);
     setSessionTotal(0);
+    setSessionPoints(0);
     questionNumRef.current = 0;
     correctCountRef.current = 0;
+    sessionPointsRef.current = 0;
     fetchQuestion();
   }, [isOpen, fetchQuestion]);
 
@@ -95,7 +107,7 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
     return () => clearTimeout(t);
   });
 
-  const handleAnswer = useCallback((ans: string | null) => {
+  const handleAnswer = useCallback(async (ans: string | null) => {
     if (phaseRef.current !== "showing" || !question) return;
 
     const correct = ans !== null && ans === question.correct;
@@ -107,19 +119,29 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
     setSessionTotal((t) => t + 1);
     if (correct) setSessionCorrect((c) => c + 1);
 
-    // Log to server
+    // Log to server and get back speed-weighted points
     const token = getToken();
     if (token) {
-      fetch("/api/brain-freeze/answer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          questionId:     question.id,
-          isCorrect:      correct,
-          responseTimeMs: ans === null ? QUESTION_TIMEOUT * 1000 : elapsedMs,
-          inPlunge:       false,
-        }),
-      }).catch(() => {});
+      try {
+        const res = await fetch("/api/brain-freeze/answer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            questionId:     question.id,
+            isCorrect:      correct,
+            responseTimeMs: ans === null ? QUESTION_TIMEOUT * 1000 : elapsedMs,
+            inPlunge:       false,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const pts: number = data.points ?? 0;
+          if (pts > 0) {
+            sessionPointsRef.current += pts;
+            setSessionPoints((p) => p + pts);
+          }
+        }
+      } catch {}
     }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -161,7 +183,7 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
               {phase === "done"
                 ? "Session complete"
                 : sessionTotal > 0
-                  ? `${sessionCorrect} / ${sessionTotal} correct · Q${qNum} of ${MAX_QUESTIONS}`
+                  ? `${sessionPoints} pts · Q${qNum} of ${MAX_QUESTIONS}`
                   : question
                     ? `${question.category} · ${question.difficulty}`
                     : "Loading…"}
@@ -209,13 +231,17 @@ export function BrainFreezeModal({ isOpen, onClose }: BrainFreezeModalProps) {
               style={{ boxShadow: "0 0 24px rgba(96,165,250,0.5)" }}
             />
             <p className="text-white text-lg font-bold">Session done!</p>
-            <p className="text-cyan-300 text-3xl font-black">
-              {correctCountRef.current} <span className="text-blue-400/60 text-lg font-semibold">/ {MAX_QUESTIONS}</span>
+            <p className="text-cyan-300 text-4xl font-black tabular-nums">
+              {sessionPointsRef.current}
+              <span className="text-blue-400/60 text-lg font-semibold ml-1">pts</span>
+            </p>
+            <p className="text-blue-400/60 text-xs -mt-2">
+              {correctCountRef.current} / {MAX_QUESTIONS} correct
             </p>
             <p className="text-blue-300/60 text-xs text-center">
-              {correctCountRef.current >= 8 ? "🧊 Elite cold-brain performance" :
-               correctCountRef.current >= 6 ? "Solid — keep chilling" :
-               correctCountRef.current >= 4 ? "Getting sharper with every plunge" :
+              {sessionPointsRef.current >= 1200 ? "🧊 Elite cold-brain performance" :
+               sessionPointsRef.current >= 900  ? "Solid — keep chilling" :
+               sessionPointsRef.current >= 600  ? "Getting sharper with every plunge" :
                "The cold will make you smarter 💪"}
             </p>
             <button

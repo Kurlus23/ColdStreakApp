@@ -116,7 +116,7 @@ export function BrainFreezeGame({
   }, [elapsedSeconds, enabled, isActive, fetchQuestion]);
 
   // Answer handler — stable: uses refs for timeLeft, temperature, elapsedSeconds
-  const handleAnswer = useCallback((ans: string | null) => {
+  const handleAnswer = useCallback(async (ans: string | null) => {
     if (phaseRef.current !== "showing" || !question) return;
 
     const correct   = ans !== null && ans === question.correct;
@@ -129,27 +129,35 @@ export function BrainFreezeGame({
     setIsCorrect(correct);
     setPhase("answered");
 
-    if (correct) {
-      scoreRef.current += 1;
-      onScoreUpdateRef.current?.(scoreRef.current);
-    }
-
+    // Post answer, get server-computed points (100 base + up to 50 speed bonus)
+    let pts = 0;
     const token = getToken();
     if (token) {
-      fetch("/api/brain-freeze/answer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          questionId:           question.id,
-          isCorrect:            correct,
-          responseTimeMs:       responseMs,
-          inPlunge:             true,
-          plungeElapsedSeconds: shownAtElapsedRef.current,
-          waterTempF:           Math.round(temperatureRef.current),
-        }),
-      }).catch(() => {});
+      try {
+        const res = await fetch("/api/brain-freeze/answer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            questionId:           question.id,
+            isCorrect:            correct,
+            responseTimeMs:       responseMs,
+            inPlunge:             true,
+            plungeElapsedSeconds: shownAtElapsedRef.current,
+            waterTempF:           Math.round(temperatureRef.current),
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          pts = data.points ?? (correct ? 100 : 0);
+        }
+      } catch {}
     }
-    // No auto-dismiss — user taps "Got it →"
+
+    if (pts > 0) {
+      scoreRef.current += pts;
+      onScoreUpdateRef.current?.(scoreRef.current);
+    }
+    // No auto-dismiss — user taps "Next →"
   }, [question]);
 
   // Dismiss handler — records when the user closes the card

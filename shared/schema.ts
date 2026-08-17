@@ -498,6 +498,7 @@ export const brainFreezeAnswers = pgTable("brain_freeze_answers", {
   questionId: integer("question_id").notNull().references(() => brainFreezeQuestions.id),
   isCorrect: boolean("is_correct").notNull(),
   responseTimeMs: integer("response_time_ms").notNull(), // ms from question shown → answer tapped
+  pointsEarned: integer("points_earned").notNull().default(0), // speed+correctness score for this answer
   inPlunge: boolean("in_plunge").notNull().default(false),
   plungeElapsedSeconds: integer("plunge_elapsed_seconds"), // seconds into plunge (null if out-of-plunge)
   waterTempF: integer("water_temp_f"),                     // water temp at answer time (null if out-of-plunge)
