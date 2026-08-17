@@ -7,7 +7,7 @@
 
 import { db } from "./db";
 import { brainFreezeQuestions, brainFreezeAnswers, brainFreezeChallenges } from "../shared/schema";
-import { eq, and, ne, notInArray, inArray, gte, desc, sql } from "drizzle-orm";
+import { eq, and, or, ne, notInArray, inArray, gte, desc, sql } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 
@@ -487,6 +487,60 @@ export async function linkAnswersToPlunge(data: {
     )
     .returning({ id: brainFreezeAnswers.id });
   return result.length;
+}
+
+// ─── Head-to-head record between two players ─────────────────────────────────
+
+export interface BrainFreezeHeadToHead {
+  wins:   number;
+  losses: number;
+  ties:   number;
+}
+
+/**
+ * Aggregate completed Brain Freeze challenges between `userId` and `friendId`.
+ * Returns null when no completed challenges exist between the pair.
+ */
+export async function getBrainFreezeHeadToHead(
+  userId:   number,
+  friendId: number,
+): Promise<BrainFreezeHeadToHead | null> {
+  const completed = await db
+    .select({
+      winnerId:     brainFreezeChallenges.winnerId,
+      challengerId: brainFreezeChallenges.challengerId,
+      challengeeId: brainFreezeChallenges.challengeeId,
+    })
+    .from(brainFreezeChallenges)
+    .where(
+      and(
+        eq(brainFreezeChallenges.status, "complete"),
+        or(
+          and(
+            eq(brainFreezeChallenges.challengerId, userId),
+            eq(brainFreezeChallenges.challengeeId, friendId),
+          ),
+          and(
+            eq(brainFreezeChallenges.challengerId, friendId),
+            eq(brainFreezeChallenges.challengeeId, userId),
+          ),
+        ),
+      )
+    );
+
+  if (completed.length === 0) return null;
+
+  let wins = 0, losses = 0, ties = 0;
+  for (const c of completed) {
+    if (c.winnerId === null) {
+      ties++;
+    } else if (c.winnerId === userId) {
+      wins++;
+    } else {
+      losses++;
+    }
+  }
+  return { wins, losses, ties };
 }
 
 // ─── Quick summary for weekly/monthly email reports ───────────────────────────

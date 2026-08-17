@@ -1553,6 +1553,20 @@ export default function Home() {
     enabled: !!username,
   });
   const ownAvatarUrl = ownBadgeProfile?.avatarUrl ?? null;
+
+  // Brain Freeze head-to-head record with the currently-selected friend
+  const { data: h2hData } = useQuery<{ record: { wins: number; losses: number; ties: number } | null }>({
+    queryKey: ["/api/brain-freeze/head-to-head", selectedFriend?.userId],
+    queryFn: async () => {
+      const r = await fetch(`/api/brain-freeze/head-to-head/${selectedFriend!.userId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("coldstreak-auth-token") ?? ""}` },
+      });
+      if (!r.ok) throw new Error(`h2h ${r.status}`);
+      return r.json();
+    },
+    enabled: !!selectedFriend,
+    staleTime: 30_000,
+  });
   // Plunge data stored for leaderboard submission after save
   const promptPlungeRef = useRef<{ score: string; duration: number; temperature: number; timerUsed: boolean; tempMin?: number; tempMax?: number; brainFreezeScore?: number } | null>(null);
 
@@ -6234,6 +6248,24 @@ export default function Home() {
                         ? <span className="text-green-400 font-semibold">✓ Plunged today</span>
                         : <span className="text-blue-500">– Hasn't plunged yet today</span>}
                     </p>
+
+                    {/* Brain Freeze head-to-head record */}
+                    {h2hData?.record && (
+                      <div
+                        className="rounded-2xl px-4 py-3 flex items-center justify-between"
+                        style={{ background: "rgba(14,30,54,0.8)", border: "1px solid rgba(34,211,238,0.12)" }}
+                      >
+                        <span className="text-blue-300 text-xs font-semibold">🧠 Brain Freeze</span>
+                        <span className="text-white text-xs font-bold">
+                          <span className="text-green-400">{h2hData.record.wins}W</span>
+                          {" · "}
+                          <span className="text-red-400">{h2hData.record.losses}L</span>
+                          {" · "}
+                          <span className="text-slate-400">{h2hData.record.ties}T</span>
+                          <span className="text-slate-500 font-normal ml-1">vs {(selectedFriend.displayName || selectedFriend.username || "them").split(" ")[0]}</span>
+                        </span>
+                      </div>
+                    )}
 
                     {/* Challenge */}
                     <button

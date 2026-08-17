@@ -4298,6 +4298,32 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     }
   });
 
+  // Head-to-head W/L/T record between the current user and an accepted friend.
+  app.get("/api/brain-freeze/head-to-head/:friendId", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    const friendId = Number(req.params.friendId);
+    if (!Number.isInteger(friendId) || friendId <= 0) {
+      return res.status(400).json({ message: "Invalid friendId" });
+    }
+    if (friendId === payload.userId) {
+      return res.status(400).json({ message: "Cannot compare with yourself" });
+    }
+    // Only accepted friends may query each other's rivalry record.
+    const friendship = await storage.getFriendship(payload.userId, friendId);
+    if (!friendship || friendship.status !== "accepted") {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    try {
+      const { getBrainFreezeHeadToHead } = await import("./brain-freeze");
+      const record = await getBrainFreezeHeadToHead(payload.userId, friendId);
+      res.json({ record }); // null when no completed challenges exist
+    } catch (err) {
+      console.error("[brain-freeze] head-to-head error:", err);
+      res.status(500).json({ message: "Failed to fetch head-to-head record" });
+    }
+  });
+
   // Get a specific challenge (questions + state) — used when the challengee taps the banner.
   app.get("/api/brain-freeze/challenge/:id", async (req, res) => {
     const payload = extractUser(req);
