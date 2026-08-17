@@ -1,209 +1,2797 @@
 [
-  {"id":"q001","category":"Human Body & Biology","difficulty":"easy","question":"How many bones are in the adult human body?","correct":"206","wrong":["212","185","198"],"explanation":"Babies are born with around 270–300 bones, but many fuse together during childhood and adolescence, leaving adults with exactly 206."},
-  {"id":"q002","category":"Human Body & Biology","difficulty":"easy","question":"Which organ produces insulin to regulate blood sugar?","correct":"Pancreas","wrong":["Liver","Kidney","Spleen"],"explanation":"The pancreatic beta cells secrete insulin. Without it, glucose can't enter cells — the basis of Type 1 diabetes."},
-  {"id":"q003","category":"Human Body & Biology","difficulty":"medium","question":"What percentage of the human body is water?","correct":"About 60%","wrong":["About 40%","About 80%","About 25%"],"explanation":"Water makes up roughly 60% of adult body weight, though it varies with age, sex, and body composition — muscle holds more water than fat."},
-  {"id":"q004","category":"Human Body & Biology","difficulty":"medium","question":"Which blood type is the universal donor for red blood cells?","correct":"O negative","wrong":["O positive","AB negative","A negative"],"explanation":"O negative red cells lack A, B, and Rh antigens, so they can be given to almost any recipient in emergencies before blood typing is possible."},
-  {"id":"q005","category":"Human Body & Biology","difficulty":"hard","question":"How many neurons does the adult human brain contain approximately?","correct":"86 billion","wrong":["100 billion","10 billion","1 trillion"],"explanation":"A landmark 2009 study by Azevedo et al. counted roughly 86 billion neurons — fewer than the long-repeated '100 billion' figure, but still staggeringly complex."},
-  {"id":"q006","category":"Human Body & Biology","difficulty":"easy","question":"What is the largest organ of the human body?","correct":"Skin","wrong":["Liver","Intestines","Lungs"],"explanation":"The skin covers about 2 square metres in an average adult and weighs around 4 kg — making it the body's largest organ by surface area and mass."},
-  {"id":"q007","category":"Human Body & Biology","difficulty":"medium","question":"Which part of the eye controls how much light enters?","correct":"Iris","wrong":["Cornea","Retina","Pupil"],"explanation":"The iris is the coloured ring of muscle. It dilates or constricts the pupil (the opening) to regulate the amount of light reaching the retina."},
-  {"id":"q008","category":"Human Body & Biology","difficulty":"medium","question":"How long does it take for blood to complete one full circuit of the body?","correct":"About 60 seconds","wrong":["About 5 seconds","About 10 minutes","About 30 seconds"],"explanation":"At rest, the heart pumps blood through roughly 100,000 km of vessels. One complete circuit takes about 60 seconds — faster during exercise."},
-  {"id":"q009","category":"Human Body & Biology","difficulty":"hard","question":"What is the hardest substance in the human body?","correct":"Tooth enamel","wrong":["Bone cortex","Fingernail keratin","Cartilage"],"explanation":"Tooth enamel is 96% mineral (hydroxyapatite) and rates 5 on the Mohs scale — harder than bone. It's also the only body tissue with no living cells, so it can't repair itself."},
-  {"id":"q010","category":"Human Body & Biology","difficulty":"easy","question":"Which vitamin does sunlight help the body produce?","correct":"Vitamin D","wrong":["Vitamin C","Vitamin A","Vitamin B12"],"explanation":"UVB radiation converts 7-dehydrocholesterol in the skin to vitamin D3. It's essential for calcium absorption and immune function."},
-  {"id":"q011","category":"Human Body & Biology","difficulty":"medium","question":"How many taste buds does a typical adult human tongue have?","correct":"About 10,000","wrong":["About 1,000","About 50,000","About 200"],"explanation":"Adults have roughly 10,000 taste buds, mostly on the tongue but also on the soft palate. Each bud contains 50–100 sensory cells and is replaced every 1–2 weeks."},
-  {"id":"q012","category":"Human Body & Biology","difficulty":"hard","question":"Which muscle is the only one that attaches on just one side?","correct":"Diaphragm","wrong":["Tongue","Heart","Stapedius"],"explanation":"The tongue actually does attach on both sides. The stapedius in the middle ear is the body's smallest muscle, but the diaphragm is uniquely circular and attaches to the spine, ribs and sternum — considered single-structure by many anatomists."},
-  {"id":"q013","category":"Human Body & Biology","difficulty":"easy","question":"How many chambers does the human heart have?","correct":"Four","wrong":["Two","Three","Six"],"explanation":"The heart has two atria (upper, receiving) and two ventricles (lower, pumping), forming a double-pump circuit for pulmonary and systemic circulation."},
-  {"id":"q014","category":"Human Body & Biology","difficulty":"medium","question":"Where are red blood cells produced in the body?","correct":"Bone marrow","wrong":["Liver","Spleen","Kidneys"],"explanation":"Red blood cells are made in the red bone marrow of flat bones like the sternum and pelvis. The kidneys produce erythropoietin — the hormone that stimulates this production."},
-  {"id":"q015","category":"Human Body & Biology","difficulty":"easy","question":"What is the powerhouse of the cell?","correct":"Mitochondria","wrong":["Nucleus","Ribosome","Golgi body"],"explanation":"Mitochondria generate ATP through cellular respiration. They have their own DNA, supporting the theory that they were once independent bacteria engulfed by early cells."},
-  {"id":"q016","category":"Human Body & Biology","difficulty":"medium","question":"Which hormone triggers the 'fight or flight' response?","correct":"Adrenaline","wrong":["Cortisol","Testosterone","Oxytocin"],"explanation":"Adrenaline (epinephrine) is released by the adrenal glands within seconds of a perceived threat. It raises heart rate, dilates airways, and redirects blood to muscles."},
-  {"id":"q017","category":"Human Body & Biology","difficulty":"hard","question":"How many times does the average heart beat per lifetime?","correct":"About 2.5 billion","wrong":["About 100 million","About 10 billion","About 500 million"],"explanation":"At 70 beats per minute over a 70-year lifespan, the heart beats roughly 2.5 billion times — all without conscious effort or maintenance."},
-  {"id":"q018","category":"Human Body & Biology","difficulty":"medium","question":"Which organ filters about 180 litres of blood per day?","correct":"Kidneys","wrong":["Liver","Lungs","Heart"],"explanation":"The kidneys filter all the blood in the body roughly 40 times a day, producing 1–2 litres of urine while reabsorbing the vast majority of water and nutrients."},
-  {"id":"q019","category":"Human Body & Biology","difficulty":"easy","question":"How many pairs of chromosomes do humans normally have?","correct":"23 pairs","wrong":["22 pairs","46 pairs","24 pairs"],"explanation":"Human cells contain 46 chromosomes in 23 pairs — 22 autosomal pairs and one sex-chromosome pair (XX or XY). Each parent contributes one chromosome per pair."},
-  {"id":"q020","category":"Human Body & Biology","difficulty":"medium","question":"What is the name of the protein that carries oxygen in red blood cells?","correct":"Haemoglobin","wrong":["Myoglobin","Albumin","Fibrinogen"],"explanation":"Haemoglobin binds up to four oxygen molecules via iron-containing heme groups. Each red blood cell carries about 270 million haemoglobin molecules."},
-  {"id":"q021","category":"Human Body & Biology","difficulty":"easy","question":"Which organ is responsible for filtering toxins from the blood?","correct":"Liver","wrong":["Kidney","Spleen","Stomach"],"explanation":"The liver performs over 500 functions including detoxifying blood, producing bile, and synthesising proteins. It's also the only internal organ that can fully regenerate."},
-  {"id":"q022","category":"Human Body & Biology","difficulty":"hard","question":"What percentage of human DNA is identical to that of a chimpanzee?","correct":"About 98.7%","wrong":["About 95%","About 85%","About 99.9%"],"explanation":"Humans and chimpanzees share about 98.7% of their DNA sequence. The remaining ~1.3% accounts for significant differences in anatomy, cognition, and disease susceptibility."},
-  {"id":"q023","category":"Human Body & Biology","difficulty":"medium","question":"How many litres of air does the average adult inhale per day?","correct":"About 11,000 litres","wrong":["About 1,000 litres","About 500 litres","About 5,000 litres"],"explanation":"At about 15 breaths per minute and 0.5 litres per breath, an adult inhales roughly 10,000–12,000 litres of air per day — even while doing nothing strenuous."},
-  {"id":"q024","category":"Human Body & Biology","difficulty":"easy","question":"Which part of the brain controls balance and coordination?","correct":"Cerebellum","wrong":["Cerebrum","Brainstem","Thalamus"],"explanation":"The cerebellum ('little brain') sits at the back of the skull and fine-tunes movement, posture, and balance. Damage causes ataxia — a characteristic stumbling gait."},
-  {"id":"q025","category":"Human Body & Biology","difficulty":"medium","question":"What is the resting adult heart rate considered healthy?","correct":"60–100 bpm","wrong":["40–60 bpm","100–140 bpm","80–120 bpm"],"explanation":"Medical guidelines define a healthy resting heart rate as 60–100 beats per minute. Well-trained athletes often sit below 60 — sometimes as low as 40 — due to greater cardiac efficiency."},
-
-  {"id":"q026","category":"Science & Technology","difficulty":"easy","question":"What planet is known as the Red Planet?","correct":"Mars","wrong":["Venus","Jupiter","Mercury"],"explanation":"Mars gets its rusty colour from iron oxide (rust) on its surface. Its thin atmosphere and two small moons, Phobos and Deimos, make it a prime target for future human missions."},
-  {"id":"q027","category":"Science & Technology","difficulty":"medium","question":"What is the speed of light in a vacuum?","correct":"299,792 km/s","wrong":["150,000 km/s","500,000 km/s","100,000 km/s"],"explanation":"Light travels at exactly 299,792,458 metres per second in a vacuum. This constant, denoted c, is so fundamental that the metre is now defined by it."},
-  {"id":"q028","category":"Science & Technology","difficulty":"easy","question":"Who invented the telephone?","correct":"Alexander Graham Bell","wrong":["Thomas Edison","Nikola Tesla","Guglielmo Marconi"],"explanation":"Bell received the US patent for the telephone in March 1876, though Elisha Gray filed a competing claim the same day. Bell's first words on the device were to his assistant: 'Mr. Watson, come here.'"},
-  {"id":"q029","category":"Science & Technology","difficulty":"medium","question":"What does DNA stand for?","correct":"Deoxyribonucleic acid","wrong":["Deoxyribose nitric acid","Diribonucleic acid","Deoxyribose nucleus acid"],"explanation":"DNA (deoxyribonucleic acid) stores genetic instructions in sequences of four bases: adenine, thymine, guanine, and cytosine. Its double-helix structure was described by Watson and Crick in 1953."},
-  {"id":"q030","category":"Science & Technology","difficulty":"easy","question":"What is the chemical symbol for gold?","correct":"Au","wrong":["Go","Gd","Gl"],"explanation":"Au comes from the Latin 'aurum'. Gold has been valued for millennia for its rarity, malleability, and resistance to corrosion — it doesn't tarnish or rust."},
-  {"id":"q031","category":"Science & Technology","difficulty":"medium","question":"Which planet has the most moons in our solar system?","correct":"Saturn","wrong":["Jupiter","Uranus","Neptune"],"explanation":"As of 2024, Saturn holds the record with 146 confirmed moons. Jupiter is a close second. Many of these moons were discovered recently through advanced telescope surveys."},
-  {"id":"q032","category":"Science & Technology","difficulty":"hard","question":"What is the name of the particle that gives other particles mass?","correct":"Higgs boson","wrong":["Graviton","Neutrino","Quark"],"explanation":"The Higgs boson, predicted in 1964 by Peter Higgs, was confirmed in 2012 at CERN's Large Hadron Collider. It interacts with particles via the Higgs field to give them mass."},
-  {"id":"q033","category":"Science & Technology","difficulty":"easy","question":"What force keeps planets orbiting the sun?","correct":"Gravity","wrong":["Magnetism","Centrifugal force","Dark energy"],"explanation":"Gravity is the attractive force between masses. The sun's massive gravitational pull curves space-time, keeping planets in their elliptical orbits according to Newton and Einstein."},
-  {"id":"q034","category":"Science & Technology","difficulty":"medium","question":"Which element is most abundant in the universe?","correct":"Hydrogen","wrong":["Helium","Carbon","Oxygen"],"explanation":"About 75% of the universe's normal matter is hydrogen, formed in the first three minutes after the Big Bang. It's the fuel for stars and the simplest atom — one proton, one electron."},
-  {"id":"q035","category":"Science & Technology","difficulty":"medium","question":"In what year did the first iPhone launch?","correct":"2007","wrong":["2005","2009","2003"],"explanation":"Steve Jobs unveiled the first iPhone on January 9, 2007, describing it as 'an iPod, a phone, and an internet communicator' combined. It went on sale that June."},
-  {"id":"q036","category":"Science & Technology","difficulty":"hard","question":"What is the name of the theory describing the origin of the universe?","correct":"The Big Bang","wrong":["Steady State","Inflation theory","String theory"],"explanation":"The Big Bang theory proposes the universe began as an infinitely dense, hot singularity roughly 13.8 billion years ago and has been expanding ever since. Cosmic microwave background radiation is its strongest evidence."},
-  {"id":"q037","category":"Science & Technology","difficulty":"easy","question":"What gas do plants absorb during photosynthesis?","correct":"Carbon dioxide","wrong":["Oxygen","Nitrogen","Hydrogen"],"explanation":"Plants absorb CO₂ through tiny pores called stomata and, using sunlight and water, convert it into glucose and oxygen. This process underpins almost all life on Earth."},
-  {"id":"q038","category":"Science & Technology","difficulty":"medium","question":"Who developed the theory of general relativity?","correct":"Albert Einstein","wrong":["Isaac Newton","Max Planck","Niels Bohr"],"explanation":"Einstein published his theory of general relativity in 1915, describing gravity not as a force but as curvature of space-time caused by mass. It predicted black holes and gravitational waves — both confirmed decades later."},
-  {"id":"q039","category":"Science & Technology","difficulty":"medium","question":"What is the most abundant gas in Earth's atmosphere?","correct":"Nitrogen","wrong":["Oxygen","Carbon dioxide","Argon"],"explanation":"Nitrogen makes up about 78% of the atmosphere, followed by oxygen at 21%. Despite its abundance, nitrogen gas (N₂) is largely inert — plants can't use it directly; they rely on nitrogen-fixing bacteria."},
-  {"id":"q040","category":"Science & Technology","difficulty":"easy","question":"How many planets are in our solar system?","correct":"Eight","wrong":["Nine","Seven","Ten"],"explanation":"In 2006, the International Astronomical Union reclassified Pluto as a dwarf planet, leaving eight planets: Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, and Neptune."},
-  {"id":"q041","category":"Science & Technology","difficulty":"hard","question":"What does the acronym 'LASER' stand for?","correct":"Light Amplification by Stimulated Emission of Radiation","wrong":["Light Accelerated by Synthetic Electromagnetic Radiation","Linear Amplified Signal Emitting Radiation","Light Absorbed and Sent as Emitted Radiation"],"explanation":"The laser principle was first described by Einstein in 1917. The first working laser was built by Theodore Maiman in 1960 using a synthetic ruby crystal."},
-  {"id":"q042","category":"Science & Technology","difficulty":"medium","question":"What is the smallest unit of matter?","correct":"Atom","wrong":["Molecule","Cell","Electron"],"explanation":"While atoms are the smallest complete unit of a chemical element, they're made of protons, neutrons, and electrons — which are in turn made of quarks. 'Smallest' depends on context."},
-  {"id":"q043","category":"Science & Technology","difficulty":"easy","question":"Which scientist is famous for the apple and gravity story?","correct":"Isaac Newton","wrong":["Galileo Galilei","Albert Einstein","Charles Darwin"],"explanation":"The story — likely embellished — tells of Newton seeing an apple fall in 1666, inspiring his law of universal gravitation. He published his mathematical laws of motion and gravity in Principia Mathematica in 1687."},
-  {"id":"q044","category":"Science & Technology","difficulty":"medium","question":"What does WiFi stand for?","correct":"Wireless Fidelity","wrong":["Wireless Frequency","Wide Field Internet","Wireless Finder"],"explanation":"'WiFi' was coined as a marketing term by the Wi-Fi Alliance in 1999 — a play on 'Hi-Fi' (high fidelity). It refers to wireless networking using IEEE 802.11 standards."},
-  {"id":"q045","category":"Science & Technology","difficulty":"hard","question":"What is the half-life of Carbon-14?","correct":"About 5,730 years","wrong":["About 500 years","About 50,000 years","About 1,000 years"],"explanation":"Carbon-14 decays at a known, constant rate with a half-life of 5,730 years. This makes it invaluable for radiocarbon dating of organic materials up to around 50,000 years old."},
-  {"id":"q046","category":"Science & Technology","difficulty":"medium","question":"What technology underlies Bitcoin and other cryptocurrencies?","correct":"Blockchain","wrong":["Cloud computing","Quantum computing","Neural network"],"explanation":"A blockchain is a distributed, immutable ledger of transactions. Each block contains a cryptographic hash of the previous block, making tampering computationally impractical."},
-  {"id":"q047","category":"Science & Technology","difficulty":"easy","question":"What is H₂O more commonly known as?","correct":"Water","wrong":["Hydrogen peroxide","Alcohol","Ammonia"],"explanation":"H₂O is water — two hydrogen atoms bonded to one oxygen atom. Its unique bent molecular shape gives it polarity, responsible for its remarkable properties as a solvent and for life."},
-  {"id":"q048","category":"Science & Technology","difficulty":"medium","question":"Which country launched the world's first artificial satellite?","correct":"Soviet Union","wrong":["United States","China","Germany"],"explanation":"The Soviet Union launched Sputnik 1 on October 4, 1957. The 83 kg sphere orbited Earth every 98 minutes and marked the start of the Space Age, shocking the Western world."},
-  {"id":"q049","category":"Science & Technology","difficulty":"hard","question":"Which programming language was first developed at Bell Labs?","correct":"C","wrong":["Python","Java","FORTRAN"],"explanation":"Dennis Ritchie developed C at Bell Labs in 1972. It became enormously influential — most modern operating systems, including Unix, Linux, and the core of Windows, are written in C or its derivatives."},
-  {"id":"q050","category":"Science & Technology","difficulty":"easy","question":"What is the main function of white blood cells?","correct":"Fight infection","wrong":["Carry oxygen","Clot blood","Transport nutrients"],"explanation":"White blood cells (leukocytes) are the immune system's soldiers. Different types — neutrophils, lymphocytes, macrophages — attack bacteria, viruses, and other foreign invaders."},
-
-  {"id":"q051","category":"History & Famous Firsts","difficulty":"easy","question":"Who was the first person to walk on the moon?","correct":"Neil Armstrong","wrong":["Buzz Aldrin","Yuri Gagarin","John Glenn"],"explanation":"Neil Armstrong stepped onto the lunar surface on July 20, 1969, during the Apollo 11 mission, saying: 'That's one small step for man, one giant leap for mankind.' Buzz Aldrin followed 20 minutes later."},
-  {"id":"q052","category":"History & Famous Firsts","difficulty":"medium","question":"In which year did World War II end?","correct":"1945","wrong":["1944","1946","1943"],"explanation":"World War II ended in 1945 — Victory in Europe (VE Day) was declared on May 8 after Germany's surrender, and Victory over Japan (VJ Day) followed on August 15 after the atomic bombings."},
-  {"id":"q053","category":"History & Famous Firsts","difficulty":"easy","question":"Who was the first woman to win a Nobel Prize?","correct":"Marie Curie","wrong":["Rosalind Franklin","Florence Nightingale","Ada Lovelace"],"explanation":"Marie Curie won the Nobel Prize in Physics in 1903 (shared with her husband Pierre) and in Chemistry in 1908 — the first person to win Nobels in two different sciences."},
-  {"id":"q054","category":"History & Famous Firsts","difficulty":"medium","question":"Which ancient wonder of the world is still standing?","correct":"Great Pyramid of Giza","wrong":["Hanging Gardens","Colossus of Rhodes","Temple of Artemis"],"explanation":"The Great Pyramid of Giza, built around 2560 BC for Pharaoh Khufu, is the oldest and only surviving ancient wonder. It was the world's tallest human-made structure for over 3,800 years."},
-  {"id":"q055","category":"History & Famous Firsts","difficulty":"hard","question":"What empire was the largest by land area in history?","correct":"Mongol Empire","wrong":["British Empire","Roman Empire","Ottoman Empire"],"explanation":"At its peak in the 13th century, the Mongol Empire covered over 24 million square kilometres — about 16% of Earth's total land area. The British Empire was larger by some measures but not in contiguous land."},
-  {"id":"q056","category":"History & Famous Firsts","difficulty":"medium","question":"In which city was the Titanic built?","correct":"Belfast","wrong":["London","Liverpool","Dublin"],"explanation":"The RMS Titanic was built by Harland and Wolff shipyard in Belfast, Northern Ireland. Construction began in 1909 and the ship launched in 1911 before sinking on its maiden voyage in April 1912."},
-  {"id":"q057","category":"History & Famous Firsts","difficulty":"easy","question":"Who painted the Mona Lisa?","correct":"Leonardo da Vinci","wrong":["Michelangelo","Raphael","Caravaggio"],"explanation":"Leonardo da Vinci painted the Mona Lisa between approximately 1503 and 1519. The identity of the subject is widely believed to be Lisa Gherardini, wife of a Florentine merchant."},
-  {"id":"q058","category":"History & Famous Firsts","difficulty":"medium","question":"Which year did the Berlin Wall fall?","correct":"1989","wrong":["1991","1985","1987"],"explanation":"The Berlin Wall fell on November 9, 1989, after the East German government opened checkpoints. It had divided Berlin since 1961. Germany officially reunified on October 3, 1990."},
-  {"id":"q059","category":"History & Famous Firsts","difficulty":"hard","question":"What civilisation built Machu Picchu?","correct":"Inca","wrong":["Aztec","Maya","Olmec"],"explanation":"The Inca emperor Pachacuti built Machu Picchu around 1450 AD. At 2,430 metres above sea level in Peru, its precise stone masonry was achieved without the wheel or iron tools."},
-  {"id":"q060","category":"History & Famous Firsts","difficulty":"easy","question":"Who was the first US president?","correct":"George Washington","wrong":["Thomas Jefferson","John Adams","Benjamin Franklin"],"explanation":"George Washington served two terms as the first US president from 1789 to 1797. He's also famous for his role commanding the Continental Army during the American Revolutionary War."},
-  {"id":"q061","category":"History & Famous Firsts","difficulty":"medium","question":"Which country first gave women the right to vote?","correct":"New Zealand","wrong":["Australia","Finland","United Kingdom"],"explanation":"New Zealand granted women the right to vote in 1893, becoming the first self-governing country to do so. Kate Sheppard led the suffrage campaign. Women could vote but not stand for parliament until 1919."},
-  {"id":"q062","category":"History & Famous Firsts","difficulty":"medium","question":"What was the name of the first human to travel to space?","correct":"Yuri Gagarin","wrong":["Neil Armstrong","Alan Shepard","Valentina Tereshkova"],"explanation":"Soviet cosmonaut Yuri Gagarin completed one orbit of Earth on April 12, 1961, in his Vostok 1 capsule. The flight lasted 108 minutes and made him a global hero overnight."},
-  {"id":"q063","category":"History & Famous Firsts","difficulty":"hard","question":"How long did the Hundred Years' War actually last?","correct":"116 years","wrong":["100 years","87 years","134 years"],"explanation":"The Hundred Years' War between England and France lasted from 1337 to 1453 — 116 years. Joan of Arc's famous campaigns came near its end, reinvigorating French resistance against English forces."},
-  {"id":"q064","category":"History & Famous Firsts","difficulty":"easy","question":"What did Christopher Columbus discover in 1492?","correct":"The Americas","wrong":["Africa","Australia","India"],"explanation":"Columbus's 1492 voyage landed in the Caribbean, which he believed to be Asia. His 'discovery' opened sustained European contact with the Americas, though indigenous peoples had lived there for millennia."},
-  {"id":"q065","category":"History & Famous Firsts","difficulty":"medium","question":"Which city hosted the first modern Olympic Games in 1896?","correct":"Athens","wrong":["Paris","London","Rome"],"explanation":"The first modern Olympics were held in Athens, Greece in April 1896, organised by Pierre de Coubertin. Fourteen nations competed in 43 events. A Greek runner won the first marathon."},
-  {"id":"q066","category":"History & Famous Firsts","difficulty":"hard","question":"What year was the Magna Carta signed?","correct":"1215","wrong":["1066","1350","1485"],"explanation":"King John of England sealed Magna Carta at Runnymede on June 15, 1215, limiting royal power and establishing that the king was subject to law. It's considered a foundation document for modern democracy."},
-  {"id":"q067","category":"History & Famous Firsts","difficulty":"easy","question":"What nationality was Napoleon Bonaparte?","correct":"French (Corsican-born)","wrong":["Italian","Spanish","Austrian"],"explanation":"Napoleon was born in Corsica in 1769, the year after France acquired the island from Genoa. He considered himself French and rose through the ranks to become Emperor of the French in 1804."},
-  {"id":"q068","category":"History & Famous Firsts","difficulty":"medium","question":"Which empire built the Colosseum in Rome?","correct":"Roman Empire","wrong":["Greek Empire","Byzantine Empire","Ottoman Empire"],"explanation":"The Colosseum was built by Emperor Vespasian starting in 72 AD and completed under Titus in 80 AD. It held up to 80,000 spectators for gladiatorial contests and public spectacles."},
-  {"id":"q069","category":"History & Famous Firsts","difficulty":"medium","question":"Who invented the printing press with movable type in Europe?","correct":"Johannes Gutenberg","wrong":["Leonardo da Vinci","Roger Bacon","William Caxton"],"explanation":"Gutenberg invented the printing press around 1440 in Mainz, Germany. His first major work, the Gutenberg Bible (c.1455), accelerated the spread of literacy and the Protestant Reformation."},
-  {"id":"q070","category":"History & Famous Firsts","difficulty":"hard","question":"What was the name of the first nuclear bomb dropped in wartime?","correct":"Little Boy","wrong":["Fat Man","Trinity","Big Boy"],"explanation":"'Little Boy', a uranium gun-type bomb, was dropped on Hiroshima on August 6, 1945. 'Fat Man', a plutonium implosion bomb, followed on Nagasaki three days later. Together they hastened Japan's surrender."},
-  {"id":"q071","category":"History & Famous Firsts","difficulty":"easy","question":"Which queen ruled Britain for the longest time in history?","correct":"Queen Elizabeth II","wrong":["Queen Victoria","Queen Mary I","Queen Elizabeth I"],"explanation":"Queen Elizabeth II reigned for 70 years and 214 days, from February 1952 until her death in September 2022 — surpassing Queen Victoria's 63-year reign and becoming Britain's longest-serving monarch."},
-  {"id":"q072","category":"History & Famous Firsts","difficulty":"medium","question":"In which year did the French Revolution begin?","correct":"1789","wrong":["1776","1804","1815"],"explanation":"The French Revolution began in 1789 with the Estates-General convening and the storming of the Bastille on July 14. It toppled the monarchy and reshaped Europe's political landscape."},
-  {"id":"q073","category":"History & Famous Firsts","difficulty":"medium","question":"What did Alfred Nobel invent, funding the Nobel Prizes?","correct":"Dynamite","wrong":["TNT","Gunpowder","Nitroglycerin"],"explanation":"Alfred Nobel invented dynamite in 1867 by stabilising nitroglycerin with diatomite. Troubled by the destructive uses of his invention, he left his fortune to establish the Nobel Prizes."},
-  {"id":"q074","category":"History & Famous Firsts","difficulty":"hard","question":"What ancient city is known as the 'city of a thousand minarets'?","correct":"Cairo","wrong":["Istanbul","Baghdad","Damascus"],"explanation":"Cairo earned the nickname for its extraordinary number of historic Islamic mosques. Founded in 969 AD, it became the capital of the Fatimid Caliphate and grew into the Arab world's largest city."},
-  {"id":"q075","category":"History & Famous Firsts","difficulty":"easy","question":"Who wrote the Declaration of Independence?","correct":"Thomas Jefferson","wrong":["George Washington","Benjamin Franklin","John Adams"],"explanation":"Thomas Jefferson drafted the Declaration of Independence in 1776, drawing on Enlightenment philosophy. Franklin and Adams made minor revisions before the Continental Congress adopted it on July 4."},
-
-  {"id":"q076","category":"Sports & World Records","difficulty":"easy","question":"How many players are on a standard football (soccer) team?","correct":"11","wrong":["10","12","9"],"explanation":"Each team fields 11 players including the goalkeeper. The rules, standardised by the Football Association in 1863, allow for up to three substitutions in most competitions."},
-  {"id":"q077","category":"Sports & World Records","difficulty":"medium","question":"Who holds the record for the most Olympic gold medals ever?","correct":"Michael Phelps","wrong":["Usain Bolt","Larisa Latynina","Carl Lewis"],"explanation":"American swimmer Michael Phelps won 23 Olympic gold medals (28 total medals) across four Games. His nearest rival, Soviet gymnast Larisa Latynina, won 9 golds."},
-  {"id":"q078","category":"Sports & World Records","difficulty":"easy","question":"What is the distance of a marathon race?","correct":"42.195 km","wrong":["40 km","45 km","38 km"],"explanation":"The modern marathon distance was standardised at 42.195 km (26 miles 385 yards) at the 1908 London Olympics to accommodate the British royal family's viewing preferences — from Windsor Castle to the Olympic stadium."},
-  {"id":"q079","category":"Sports & World Records","difficulty":"medium","question":"Which country has won the most FIFA World Cup titles?","correct":"Brazil","wrong":["Germany","Italy","Argentina"],"explanation":"Brazil has won the FIFA World Cup five times — 1958, 1962, 1970, 1994, and 2002. They are the only team to have participated in every World Cup tournament."},
-  {"id":"q080","category":"Sports & World Records","difficulty":"hard","question":"What is the fastest recorded serve speed in professional tennis?","correct":"263.4 km/h (Sam Groth)","wrong":["241 km/h","280 km/h","255 km/h"],"explanation":"Australian Sam Groth hit a serve recorded at 263.4 km/h (163.7 mph) at the Busan Open Challenger in 2012. However, many speed guns vary, and some records are disputed."},
-  {"id":"q081","category":"Sports & World Records","difficulty":"easy","question":"How many points is a touchdown worth in American football?","correct":"6 points","wrong":["7 points","3 points","5 points"],"explanation":"A touchdown scores 6 points. The team then gets a chance for an extra point (kick) or two-point conversion, making a full scoring sequence worth 7 or 8 points."},
-  {"id":"q082","category":"Sports & World Records","difficulty":"medium","question":"Which country invented the sport of basketball?","correct":"United States","wrong":["Canada","United Kingdom","France"],"explanation":"Basketball was invented by Canadian-American Dr. James Naismith in Springfield, Massachusetts in December 1891. He nailed peach baskets to a gymnasium balcony as the first hoops."},
-  {"id":"q083","category":"Sports & World Records","difficulty":"easy","question":"In golf, what is the term for one stroke under par?","correct":"Birdie","wrong":["Eagle","Bogey","Albatross"],"explanation":"A birdie is one under par. Eagle is two under. Albatross (or double eagle) is three under — rare and celebrated. Bogey is one over par."},
-  {"id":"q084","category":"Sports & World Records","difficulty":"medium","question":"Which sprinter set the 100m world record of 9.58 seconds?","correct":"Usain Bolt","wrong":["Tyson Gay","Asafa Powell","Justin Gatlin"],"explanation":"Jamaican sprinter Usain Bolt set the 100m world record at the 2009 Berlin World Championships. He also holds the 200m record (19.19s) and is widely considered the greatest sprinter of all time."},
-  {"id":"q085","category":"Sports & World Records","difficulty":"hard","question":"How many Grand Slam tennis titles has Novak Djokovic won?","correct":"24","wrong":["20","22","21"],"explanation":"Djokovic surpassed Rafael Nadal's record in 2023 with his 23rd Grand Slam, then added his 24th at the US Open 2023. He's won all four Slams multiple times across three decades."},
-  {"id":"q086","category":"Sports & World Records","difficulty":"easy","question":"How many rings are on the Olympic flag?","correct":"Five","wrong":["Four","Six","Seven"],"explanation":"The five interlocking rings represent the five continents of the world: Africa, the Americas, Asia, Europe, and Oceania. Pierre de Coubertin designed the flag in 1913."},
-  {"id":"q087","category":"Sports & World Records","difficulty":"medium","question":"What is the highest score possible in a single bowling frame?","correct":"Strike (10 pins)","wrong":["12 pins","9 pins","8 pins"],"explanation":"A strike knocks all 10 pins on the first ball. In the 10th frame, a player can bowl a third ball after getting a strike or spare, enabling a maximum game score of 300 — a 'perfect game'."},
-  {"id":"q088","category":"Sports & World Records","difficulty":"medium","question":"Which sport uses a shuttlecock?","correct":"Badminton","wrong":["Squash","Tennis","Lacrosse"],"explanation":"A shuttlecock (also called a birdie) has 16 feathers arranged in a conical form around a rounded cork base. In top men's badminton, smashes can exceed 490 km/h — the fastest projectile speed in any racket sport."},
-  {"id":"q089","category":"Sports & World Records","difficulty":"easy","question":"How many players are on a basketball team on the court at one time?","correct":"Five per team","wrong":["Six per team","Four per team","Seven per team"],"explanation":"Each basketball team fields 5 players. An NBA roster has 15 players, with 13 active on game day. Substitutions can be made at any stoppage in play."},
-  {"id":"q090","category":"Sports & World Records","difficulty":"hard","question":"In what year did Tiger Woods win his first Masters Tournament?","correct":"1997","wrong":["1999","2001","1995"],"explanation":"Tiger Woods won his first Masters in 1997 at age 21 with a record score of 270 (18 under par), winning by 12 strokes — still the largest Masters margin of victory."},
-  {"id":"q091","category":"Sports & World Records","difficulty":"medium","question":"Which country has won the most Rugby World Cup titles?","correct":"New Zealand","wrong":["South Africa","Australia","England"],"explanation":"New Zealand's All Blacks have won the Rugby World Cup four times (1987, 2011, 2015, 2023). Their pre-match haka — a traditional Māori war dance — is one of sport's most iconic rituals."},
-  {"id":"q092","category":"Sports & World Records","difficulty":"easy","question":"What sport is played at Wimbledon?","correct":"Tennis","wrong":["Cricket","Croquet","Squash"],"explanation":"Wimbledon, held at the All England Lawn Tennis and Croquet Club in London, is the world's oldest tennis Grand Slam, first played in 1877. It's the only Slam still played on grass."},
-  {"id":"q093","category":"Sports & World Records","difficulty":"medium","question":"How long is an Olympic swimming pool?","correct":"50 metres","wrong":["25 metres","100 metres","75 metres"],"explanation":"Olympic pools are 50m long, 25m wide, and at least 2m deep. They have 10 lanes, though only 8 are used in competition. Water temperature is maintained between 25–28°C."},
-  {"id":"q094","category":"Sports & World Records","difficulty":"hard","question":"Which cyclist has won the most Tour de France titles?","correct":"Lance Armstrong (stripped) / Merckx (recognised)","wrong":["Miguel Indurain","Bernard Hinault","Jacques Anquetil"],"explanation":"Lance Armstrong won 7 consecutive titles (1999–2005) but was stripped for doping. The official record holders are Eddy Merckx, Bernard Hinault, Miguel Indurain, and Jacques Anquetil — each with 5 wins."},
-  {"id":"q095","category":"Sports & World Records","difficulty":"easy","question":"What game involves hitting a ball with a bat and running bases?","correct":"Baseball","wrong":["Cricket","Softball","Rounders"],"explanation":"Baseball is America's traditional national pastime. Nine players per side take turns batting and fielding over nine innings. A home run clears the outfield fence for an automatic score."},
-  {"id":"q096","category":"Sports & World Records","difficulty":"medium","question":"In which decade was the FIFA World Cup first held?","correct":"1930s","wrong":["1920s","1940s","1950s"],"explanation":"The first FIFA World Cup was held in Uruguay in 1930, hosted because Uruguay had won the 1924 and 1928 Olympic football titles. Uruguay beat Argentina 4-2 in the final."},
-  {"id":"q097","category":"Sports & World Records","difficulty":"medium","question":"What colour is the bull's-eye in archery?","correct":"Yellow","wrong":["Red","Gold","Black"],"explanation":"In World Archery's standard target, the bull's-eye is gold/yellow. The rings outward are red, blue, black, and white. The innermost gold ring scores 10 points in Olympic archery."},
-  {"id":"q098","category":"Sports & World Records","difficulty":"easy","question":"How many points is a try worth in Rugby Union?","correct":"Five","wrong":["Three","Four","Six"],"explanation":"In Rugby Union, a try scores 5 points. The scoring team then attempts a conversion kick worth 2 additional points. A penalty goal is worth 3, and a drop goal is also worth 3."},
-  {"id":"q099","category":"Sports & World Records","difficulty":"hard","question":"What is the shortest ever boxing match on record?","correct":"4 seconds (Branco Cikatic)","wrong":["10 seconds","2 minutes","30 seconds"],"explanation":"Croatian kickboxer Branco Cikatic KO'd Daniel Rousalev in approximately 4 seconds in 1992. Several boxers have been knocked out in under 10 seconds, making boxing one of sports' most unpredictable events."},
-  {"id":"q100","category":"Sports & World Records","difficulty":"medium","question":"Which country invented the sport of cricket?","correct":"England","wrong":["Australia","India","West Indies"],"explanation":"Cricket originated in south-east England in the late 16th century. The laws were first codified in 1744, and the Marylebone Cricket Club (MCC) became the sport's custodian from 1787."},
-
-  {"id":"q101","category":"Nature & Animals","difficulty":"easy","question":"What is the fastest land animal on Earth?","correct":"Cheetah","wrong":["Lion","Greyhound","Pronghorn antelope"],"explanation":"Cheetahs can accelerate from 0 to 100 km/h in about 3 seconds and reach speeds of 112 km/h. However, they can only maintain this speed for about 400 metres before overheating."},
-  {"id":"q102","category":"Nature & Animals","difficulty":"medium","question":"How long can a snail sleep?","correct":"Up to 3 years","wrong":["One week","Two months","One year"],"explanation":"Snails can enter a prolonged state of hibernation or aestivation for up to 3 years during unfavourable conditions. They seal their shell entrance with a dried mucus layer called an epiphragm."},
-  {"id":"q103","category":"Nature & Animals","difficulty":"easy","question":"What is the largest animal on Earth?","correct":"Blue whale","wrong":["African elephant","Giant squid","Whale shark"],"explanation":"The blue whale can reach up to 30 metres in length and weigh up to 200 tonnes — heavier than any dinosaur. Its heart alone weighs as much as a small car."},
-  {"id":"q104","category":"Nature & Animals","difficulty":"medium","question":"Which bird can fly backwards?","correct":"Hummingbird","wrong":["Swift","Swallow","Eagle"],"explanation":"Hummingbirds are the only birds capable of sustained backward flight. Their wings rotate in a figure-eight pattern, generating lift on both the forward and backward stroke at up to 80 beats per second."},
-  {"id":"q105","category":"Nature & Animals","difficulty":"hard","question":"How many eyes does a bee have?","correct":"Five","wrong":["Two","Three","Four"],"explanation":"Bees have two large compound eyes and three simple eyes (ocelli) arranged in a triangle on top of the head. The compound eyes see UV light and detect patterns; the ocelli sense light intensity for navigation."},
-  {"id":"q106","category":"Nature & Animals","difficulty":"easy","question":"What do you call a group of lions?","correct":"Pride","wrong":["Pack","Herd","Colony"],"explanation":"A group of lions is called a pride, typically consisting of related females, their cubs, and a small number of adult males. Females do most of the hunting while males protect the territory."},
-  {"id":"q107","category":"Nature & Animals","difficulty":"medium","question":"Which is the only mammal capable of true flight?","correct":"Bat","wrong":["Flying squirrel","Sugar glider","Colugo"],"explanation":"Bats are the only mammals with the anatomical structure for true powered flight. Flying squirrels and colugos glide using stretched skin membranes, but cannot generate sustained lift."},
-  {"id":"q108","category":"Nature & Animals","difficulty":"easy","question":"What is the tallest animal on Earth?","correct":"Giraffe","wrong":["Elephant","Ostrich","Polar bear"],"explanation":"Male giraffes can reach heights of 5.7 metres. Their elongated necks — containing only the same seven vertebrae as most mammals — help them browse treetops that other herbivores can't reach."},
-  {"id":"q109","category":"Nature & Animals","difficulty":"medium","question":"How long is an elephant's gestation period?","correct":"About 22 months","wrong":["9 months","12 months","18 months"],"explanation":"At 22 months, elephants have the longest gestation of any land mammal. This extended period produces calves that are highly developed at birth — able to walk within hours and nurse immediately."},
-  {"id":"q110","category":"Nature & Animals","difficulty":"hard","question":"What is the deepest point in the world's oceans?","correct":"Challenger Deep, Mariana Trench","wrong":["Puerto Rico Trench","Java Trench","Philippine Trench"],"explanation":"Challenger Deep in the Mariana Trench reaches approximately 10,935 metres below sea level. The pressure at that depth is over 1,000 times atmospheric — equivalent to 50 jumbo jets stacked on your back."},
-  {"id":"q111","category":"Nature & Animals","difficulty":"easy","question":"What gas do trees release that humans breathe in?","correct":"Oxygen","wrong":["Carbon dioxide","Nitrogen","Methane"],"explanation":"Trees absorb CO₂ and, through photosynthesis, release oxygen. A single mature tree can produce enough oxygen to support two human beings per year."},
-  {"id":"q112","category":"Nature & Animals","difficulty":"medium","question":"Which animal has the longest lifespan on Earth?","correct":"Ocean quahog clam","wrong":["Galapagos tortoise","Greenland shark","Bowhead whale"],"explanation":"An ocean quahog clam named 'Ming' lived for 507 years, confirmed by counting growth rings. Greenland sharks can also reach 400+ years, making them the longest-lived vertebrates."},
-  {"id":"q113","category":"Nature & Animals","difficulty":"easy","question":"How many legs does a spider have?","correct":"Eight","wrong":["Six","Ten","Twelve"],"explanation":"Spiders have eight legs (four pairs), distinguishing them from insects which have six. They're arachnids — a class that also includes scorpions, mites, and ticks."},
-  {"id":"q114","category":"Nature & Animals","difficulty":"medium","question":"What is the name of the tree that produces acorns?","correct":"Oak","wrong":["Elm","Beech","Chestnut"],"explanation":"Oak trees (genus Quercus) produce acorns — the tree's fruit and seed. A single oak can produce up to 70,000 acorns per year, though only one in 10,000 becomes a mature tree."},
-  {"id":"q115","category":"Nature & Animals","difficulty":"hard","question":"How many hearts does an octopus have?","correct":"Three","wrong":["One","Two","Four"],"explanation":"Octopuses have three hearts: one systemic heart that pumps blood to the body and two branchial hearts that pump blood through the gills. Their blood is blue due to copper-based haemocyanin."},
-  {"id":"q116","category":"Nature & Animals","difficulty":"easy","question":"What is the largest species of shark?","correct":"Whale shark","wrong":["Great white shark","Hammerhead shark","Tiger shark"],"explanation":"Whale sharks can reach 12–18 metres in length, making them the world's largest fish. Despite their size, they're filter feeders — subsisting on tiny plankton and small fish."},
-  {"id":"q117","category":"Nature & Animals","difficulty":"medium","question":"Which bird has the largest wingspan?","correct":"Wandering albatross","wrong":["Andean condor","California condor","Marabou stork"],"explanation":"The wandering albatross can have a wingspan of up to 3.7 metres — wider than many small aircraft. It can glide over thousands of kilometres of ocean without flapping its wings."},
-  {"id":"q118","category":"Nature & Animals","difficulty":"medium","question":"What is the largest land animal on Earth?","correct":"African elephant","wrong":["Hippopotamus","White rhinoceros","Giraffe"],"explanation":"African bush elephants are the world's largest land animals, with males reaching 4 metres at the shoulder and weighing up to 7 tonnes. They're highly intelligent and show empathy, grief, and tool use."},
-  {"id":"q119","category":"Nature & Animals","difficulty":"easy","question":"How do dolphins sleep?","correct":"Half their brain at a time","wrong":["Floating motionless","On the seabed","In short bursts of full sleep"],"explanation":"Dolphins practise unihemispheric sleep — shutting down one brain hemisphere while the other stays alert, allowing them to continue breathing and watching for threats. They alternate which half sleeps."},
-  {"id":"q120","category":"Nature & Animals","difficulty":"hard","question":"What is the only continent with no native ant species?","correct":"Antarctica","wrong":["Arctic","Greenland","Iceland"],"explanation":"Antarctica is too cold and extreme for ants. Every other continent — including Australia and the remote islands of Oceania — hosts native ant species, making them one of the most widespread animals on Earth."},
-  {"id":"q121","category":"Nature & Animals","difficulty":"easy","question":"Which animal is known as 'man's best friend'?","correct":"Dog","wrong":["Cat","Horse","Parrot"],"explanation":"Dogs were the first animals domesticated by humans, roughly 15,000–40,000 years ago from wolves. They were bred for hunting, herding, and companionship, creating today's 400+ distinct breeds."},
-  {"id":"q122","category":"Nature & Animals","difficulty":"medium","question":"How far can a kangaroo jump in a single leap?","correct":"About 9 metres","wrong":["About 3 metres","About 15 metres","About 6 metres"],"explanation":"Red kangaroos can jump 9 metres in a single bound and reach speeds of 70 km/h. Their thick tendons work like springs, storing and releasing energy efficiently — making hopping faster than walking at high speeds."},
-  {"id":"q123","category":"Nature & Animals","difficulty":"easy","question":"What is a baby kangaroo called?","correct":"Joey","wrong":["Cub","Pup","Kit"],"explanation":"A joey is born after just 33 days of gestation — tiny and undeveloped — and crawls into its mother's pouch where it continues developing for about 6–8 months."},
-  {"id":"q124","category":"Nature & Animals","difficulty":"medium","question":"What is the largest type of penguin?","correct":"Emperor penguin","wrong":["King penguin","Macaroni penguin","Chinstrap penguin"],"explanation":"Emperor penguins stand up to 122 cm tall and weigh up to 45 kg. They breed in Antarctic winter, with males incubating the egg on their feet under a brood pouch for 65 days without eating."},
-  {"id":"q125","category":"Nature & Animals","difficulty":"hard","question":"How many known species of insects are there on Earth?","correct":"About 1 million","wrong":["About 100,000","About 10 million","About 500,000"],"explanation":"Around 1 million insect species have been formally described, representing about 80% of all known animal species. Scientists estimate 5–10 million species may exist in total, with millions undiscovered in tropical forests."},
-
-  {"id":"q126","category":"Food & Geography","difficulty":"easy","question":"Which country is the world's largest producer of coffee?","correct":"Brazil","wrong":["Colombia","Vietnam","Ethiopia"],"explanation":"Brazil has been the world's largest coffee producer for over 150 years, producing around a third of the global supply. Its vast Minas Gerais region produces predominantly Arabica beans."},
-  {"id":"q127","category":"Food & Geography","difficulty":"medium","question":"What is the capital city of Australia?","correct":"Canberra","wrong":["Sydney","Melbourne","Brisbane"],"explanation":"Canberra became Australia's capital in 1913 — a compromise between rivals Sydney and Melbourne. It was purpose-built as a federal capital, designed by American architects Walter Burley Griffin and Marion Mahony."},
-  {"id":"q128","category":"Food & Geography","difficulty":"easy","question":"What is the most consumed beverage in the world after water?","correct":"Tea","wrong":["Coffee","Beer","Juice"],"explanation":"Tea is the world's most consumed beverage after water, with about 3 billion cups drunk daily. It originated in ancient China and spread globally through trade, particularly through British colonial expansion."},
-  {"id":"q129","category":"Food & Geography","difficulty":"medium","question":"Which country is the origin of sushi?","correct":"Japan","wrong":["China","Korea","Thailand"],"explanation":"Sushi originated in Japan, evolving from narezushi — fermented rice and fish — in the 8th century. Modern nigiri sushi was developed in Tokyo (then Edo) in the early 19th century."},
-  {"id":"q130","category":"Food & Geography","difficulty":"easy","question":"What is the world's longest river?","correct":"Nile River","wrong":["Amazon River","Yangtze River","Mississippi River"],"explanation":"The Nile stretches approximately 6,650 km through northeastern Africa. However, some studies suggest the Amazon may be longer when its true source is measured — the debate continues among geographers."},
-  {"id":"q131","category":"Food & Geography","difficulty":"medium","question":"Which spice is the most expensive in the world by weight?","correct":"Saffron","wrong":["Vanilla","Cardamom","Truffles"],"explanation":"Saffron comes from the dried stigmas of the Crocus sativus flower — each flower yields just three stigmas, all harvested by hand. It takes about 75,000 flowers to produce 500 grams of saffron."},
-  {"id":"q132","category":"Food & Geography","difficulty":"easy","question":"In which country was pizza invented?","correct":"Italy","wrong":["Greece","USA","France"],"explanation":"Pizza originated in Naples, Italy in the 18th century. The classic Margherita was allegedly created in 1889 to honour Queen Margherita of Savoy — topped with tomato, mozzarella, and basil (the Italian flag's colours)."},
-  {"id":"q133","category":"Food & Geography","difficulty":"medium","question":"What is the smallest country in the world?","correct":"Vatican City","wrong":["Monaco","San Marino","Liechtenstein"],"explanation":"Vatican City covers just 0.44 square kilometres within Rome and has a population of about 800. As an independent state since 1929, it governs the global Catholic Church."},
-  {"id":"q134","category":"Food & Geography","difficulty":"hard","question":"Which country has the most UNESCO World Heritage Sites?","correct":"Italy","wrong":["China","Spain","France"],"explanation":"Italy leads with 58 UNESCO World Heritage Sites (as of 2024), followed closely by China and Germany. Italy's sites include the Colosseum, Venice, Pompeii, and the Dolomites."},
-  {"id":"q135","category":"Food & Geography","difficulty":"easy","question":"What country does chocolate originate from?","correct":"Mexico/Mesoamerica","wrong":["Belgium","Switzerland","Ghana"],"explanation":"Cacao was first cultivated by the Olmec civilisation in Mesoamerica around 1500 BC. The Aztecs drank a bitter chocolate beverage. Europeans added sugar after encountering it in the 16th century."},
-  {"id":"q136","category":"Food & Geography","difficulty":"medium","question":"Which country produces the most wheat globally?","correct":"China","wrong":["USA","Russia","India"],"explanation":"China is the world's largest wheat producer, growing about a quarter of global supply. Its vast northern plains are major wheat-growing areas. Despite this, China is also a large wheat importer."},
-  {"id":"q137","category":"Food & Geography","difficulty":"easy","question":"What is the capital city of Japan?","correct":"Tokyo","wrong":["Osaka","Kyoto","Hiroshima"],"explanation":"Tokyo, formerly known as Edo, became Japan's capital in 1868 when Emperor Meiji moved there from Kyoto. It's the world's most populous city, home to over 37 million people in its metro area."},
-  {"id":"q138","category":"Food & Geography","difficulty":"medium","question":"Which grain is used to make traditional Japanese sake?","correct":"Rice","wrong":["Barley","Wheat","Corn"],"explanation":"Sake is brewed from fermented rice — specifically polished rice with the outer bran removed. The degree of polishing (the 'polish ratio') significantly affects the sake's flavour profile and grade."},
-  {"id":"q139","category":"Food & Geography","difficulty":"hard","question":"What country is home to the most natural lakes?","correct":"Canada","wrong":["Russia","USA","Finland"],"explanation":"Canada contains more lakes than the rest of the world combined — an estimated 879,800 lakes larger than 10 square kilometres. This is a legacy of glacial activity during the last ice age."},
-  {"id":"q140","category":"Food & Geography","difficulty":"easy","question":"What is the main ingredient in guacamole?","correct":"Avocado","wrong":["Tomato","Lime","Pepper"],"explanation":"Guacamole originates from Aztec cuisine — 'ahuacamolli' means avocado sauce. Traditional recipes include avocado, lime, salt, tomato, onion, and cilantro, though variations abound."},
-  {"id":"q141","category":"Food & Geography","difficulty":"medium","question":"Which country has the most natural UNESCO heritage sites?","correct":"Australia","wrong":["Brazil","USA","Canada"],"explanation":"Australia leads in natural UNESCO World Heritage Sites with 20, including the Great Barrier Reef, the Wet Tropics, and Purnululu National Park — a reflection of its extraordinarily diverse ecosystems."},
-  {"id":"q142","category":"Food & Geography","difficulty":"easy","question":"What country is known as 'the land of the rising sun'?","correct":"Japan","wrong":["China","South Korea","Thailand"],"explanation":"Japan's name in Japanese — Nihon or Nippon — translates to 'origin of the sun'. Marco Polo called it 'Cipangu', meaning eastern land. The rising sun also features prominently on Japan's flag."},
-  {"id":"q143","category":"Food & Geography","difficulty":"medium","question":"Which fruit contains the enzyme bromelain, useful for tenderising meat?","correct":"Pineapple","wrong":["Papaya","Kiwi","Mango"],"explanation":"Bromelain, found in pineapple (especially the core), breaks down proteins. It's so active that pineapple workers can develop dermatitis, and fresh pineapple prevents gelatin from setting in desserts."},
-  {"id":"q144","category":"Food & Geography","difficulty":"medium","question":"What is the world's most visited city?","correct":"Bangkok","wrong":["Paris","Dubai","London"],"explanation":"Bangkok consistently tops global visitor rankings with over 20 million international arrivals per year. Its mix of ancient temples, street food, and modern shopping makes it a travel hub for Southeast Asia."},
-  {"id":"q145","category":"Food & Geography","difficulty":"hard","question":"Which country exports the most olive oil?","correct":"Spain","wrong":["Italy","Greece","Morocco"],"explanation":"Spain produces about 40% of the world's olive oil, primarily in the Andalucía region. Despite this, Italy — which also processes and re-exports Spanish oil — is often perceived as the leading producer."},
-  {"id":"q146","category":"Food & Geography","difficulty":"easy","question":"On which continent is the Sahara Desert located?","correct":"Africa","wrong":["Asia","Australia","South America"],"explanation":"The Sahara covers about 9.2 million square kilometres across northern Africa — roughly the size of the United States. It's the world's largest hot desert, though Antarctica is the largest desert overall."},
-  {"id":"q147","category":"Food & Geography","difficulty":"medium","question":"What is the primary ingredient in traditional hummus?","correct":"Chickpeas","wrong":["Lentils","White beans","Fava beans"],"explanation":"Hummus (Arabic for 'chickpeas') is made from blended chickpeas, tahini (sesame paste), lemon, and garlic. It's been eaten in the Middle East for centuries, with its exact origin disputed among several nations."},
-  {"id":"q148","category":"Food & Geography","difficulty":"easy","question":"What is the highest mountain in the world?","correct":"Mount Everest","wrong":["K2","Kangchenjunga","Makalu"],"explanation":"Mount Everest stands at 8,848.86 metres above sea level, measured officially in 2020. On the Nepal-Tibet border, it was first summited by Tenzing Norgay and Edmund Hillary on May 29, 1953."},
-  {"id":"q149","category":"Food & Geography","difficulty":"medium","question":"Which country is the world's largest archipelago?","correct":"Indonesia","wrong":["Philippines","Japan","Norway"],"explanation":"Indonesia comprises over 17,000 islands stretching 5,000 km. It straddles two tectonic plates and two major biogeographic zones, resulting in extraordinary biodiversity including orangutans, Komodo dragons, and birds of paradise."},
-  {"id":"q150","category":"Food & Geography","difficulty":"hard","question":"In which country did the chilli pepper originate?","correct":"Mexico","wrong":["India","China","Spain"],"explanation":"Chilli peppers are native to Mexico and Central America, where they've been cultivated for at least 6,000 years. They were introduced to Europe by Spanish and Portuguese traders in the 15th–16th centuries."},
-
-  {"id":"q151","category":"Brain & Psychology","difficulty":"easy","question":"What is the term for the inability to recognise faces?","correct":"Prosopagnosia","wrong":["Agnosia","Aphasia","Amnesia"],"explanation":"Prosopagnosia ('face blindness') is a neurological condition where people can't recognise faces — even their own in a mirror. It's thought to affect up to 2.5% of the population to some degree."},
-  {"id":"q152","category":"Brain & Psychology","difficulty":"medium","question":"What is the psychological concept of attributing human traits to non-human things?","correct":"Anthropomorphism","wrong":["Projection","Displacement","Personalisation"],"explanation":"Anthropomorphism is hardwired — humans are primed to detect agency and faces. We see a man in the moon, name our cars, and feel bad for Roombas that get stuck. It helped ancestors quickly identify threats."},
-  {"id":"q153","category":"Brain & Psychology","difficulty":"easy","question":"How many stages of sleep are there?","correct":"Four stages","wrong":["Two stages","Six stages","Three stages"],"explanation":"Sleep has four stages: N1, N2, N3 (deep slow-wave sleep), and REM. A full cycle takes 90 minutes. Most dreaming occurs in REM, when the brain is nearly as active as when awake."},
-  {"id":"q154","category":"Brain & Psychology","difficulty":"medium","question":"What is the term for remembering something incorrectly but with complete confidence?","correct":"False memory","wrong":["Confabulation","Déjà vu","Priming"],"explanation":"False memories feel just as real as accurate ones. The 'lost in the mall' experiment showed people could be convinced they were lost in a mall as children — a memory that never happened."},
-  {"id":"q155","category":"Brain & Psychology","difficulty":"hard","question":"What percentage of people are estimated to have synesthesia?","correct":"About 4%","wrong":["About 0.1%","About 20%","About 1%"],"explanation":"Synesthesia involves cross-sensory experiences — letters having colours, sounds triggering tastes. About 4% of people have some form of it. It's more common in artists and musicians — Vladimir Nabokov and Kanye West both report it."},
-  {"id":"q156","category":"Brain & Psychology","difficulty":"easy","question":"What chemical in the brain is associated with feelings of happiness?","correct":"Serotonin","wrong":["Cortisol","Melatonin","Glutamate"],"explanation":"Serotonin is a key mood regulator. Low levels are linked to depression; most antidepressants (SSRIs) work by increasing serotonin availability in synapses. It's made largely in the gut, not just the brain."},
-  {"id":"q157","category":"Brain & Psychology","difficulty":"medium","question":"What is the name of the psychological experiment involving obedience to authority?","correct":"Milgram experiment","wrong":["Stanford prison experiment","Harlow's monkeys","Asch conformity study"],"explanation":"Stanley Milgram's 1961 experiment showed 65% of participants would deliver what they believed were lethal electric shocks to strangers simply because an authority figure told them to."},
-  {"id":"q158","category":"Brain & Psychology","difficulty":"easy","question":"What does 'IQ' stand for?","correct":"Intelligence Quotient","wrong":["Intellectual Quality","Intellect Quantity","Individual Quotient"],"explanation":"IQ was originally calculated as (mental age ÷ chronological age) × 100. Modern tests use standardised scores where 100 is the average. The concept has become controversial as a complete measure of intelligence."},
-  {"id":"q159","category":"Brain & Psychology","difficulty":"medium","question":"What is the 'bystander effect' in psychology?","correct":"Less help with more observers","wrong":["Helping more when alone","Copying others' behaviour","Fear of large crowds"],"explanation":"The bystander effect: the more people witness an emergency, the less likely any individual is to help. Each person assumes someone else will act — a phenomenon studied after Kitty Genovese's 1964 murder."},
-  {"id":"q160","category":"Brain & Psychology","difficulty":"hard","question":"What is the name for the tendency to search for information that confirms existing beliefs?","correct":"Confirmation bias","wrong":["Availability heuristic","Cognitive dissonance","Dunning-Kruger effect"],"explanation":"Confirmation bias leads people to seek, interpret, and remember information that confirms their preconceptions. It's a major driver of political polarisation and misinformation persistence."},
-  {"id":"q161","category":"Brain & Psychology","difficulty":"medium","question":"What is the approximate storage capacity of the human brain?","correct":"About 2.5 petabytes","wrong":["About 1 gigabyte","About 100 terabytes","About 1 petabyte"],"explanation":"Researchers estimate the brain can store 2.5 petabytes (2.5 million gigabytes) of information — enough to hold 3 million hours of TV. Unlike computer memory, neural memories are reconstructive, not playback."},
-  {"id":"q162","category":"Brain & Psychology","difficulty":"easy","question":"What part of the brain is most associated with long-term memory?","correct":"Hippocampus","wrong":["Amygdala","Cerebellum","Frontal lobe"],"explanation":"The hippocampus (Greek for 'seahorse') is critical for converting short-term memories to long-term storage. Patient H.M., who had his hippocampus removed, couldn't form any new long-term memories."},
-  {"id":"q163","category":"Brain & Psychology","difficulty":"medium","question":"What does the 'placebo effect' describe?","correct":"Improvement from inactive treatment","wrong":["Drug side effects","Recovery without treatment","Expectation of illness"],"explanation":"The placebo effect occurs when people improve after receiving an inert treatment because they believe it will work. Brain scans show genuine neurological changes — proving expectation alters biology."},
-  {"id":"q164","category":"Brain & Psychology","difficulty":"hard","question":"Which psychological theory describes developmental stages through which children acquire moral reasoning?","correct":"Kohlberg's stages","wrong":["Piaget's stages","Erikson's stages","Maslow's hierarchy"],"explanation":"Lawrence Kohlberg identified six stages of moral development across three levels: pre-conventional, conventional, and post-conventional. Most adults reach stage four (law and order) and few ever reach stage six."},
-  {"id":"q165","category":"Brain & Psychology","difficulty":"easy","question":"What is the study of behaviour and mental processes called?","correct":"Psychology","wrong":["Psychiatry","Neurology","Sociology"],"explanation":"Psychology studies how people think, feel, and behave. It differs from psychiatry (medicine for mental disorders) and neuroscience (the biology of the brain), though all three disciplines overlap significantly."},
-  {"id":"q166","category":"Brain & Psychology","difficulty":"medium","question":"What is cognitive dissonance?","correct":"Discomfort from conflicting beliefs","wrong":["Learning new skills","Memory loss from stress","Poor decision-making"],"explanation":"Leon Festinger coined cognitive dissonance in 1957 — the discomfort felt when holding two conflicting beliefs or when actions contradict beliefs. People resolve it by changing beliefs, minimising conflicts, or rationalising."},
-  {"id":"q167","category":"Brain & Psychology","difficulty":"hard","question":"What is the Stroop effect?","correct":"Slower reaction naming ink colour when words conflict","wrong":["Reading words faster than pictures","Forgetting words when distracted","Confusing similar-sounding words"],"explanation":"The Stroop effect: it takes longer to name the ink colour of the word 'RED' written in blue ink than to name a plain blue square. This shows automatic reading competes with deliberate colour-naming."},
-  {"id":"q168","category":"Brain & Psychology","difficulty":"medium","question":"What percentage of communication is said to be non-verbal?","correct":"About 93%","wrong":["About 55%","About 7%","About 70%"],"explanation":"Albert Mehrabian's often-misquoted research suggested 55% is body language, 38% tone, and just 7% words — but this applied only to communicating feelings/attitudes. Overall communication percentages are context-dependent."},
-  {"id":"q169","category":"Brain & Psychology","difficulty":"easy","question":"What is the term for extreme fear of spiders?","correct":"Arachnophobia","wrong":["Ophidiophobia","Acrophobia","Entomophobia"],"explanation":"Arachnophobia is one of the world's most common phobias, affecting about 5% of people. Evolutionary psychologists suggest it may be an adaptive response — many spiders are venomous."},
-  {"id":"q170","category":"Brain & Psychology","difficulty":"medium","question":"What is 'neuroplasticity'?","correct":"Brain's ability to reorganise itself","wrong":["Speed of nerve signals","Production of new brain cells","Size of neural connections"],"explanation":"Neuroplasticity allows the brain to form new neural connections throughout life — challenging the old belief that the adult brain was fixed. Learning, therapy, and recovery from injury all depend on it."},
-  {"id":"q171","category":"Brain & Psychology","difficulty":"easy","question":"What is déjà vu?","correct":"Feeling of having experienced something before","wrong":["Forgetting familiar things","Dreaming while awake","Vivid false memory"],"explanation":"Déjà vu (French: 'already seen') is the uncanny feeling that a new experience has been lived before. It occurs in 60–80% of people and is linked to temporary misfiring between memory-processing brain regions."},
-  {"id":"q172","category":"Brain & Psychology","difficulty":"hard","question":"Which researcher first described the concept of 'flow state'?","correct":"Mihaly Csikszentmihalyi","wrong":["Abraham Maslow","Daniel Kahneman","Martin Seligman"],"explanation":"Csikszentmihalyi described 'flow' in the 1970s — a state of complete absorption in an activity where time distorts and performance peaks. Athletes call it 'the zone'. It requires skill matched to challenge level."},
-  {"id":"q173","category":"Brain & Psychology","difficulty":"medium","question":"What is the 'anchoring' cognitive bias?","correct":"Over-relying on the first piece of information","wrong":["Assuming others share your beliefs","Overestimating your own abilities","Judging by recent events only"],"explanation":"Anchoring occurs when the first number you hear disproportionately influences your judgement. Retailers exploit this — marking items 'originally £200, now £80' makes £80 feel like a bargain."},
-  {"id":"q174","category":"Brain & Psychology","difficulty":"easy","question":"What happens in the brain during REM sleep?","correct":"Dreaming and memory consolidation","wrong":["Deep physical restoration","No brain activity","Full cognitive shutdown"],"explanation":"During REM (Rapid Eye Movement) sleep, the brain is highly active — almost as much as waking. Most vivid dreaming occurs here. REM sleep is essential for emotional processing and memory consolidation."},
-  {"id":"q175","category":"Brain & Psychology","difficulty":"medium","question":"What term describes the feeling of understanding something only after knowing the answer?","correct":"Hindsight bias","wrong":["Overconfidence bias","Recency bias","Framing effect"],"explanation":"Hindsight bias ('I knew it all along') makes past events seem more predictable than they were. It affects everything from medical diagnoses to sports predictions and history's 'obvious' outcomes."},
-
-  {"id":"q176","category":"Pop Culture & Arts","difficulty":"easy","question":"Which band released the album 'Thriller' in 1982?","correct":"Michael Jackson","wrong":["Prince","Madonna","Stevie Wonder"],"explanation":"Thriller by Michael Jackson is the best-selling album of all time with estimated sales of 70–100 million copies. The 14-minute title track music video, directed by John Landis, revolutionised music video as an art form."},
-  {"id":"q177","category":"Pop Culture & Arts","difficulty":"medium","question":"Which film won the first Oscar for Best Picture?","correct":"Wings (1927)","wrong":["Gone with the Wind","Casablanca","Citizen Kane"],"explanation":"Wings, a silent World War I aviation drama, won Best Picture at the first Academy Awards ceremony in 1929 (covering films from 1927–28). The ceremony lasted 15 minutes and was held at the Hollywood Roosevelt Hotel."},
-  {"id":"q178","category":"Pop Culture & Arts","difficulty":"easy","question":"Who wrote the Harry Potter series?","correct":"J.K. Rowling","wrong":["Roald Dahl","Philip Pullman","Suzanne Collins"],"explanation":"J.K. Rowling wrote the seven Harry Potter books between 1997 and 2007. Rejected by 12 publishers before Bloomsbury accepted it, the series has sold over 600 million copies in 85 languages."},
-  {"id":"q179","category":"Pop Culture & Arts","difficulty":"medium","question":"In which country did the TV show 'Money Heist' (La Casa de Papel) originate?","correct":"Spain","wrong":["Mexico","Argentina","Brazil"],"explanation":"La Casa de Papel was created by Álex Pina and first aired on Spanish network Antena 3 in 2017. Netflix acquired global rights in 2017, turning it into one of the most-watched non-English series ever."},
-  {"id":"q180","category":"Pop Culture & Arts","difficulty":"easy","question":"How many strings does a standard guitar have?","correct":"Six","wrong":["Four","Five","Eight"],"explanation":"A standard guitar has 6 strings tuned E-A-D-G-B-E (from lowest to highest). Bass guitars have 4 strings; 12-string guitars double each string for a fuller, richer sound."},
-  {"id":"q181","category":"Pop Culture & Arts","difficulty":"medium","question":"Which artist painted 'The Starry Night'?","correct":"Vincent van Gogh","wrong":["Claude Monet","Edvard Munch","Paul Gauguin"],"explanation":"Van Gogh painted The Starry Night in June 1889 while voluntarily staying at an asylum in Saint-Rémy-de-Provence. Now at MoMA in New York, he described his swirling vision of the night sky in letters to his brother Theo."},
-  {"id":"q182","category":"Pop Culture & Arts","difficulty":"easy","question":"Which novel begins with 'Call me Ishmael'?","correct":"Moby Dick","wrong":["The Old Man and the Sea","Life of Pi","Billy Budd"],"explanation":"Herman Melville's Moby Dick (1851) begins with the narrator's brief, memorable self-introduction. The novel follows Captain Ahab's obsessive quest to kill the white sperm whale that destroyed his ship and leg."},
-  {"id":"q183","category":"Pop Culture & Arts","difficulty":"medium","question":"Which musician is known as 'The King of Pop'?","correct":"Michael Jackson","wrong":["Elvis Presley","Prince","David Bowie"],"explanation":"Michael Jackson earned the nickname through record-breaking sales, ground-breaking music videos, and signature dance moves like the moonwalk. Elvis Presley is known as 'The King of Rock and Roll'."},
-  {"id":"q184","category":"Pop Culture & Arts","difficulty":"hard","question":"Which Shakespeare play features the line 'To be or not to be'?","correct":"Hamlet","wrong":["Macbeth","Othello","King Lear"],"explanation":"The soliloquy appears in Act 3, Scene 1 of Hamlet, as the prince contemplates existence, suffering, and death. It's one of the most quoted passages in the English language, written around 1600."},
-  {"id":"q185","category":"Pop Culture & Arts","difficulty":"easy","question":"What colour are the Smurfs?","correct":"Blue","wrong":["Red","Green","Purple"],"explanation":"The Smurfs (Les Schtroumpfs) were created by Belgian cartoonist Peyo in 1958. The choice of blue was largely practical — it distinguished them clearly from everything else on the page."},
-  {"id":"q186","category":"Pop Culture & Arts","difficulty":"medium","question":"Which film franchise features a character named James Bond?","correct":"007 / Bond films","wrong":["Mission Impossible","Bourne Identity","Jack Ryan"],"explanation":"James Bond was created by Ian Fleming in 1953's Casino Royale. The film series, starting with Dr. No in 1962, has grossed over $7 billion globally, making it one of cinema's most successful franchises."},
-  {"id":"q187","category":"Pop Culture & Arts","difficulty":"easy","question":"What does 'LOL' stand for in internet slang?","correct":"Laughing out loud","wrong":["Lots of love","Laughing online","Loads of laughter"],"explanation":"LOL originated in early online communities in the late 1980s. Despite widespread use, studies show most people only literally laugh out loud 1–2% of the times they type it."},
-  {"id":"q188","category":"Pop Culture & Arts","difficulty":"medium","question":"Which Disney film features the song 'Let It Go'?","correct":"Frozen","wrong":["Tangled","Brave","Encanto"],"explanation":"'Let It Go' was performed by Idina Menzel as Queen Elsa in Disney's Frozen (2013). It won the Academy Award for Best Original Song and became one of the most recognisable children's songs of the decade."},
-  {"id":"q189","category":"Pop Culture & Arts","difficulty":"hard","question":"Who directed the film Schindler's List?","correct":"Steven Spielberg","wrong":["Martin Scorsese","Stanley Kubrick","Francis Ford Coppola"],"explanation":"Steven Spielberg directed Schindler's List in 1993, winning Best Director and Best Picture Oscars. He reportedly donated his entire director's fee to the USC Shoah Foundation, which he founded to preserve Holocaust testimonies."},
-  {"id":"q190","category":"Pop Culture & Arts","difficulty":"easy","question":"Which country is the birthplace of the Beatles?","correct":"England (Liverpool)","wrong":["USA","Ireland","Scotland"],"explanation":"John Lennon, Paul McCartney, George Harrison, and Ringo Starr all came from Liverpool, England. They rose to global fame in the early 1960s and remain the best-selling music act of all time."},
-  {"id":"q191","category":"Pop Culture & Arts","difficulty":"medium","question":"What is the name of the fictional kingdom in Disney's 'Frozen'?","correct":"Arendelle","wrong":["Elysium","Norheim","Vesterland"],"explanation":"Arendelle is inspired by Norway — the film's look is based on Bergen and Hardangerfjord. The name is a stylisation of the Norwegian town Arendal in the Aust-Agder region."},
-  {"id":"q192","category":"Pop Culture & Arts","difficulty":"medium","question":"Which book series features a wizard school called Hogwarts?","correct":"Harry Potter","wrong":["The Name of the Wind","Percy Jackson","Eragon"],"explanation":"Hogwarts School of Witchcraft and Wizardry is the central setting of J.K. Rowling's Harry Potter series. The Hogwarts Express departs from King's Cross station, Platform 9¾."},
-  {"id":"q193","category":"Pop Culture & Arts","difficulty":"easy","question":"What instrument does Sherlock Holmes famously play?","correct":"Violin","wrong":["Piano","Cello","Clarinet"],"explanation":"Arthur Conan Doyle gave Sherlock Holmes a violin to play — often late at night, much to Dr. Watson's annoyance. Holmes's playing is erratic but brilliant, mirroring his cognitive style."},
-  {"id":"q194","category":"Pop Culture & Arts","difficulty":"hard","question":"What year was the first episode of The Simpsons broadcast?","correct":"1989","wrong":["1991","1987","1993"],"explanation":"The Simpsons premiered on Fox on December 17, 1989, as a Christmas special. The main series launched in January 1990 and has run for 35+ seasons — the longest-running American primetime scripted television series."},
-  {"id":"q195","category":"Pop Culture & Arts","difficulty":"medium","question":"Which artist is famous for melting clocks?","correct":"Salvador Dalí","wrong":["René Magritte","Pablo Picasso","Joan Miró"],"explanation":"The Persistence of Memory (1931) by Salvador Dalí depicts soft, melting pocket watches in a dreamlike landscape. The surrealist icon said the image was inspired by watching Camembert cheese melt in the sun."},
-  {"id":"q196","category":"Pop Culture & Arts","difficulty":"easy","question":"How many Harry Potter books are in the main series?","correct":"Seven","wrong":["Six","Eight","Five"],"explanation":"The seven Harry Potter novels span Harry's time at Hogwarts. The series concludes with Harry Potter and the Deathly Hallows (2007), which sold 11 million copies in 24 hours in the UK and US combined."},
-  {"id":"q197","category":"Pop Culture & Arts","difficulty":"medium","question":"Which rapper released the album 'The Marshall Mathers LP'?","correct":"Eminem","wrong":["Jay-Z","Nas","DMX"],"explanation":"The Marshall Mathers LP (2000) is Eminem's real name — Marshall Mathers. It sold 1.76 million copies in its first week, becoming one of the fastest-selling solo albums in history."},
-  {"id":"q198","category":"Pop Culture & Arts","difficulty":"easy","question":"What colour is the sky in the film 'The Wizard of Oz' when Dorothy arrives in Oz?","correct":"Vivid colour (after black and white)","wrong":["Blue","Green","Gold"],"explanation":"The Kansas scenes in The Wizard of Oz (1939) were filmed in sepia-toned black and white. The moment Dorothy opens the door to Oz was a groundbreaking use of Technicolour — one of cinema's most memorable transitions."},
-  {"id":"q199","category":"Pop Culture & Arts","difficulty":"hard","question":"Which novel is considered the first science fiction story?","correct":"Frankenstein (Mary Shelley)","wrong":["1984","The Time Machine","Twenty Thousand Leagues"],"explanation":"Mary Shelley wrote Frankenstein in 1818 aged just 18, after a ghost-story competition with Lord Byron and Percy Shelley. It's widely credited as the first true science fiction novel for its exploration of scientific responsibility."},
-  {"id":"q200","category":"Pop Culture & Arts","difficulty":"medium","question":"Which streaming show features a character named Walter White?","correct":"Breaking Bad","wrong":["Better Call Saul","Ozark","Dexter"],"explanation":"Bryan Cranston played chemistry teacher-turned-drug lord Walter White in Breaking Bad (2008–2013). The show has a 9.5/10 rating on IMDb — among the highest ever for a TV series."}
+  {
+    "id": "q001",
+    "category": "Human Body & Biology",
+    "difficulty": "easy",
+    "question": "How many bones are in the adult human body?",
+    "correct": "206",
+    "wrong": [
+      "212",
+      "185",
+      "198"
+    ],
+    "explanation": "Babies are born with around 270\u2013300 bones, but many fuse together during childhood and adolescence, leaving adults with exactly 206."
+  },
+  {
+    "id": "q002",
+    "category": "Human Body & Biology",
+    "difficulty": "easy",
+    "question": "Which organ produces insulin to regulate blood sugar?",
+    "correct": "Pancreas",
+    "wrong": [
+      "Liver",
+      "Kidney",
+      "Spleen"
+    ],
+    "explanation": "The pancreatic beta cells secrete insulin. Without it, glucose can't enter cells \u2014 the basis of Type 1 diabetes."
+  },
+  {
+    "id": "q003",
+    "category": "Human Body & Biology",
+    "difficulty": "medium",
+    "question": "What percentage of the human body is water?",
+    "correct": "About 60%",
+    "wrong": [
+      "About 40%",
+      "About 80%",
+      "About 25%"
+    ],
+    "explanation": "Water makes up roughly 60% of adult body weight, though it varies with age, sex, and body composition \u2014 muscle holds more water than fat."
+  },
+  {
+    "id": "q004",
+    "category": "Human Body & Biology",
+    "difficulty": "medium",
+    "question": "Which blood type is the universal donor for red blood cells?",
+    "correct": "O negative",
+    "wrong": [
+      "O positive",
+      "AB negative",
+      "A negative"
+    ],
+    "explanation": "O negative red cells lack A, B, and Rh antigens, so they can be given to almost any recipient in emergencies before blood typing is possible."
+  },
+  {
+    "id": "q005",
+    "category": "Human Body & Biology",
+    "difficulty": "hard",
+    "question": "How many neurons does the adult human brain contain approximately?",
+    "correct": "86 billion",
+    "wrong": [
+      "100 billion",
+      "10 billion",
+      "1 trillion"
+    ],
+    "explanation": "A landmark 2009 study by Azevedo et al. counted roughly 86 billion neurons \u2014 fewer than the long-repeated '100 billion' figure, but still staggeringly complex."
+  },
+  {
+    "id": "q006",
+    "category": "Human Body & Biology",
+    "difficulty": "easy",
+    "question": "What is the largest organ of the human body?",
+    "correct": "Skin",
+    "wrong": [
+      "Liver",
+      "Intestines",
+      "Lungs"
+    ],
+    "explanation": "The skin covers about 2 square metres in an average adult and weighs around 4 kg \u2014 making it the body's largest organ by surface area and mass."
+  },
+  {
+    "id": "q007",
+    "category": "Human Body & Biology",
+    "difficulty": "medium",
+    "question": "Which part of the eye controls how much light enters?",
+    "correct": "Iris",
+    "wrong": [
+      "Cornea",
+      "Retina",
+      "Pupil"
+    ],
+    "explanation": "The iris is the coloured ring of muscle. It dilates or constricts the pupil (the opening) to regulate the amount of light reaching the retina."
+  },
+  {
+    "id": "q008",
+    "category": "Human Body & Biology",
+    "difficulty": "medium",
+    "question": "How long does it take for blood to complete one full circuit of the body?",
+    "correct": "About 60 seconds",
+    "wrong": [
+      "About 5 seconds",
+      "About 10 minutes",
+      "About 30 seconds"
+    ],
+    "explanation": "At rest, the heart pumps blood through roughly 100,000 km of vessels. One complete circuit takes about 60 seconds \u2014 faster during exercise."
+  },
+  {
+    "id": "q009",
+    "category": "Human Body & Biology",
+    "difficulty": "hard",
+    "question": "What is the hardest substance in the human body?",
+    "correct": "Tooth enamel",
+    "wrong": [
+      "Bone cortex",
+      "Fingernail keratin",
+      "Cartilage"
+    ],
+    "explanation": "Tooth enamel is 96% mineral (hydroxyapatite) and rates 5 on the Mohs scale \u2014 harder than bone. It's also the only body tissue with no living cells, so it can't repair itself."
+  },
+  {
+    "id": "q010",
+    "category": "Human Body & Biology",
+    "difficulty": "easy",
+    "question": "Which vitamin does sunlight help the body produce?",
+    "correct": "Vitamin D",
+    "wrong": [
+      "Vitamin C",
+      "Vitamin A",
+      "Vitamin B12"
+    ],
+    "explanation": "UVB radiation converts 7-dehydrocholesterol in the skin to vitamin D3. It's essential for calcium absorption and immune function."
+  },
+  {
+    "id": "q011",
+    "category": "Human Body & Biology",
+    "difficulty": "medium",
+    "question": "How many taste buds does a typical adult human tongue have?",
+    "correct": "About 10,000",
+    "wrong": [
+      "About 1,000",
+      "About 50,000",
+      "About 200"
+    ],
+    "explanation": "Adults have roughly 10,000 taste buds, mostly on the tongue but also on the soft palate. Each bud contains 50\u2013100 sensory cells and is replaced every 1\u20132 weeks."
+  },
+  {
+    "id": "q012",
+    "category": "Human Body & Biology",
+    "difficulty": "hard",
+    "question": "Which muscle is the only one that attaches on just one side?",
+    "correct": "Diaphragm",
+    "wrong": [
+      "Tongue",
+      "Heart",
+      "Stapedius"
+    ],
+    "explanation": "The tongue actually does attach on both sides. The stapedius in the middle ear is the body's smallest muscle, but the diaphragm is uniquely circular and attaches to the spine, ribs and sternum \u2014 considered single-structure by many anatomists."
+  },
+  {
+    "id": "q013",
+    "category": "Human Body & Biology",
+    "difficulty": "easy",
+    "question": "How many chambers does the human heart have?",
+    "correct": "Four",
+    "wrong": [
+      "Two",
+      "Three",
+      "Six"
+    ],
+    "explanation": "The heart has two atria (upper, receiving) and two ventricles (lower, pumping), forming a double-pump circuit for pulmonary and systemic circulation."
+  },
+  {
+    "id": "q014",
+    "category": "Human Body & Biology",
+    "difficulty": "medium",
+    "question": "Where are red blood cells produced in the body?",
+    "correct": "Bone marrow",
+    "wrong": [
+      "Liver",
+      "Spleen",
+      "Kidneys"
+    ],
+    "explanation": "Red blood cells are made in the red bone marrow of flat bones like the sternum and pelvis. The kidneys produce erythropoietin \u2014 the hormone that stimulates this production."
+  },
+  {
+    "id": "q015",
+    "category": "Human Body & Biology",
+    "difficulty": "easy",
+    "question": "What is the powerhouse of the cell?",
+    "correct": "Mitochondria",
+    "wrong": [
+      "Nucleus",
+      "Ribosome",
+      "Golgi body"
+    ],
+    "explanation": "Mitochondria generate ATP through cellular respiration. They have their own DNA, supporting the theory that they were once independent bacteria engulfed by early cells."
+  },
+  {
+    "id": "q016",
+    "category": "Human Body & Biology",
+    "difficulty": "medium",
+    "question": "Which hormone triggers the 'fight or flight' response?",
+    "correct": "Adrenaline",
+    "wrong": [
+      "Cortisol",
+      "Testosterone",
+      "Oxytocin"
+    ],
+    "explanation": "Adrenaline (epinephrine) is released by the adrenal glands within seconds of a perceived threat. It raises heart rate, dilates airways, and redirects blood to muscles."
+  },
+  {
+    "id": "q017",
+    "category": "Human Body & Biology",
+    "difficulty": "hard",
+    "question": "How many times does the average heart beat per lifetime?",
+    "correct": "About 2.5 billion",
+    "wrong": [
+      "About 100 million",
+      "About 10 billion",
+      "About 500 million"
+    ],
+    "explanation": "At 70 beats per minute over a 70-year lifespan, the heart beats roughly 2.5 billion times \u2014 all without conscious effort or maintenance."
+  },
+  {
+    "id": "q018",
+    "category": "Human Body & Biology",
+    "difficulty": "medium",
+    "question": "Which organ filters about 180 litres of blood per day?",
+    "correct": "Kidneys",
+    "wrong": [
+      "Liver",
+      "Lungs",
+      "Heart"
+    ],
+    "explanation": "The kidneys filter all the blood in the body roughly 40 times a day, producing 1\u20132 litres of urine while reabsorbing the vast majority of water and nutrients."
+  },
+  {
+    "id": "q019",
+    "category": "Human Body & Biology",
+    "difficulty": "easy",
+    "question": "How many pairs of chromosomes do humans normally have?",
+    "correct": "23 pairs",
+    "wrong": [
+      "22 pairs",
+      "46 pairs",
+      "24 pairs"
+    ],
+    "explanation": "Human cells contain 46 chromosomes in 23 pairs \u2014 22 autosomal pairs and one sex-chromosome pair (XX or XY). Each parent contributes one chromosome per pair."
+  },
+  {
+    "id": "q020",
+    "category": "Human Body & Biology",
+    "difficulty": "medium",
+    "question": "What is the name of the protein that carries oxygen in red blood cells?",
+    "correct": "Haemoglobin",
+    "wrong": [
+      "Myoglobin",
+      "Albumin",
+      "Fibrinogen"
+    ],
+    "explanation": "Haemoglobin binds up to four oxygen molecules via iron-containing heme groups. Each red blood cell carries about 270 million haemoglobin molecules."
+  },
+  {
+    "id": "q021",
+    "category": "Human Body & Biology",
+    "difficulty": "easy",
+    "question": "Which organ is responsible for filtering toxins from the blood?",
+    "correct": "Liver",
+    "wrong": [
+      "Kidney",
+      "Spleen",
+      "Stomach"
+    ],
+    "explanation": "The liver performs over 500 functions including detoxifying blood, producing bile, and synthesising proteins. It's also the only internal organ that can fully regenerate."
+  },
+  {
+    "id": "q022",
+    "category": "Human Body & Biology",
+    "difficulty": "hard",
+    "question": "What percentage of human DNA is identical to that of a chimpanzee?",
+    "correct": "About 98.7%",
+    "wrong": [
+      "About 95%",
+      "About 85%",
+      "About 99.9%"
+    ],
+    "explanation": "Humans and chimpanzees share about 98.7% of their DNA sequence. The remaining ~1.3% accounts for significant differences in anatomy, cognition, and disease susceptibility."
+  },
+  {
+    "id": "q023",
+    "category": "Human Body & Biology",
+    "difficulty": "medium",
+    "question": "How many litres of air does the average adult inhale per day?",
+    "correct": "About 11,000 litres",
+    "wrong": [
+      "About 1,000 litres",
+      "About 500 litres",
+      "About 5,000 litres"
+    ],
+    "explanation": "At about 15 breaths per minute and 0.5 litres per breath, an adult inhales roughly 10,000\u201312,000 litres of air per day \u2014 even while doing nothing strenuous."
+  },
+  {
+    "id": "q024",
+    "category": "Human Body & Biology",
+    "difficulty": "easy",
+    "question": "Which part of the brain controls balance and coordination?",
+    "correct": "Cerebellum",
+    "wrong": [
+      "Cerebrum",
+      "Brainstem",
+      "Thalamus"
+    ],
+    "explanation": "The cerebellum ('little brain') sits at the back of the skull and fine-tunes movement, posture, and balance. Damage causes ataxia \u2014 a characteristic stumbling gait."
+  },
+  {
+    "id": "q025",
+    "category": "Human Body & Biology",
+    "difficulty": "medium",
+    "question": "What is the resting adult heart rate considered healthy?",
+    "correct": "60\u2013100 bpm",
+    "wrong": [
+      "40\u201360 bpm",
+      "100\u2013140 bpm",
+      "80\u2013120 bpm"
+    ],
+    "explanation": "Medical guidelines define a healthy resting heart rate as 60\u2013100 beats per minute. Well-trained athletes often sit below 60 \u2014 sometimes as low as 40 \u2014 due to greater cardiac efficiency."
+  },
+  {
+    "id": "q026",
+    "category": "Science & Technology",
+    "difficulty": "easy",
+    "question": "What planet is known as the Red Planet?",
+    "correct": "Mars",
+    "wrong": [
+      "Venus",
+      "Jupiter",
+      "Mercury"
+    ],
+    "explanation": "Mars gets its rusty colour from iron oxide (rust) on its surface. Its thin atmosphere and two small moons, Phobos and Deimos, make it a prime target for future human missions."
+  },
+  {
+    "id": "q027",
+    "category": "Science & Technology",
+    "difficulty": "medium",
+    "question": "What is the speed of light in a vacuum?",
+    "correct": "299,792 km/s",
+    "wrong": [
+      "150,000 km/s",
+      "500,000 km/s",
+      "100,000 km/s"
+    ],
+    "explanation": "Light travels at exactly 299,792,458 metres per second in a vacuum. This constant, denoted c, is so fundamental that the metre is now defined by it."
+  },
+  {
+    "id": "q028",
+    "category": "Science & Technology",
+    "difficulty": "easy",
+    "question": "Who invented the telephone?",
+    "correct": "Alexander Graham Bell",
+    "wrong": [
+      "Thomas Edison",
+      "Nikola Tesla",
+      "Guglielmo Marconi"
+    ],
+    "explanation": "Bell received the US patent for the telephone in March 1876, though Elisha Gray filed a competing claim the same day. Bell's first words on the device were to his assistant: 'Mr. Watson, come here.'"
+  },
+  {
+    "id": "q029",
+    "category": "Science & Technology",
+    "difficulty": "medium",
+    "question": "What does DNA stand for?",
+    "correct": "Deoxyribonucleic acid",
+    "wrong": [
+      "Deoxyribose nitric acid",
+      "Diribonucleic acid",
+      "Deoxyribose nucleus acid"
+    ],
+    "explanation": "DNA (deoxyribonucleic acid) stores genetic instructions in sequences of four bases: adenine, thymine, guanine, and cytosine. Its double-helix structure was described by Watson and Crick in 1953."
+  },
+  {
+    "id": "q030",
+    "category": "Science & Technology",
+    "difficulty": "easy",
+    "question": "What is the chemical symbol for gold?",
+    "correct": "Au",
+    "wrong": [
+      "Go",
+      "Gd",
+      "Gl"
+    ],
+    "explanation": "Au comes from the Latin 'aurum'. Gold has been valued for millennia for its rarity, malleability, and resistance to corrosion \u2014 it doesn't tarnish or rust."
+  },
+  {
+    "id": "q031",
+    "category": "Science & Technology",
+    "difficulty": "medium",
+    "question": "Which planet has the most moons in our solar system?",
+    "correct": "Saturn",
+    "wrong": [
+      "Jupiter",
+      "Uranus",
+      "Neptune"
+    ],
+    "explanation": "As of 2024, Saturn holds the record with 146 confirmed moons. Jupiter is a close second. Many of these moons were discovered recently through advanced telescope surveys."
+  },
+  {
+    "id": "q032",
+    "category": "Science & Technology",
+    "difficulty": "hard",
+    "question": "What is the name of the particle that gives other particles mass?",
+    "correct": "Higgs boson",
+    "wrong": [
+      "Graviton",
+      "Neutrino",
+      "Quark"
+    ],
+    "explanation": "The Higgs boson, predicted in 1964 by Peter Higgs, was confirmed in 2012 at CERN's Large Hadron Collider. It interacts with particles via the Higgs field to give them mass."
+  },
+  {
+    "id": "q033",
+    "category": "Science & Technology",
+    "difficulty": "easy",
+    "question": "What force keeps planets orbiting the sun?",
+    "correct": "Gravity",
+    "wrong": [
+      "Magnetism",
+      "Centrifugal force",
+      "Dark energy"
+    ],
+    "explanation": "Gravity is the attractive force between masses. The sun's massive gravitational pull curves space-time, keeping planets in their elliptical orbits according to Newton and Einstein."
+  },
+  {
+    "id": "q034",
+    "category": "Science & Technology",
+    "difficulty": "medium",
+    "question": "Which element is most abundant in the universe?",
+    "correct": "Hydrogen",
+    "wrong": [
+      "Helium",
+      "Carbon",
+      "Oxygen"
+    ],
+    "explanation": "About 75% of the universe's normal matter is hydrogen, formed in the first three minutes after the Big Bang. It's the fuel for stars and the simplest atom \u2014 one proton, one electron."
+  },
+  {
+    "id": "q035",
+    "category": "Science & Technology",
+    "difficulty": "medium",
+    "question": "In what year did the first iPhone launch?",
+    "correct": "2007",
+    "wrong": [
+      "2005",
+      "2009",
+      "2003"
+    ],
+    "explanation": "Steve Jobs unveiled the first iPhone on January 9, 2007, describing it as 'an iPod, a phone, and an internet communicator' combined. It went on sale that June."
+  },
+  {
+    "id": "q036",
+    "category": "Science & Technology",
+    "difficulty": "hard",
+    "question": "What is the name of the theory describing the origin of the universe?",
+    "correct": "The Big Bang",
+    "wrong": [
+      "Steady State",
+      "Inflation theory",
+      "String theory"
+    ],
+    "explanation": "The Big Bang theory proposes the universe began as an infinitely dense, hot singularity roughly 13.8 billion years ago and has been expanding ever since. Cosmic microwave background radiation is its strongest evidence."
+  },
+  {
+    "id": "q037",
+    "category": "Science & Technology",
+    "difficulty": "easy",
+    "question": "What gas do plants absorb during photosynthesis?",
+    "correct": "Carbon dioxide",
+    "wrong": [
+      "Oxygen",
+      "Nitrogen",
+      "Hydrogen"
+    ],
+    "explanation": "Plants absorb CO\u2082 through tiny pores called stomata and, using sunlight and water, convert it into glucose and oxygen. This process underpins almost all life on Earth."
+  },
+  {
+    "id": "q038",
+    "category": "Science & Technology",
+    "difficulty": "medium",
+    "question": "Who developed the theory of general relativity?",
+    "correct": "Albert Einstein",
+    "wrong": [
+      "Isaac Newton",
+      "Max Planck",
+      "Niels Bohr"
+    ],
+    "explanation": "Einstein published his theory of general relativity in 1915, describing gravity not as a force but as curvature of space-time caused by mass. It predicted black holes and gravitational waves \u2014 both confirmed decades later."
+  },
+  {
+    "id": "q039",
+    "category": "Science & Technology",
+    "difficulty": "medium",
+    "question": "What is the most abundant gas in Earth's atmosphere?",
+    "correct": "Nitrogen",
+    "wrong": [
+      "Oxygen",
+      "Carbon dioxide",
+      "Argon"
+    ],
+    "explanation": "Nitrogen makes up about 78% of the atmosphere, followed by oxygen at 21%. Despite its abundance, nitrogen gas (N\u2082) is largely inert \u2014 plants can't use it directly; they rely on nitrogen-fixing bacteria."
+  },
+  {
+    "id": "q040",
+    "category": "Science & Technology",
+    "difficulty": "easy",
+    "question": "How many planets are in our solar system?",
+    "correct": "Eight",
+    "wrong": [
+      "Nine",
+      "Seven",
+      "Ten"
+    ],
+    "explanation": "In 2006, the International Astronomical Union reclassified Pluto as a dwarf planet, leaving eight planets: Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, and Neptune."
+  },
+  {
+    "id": "q041",
+    "category": "Science & Technology",
+    "difficulty": "hard",
+    "question": "What does the acronym 'LASER' stand for?",
+    "correct": "Light Amplification by Stimulated Emission of Radiation",
+    "wrong": [
+      "Light Accelerated by Synthetic Electromagnetic Radiation",
+      "Linear Amplified Signal Emitting Radiation",
+      "Light Absorbed and Sent as Emitted Radiation"
+    ],
+    "explanation": "The laser principle was first described by Einstein in 1917. The first working laser was built by Theodore Maiman in 1960 using a synthetic ruby crystal."
+  },
+  {
+    "id": "q042",
+    "category": "Science & Technology",
+    "difficulty": "medium",
+    "question": "What is the smallest unit of matter?",
+    "correct": "Atom",
+    "wrong": [
+      "Molecule",
+      "Cell",
+      "Electron"
+    ],
+    "explanation": "While atoms are the smallest complete unit of a chemical element, they're made of protons, neutrons, and electrons \u2014 which are in turn made of quarks. 'Smallest' depends on context."
+  },
+  {
+    "id": "q043",
+    "category": "Science & Technology",
+    "difficulty": "easy",
+    "question": "Which scientist is famous for the apple and gravity story?",
+    "correct": "Isaac Newton",
+    "wrong": [
+      "Galileo Galilei",
+      "Albert Einstein",
+      "Charles Darwin"
+    ],
+    "explanation": "The story \u2014 likely embellished \u2014 tells of Newton seeing an apple fall in 1666, inspiring his law of universal gravitation. He published his mathematical laws of motion and gravity in Principia Mathematica in 1687."
+  },
+  {
+    "id": "q044",
+    "category": "Science & Technology",
+    "difficulty": "medium",
+    "question": "What does WiFi stand for?",
+    "correct": "Wireless Fidelity",
+    "wrong": [
+      "Wireless Frequency",
+      "Wide Field Internet",
+      "Wireless Finder"
+    ],
+    "explanation": "'WiFi' was coined as a marketing term by the Wi-Fi Alliance in 1999 \u2014 a play on 'Hi-Fi' (high fidelity). It refers to wireless networking using IEEE 802.11 standards."
+  },
+  {
+    "id": "q045",
+    "category": "Science & Technology",
+    "difficulty": "hard",
+    "question": "What is the half-life of Carbon-14?",
+    "correct": "About 5,730 years",
+    "wrong": [
+      "About 500 years",
+      "About 50,000 years",
+      "About 1,000 years"
+    ],
+    "explanation": "Carbon-14 decays at a known, constant rate with a half-life of 5,730 years. This makes it invaluable for radiocarbon dating of organic materials up to around 50,000 years old."
+  },
+  {
+    "id": "q046",
+    "category": "Science & Technology",
+    "difficulty": "medium",
+    "question": "What technology underlies Bitcoin and other cryptocurrencies?",
+    "correct": "Blockchain",
+    "wrong": [
+      "Cloud computing",
+      "Quantum computing",
+      "Neural network"
+    ],
+    "explanation": "A blockchain is a distributed, immutable ledger of transactions. Each block contains a cryptographic hash of the previous block, making tampering computationally impractical."
+  },
+  {
+    "id": "q047",
+    "category": "Science & Technology",
+    "difficulty": "easy",
+    "question": "What is H\u2082O more commonly known as?",
+    "correct": "Water",
+    "wrong": [
+      "Hydrogen peroxide",
+      "Alcohol",
+      "Ammonia"
+    ],
+    "explanation": "H\u2082O is water \u2014 two hydrogen atoms bonded to one oxygen atom. Its unique bent molecular shape gives it polarity, responsible for its remarkable properties as a solvent and for life."
+  },
+  {
+    "id": "q048",
+    "category": "Science & Technology",
+    "difficulty": "medium",
+    "question": "Which country launched the world's first artificial satellite?",
+    "correct": "Soviet Union",
+    "wrong": [
+      "United States",
+      "China",
+      "Germany"
+    ],
+    "explanation": "The Soviet Union launched Sputnik 1 on October 4, 1957. The 83 kg sphere orbited Earth every 98 minutes and marked the start of the Space Age, shocking the Western world."
+  },
+  {
+    "id": "q049",
+    "category": "Science & Technology",
+    "difficulty": "hard",
+    "question": "Which programming language was first developed at Bell Labs?",
+    "correct": "C",
+    "wrong": [
+      "Python",
+      "Java",
+      "FORTRAN"
+    ],
+    "explanation": "Dennis Ritchie developed C at Bell Labs in 1972. It became enormously influential \u2014 most modern operating systems, including Unix, Linux, and the core of Windows, are written in C or its derivatives."
+  },
+  {
+    "id": "q050",
+    "category": "Science & Technology",
+    "difficulty": "easy",
+    "question": "What is the main function of white blood cells?",
+    "correct": "Fight infection",
+    "wrong": [
+      "Carry oxygen",
+      "Clot blood",
+      "Transport nutrients"
+    ],
+    "explanation": "White blood cells (leukocytes) are the immune system's soldiers. Different types \u2014 neutrophils, lymphocytes, macrophages \u2014 attack bacteria, viruses, and other foreign invaders."
+  },
+  {
+    "id": "q051",
+    "category": "History & Famous Firsts",
+    "difficulty": "easy",
+    "question": "Who was the first person to walk on the moon?",
+    "correct": "Neil Armstrong",
+    "wrong": [
+      "Buzz Aldrin",
+      "Yuri Gagarin",
+      "John Glenn"
+    ],
+    "explanation": "Neil Armstrong stepped onto the lunar surface on July 20, 1969, during the Apollo 11 mission, saying: 'That's one small step for man, one giant leap for mankind.' Buzz Aldrin followed 20 minutes later."
+  },
+  {
+    "id": "q052",
+    "category": "History & Famous Firsts",
+    "difficulty": "medium",
+    "question": "In which year did World War II end?",
+    "correct": "1945",
+    "wrong": [
+      "1944",
+      "1946",
+      "1943"
+    ],
+    "explanation": "World War II ended in 1945 \u2014 Victory in Europe (VE Day) was declared on May 8 after Germany's surrender, and Victory over Japan (VJ Day) followed on August 15 after the atomic bombings."
+  },
+  {
+    "id": "q053",
+    "category": "History & Famous Firsts",
+    "difficulty": "easy",
+    "question": "Who was the first woman to win a Nobel Prize?",
+    "correct": "Marie Curie",
+    "wrong": [
+      "Rosalind Franklin",
+      "Florence Nightingale",
+      "Ada Lovelace"
+    ],
+    "explanation": "Marie Curie won the Nobel Prize in Physics in 1903 (shared with her husband Pierre) and in Chemistry in 1908 \u2014 the first person to win Nobels in two different sciences."
+  },
+  {
+    "id": "q054",
+    "category": "History & Famous Firsts",
+    "difficulty": "medium",
+    "question": "Which ancient wonder of the world is still standing?",
+    "correct": "Great Pyramid of Giza",
+    "wrong": [
+      "Hanging Gardens",
+      "Colossus of Rhodes",
+      "Temple of Artemis"
+    ],
+    "explanation": "The Great Pyramid of Giza, built around 2560 BC for Pharaoh Khufu, is the oldest and only surviving ancient wonder. It was the world's tallest human-made structure for over 3,800 years."
+  },
+  {
+    "id": "q055",
+    "category": "History & Famous Firsts",
+    "difficulty": "hard",
+    "question": "What empire was the largest by land area in history?",
+    "correct": "Mongol Empire",
+    "wrong": [
+      "British Empire",
+      "Roman Empire",
+      "Ottoman Empire"
+    ],
+    "explanation": "At its peak in the 13th century, the Mongol Empire covered over 24 million square kilometres \u2014 about 16% of Earth's total land area. The British Empire was larger by some measures but not in contiguous land."
+  },
+  {
+    "id": "q056",
+    "category": "History & Famous Firsts",
+    "difficulty": "medium",
+    "question": "In which city was the Titanic built?",
+    "correct": "Belfast",
+    "wrong": [
+      "London",
+      "Liverpool",
+      "Dublin"
+    ],
+    "explanation": "The RMS Titanic was built by Harland and Wolff shipyard in Belfast, Northern Ireland. Construction began in 1909 and the ship launched in 1911 before sinking on its maiden voyage in April 1912."
+  },
+  {
+    "id": "q057",
+    "category": "History & Famous Firsts",
+    "difficulty": "easy",
+    "question": "Who painted the Mona Lisa?",
+    "correct": "Leonardo da Vinci",
+    "wrong": [
+      "Michelangelo",
+      "Raphael",
+      "Caravaggio"
+    ],
+    "explanation": "Leonardo da Vinci painted the Mona Lisa between approximately 1503 and 1519. The identity of the subject is widely believed to be Lisa Gherardini, wife of a Florentine merchant."
+  },
+  {
+    "id": "q058",
+    "category": "History & Famous Firsts",
+    "difficulty": "medium",
+    "question": "Which year did the Berlin Wall fall?",
+    "correct": "1989",
+    "wrong": [
+      "1991",
+      "1985",
+      "1987"
+    ],
+    "explanation": "The Berlin Wall fell on November 9, 1989, after the East German government opened checkpoints. It had divided Berlin since 1961. Germany officially reunified on October 3, 1990."
+  },
+  {
+    "id": "q059",
+    "category": "History & Famous Firsts",
+    "difficulty": "hard",
+    "question": "What civilisation built Machu Picchu?",
+    "correct": "Inca",
+    "wrong": [
+      "Aztec",
+      "Maya",
+      "Olmec"
+    ],
+    "explanation": "The Inca emperor Pachacuti built Machu Picchu around 1450 AD. At 2,430 metres above sea level in Peru, its precise stone masonry was achieved without the wheel or iron tools."
+  },
+  {
+    "id": "q060",
+    "category": "History & Famous Firsts",
+    "difficulty": "easy",
+    "question": "Who was the first US president?",
+    "correct": "George Washington",
+    "wrong": [
+      "Thomas Jefferson",
+      "John Adams",
+      "Benjamin Franklin"
+    ],
+    "explanation": "George Washington served two terms as the first US president from 1789 to 1797. He's also famous for his role commanding the Continental Army during the American Revolutionary War."
+  },
+  {
+    "id": "q061",
+    "category": "History & Famous Firsts",
+    "difficulty": "medium",
+    "question": "Which country first gave women the right to vote?",
+    "correct": "New Zealand",
+    "wrong": [
+      "Australia",
+      "Finland",
+      "United Kingdom"
+    ],
+    "explanation": "New Zealand granted women the right to vote in 1893, becoming the first self-governing country to do so. Kate Sheppard led the suffrage campaign. Women could vote but not stand for parliament until 1919."
+  },
+  {
+    "id": "q062",
+    "category": "History & Famous Firsts",
+    "difficulty": "medium",
+    "question": "What was the name of the first human to travel to space?",
+    "correct": "Yuri Gagarin",
+    "wrong": [
+      "Neil Armstrong",
+      "Alan Shepard",
+      "Valentina Tereshkova"
+    ],
+    "explanation": "Soviet cosmonaut Yuri Gagarin completed one orbit of Earth on April 12, 1961, in his Vostok 1 capsule. The flight lasted 108 minutes and made him a global hero overnight."
+  },
+  {
+    "id": "q063",
+    "category": "History & Famous Firsts",
+    "difficulty": "hard",
+    "question": "How long did the Hundred Years' War actually last?",
+    "correct": "116 years",
+    "wrong": [
+      "100 years",
+      "87 years",
+      "134 years"
+    ],
+    "explanation": "The Hundred Years' War between England and France lasted from 1337 to 1453 \u2014 116 years. Joan of Arc's famous campaigns came near its end, reinvigorating French resistance against English forces."
+  },
+  {
+    "id": "q064",
+    "category": "History & Famous Firsts",
+    "difficulty": "easy",
+    "question": "What did Christopher Columbus discover in 1492?",
+    "correct": "The Americas",
+    "wrong": [
+      "Africa",
+      "Australia",
+      "India"
+    ],
+    "explanation": "Columbus's 1492 voyage landed in the Caribbean, which he believed to be Asia. His 'discovery' opened sustained European contact with the Americas, though indigenous peoples had lived there for millennia."
+  },
+  {
+    "id": "q065",
+    "category": "History & Famous Firsts",
+    "difficulty": "medium",
+    "question": "Which city hosted the first modern Olympic Games in 1896?",
+    "correct": "Athens",
+    "wrong": [
+      "Paris",
+      "London",
+      "Rome"
+    ],
+    "explanation": "The first modern Olympics were held in Athens, Greece in April 1896, organised by Pierre de Coubertin. Fourteen nations competed in 43 events. A Greek runner won the first marathon."
+  },
+  {
+    "id": "q066",
+    "category": "History & Famous Firsts",
+    "difficulty": "hard",
+    "question": "What year was the Magna Carta signed?",
+    "correct": "1215",
+    "wrong": [
+      "1066",
+      "1350",
+      "1485"
+    ],
+    "explanation": "King John of England sealed Magna Carta at Runnymede on June 15, 1215, limiting royal power and establishing that the king was subject to law. It's considered a foundation document for modern democracy."
+  },
+  {
+    "id": "q067",
+    "category": "History & Famous Firsts",
+    "difficulty": "easy",
+    "question": "What nationality was Napoleon Bonaparte?",
+    "correct": "French (Corsican-born)",
+    "wrong": [
+      "Italian",
+      "Spanish",
+      "Austrian"
+    ],
+    "explanation": "Napoleon was born in Corsica in 1769, the year after France acquired the island from Genoa. He considered himself French and rose through the ranks to become Emperor of the French in 1804."
+  },
+  {
+    "id": "q068",
+    "category": "History & Famous Firsts",
+    "difficulty": "medium",
+    "question": "Which empire built the Colosseum in Rome?",
+    "correct": "Roman Empire",
+    "wrong": [
+      "Greek Empire",
+      "Byzantine Empire",
+      "Ottoman Empire"
+    ],
+    "explanation": "The Colosseum was built by Emperor Vespasian starting in 72 AD and completed under Titus in 80 AD. It held up to 80,000 spectators for gladiatorial contests and public spectacles."
+  },
+  {
+    "id": "q069",
+    "category": "History & Famous Firsts",
+    "difficulty": "medium",
+    "question": "Who invented the printing press with movable type in Europe?",
+    "correct": "Johannes Gutenberg",
+    "wrong": [
+      "Leonardo da Vinci",
+      "Roger Bacon",
+      "William Caxton"
+    ],
+    "explanation": "Gutenberg invented the printing press around 1440 in Mainz, Germany. His first major work, the Gutenberg Bible (c.1455), accelerated the spread of literacy and the Protestant Reformation."
+  },
+  {
+    "id": "q070",
+    "category": "History & Famous Firsts",
+    "difficulty": "hard",
+    "question": "What was the name of the first nuclear bomb dropped in wartime?",
+    "correct": "Little Boy",
+    "wrong": [
+      "Fat Man",
+      "Trinity",
+      "Big Boy"
+    ],
+    "explanation": "'Little Boy', a uranium gun-type bomb, was dropped on Hiroshima on August 6, 1945. 'Fat Man', a plutonium implosion bomb, followed on Nagasaki three days later. Together they hastened Japan's surrender."
+  },
+  {
+    "id": "q071",
+    "category": "History & Famous Firsts",
+    "difficulty": "easy",
+    "question": "Which queen ruled Britain for the longest time in history?",
+    "correct": "Queen Elizabeth II",
+    "wrong": [
+      "Queen Victoria",
+      "Queen Mary I",
+      "Queen Elizabeth I"
+    ],
+    "explanation": "Queen Elizabeth II reigned for 70 years and 214 days, from February 1952 until her death in September 2022 \u2014 surpassing Queen Victoria's 63-year reign and becoming Britain's longest-serving monarch."
+  },
+  {
+    "id": "q072",
+    "category": "History & Famous Firsts",
+    "difficulty": "medium",
+    "question": "In which year did the French Revolution begin?",
+    "correct": "1789",
+    "wrong": [
+      "1776",
+      "1804",
+      "1815"
+    ],
+    "explanation": "The French Revolution began in 1789 with the Estates-General convening and the storming of the Bastille on July 14. It toppled the monarchy and reshaped Europe's political landscape."
+  },
+  {
+    "id": "q073",
+    "category": "History & Famous Firsts",
+    "difficulty": "medium",
+    "question": "What did Alfred Nobel invent, funding the Nobel Prizes?",
+    "correct": "Dynamite",
+    "wrong": [
+      "TNT",
+      "Gunpowder",
+      "Nitroglycerin"
+    ],
+    "explanation": "Alfred Nobel invented dynamite in 1867 by stabilising nitroglycerin with diatomite. Troubled by the destructive uses of his invention, he left his fortune to establish the Nobel Prizes."
+  },
+  {
+    "id": "q074",
+    "category": "History & Famous Firsts",
+    "difficulty": "hard",
+    "question": "What ancient city is known as the 'city of a thousand minarets'?",
+    "correct": "Cairo",
+    "wrong": [
+      "Istanbul",
+      "Baghdad",
+      "Damascus"
+    ],
+    "explanation": "Cairo earned the nickname for its extraordinary number of historic Islamic mosques. Founded in 969 AD, it became the capital of the Fatimid Caliphate and grew into the Arab world's largest city."
+  },
+  {
+    "id": "q075",
+    "category": "History & Famous Firsts",
+    "difficulty": "easy",
+    "question": "Who wrote the Declaration of Independence?",
+    "correct": "Thomas Jefferson",
+    "wrong": [
+      "George Washington",
+      "Benjamin Franklin",
+      "John Adams"
+    ],
+    "explanation": "Thomas Jefferson drafted the Declaration of Independence in 1776, drawing on Enlightenment philosophy. Franklin and Adams made minor revisions before the Continental Congress adopted it on July 4."
+  },
+  {
+    "id": "q076",
+    "category": "Sports & World Records",
+    "difficulty": "easy",
+    "question": "How many players are on a standard football (soccer) team?",
+    "correct": "11",
+    "wrong": [
+      "10",
+      "12",
+      "9"
+    ],
+    "explanation": "Each team fields 11 players including the goalkeeper. The rules, standardised by the Football Association in 1863, allow for up to three substitutions in most competitions."
+  },
+  {
+    "id": "q077",
+    "category": "Sports & World Records",
+    "difficulty": "medium",
+    "question": "Who holds the record for the most Olympic gold medals ever?",
+    "correct": "Michael Phelps",
+    "wrong": [
+      "Usain Bolt",
+      "Larisa Latynina",
+      "Carl Lewis"
+    ],
+    "explanation": "American swimmer Michael Phelps won 23 Olympic gold medals (28 total medals) across four Games. His nearest rival, Soviet gymnast Larisa Latynina, won 9 golds."
+  },
+  {
+    "id": "q078",
+    "category": "Sports & World Records",
+    "difficulty": "easy",
+    "question": "What is the distance of a marathon race?",
+    "correct": "42.195 km",
+    "wrong": [
+      "40 km",
+      "45 km",
+      "38 km"
+    ],
+    "explanation": "The modern marathon distance was standardised at 42.195 km (26 miles 385 yards) at the 1908 London Olympics to accommodate the British royal family's viewing preferences \u2014 from Windsor Castle to the Olympic stadium."
+  },
+  {
+    "id": "q079",
+    "category": "Sports & World Records",
+    "difficulty": "medium",
+    "question": "Which country has won the most FIFA World Cup titles?",
+    "correct": "Brazil",
+    "wrong": [
+      "Germany",
+      "Italy",
+      "Argentina"
+    ],
+    "explanation": "Brazil has won the FIFA World Cup five times \u2014 1958, 1962, 1970, 1994, and 2002. They are the only team to have participated in every World Cup tournament."
+  },
+  {
+    "id": "q080",
+    "category": "Sports & World Records",
+    "difficulty": "hard",
+    "question": "What is the fastest recorded serve speed in professional tennis?",
+    "correct": "263.4 km/h (Sam Groth)",
+    "wrong": [
+      "241 km/h",
+      "280 km/h",
+      "255 km/h"
+    ],
+    "explanation": "Australian Sam Groth hit a serve recorded at 263.4 km/h (163.7 mph) at the Busan Open Challenger in 2012. However, many speed guns vary, and some records are disputed."
+  },
+  {
+    "id": "q081",
+    "category": "Sports & World Records",
+    "difficulty": "easy",
+    "question": "How many points is a touchdown worth in American football?",
+    "correct": "6 points",
+    "wrong": [
+      "7 points",
+      "3 points",
+      "5 points"
+    ],
+    "explanation": "A touchdown scores 6 points. The team then gets a chance for an extra point (kick) or two-point conversion, making a full scoring sequence worth 7 or 8 points."
+  },
+  {
+    "id": "q082",
+    "category": "Sports & World Records",
+    "difficulty": "medium",
+    "question": "Which country invented the sport of basketball?",
+    "correct": "United States",
+    "wrong": [
+      "Canada",
+      "United Kingdom",
+      "France"
+    ],
+    "explanation": "Basketball was invented by Canadian-American Dr. James Naismith in Springfield, Massachusetts in December 1891. He nailed peach baskets to a gymnasium balcony as the first hoops."
+  },
+  {
+    "id": "q083",
+    "category": "Sports & World Records",
+    "difficulty": "easy",
+    "question": "In golf, what is the term for one stroke under par?",
+    "correct": "Birdie",
+    "wrong": [
+      "Eagle",
+      "Bogey",
+      "Albatross"
+    ],
+    "explanation": "A birdie is one under par. Eagle is two under. Albatross (or double eagle) is three under \u2014 rare and celebrated. Bogey is one over par."
+  },
+  {
+    "id": "q084",
+    "category": "Sports & World Records",
+    "difficulty": "medium",
+    "question": "Which sprinter set the 100m world record of 9.58 seconds?",
+    "correct": "Usain Bolt",
+    "wrong": [
+      "Tyson Gay",
+      "Asafa Powell",
+      "Justin Gatlin"
+    ],
+    "explanation": "Jamaican sprinter Usain Bolt set the 100m world record at the 2009 Berlin World Championships. He also holds the 200m record (19.19s) and is widely considered the greatest sprinter of all time."
+  },
+  {
+    "id": "q085",
+    "category": "Sports & World Records",
+    "difficulty": "hard",
+    "question": "How many Grand Slam tennis titles has Novak Djokovic won?",
+    "correct": "24",
+    "wrong": [
+      "20",
+      "22",
+      "21"
+    ],
+    "explanation": "Djokovic surpassed Rafael Nadal's record in 2023 with his 23rd Grand Slam, then added his 24th at the US Open 2023. He's won all four Slams multiple times across three decades."
+  },
+  {
+    "id": "q086",
+    "category": "Sports & World Records",
+    "difficulty": "easy",
+    "question": "How many rings are on the Olympic flag?",
+    "correct": "Five",
+    "wrong": [
+      "Four",
+      "Six",
+      "Seven"
+    ],
+    "explanation": "The five interlocking rings represent the five continents of the world: Africa, the Americas, Asia, Europe, and Oceania. Pierre de Coubertin designed the flag in 1913."
+  },
+  {
+    "id": "q087",
+    "category": "Sports & World Records",
+    "difficulty": "medium",
+    "question": "What is the highest score possible in a single bowling frame?",
+    "correct": "Strike (10 pins)",
+    "wrong": [
+      "12 pins",
+      "9 pins",
+      "8 pins"
+    ],
+    "explanation": "A strike knocks all 10 pins on the first ball. In the 10th frame, a player can bowl a third ball after getting a strike or spare, enabling a maximum game score of 300 \u2014 a 'perfect game'."
+  },
+  {
+    "id": "q088",
+    "category": "Sports & World Records",
+    "difficulty": "medium",
+    "question": "Which sport uses a shuttlecock?",
+    "correct": "Badminton",
+    "wrong": [
+      "Squash",
+      "Tennis",
+      "Lacrosse"
+    ],
+    "explanation": "A shuttlecock (also called a birdie) has 16 feathers arranged in a conical form around a rounded cork base. In top men's badminton, smashes can exceed 490 km/h \u2014 the fastest projectile speed in any racket sport."
+  },
+  {
+    "id": "q089",
+    "category": "Sports & World Records",
+    "difficulty": "easy",
+    "question": "How many players are on a basketball team on the court at one time?",
+    "correct": "Five per team",
+    "wrong": [
+      "Six per team",
+      "Four per team",
+      "Seven per team"
+    ],
+    "explanation": "Each basketball team fields 5 players. An NBA roster has 15 players, with 13 active on game day. Substitutions can be made at any stoppage in play."
+  },
+  {
+    "id": "q090",
+    "category": "Sports & World Records",
+    "difficulty": "hard",
+    "question": "In what year did Tiger Woods win his first Masters Tournament?",
+    "correct": "1997",
+    "wrong": [
+      "1999",
+      "2001",
+      "1995"
+    ],
+    "explanation": "Tiger Woods won his first Masters in 1997 at age 21 with a record score of 270 (18 under par), winning by 12 strokes \u2014 still the largest Masters margin of victory."
+  },
+  {
+    "id": "q091",
+    "category": "Sports & World Records",
+    "difficulty": "medium",
+    "question": "Which country has won the most Rugby World Cup titles?",
+    "correct": "New Zealand",
+    "wrong": [
+      "South Africa",
+      "Australia",
+      "England"
+    ],
+    "explanation": "New Zealand's All Blacks have won the Rugby World Cup four times (1987, 2011, 2015, 2023). Their pre-match haka \u2014 a traditional M\u0101ori war dance \u2014 is one of sport's most iconic rituals."
+  },
+  {
+    "id": "q092",
+    "category": "Sports & World Records",
+    "difficulty": "easy",
+    "question": "What sport is played at Wimbledon?",
+    "correct": "Tennis",
+    "wrong": [
+      "Cricket",
+      "Croquet",
+      "Squash"
+    ],
+    "explanation": "Wimbledon, held at the All England Lawn Tennis and Croquet Club in London, is the world's oldest tennis Grand Slam, first played in 1877. It's the only Slam still played on grass."
+  },
+  {
+    "id": "q093",
+    "category": "Sports & World Records",
+    "difficulty": "medium",
+    "question": "How long is an Olympic swimming pool?",
+    "correct": "50 metres",
+    "wrong": [
+      "25 metres",
+      "100 metres",
+      "75 metres"
+    ],
+    "explanation": "Olympic pools are 50m long, 25m wide, and at least 2m deep. They have 10 lanes, though only 8 are used in competition. Water temperature is maintained between 25\u201328\u00b0C."
+  },
+  {
+    "id": "q094",
+    "category": "Sports & World Records",
+    "difficulty": "hard",
+    "question": "Which cyclist has won the most Tour de France titles?",
+    "correct": "Lance Armstrong (stripped) / Merckx (recognised)",
+    "wrong": [
+      "Miguel Indurain",
+      "Bernard Hinault",
+      "Jacques Anquetil"
+    ],
+    "explanation": "Lance Armstrong won 7 consecutive titles (1999\u20132005) but was stripped for doping. The official record holders are Eddy Merckx, Bernard Hinault, Miguel Indurain, and Jacques Anquetil \u2014 each with 5 wins."
+  },
+  {
+    "id": "q095",
+    "category": "Sports & World Records",
+    "difficulty": "easy",
+    "question": "What game involves hitting a ball with a bat and running bases?",
+    "correct": "Baseball",
+    "wrong": [
+      "Cricket",
+      "Softball",
+      "Rounders"
+    ],
+    "explanation": "Baseball is America's traditional national pastime. Nine players per side take turns batting and fielding over nine innings. A home run clears the outfield fence for an automatic score."
+  },
+  {
+    "id": "q096",
+    "category": "Sports & World Records",
+    "difficulty": "medium",
+    "question": "In which decade was the FIFA World Cup first held?",
+    "correct": "1930s",
+    "wrong": [
+      "1920s",
+      "1940s",
+      "1950s"
+    ],
+    "explanation": "The first FIFA World Cup was held in Uruguay in 1930, hosted because Uruguay had won the 1924 and 1928 Olympic football titles. Uruguay beat Argentina 4-2 in the final."
+  },
+  {
+    "id": "q097",
+    "category": "Sports & World Records",
+    "difficulty": "medium",
+    "question": "What colour is the bull's-eye in archery?",
+    "correct": "Yellow",
+    "wrong": [
+      "Red",
+      "Gold",
+      "Black"
+    ],
+    "explanation": "In World Archery's standard target, the bull's-eye is gold/yellow. The rings outward are red, blue, black, and white. The innermost gold ring scores 10 points in Olympic archery."
+  },
+  {
+    "id": "q098",
+    "category": "Sports & World Records",
+    "difficulty": "easy",
+    "question": "How many points is a try worth in Rugby Union?",
+    "correct": "Five",
+    "wrong": [
+      "Three",
+      "Four",
+      "Six"
+    ],
+    "explanation": "In Rugby Union, a try scores 5 points. The scoring team then attempts a conversion kick worth 2 additional points. A penalty goal is worth 3, and a drop goal is also worth 3."
+  },
+  {
+    "id": "q099",
+    "category": "Sports & World Records",
+    "difficulty": "hard",
+    "question": "What is the shortest ever boxing match on record?",
+    "correct": "4 seconds (Branco Cikatic)",
+    "wrong": [
+      "10 seconds",
+      "2 minutes",
+      "30 seconds"
+    ],
+    "explanation": "Croatian kickboxer Branco Cikatic KO'd Daniel Rousalev in approximately 4 seconds in 1992. Several boxers have been knocked out in under 10 seconds, making boxing one of sports' most unpredictable events."
+  },
+  {
+    "id": "q100",
+    "category": "Sports & World Records",
+    "difficulty": "medium",
+    "question": "Which country invented the sport of cricket?",
+    "correct": "England",
+    "wrong": [
+      "Australia",
+      "India",
+      "West Indies"
+    ],
+    "explanation": "Cricket originated in south-east England in the late 16th century. The laws were first codified in 1744, and the Marylebone Cricket Club (MCC) became the sport's custodian from 1787."
+  },
+  {
+    "id": "q101",
+    "category": "Nature & Animals",
+    "difficulty": "easy",
+    "question": "What is the fastest land animal on Earth?",
+    "correct": "Cheetah",
+    "wrong": [
+      "Lion",
+      "Greyhound",
+      "Pronghorn antelope"
+    ],
+    "explanation": "Cheetahs can accelerate from 0 to 100 km/h in about 3 seconds and reach speeds of 112 km/h. However, they can only maintain this speed for about 400 metres before overheating."
+  },
+  {
+    "id": "q102",
+    "category": "Nature & Animals",
+    "difficulty": "medium",
+    "question": "How long can a snail sleep?",
+    "correct": "Up to 3 years",
+    "wrong": [
+      "One week",
+      "Two months",
+      "One year"
+    ],
+    "explanation": "Snails can enter a prolonged state of hibernation or aestivation for up to 3 years during unfavourable conditions. They seal their shell entrance with a dried mucus layer called an epiphragm."
+  },
+  {
+    "id": "q103",
+    "category": "Nature & Animals",
+    "difficulty": "easy",
+    "question": "What is the largest animal on Earth?",
+    "correct": "Blue whale",
+    "wrong": [
+      "African elephant",
+      "Giant squid",
+      "Whale shark"
+    ],
+    "explanation": "The blue whale can reach up to 30 metres in length and weigh up to 200 tonnes \u2014 heavier than any dinosaur. Its heart alone weighs as much as a small car."
+  },
+  {
+    "id": "q104",
+    "category": "Nature & Animals",
+    "difficulty": "medium",
+    "question": "Which bird can fly backwards?",
+    "correct": "Hummingbird",
+    "wrong": [
+      "Swift",
+      "Swallow",
+      "Eagle"
+    ],
+    "explanation": "Hummingbirds are the only birds capable of sustained backward flight. Their wings rotate in a figure-eight pattern, generating lift on both the forward and backward stroke at up to 80 beats per second."
+  },
+  {
+    "id": "q105",
+    "category": "Nature & Animals",
+    "difficulty": "hard",
+    "question": "How many eyes does a bee have?",
+    "correct": "Five",
+    "wrong": [
+      "Two",
+      "Three",
+      "Four"
+    ],
+    "explanation": "Bees have two large compound eyes and three simple eyes (ocelli) arranged in a triangle on top of the head. The compound eyes see UV light and detect patterns; the ocelli sense light intensity for navigation."
+  },
+  {
+    "id": "q106",
+    "category": "Nature & Animals",
+    "difficulty": "easy",
+    "question": "What do you call a group of lions?",
+    "correct": "Pride",
+    "wrong": [
+      "Pack",
+      "Herd",
+      "Colony"
+    ],
+    "explanation": "A group of lions is called a pride, typically consisting of related females, their cubs, and a small number of adult males. Females do most of the hunting while males protect the territory."
+  },
+  {
+    "id": "q107",
+    "category": "Nature & Animals",
+    "difficulty": "medium",
+    "question": "Which is the only mammal capable of true flight?",
+    "correct": "Bat",
+    "wrong": [
+      "Flying squirrel",
+      "Sugar glider",
+      "Colugo"
+    ],
+    "explanation": "Bats are the only mammals with the anatomical structure for true powered flight. Flying squirrels and colugos glide using stretched skin membranes, but cannot generate sustained lift."
+  },
+  {
+    "id": "q108",
+    "category": "Nature & Animals",
+    "difficulty": "easy",
+    "question": "What is the tallest animal on Earth?",
+    "correct": "Giraffe",
+    "wrong": [
+      "Elephant",
+      "Ostrich",
+      "Polar bear"
+    ],
+    "explanation": "Male giraffes can reach heights of 5.7 metres. Their elongated necks \u2014 containing only the same seven vertebrae as most mammals \u2014 help them browse treetops that other herbivores can't reach."
+  },
+  {
+    "id": "q109",
+    "category": "Nature & Animals",
+    "difficulty": "medium",
+    "question": "How long is an elephant's gestation period?",
+    "correct": "About 22 months",
+    "wrong": [
+      "9 months",
+      "12 months",
+      "18 months"
+    ],
+    "explanation": "At 22 months, elephants have the longest gestation of any land mammal. This extended period produces calves that are highly developed at birth \u2014 able to walk within hours and nurse immediately."
+  },
+  {
+    "id": "q110",
+    "category": "Nature & Animals",
+    "difficulty": "hard",
+    "question": "What is the deepest point in the world's oceans?",
+    "correct": "Challenger Deep, Mariana Trench",
+    "wrong": [
+      "Puerto Rico Trench",
+      "Java Trench",
+      "Philippine Trench"
+    ],
+    "explanation": "Challenger Deep in the Mariana Trench reaches approximately 10,935 metres below sea level. The pressure at that depth is over 1,000 times atmospheric \u2014 equivalent to 50 jumbo jets stacked on your back."
+  },
+  {
+    "id": "q111",
+    "category": "Nature & Animals",
+    "difficulty": "easy",
+    "question": "What gas do trees release that humans breathe in?",
+    "correct": "Oxygen",
+    "wrong": [
+      "Carbon dioxide",
+      "Nitrogen",
+      "Methane"
+    ],
+    "explanation": "Trees absorb CO\u2082 and, through photosynthesis, release oxygen. A single mature tree can produce enough oxygen to support two human beings per year."
+  },
+  {
+    "id": "q112",
+    "category": "Nature & Animals",
+    "difficulty": "medium",
+    "question": "Which animal has the longest lifespan on Earth?",
+    "correct": "Ocean quahog clam",
+    "wrong": [
+      "Galapagos tortoise",
+      "Greenland shark",
+      "Bowhead whale"
+    ],
+    "explanation": "An ocean quahog clam named 'Ming' lived for 507 years, confirmed by counting growth rings. Greenland sharks can also reach 400+ years, making them the longest-lived vertebrates."
+  },
+  {
+    "id": "q113",
+    "category": "Nature & Animals",
+    "difficulty": "easy",
+    "question": "How many legs does a spider have?",
+    "correct": "Eight",
+    "wrong": [
+      "Six",
+      "Ten",
+      "Twelve"
+    ],
+    "explanation": "Spiders have eight legs (four pairs), distinguishing them from insects which have six. They're arachnids \u2014 a class that also includes scorpions, mites, and ticks."
+  },
+  {
+    "id": "q114",
+    "category": "Nature & Animals",
+    "difficulty": "medium",
+    "question": "What is the name of the tree that produces acorns?",
+    "correct": "Oak",
+    "wrong": [
+      "Elm",
+      "Beech",
+      "Chestnut"
+    ],
+    "explanation": "Oak trees (genus Quercus) produce acorns \u2014 the tree's fruit and seed. A single oak can produce up to 70,000 acorns per year, though only one in 10,000 becomes a mature tree."
+  },
+  {
+    "id": "q115",
+    "category": "Nature & Animals",
+    "difficulty": "hard",
+    "question": "How many hearts does an octopus have?",
+    "correct": "Three",
+    "wrong": [
+      "One",
+      "Two",
+      "Four"
+    ],
+    "explanation": "Octopuses have three hearts: one systemic heart that pumps blood to the body and two branchial hearts that pump blood through the gills. Their blood is blue due to copper-based haemocyanin."
+  },
+  {
+    "id": "q116",
+    "category": "Nature & Animals",
+    "difficulty": "easy",
+    "question": "What is the largest species of shark?",
+    "correct": "Whale shark",
+    "wrong": [
+      "Great white shark",
+      "Hammerhead shark",
+      "Tiger shark"
+    ],
+    "explanation": "Whale sharks can reach 12\u201318 metres in length, making them the world's largest fish. Despite their size, they're filter feeders \u2014 subsisting on tiny plankton and small fish."
+  },
+  {
+    "id": "q117",
+    "category": "Nature & Animals",
+    "difficulty": "medium",
+    "question": "Which bird has the largest wingspan?",
+    "correct": "Wandering albatross",
+    "wrong": [
+      "Andean condor",
+      "California condor",
+      "Marabou stork"
+    ],
+    "explanation": "The wandering albatross can have a wingspan of up to 3.7 metres \u2014 wider than many small aircraft. It can glide over thousands of kilometres of ocean without flapping its wings."
+  },
+  {
+    "id": "q118",
+    "category": "Nature & Animals",
+    "difficulty": "medium",
+    "question": "What is the largest land animal on Earth?",
+    "correct": "African elephant",
+    "wrong": [
+      "Hippopotamus",
+      "White rhinoceros",
+      "Giraffe"
+    ],
+    "explanation": "African bush elephants are the world's largest land animals, with males reaching 4 metres at the shoulder and weighing up to 7 tonnes. They're highly intelligent and show empathy, grief, and tool use."
+  },
+  {
+    "id": "q119",
+    "category": "Nature & Animals",
+    "difficulty": "easy",
+    "question": "How do dolphins sleep?",
+    "correct": "Half their brain at a time",
+    "wrong": [
+      "Floating motionless",
+      "On the seabed",
+      "In short bursts of full sleep"
+    ],
+    "explanation": "Dolphins practise unihemispheric sleep \u2014 shutting down one brain hemisphere while the other stays alert, allowing them to continue breathing and watching for threats. They alternate which half sleeps."
+  },
+  {
+    "id": "q120",
+    "category": "Nature & Animals",
+    "difficulty": "hard",
+    "question": "What is the only continent with no native ant species?",
+    "correct": "Antarctica",
+    "wrong": [
+      "Arctic",
+      "Greenland",
+      "Iceland"
+    ],
+    "explanation": "Antarctica is too cold and extreme for ants. Every other continent \u2014 including Australia and the remote islands of Oceania \u2014 hosts native ant species, making them one of the most widespread animals on Earth."
+  },
+  {
+    "id": "q121",
+    "category": "Nature & Animals",
+    "difficulty": "easy",
+    "question": "Which animal is known as 'man's best friend'?",
+    "correct": "Dog",
+    "wrong": [
+      "Cat",
+      "Horse",
+      "Parrot"
+    ],
+    "explanation": "Dogs were the first animals domesticated by humans, roughly 15,000\u201340,000 years ago from wolves. They were bred for hunting, herding, and companionship, creating today's 400+ distinct breeds."
+  },
+  {
+    "id": "q122",
+    "category": "Nature & Animals",
+    "difficulty": "medium",
+    "question": "How far can a kangaroo jump in a single leap?",
+    "correct": "About 9 metres",
+    "wrong": [
+      "About 3 metres",
+      "About 15 metres",
+      "About 6 metres"
+    ],
+    "explanation": "Red kangaroos can jump 9 metres in a single bound and reach speeds of 70 km/h. Their thick tendons work like springs, storing and releasing energy efficiently \u2014 making hopping faster than walking at high speeds."
+  },
+  {
+    "id": "q123",
+    "category": "Nature & Animals",
+    "difficulty": "easy",
+    "question": "What is a baby kangaroo called?",
+    "correct": "Joey",
+    "wrong": [
+      "Cub",
+      "Pup",
+      "Kit"
+    ],
+    "explanation": "A joey is born after just 33 days of gestation \u2014 tiny and undeveloped \u2014 and crawls into its mother's pouch where it continues developing for about 6\u20138 months."
+  },
+  {
+    "id": "q124",
+    "category": "Nature & Animals",
+    "difficulty": "medium",
+    "question": "What is the largest type of penguin?",
+    "correct": "Emperor penguin",
+    "wrong": [
+      "King penguin",
+      "Macaroni penguin",
+      "Chinstrap penguin"
+    ],
+    "explanation": "Emperor penguins stand up to 122 cm tall and weigh up to 45 kg. They breed in Antarctic winter, with males incubating the egg on their feet under a brood pouch for 65 days without eating."
+  },
+  {
+    "id": "q125",
+    "category": "Nature & Animals",
+    "difficulty": "hard",
+    "question": "How many known species of insects are there on Earth?",
+    "correct": "About 1 million",
+    "wrong": [
+      "About 100,000",
+      "About 10 million",
+      "About 500,000"
+    ],
+    "explanation": "Around 1 million insect species have been formally described, representing about 80% of all known animal species. Scientists estimate 5\u201310 million species may exist in total, with millions undiscovered in tropical forests."
+  },
+  {
+    "id": "q126",
+    "category": "Food & Geography",
+    "difficulty": "easy",
+    "question": "Which country is the world's largest producer of coffee?",
+    "correct": "Brazil",
+    "wrong": [
+      "Colombia",
+      "Vietnam",
+      "Ethiopia"
+    ],
+    "explanation": "Brazil has been the world's largest coffee producer for over 150 years, producing around a third of the global supply. Its vast Minas Gerais region produces predominantly Arabica beans."
+  },
+  {
+    "id": "q127",
+    "category": "Food & Geography",
+    "difficulty": "medium",
+    "question": "What is the capital city of Australia?",
+    "correct": "Canberra",
+    "wrong": [
+      "Sydney",
+      "Melbourne",
+      "Brisbane"
+    ],
+    "explanation": "Canberra became Australia's capital in 1913 \u2014 a compromise between rivals Sydney and Melbourne. It was purpose-built as a federal capital, designed by American architects Walter Burley Griffin and Marion Mahony."
+  },
+  {
+    "id": "q128",
+    "category": "Food & Geography",
+    "difficulty": "easy",
+    "question": "What is the most consumed beverage in the world after water?",
+    "correct": "Tea",
+    "wrong": [
+      "Coffee",
+      "Beer",
+      "Juice"
+    ],
+    "explanation": "Tea is the world's most consumed beverage after water, with about 3 billion cups drunk daily. It originated in ancient China and spread globally through trade, particularly through British colonial expansion."
+  },
+  {
+    "id": "q129",
+    "category": "Food & Geography",
+    "difficulty": "medium",
+    "question": "Which country is the origin of sushi?",
+    "correct": "Japan",
+    "wrong": [
+      "China",
+      "Korea",
+      "Thailand"
+    ],
+    "explanation": "Sushi originated in Japan, evolving from narezushi \u2014 fermented rice and fish \u2014 in the 8th century. Modern nigiri sushi was developed in Tokyo (then Edo) in the early 19th century."
+  },
+  {
+    "id": "q130",
+    "category": "Food & Geography",
+    "difficulty": "easy",
+    "question": "What is the world's longest river?",
+    "correct": "Nile River",
+    "wrong": [
+      "Amazon River",
+      "Yangtze River",
+      "Mississippi River"
+    ],
+    "explanation": "The Nile stretches approximately 6,650 km through northeastern Africa. However, some studies suggest the Amazon may be longer when its true source is measured \u2014 the debate continues among geographers."
+  },
+  {
+    "id": "q131",
+    "category": "Food & Geography",
+    "difficulty": "medium",
+    "question": "Which spice is the most expensive in the world by weight?",
+    "correct": "Saffron",
+    "wrong": [
+      "Vanilla",
+      "Cardamom",
+      "Truffles"
+    ],
+    "explanation": "Saffron comes from the dried stigmas of the Crocus sativus flower \u2014 each flower yields just three stigmas, all harvested by hand. It takes about 75,000 flowers to produce 500 grams of saffron."
+  },
+  {
+    "id": "q132",
+    "category": "Food & Geography",
+    "difficulty": "easy",
+    "question": "In which country was pizza invented?",
+    "correct": "Italy",
+    "wrong": [
+      "Greece",
+      "USA",
+      "France"
+    ],
+    "explanation": "Pizza originated in Naples, Italy in the 18th century. The classic Margherita was allegedly created in 1889 to honour Queen Margherita of Savoy \u2014 topped with tomato, mozzarella, and basil (the Italian flag's colours)."
+  },
+  {
+    "id": "q133",
+    "category": "Food & Geography",
+    "difficulty": "medium",
+    "question": "What is the smallest country in the world?",
+    "correct": "Vatican City",
+    "wrong": [
+      "Monaco",
+      "San Marino",
+      "Liechtenstein"
+    ],
+    "explanation": "Vatican City covers just 0.44 square kilometres within Rome and has a population of about 800. As an independent state since 1929, it governs the global Catholic Church."
+  },
+  {
+    "id": "q134",
+    "category": "Food & Geography",
+    "difficulty": "hard",
+    "question": "Which country has the most UNESCO World Heritage Sites?",
+    "correct": "Italy",
+    "wrong": [
+      "China",
+      "Spain",
+      "France"
+    ],
+    "explanation": "Italy leads with 58 UNESCO World Heritage Sites (as of 2024), followed closely by China and Germany. Italy's sites include the Colosseum, Venice, Pompeii, and the Dolomites."
+  },
+  {
+    "id": "q135",
+    "category": "Food & Geography",
+    "difficulty": "easy",
+    "question": "What country does chocolate originate from?",
+    "correct": "Mexico/Mesoamerica",
+    "wrong": [
+      "Belgium",
+      "Switzerland",
+      "Ghana"
+    ],
+    "explanation": "Cacao was first cultivated by the Olmec civilisation in Mesoamerica around 1500 BC. The Aztecs drank a bitter chocolate beverage. Europeans added sugar after encountering it in the 16th century."
+  },
+  {
+    "id": "q136",
+    "category": "Food & Geography",
+    "difficulty": "medium",
+    "question": "Which country produces the most wheat globally?",
+    "correct": "China",
+    "wrong": [
+      "USA",
+      "Russia",
+      "India"
+    ],
+    "explanation": "China is the world's largest wheat producer, growing about a quarter of global supply. Its vast northern plains are major wheat-growing areas. Despite this, China is also a large wheat importer."
+  },
+  {
+    "id": "q137",
+    "category": "Food & Geography",
+    "difficulty": "easy",
+    "question": "What is the capital city of Japan?",
+    "correct": "Tokyo",
+    "wrong": [
+      "Osaka",
+      "Kyoto",
+      "Hiroshima"
+    ],
+    "explanation": "Tokyo, formerly known as Edo, became Japan's capital in 1868 when Emperor Meiji moved there from Kyoto. It's the world's most populous city, home to over 37 million people in its metro area."
+  },
+  {
+    "id": "q138",
+    "category": "Food & Geography",
+    "difficulty": "medium",
+    "question": "Which grain is used to make traditional Japanese sake?",
+    "correct": "Rice",
+    "wrong": [
+      "Barley",
+      "Wheat",
+      "Corn"
+    ],
+    "explanation": "Sake is brewed from fermented rice \u2014 specifically polished rice with the outer bran removed. The degree of polishing (the 'polish ratio') significantly affects the sake's flavour profile and grade."
+  },
+  {
+    "id": "q139",
+    "category": "Food & Geography",
+    "difficulty": "hard",
+    "question": "What country is home to the most natural lakes?",
+    "correct": "Canada",
+    "wrong": [
+      "Russia",
+      "USA",
+      "Finland"
+    ],
+    "explanation": "Canada contains more lakes than the rest of the world combined \u2014 an estimated 879,800 lakes larger than 10 square kilometres. This is a legacy of glacial activity during the last ice age."
+  },
+  {
+    "id": "q140",
+    "category": "Food & Geography",
+    "difficulty": "easy",
+    "question": "What is the main ingredient in guacamole?",
+    "correct": "Avocado",
+    "wrong": [
+      "Tomato",
+      "Lime",
+      "Pepper"
+    ],
+    "explanation": "Guacamole originates from Aztec cuisine \u2014 'ahuacamolli' means avocado sauce. Traditional recipes include avocado, lime, salt, tomato, onion, and cilantro, though variations abound."
+  },
+  {
+    "id": "q141",
+    "category": "Food & Geography",
+    "difficulty": "medium",
+    "question": "Which country has the most natural UNESCO heritage sites?",
+    "correct": "Australia",
+    "wrong": [
+      "Brazil",
+      "USA",
+      "Canada"
+    ],
+    "explanation": "Australia leads in natural UNESCO World Heritage Sites with 20, including the Great Barrier Reef, the Wet Tropics, and Purnululu National Park \u2014 a reflection of its extraordinarily diverse ecosystems."
+  },
+  {
+    "id": "q142",
+    "category": "Food & Geography",
+    "difficulty": "easy",
+    "question": "What country is known as 'the land of the rising sun'?",
+    "correct": "Japan",
+    "wrong": [
+      "China",
+      "South Korea",
+      "Thailand"
+    ],
+    "explanation": "Japan's name in Japanese \u2014 Nihon or Nippon \u2014 translates to 'origin of the sun'. Marco Polo called it 'Cipangu', meaning eastern land. The rising sun also features prominently on Japan's flag."
+  },
+  {
+    "id": "q143",
+    "category": "Food & Geography",
+    "difficulty": "medium",
+    "question": "Which fruit contains the enzyme bromelain, useful for tenderising meat?",
+    "correct": "Pineapple",
+    "wrong": [
+      "Papaya",
+      "Kiwi",
+      "Mango"
+    ],
+    "explanation": "Bromelain, found in pineapple (especially the core), breaks down proteins. It's so active that pineapple workers can develop dermatitis, and fresh pineapple prevents gelatin from setting in desserts."
+  },
+  {
+    "id": "q144",
+    "category": "Food & Geography",
+    "difficulty": "medium",
+    "question": "What is the world's most visited city?",
+    "correct": "Bangkok",
+    "wrong": [
+      "Paris",
+      "Dubai",
+      "London"
+    ],
+    "explanation": "Bangkok consistently tops global visitor rankings with over 20 million international arrivals per year. Its mix of ancient temples, street food, and modern shopping makes it a travel hub for Southeast Asia."
+  },
+  {
+    "id": "q145",
+    "category": "Food & Geography",
+    "difficulty": "hard",
+    "question": "Which country exports the most olive oil?",
+    "correct": "Spain",
+    "wrong": [
+      "Italy",
+      "Greece",
+      "Morocco"
+    ],
+    "explanation": "Spain produces about 40% of the world's olive oil, primarily in the Andaluc\u00eda region. Despite this, Italy \u2014 which also processes and re-exports Spanish oil \u2014 is often perceived as the leading producer."
+  },
+  {
+    "id": "q146",
+    "category": "Food & Geography",
+    "difficulty": "easy",
+    "question": "On which continent is the Sahara Desert located?",
+    "correct": "Africa",
+    "wrong": [
+      "Asia",
+      "Australia",
+      "South America"
+    ],
+    "explanation": "The Sahara covers about 9.2 million square kilometres across northern Africa \u2014 roughly the size of the United States. It's the world's largest hot desert, though Antarctica is the largest desert overall."
+  },
+  {
+    "id": "q147",
+    "category": "Food & Geography",
+    "difficulty": "medium",
+    "question": "What is the primary ingredient in traditional hummus?",
+    "correct": "Chickpeas",
+    "wrong": [
+      "Lentils",
+      "White beans",
+      "Fava beans"
+    ],
+    "explanation": "Hummus (Arabic for 'chickpeas') is made from blended chickpeas, tahini (sesame paste), lemon, and garlic. It's been eaten in the Middle East for centuries, with its exact origin disputed among several nations."
+  },
+  {
+    "id": "q148",
+    "category": "Food & Geography",
+    "difficulty": "easy",
+    "question": "What is the highest mountain in the world?",
+    "correct": "Mount Everest",
+    "wrong": [
+      "K2",
+      "Kangchenjunga",
+      "Makalu"
+    ],
+    "explanation": "Mount Everest stands at 8,848.86 metres above sea level, measured officially in 2020. On the Nepal-Tibet border, it was first summited by Tenzing Norgay and Edmund Hillary on May 29, 1953."
+  },
+  {
+    "id": "q149",
+    "category": "Food & Geography",
+    "difficulty": "medium",
+    "question": "Which country is the world's largest archipelago?",
+    "correct": "Indonesia",
+    "wrong": [
+      "Philippines",
+      "Japan",
+      "Norway"
+    ],
+    "explanation": "Indonesia comprises over 17,000 islands stretching 5,000 km. It straddles two tectonic plates and two major biogeographic zones, resulting in extraordinary biodiversity including orangutans, Komodo dragons, and birds of paradise."
+  },
+  {
+    "id": "q150",
+    "category": "Food & Geography",
+    "difficulty": "hard",
+    "question": "In which country did the chilli pepper originate?",
+    "correct": "Mexico",
+    "wrong": [
+      "India",
+      "China",
+      "Spain"
+    ],
+    "explanation": "Chilli peppers are native to Mexico and Central America, where they've been cultivated for at least 6,000 years. They were introduced to Europe by Spanish and Portuguese traders in the 15th\u201316th centuries."
+  },
+  {
+    "id": "q151",
+    "category": "Brain & Psychology",
+    "difficulty": "easy",
+    "question": "What is the term for the inability to recognise faces?",
+    "correct": "Prosopagnosia",
+    "wrong": [
+      "Agnosia",
+      "Aphasia",
+      "Amnesia"
+    ],
+    "explanation": "Prosopagnosia ('face blindness') is a neurological condition where people can't recognise faces \u2014 even their own in a mirror. It's thought to affect up to 2.5% of the population to some degree."
+  },
+  {
+    "id": "q152",
+    "category": "Brain & Psychology",
+    "difficulty": "medium",
+    "question": "What is the psychological concept of attributing human traits to non-human things?",
+    "correct": "Anthropomorphism",
+    "wrong": [
+      "Projection",
+      "Displacement",
+      "Personalisation"
+    ],
+    "explanation": "Anthropomorphism is hardwired \u2014 humans are primed to detect agency and faces. We see a man in the moon, name our cars, and feel bad for Roombas that get stuck. It helped ancestors quickly identify threats."
+  },
+  {
+    "id": "q153",
+    "category": "Brain & Psychology",
+    "difficulty": "easy",
+    "question": "How many stages of sleep are there?",
+    "correct": "Four stages",
+    "wrong": [
+      "Two stages",
+      "Six stages",
+      "Three stages"
+    ],
+    "explanation": "Sleep has four stages: N1, N2, N3 (deep slow-wave sleep), and REM. A full cycle takes 90 minutes. Most dreaming occurs in REM, when the brain is nearly as active as when awake."
+  },
+  {
+    "id": "q154",
+    "category": "Brain & Psychology",
+    "difficulty": "medium",
+    "question": "What is the term for remembering something incorrectly but with complete confidence?",
+    "correct": "False memory",
+    "wrong": [
+      "Confabulation",
+      "D\u00e9j\u00e0 vu",
+      "Priming"
+    ],
+    "explanation": "False memories feel just as real as accurate ones. The 'lost in the mall' experiment showed people could be convinced they were lost in a mall as children \u2014 a memory that never happened."
+  },
+  {
+    "id": "q155",
+    "category": "Brain & Psychology",
+    "difficulty": "hard",
+    "question": "What percentage of people are estimated to have synesthesia?",
+    "correct": "About 4%",
+    "wrong": [
+      "About 0.1%",
+      "About 20%",
+      "About 1%"
+    ],
+    "explanation": "Synesthesia involves cross-sensory experiences \u2014 letters having colours, sounds triggering tastes. About 4% of people have some form of it. It's more common in artists and musicians \u2014 Vladimir Nabokov and Kanye West both report it."
+  },
+  {
+    "id": "q156",
+    "category": "Brain & Psychology",
+    "difficulty": "easy",
+    "question": "What chemical in the brain is associated with feelings of happiness?",
+    "correct": "Serotonin",
+    "wrong": [
+      "Cortisol",
+      "Melatonin",
+      "Glutamate"
+    ],
+    "explanation": "Serotonin is a key mood regulator. Low levels are linked to depression; most antidepressants (SSRIs) work by increasing serotonin availability in synapses. It's made largely in the gut, not just the brain."
+  },
+  {
+    "id": "q157",
+    "category": "Brain & Psychology",
+    "difficulty": "medium",
+    "question": "What is the name of the psychological experiment involving obedience to authority?",
+    "correct": "Milgram experiment",
+    "wrong": [
+      "Stanford prison experiment",
+      "Harlow's monkeys",
+      "Asch conformity study"
+    ],
+    "explanation": "Stanley Milgram's 1961 experiment showed 65% of participants would deliver what they believed were lethal electric shocks to strangers simply because an authority figure told them to."
+  },
+  {
+    "id": "q158",
+    "category": "Brain & Psychology",
+    "difficulty": "easy",
+    "question": "What does 'IQ' stand for?",
+    "correct": "Intelligence Quotient",
+    "wrong": [
+      "Intellectual Quality",
+      "Intellect Quantity",
+      "Individual Quotient"
+    ],
+    "explanation": "IQ was originally calculated as (mental age \u00f7 chronological age) \u00d7 100. Modern tests use standardised scores where 100 is the average. The concept has become controversial as a complete measure of intelligence."
+  },
+  {
+    "id": "q159",
+    "category": "Brain & Psychology",
+    "difficulty": "medium",
+    "question": "What is the 'bystander effect' in psychology?",
+    "correct": "Less help with more observers",
+    "wrong": [
+      "Helping more when alone",
+      "Copying others' behaviour",
+      "Fear of large crowds"
+    ],
+    "explanation": "The bystander effect: the more people witness an emergency, the less likely any individual is to help. Each person assumes someone else will act \u2014 a phenomenon studied after Kitty Genovese's 1964 murder."
+  },
+  {
+    "id": "q160",
+    "category": "Brain & Psychology",
+    "difficulty": "hard",
+    "question": "What is the name for the tendency to search for information that confirms existing beliefs?",
+    "correct": "Confirmation bias",
+    "wrong": [
+      "Availability heuristic",
+      "Cognitive dissonance",
+      "Dunning-Kruger effect"
+    ],
+    "explanation": "Confirmation bias leads people to seek, interpret, and remember information that confirms their preconceptions. It's a major driver of political polarisation and misinformation persistence."
+  },
+  {
+    "id": "q161",
+    "category": "Brain & Psychology",
+    "difficulty": "medium",
+    "question": "What is the approximate storage capacity of the human brain?",
+    "correct": "About 2.5 petabytes",
+    "wrong": [
+      "About 1 gigabyte",
+      "About 100 terabytes",
+      "About 1 petabyte"
+    ],
+    "explanation": "Researchers estimate the brain can store 2.5 petabytes (2.5 million gigabytes) of information \u2014 enough to hold 3 million hours of TV. Unlike computer memory, neural memories are reconstructive, not playback."
+  },
+  {
+    "id": "q162",
+    "category": "Brain & Psychology",
+    "difficulty": "easy",
+    "question": "What part of the brain is most associated with long-term memory?",
+    "correct": "Hippocampus",
+    "wrong": [
+      "Amygdala",
+      "Cerebellum",
+      "Frontal lobe"
+    ],
+    "explanation": "The hippocampus (Greek for 'seahorse') is critical for converting short-term memories to long-term storage. Patient H.M., who had his hippocampus removed, couldn't form any new long-term memories."
+  },
+  {
+    "id": "q163",
+    "category": "Brain & Psychology",
+    "difficulty": "medium",
+    "question": "What does the 'placebo effect' describe?",
+    "correct": "Improvement from inactive treatment",
+    "wrong": [
+      "Drug side effects",
+      "Recovery without treatment",
+      "Expectation of illness"
+    ],
+    "explanation": "The placebo effect occurs when people improve after receiving an inert treatment because they believe it will work. Brain scans show genuine neurological changes \u2014 proving expectation alters biology."
+  },
+  {
+    "id": "q164",
+    "category": "Brain & Psychology",
+    "difficulty": "hard",
+    "question": "Which psychological theory describes developmental stages through which children acquire moral reasoning?",
+    "correct": "Kohlberg's stages",
+    "wrong": [
+      "Piaget's stages",
+      "Erikson's stages",
+      "Maslow's hierarchy"
+    ],
+    "explanation": "Lawrence Kohlberg identified six stages of moral development across three levels: pre-conventional, conventional, and post-conventional. Most adults reach stage four (law and order) and few ever reach stage six."
+  },
+  {
+    "id": "q165",
+    "category": "Brain & Psychology",
+    "difficulty": "easy",
+    "question": "What is the study of behaviour and mental processes called?",
+    "correct": "Psychology",
+    "wrong": [
+      "Psychiatry",
+      "Neurology",
+      "Sociology"
+    ],
+    "explanation": "Psychology studies how people think, feel, and behave. It differs from psychiatry (medicine for mental disorders) and neuroscience (the biology of the brain), though all three disciplines overlap significantly."
+  },
+  {
+    "id": "q166",
+    "category": "Brain & Psychology",
+    "difficulty": "medium",
+    "question": "What is cognitive dissonance?",
+    "correct": "Discomfort from conflicting beliefs",
+    "wrong": [
+      "Learning new skills",
+      "Memory loss from stress",
+      "Poor decision-making"
+    ],
+    "explanation": "Leon Festinger coined cognitive dissonance in 1957 \u2014 the discomfort felt when holding two conflicting beliefs or when actions contradict beliefs. People resolve it by changing beliefs, minimising conflicts, or rationalising."
+  },
+  {
+    "id": "q167",
+    "category": "Brain & Psychology",
+    "difficulty": "hard",
+    "question": "What is the Stroop effect?",
+    "correct": "Slower reaction naming ink colour when words conflict",
+    "wrong": [
+      "Reading words faster than pictures",
+      "Forgetting words when distracted",
+      "Confusing similar-sounding words"
+    ],
+    "explanation": "The Stroop effect: it takes longer to name the ink colour of the word 'RED' written in blue ink than to name a plain blue square. This shows automatic reading competes with deliberate colour-naming."
+  },
+  {
+    "id": "q168",
+    "category": "Brain & Psychology",
+    "difficulty": "medium",
+    "question": "What percentage of communication is said to be non-verbal?",
+    "correct": "About 93%",
+    "wrong": [
+      "About 55%",
+      "About 7%",
+      "About 70%"
+    ],
+    "explanation": "Albert Mehrabian's often-misquoted research suggested 55% is body language, 38% tone, and just 7% words \u2014 but this applied only to communicating feelings/attitudes. Overall communication percentages are context-dependent."
+  },
+  {
+    "id": "q169",
+    "category": "Brain & Psychology",
+    "difficulty": "easy",
+    "question": "What is the term for extreme fear of spiders?",
+    "correct": "Arachnophobia",
+    "wrong": [
+      "Ophidiophobia",
+      "Acrophobia",
+      "Entomophobia"
+    ],
+    "explanation": "Arachnophobia is one of the world's most common phobias, affecting about 5% of people. Evolutionary psychologists suggest it may be an adaptive response \u2014 many spiders are venomous."
+  },
+  {
+    "id": "q170",
+    "category": "Brain & Psychology",
+    "difficulty": "medium",
+    "question": "What is 'neuroplasticity'?",
+    "correct": "Brain's ability to reorganise itself",
+    "wrong": [
+      "Speed of nerve signals",
+      "Production of new brain cells",
+      "Size of neural connections"
+    ],
+    "explanation": "Neuroplasticity allows the brain to form new neural connections throughout life \u2014 challenging the old belief that the adult brain was fixed. Learning, therapy, and recovery from injury all depend on it."
+  },
+  {
+    "id": "q171",
+    "category": "Brain & Psychology",
+    "difficulty": "easy",
+    "question": "What is d\u00e9j\u00e0 vu?",
+    "correct": "Feeling of having experienced something before",
+    "wrong": [
+      "Forgetting familiar things",
+      "Dreaming while awake",
+      "Vivid false memory"
+    ],
+    "explanation": "D\u00e9j\u00e0 vu (French: 'already seen') is the uncanny feeling that a new experience has been lived before. It occurs in 60\u201380% of people and is linked to temporary misfiring between memory-processing brain regions."
+  },
+  {
+    "id": "q172",
+    "category": "Brain & Psychology",
+    "difficulty": "hard",
+    "question": "Which researcher first described the concept of 'flow state'?",
+    "correct": "Mihaly Csikszentmihalyi",
+    "wrong": [
+      "Abraham Maslow",
+      "Daniel Kahneman",
+      "Martin Seligman"
+    ],
+    "explanation": "Csikszentmihalyi described 'flow' in the 1970s \u2014 a state of complete absorption in an activity where time distorts and performance peaks. Athletes call it 'the zone'. It requires skill matched to challenge level."
+  },
+  {
+    "id": "q173",
+    "category": "Brain & Psychology",
+    "difficulty": "medium",
+    "question": "What is the 'anchoring' cognitive bias?",
+    "correct": "Over-relying on the first piece of information",
+    "wrong": [
+      "Assuming others share your beliefs",
+      "Overestimating your own abilities",
+      "Judging by recent events only"
+    ],
+    "explanation": "Anchoring occurs when the first number you hear disproportionately influences your judgement. Retailers exploit this \u2014 marking items 'originally \u00a3200, now \u00a380' makes \u00a380 feel like a bargain."
+  },
+  {
+    "id": "q174",
+    "category": "Brain & Psychology",
+    "difficulty": "easy",
+    "question": "What happens in the brain during REM sleep?",
+    "correct": "Dreaming and memory consolidation",
+    "wrong": [
+      "Deep physical restoration",
+      "No brain activity",
+      "Full cognitive shutdown"
+    ],
+    "explanation": "During REM (Rapid Eye Movement) sleep, the brain is highly active \u2014 almost as much as waking. Most vivid dreaming occurs here. REM sleep is essential for emotional processing and memory consolidation."
+  },
+  {
+    "id": "q175",
+    "category": "Brain & Psychology",
+    "difficulty": "medium",
+    "question": "What term describes the feeling of understanding something only after knowing the answer?",
+    "correct": "Hindsight bias",
+    "wrong": [
+      "Overconfidence bias",
+      "Recency bias",
+      "Framing effect"
+    ],
+    "explanation": "Hindsight bias ('I knew it all along') makes past events seem more predictable than they were. It affects everything from medical diagnoses to sports predictions and history's 'obvious' outcomes."
+  },
+  {
+    "id": "q176",
+    "category": "Pop Culture & Arts",
+    "difficulty": "easy",
+    "question": "Which band released the album 'Thriller' in 1982?",
+    "correct": "Michael Jackson",
+    "wrong": [
+      "Prince",
+      "Madonna",
+      "Stevie Wonder"
+    ],
+    "explanation": "Thriller by Michael Jackson is the best-selling album of all time with estimated sales of 70\u2013100 million copies. The 14-minute title track music video, directed by John Landis, revolutionised music video as an art form."
+  },
+  {
+    "id": "q177",
+    "category": "Pop Culture & Arts",
+    "difficulty": "medium",
+    "question": "Which film won the first Oscar for Best Picture?",
+    "correct": "Wings (1927)",
+    "wrong": [
+      "Gone with the Wind",
+      "Casablanca",
+      "Citizen Kane"
+    ],
+    "explanation": "Wings, a silent World War I aviation drama, won Best Picture at the first Academy Awards ceremony in 1929 (covering films from 1927\u201328). The ceremony lasted 15 minutes and was held at the Hollywood Roosevelt Hotel."
+  },
+  {
+    "id": "q178",
+    "category": "Pop Culture & Arts",
+    "difficulty": "easy",
+    "question": "Who wrote the Harry Potter series?",
+    "correct": "J.K. Rowling",
+    "wrong": [
+      "Roald Dahl",
+      "Philip Pullman",
+      "Suzanne Collins"
+    ],
+    "explanation": "J.K. Rowling wrote the seven Harry Potter books between 1997 and 2007. Rejected by 12 publishers before Bloomsbury accepted it, the series has sold over 600 million copies in 85 languages."
+  },
+  {
+    "id": "q179",
+    "category": "Pop Culture & Arts",
+    "difficulty": "medium",
+    "question": "In which country did the TV show 'Money Heist' (La Casa de Papel) originate?",
+    "correct": "Spain",
+    "wrong": [
+      "Mexico",
+      "Argentina",
+      "Brazil"
+    ],
+    "explanation": "La Casa de Papel was created by \u00c1lex Pina and first aired on Spanish network Antena 3 in 2017. Netflix acquired global rights in 2017, turning it into one of the most-watched non-English series ever."
+  },
+  {
+    "id": "q180",
+    "category": "Pop Culture & Arts",
+    "difficulty": "easy",
+    "question": "How many strings does a standard guitar have?",
+    "correct": "Six",
+    "wrong": [
+      "Four",
+      "Five",
+      "Eight"
+    ],
+    "explanation": "A standard guitar has 6 strings tuned E-A-D-G-B-E (from lowest to highest). Bass guitars have 4 strings; 12-string guitars double each string for a fuller, richer sound."
+  },
+  {
+    "id": "q181",
+    "category": "Pop Culture & Arts",
+    "difficulty": "medium",
+    "question": "Which artist painted 'The Starry Night'?",
+    "correct": "Vincent van Gogh",
+    "wrong": [
+      "Claude Monet",
+      "Edvard Munch",
+      "Paul Gauguin"
+    ],
+    "explanation": "Van Gogh painted The Starry Night in June 1889 while voluntarily staying at an asylum in Saint-R\u00e9my-de-Provence. Now at MoMA in New York, he described his swirling vision of the night sky in letters to his brother Theo."
+  },
+  {
+    "id": "q182",
+    "category": "Pop Culture & Arts",
+    "difficulty": "easy",
+    "question": "Which novel begins with 'Call me Ishmael'?",
+    "correct": "Moby Dick",
+    "wrong": [
+      "The Old Man and the Sea",
+      "Life of Pi",
+      "Billy Budd"
+    ],
+    "explanation": "Herman Melville's Moby Dick (1851) begins with the narrator's brief, memorable self-introduction. The novel follows Captain Ahab's obsessive quest to kill the white sperm whale that destroyed his ship and leg."
+  },
+  {
+    "id": "q183",
+    "category": "Pop Culture & Arts",
+    "difficulty": "medium",
+    "question": "Which musician is known as 'The King of Pop'?",
+    "correct": "Michael Jackson",
+    "wrong": [
+      "Elvis Presley",
+      "Prince",
+      "David Bowie"
+    ],
+    "explanation": "Michael Jackson earned the nickname through record-breaking sales, ground-breaking music videos, and signature dance moves like the moonwalk. Elvis Presley is known as 'The King of Rock and Roll'."
+  },
+  {
+    "id": "q184",
+    "category": "Pop Culture & Arts",
+    "difficulty": "hard",
+    "question": "Which Shakespeare play features the line 'To be or not to be'?",
+    "correct": "Hamlet",
+    "wrong": [
+      "Macbeth",
+      "Othello",
+      "King Lear"
+    ],
+    "explanation": "The soliloquy appears in Act 3, Scene 1 of Hamlet, as the prince contemplates existence, suffering, and death. It's one of the most quoted passages in the English language, written around 1600."
+  },
+  {
+    "id": "q185",
+    "category": "Pop Culture & Arts",
+    "difficulty": "easy",
+    "question": "What colour are the Smurfs?",
+    "correct": "Blue",
+    "wrong": [
+      "Red",
+      "Green",
+      "Purple"
+    ],
+    "explanation": "The Smurfs (Les Schtroumpfs) were created by Belgian cartoonist Peyo in 1958. The choice of blue was largely practical \u2014 it distinguished them clearly from everything else on the page."
+  },
+  {
+    "id": "q186",
+    "category": "Pop Culture & Arts",
+    "difficulty": "medium",
+    "question": "Which film franchise features a character named James Bond?",
+    "correct": "007 / Bond films",
+    "wrong": [
+      "Mission Impossible",
+      "Bourne Identity",
+      "Jack Ryan"
+    ],
+    "explanation": "James Bond was created by Ian Fleming in 1953's Casino Royale. The film series, starting with Dr. No in 1962, has grossed over $7 billion globally, making it one of cinema's most successful franchises."
+  },
+  {
+    "id": "q187",
+    "category": "Pop Culture & Arts",
+    "difficulty": "easy",
+    "question": "What does 'LOL' stand for in internet slang?",
+    "correct": "Laughing out loud",
+    "wrong": [
+      "Lots of love",
+      "Laughing online",
+      "Loads of laughter"
+    ],
+    "explanation": "LOL originated in early online communities in the late 1980s. Despite widespread use, studies show most people only literally laugh out loud 1\u20132% of the times they type it."
+  },
+  {
+    "id": "q188",
+    "category": "Pop Culture & Arts",
+    "difficulty": "medium",
+    "question": "Which Disney film features the song 'Let It Go'?",
+    "correct": "Frozen",
+    "wrong": [
+      "Tangled",
+      "Brave",
+      "Encanto"
+    ],
+    "explanation": "'Let It Go' was performed by Idina Menzel as Queen Elsa in Disney's Frozen (2013). It won the Academy Award for Best Original Song and became one of the most recognisable children's songs of the decade."
+  },
+  {
+    "id": "q189",
+    "category": "Pop Culture & Arts",
+    "difficulty": "hard",
+    "question": "Who directed the film Schindler's List?",
+    "correct": "Steven Spielberg",
+    "wrong": [
+      "Martin Scorsese",
+      "Stanley Kubrick",
+      "Francis Ford Coppola"
+    ],
+    "explanation": "Steven Spielberg directed Schindler's List in 1993, winning Best Director and Best Picture Oscars. He reportedly donated his entire director's fee to the USC Shoah Foundation, which he founded to preserve Holocaust testimonies."
+  },
+  {
+    "id": "q190",
+    "category": "Pop Culture & Arts",
+    "difficulty": "easy",
+    "question": "Which country is the birthplace of the Beatles?",
+    "correct": "England (Liverpool)",
+    "wrong": [
+      "USA",
+      "Ireland",
+      "Scotland"
+    ],
+    "explanation": "John Lennon, Paul McCartney, George Harrison, and Ringo Starr all came from Liverpool, England. They rose to global fame in the early 1960s and remain the best-selling music act of all time."
+  },
+  {
+    "id": "q191",
+    "category": "Pop Culture & Arts",
+    "difficulty": "medium",
+    "question": "What is the name of the fictional kingdom in Disney's 'Frozen'?",
+    "correct": "Arendelle",
+    "wrong": [
+      "Elysium",
+      "Norheim",
+      "Vesterland"
+    ],
+    "explanation": "Arendelle is inspired by Norway \u2014 the film's look is based on Bergen and Hardangerfjord. The name is a stylisation of the Norwegian town Arendal in the Aust-Agder region."
+  },
+  {
+    "id": "q192",
+    "category": "Pop Culture & Arts",
+    "difficulty": "medium",
+    "question": "Which book series features a wizard school called Hogwarts?",
+    "correct": "Harry Potter",
+    "wrong": [
+      "The Name of the Wind",
+      "Percy Jackson",
+      "Eragon"
+    ],
+    "explanation": "Hogwarts School of Witchcraft and Wizardry is the central setting of J.K. Rowling's Harry Potter series. The Hogwarts Express departs from King's Cross station, Platform 9\u00be."
+  },
+  {
+    "id": "q193",
+    "category": "Pop Culture & Arts",
+    "difficulty": "easy",
+    "question": "What instrument does Sherlock Holmes famously play?",
+    "correct": "Violin",
+    "wrong": [
+      "Piano",
+      "Cello",
+      "Clarinet"
+    ],
+    "explanation": "Arthur Conan Doyle gave Sherlock Holmes a violin to play \u2014 often late at night, much to Dr. Watson's annoyance. Holmes's playing is erratic but brilliant, mirroring his cognitive style."
+  },
+  {
+    "id": "q194",
+    "category": "Pop Culture & Arts",
+    "difficulty": "hard",
+    "question": "What year was the first episode of The Simpsons broadcast?",
+    "correct": "1989",
+    "wrong": [
+      "1991",
+      "1987",
+      "1993"
+    ],
+    "explanation": "The Simpsons premiered on Fox on December 17, 1989, as a Christmas special. The main series launched in January 1990 and has run for 35+ seasons \u2014 the longest-running American primetime scripted television series."
+  },
+  {
+    "id": "q195",
+    "category": "Pop Culture & Arts",
+    "difficulty": "medium",
+    "question": "Which artist is famous for melting clocks?",
+    "correct": "Salvador Dal\u00ed",
+    "wrong": [
+      "Ren\u00e9 Magritte",
+      "Pablo Picasso",
+      "Joan Mir\u00f3"
+    ],
+    "explanation": "The Persistence of Memory (1931) by Salvador Dal\u00ed depicts soft, melting pocket watches in a dreamlike landscape. The surrealist icon said the image was inspired by watching Camembert cheese melt in the sun."
+  },
+  {
+    "id": "q196",
+    "category": "Pop Culture & Arts",
+    "difficulty": "easy",
+    "question": "How many Harry Potter books are in the main series?",
+    "correct": "Seven",
+    "wrong": [
+      "Six",
+      "Eight",
+      "Five"
+    ],
+    "explanation": "The seven Harry Potter novels span Harry's time at Hogwarts. The series concludes with Harry Potter and the Deathly Hallows (2007), which sold 11 million copies in 24 hours in the UK and US combined."
+  },
+  {
+    "id": "q197",
+    "category": "Pop Culture & Arts",
+    "difficulty": "medium",
+    "question": "Which rapper released the album 'The Marshall Mathers LP'?",
+    "correct": "Eminem",
+    "wrong": [
+      "Jay-Z",
+      "Nas",
+      "DMX"
+    ],
+    "explanation": "The Marshall Mathers LP (2000) is Eminem's real name \u2014 Marshall Mathers. It sold 1.76 million copies in its first week, becoming one of the fastest-selling solo albums in history."
+  },
+  {
+    "id": "q198",
+    "category": "Pop Culture & Arts",
+    "difficulty": "easy",
+    "question": "What colour is the sky in the film 'The Wizard of Oz' when Dorothy arrives in Oz?",
+    "correct": "Vivid colour (after black and white)",
+    "wrong": [
+      "Blue",
+      "Green",
+      "Gold"
+    ],
+    "explanation": "The Kansas scenes in The Wizard of Oz (1939) were filmed in sepia-toned black and white. The moment Dorothy opens the door to Oz was a groundbreaking use of Technicolour \u2014 one of cinema's most memorable transitions."
+  },
+  {
+    "id": "q199",
+    "category": "Pop Culture & Arts",
+    "difficulty": "hard",
+    "question": "Which novel is considered the first science fiction story?",
+    "correct": "Frankenstein (Mary Shelley)",
+    "wrong": [
+      "1984",
+      "The Time Machine",
+      "Twenty Thousand Leagues"
+    ],
+    "explanation": "Mary Shelley wrote Frankenstein in 1818 aged just 18, after a ghost-story competition with Lord Byron and Percy Shelley. It's widely credited as the first true science fiction novel for its exploration of scientific responsibility."
+  },
+  {
+    "id": "q200",
+    "category": "Pop Culture & Arts",
+    "difficulty": "medium",
+    "question": "Which streaming show features a character named Walter White?",
+    "correct": "Breaking Bad",
+    "wrong": [
+      "Better Call Saul",
+      "Ozark",
+      "Dexter"
+    ],
+    "explanation": "Bryan Cranston played chemistry teacher-turned-drug lord Walter White in Breaking Bad (2008\u20132013). The show has a 9.5/10 rating on IMDb \u2014 among the highest ever for a TV series."
+  },
+  {
+    "id": "qcp001",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What temperature range is considered ideal for cold water therapy?",
+    "correct": "10\u201315\u00b0C (50\u201359\u00b0F)",
+    "wrong": [
+      "0\u20135\u00b0C (32\u201341\u00b0F)",
+      "20\u201325\u00b0C (68\u201377\u00b0F)",
+      "5\u201310\u00b0C (41\u201350\u00b0F)"
+    ],
+    "explanation": "Most research supports 10\u201315\u00b0C (50\u201359\u00b0F) as the sweet spot: cold enough to trigger physiological adaptations without the extreme cold-shock risk of near-freezing water."
+  },
+  {
+    "id": "qcp002",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "Who is known as \"The Iceman\" for his extreme cold exposure feats?",
+    "correct": "Wim Hof",
+    "wrong": [
+      "Andrew Huberman",
+      "Jack Kruse",
+      "Tony Robbins"
+    ],
+    "explanation": "Wim Hof holds multiple world records for cold exposure and developed the Wim Hof Method \u2014 a combination of cold exposure, controlled breathing, and meditation \u2014 studied by researchers worldwide."
+  },
+  {
+    "id": "qcp003",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Which neurotransmitter increases by up to 300% after a cold plunge?",
+    "correct": "Norepinephrine",
+    "wrong": [
+      "Serotonin",
+      "Dopamine",
+      "Acetylcholine"
+    ],
+    "explanation": "Studies show norepinephrine (noradrenaline) can increase by 200\u2013300% following cold water immersion, playing a key role in mood, focus, and reducing inflammation."
+  },
+  {
+    "id": "qcp004",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What type of fat is activated by cold exposure to generate heat?",
+    "correct": "Brown adipose tissue (brown fat)",
+    "wrong": [
+      "White adipose tissue",
+      "Visceral fat",
+      "Subcutaneous fat"
+    ],
+    "explanation": "Brown fat contains high concentrations of mitochondria and specialises in thermogenesis \u2014 burning calories to produce heat. Cold exposure activates and can even increase brown fat deposits."
+  },
+  {
+    "id": "qcp005",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is the first involuntary response when you enter cold water?",
+    "correct": "Gasping and rapid breathing",
+    "wrong": [
+      "Shivering",
+      "Heart rate slowing",
+      "Blood pressure dropping"
+    ],
+    "explanation": "Cold shock causes an involuntary gasp followed by hyperventilation within the first 30\u201390 seconds of cold water immersion. Controlled breathing before entry helps manage this response."
+  },
+  {
+    "id": "qcp006",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Why do researchers recommend waiting before cold immersion after strength training?",
+    "correct": "It can blunt muscle growth if used immediately after",
+    "wrong": [
+      "Muscles cramp from the temperature contrast",
+      "Cold prevents post-workout sweating",
+      "It damages tendons when muscles are warm"
+    ],
+    "explanation": "Research shows cold water immersion immediately after strength training reduces muscle protein synthesis and can blunt hypertrophy. Waiting 4\u20136 hours, or using cold on non-training days, preserves gains."
+  },
+  {
+    "id": "qcp007",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What is the \"afterdrop\" phenomenon in cold water immersion?",
+    "correct": "Core body temperature continues falling after leaving the water",
+    "wrong": [
+      "A sudden rush of warmth on exit",
+      "A second wave of cold shock",
+      "Shivering that resumes 30 minutes later"
+    ],
+    "explanation": "After leaving cold water, cold blood from the extremities circulates back to the core, causing core temperature to keep dropping for 20\u201330 minutes post-immersion. Gradual re-warming is safer than sudden heat."
+  },
+  {
+    "id": "qcp008",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What happens to blood vessels in your limbs when you enter cold water?",
+    "correct": "They constrict to redirect blood to the core",
+    "wrong": [
+      "They dilate to release heat",
+      "They shut down completely",
+      "They pump faster to warm you up"
+    ],
+    "explanation": "Peripheral vasoconstriction redirects blood flow to the core to protect vital organs. This is why hands and feet go numb first in cold water."
+  },
+  {
+    "id": "qcp009",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "How quickly does the cold shock response reduce with regular plunging?",
+    "correct": "Significantly within 5\u20136 sessions",
+    "wrong": [
+      "After just one session",
+      "Never \u2014 it stays the same",
+      "Only after months of daily exposure"
+    ],
+    "explanation": "Habituation means the gasping and cardiovascular spike of cold shock diminish substantially within 5\u20136 regular sessions, making cold plunges feel progressively more manageable."
+  },
+  {
+    "id": "qcp010",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "Which hormone released during cold exposure promotes fat browning?",
+    "correct": "Irisin",
+    "wrong": [
+      "Leptin",
+      "Adiponectin",
+      "Myostatin"
+    ],
+    "explanation": "Irisin is secreted by muscles during exercise and cold exposure. It signals white fat cells to take on brown-fat-like properties \u2014 a process called browning \u2014 which increases calorie burning and thermogenesis."
+  },
+  {
+    "id": "qcp011",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What triggers the mammalian diving reflex?",
+    "correct": "Cold water contacting the face",
+    "wrong": [
+      "Holding your breath",
+      "Full body submersion",
+      "Rapid temperature increase"
+    ],
+    "explanation": "The diving reflex \u2014 heart rate slowdown, peripheral vasoconstriction, and blood shunting to core organs \u2014 is triggered by cold water on the face. Swimmers sometimes splash their face to activate it deliberately."
+  },
+  {
+    "id": "qcp012",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "How many cold exposure sessions per week does research recommend for general health benefits?",
+    "correct": "3\u20135 sessions",
+    "wrong": [
+      "Once per month",
+      "Daily only",
+      "Once per week maximum"
+    ],
+    "explanation": "Most evidence-backed protocols suggest 3\u20135 sessions per week of 1\u20135 minutes each for benefits including improved mood, focus, and metabolic health. Daily cold exposure is also fine for most healthy adults."
+  },
+  {
+    "id": "qcp013",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is the minimum cold immersion duration shown to trigger meaningful physiological responses?",
+    "correct": "1\u20132 minutes",
+    "wrong": [
+      "10 seconds",
+      "15 minutes",
+      "30 minutes"
+    ],
+    "explanation": "Research suggests at least 1\u20132 minutes of cold water immersion triggers meaningful norepinephrine release and circulatory responses. Most effective protocols use 5\u201310 minute sessions."
+  },
+  {
+    "id": "qcp014",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What is non-shivering thermogenesis?",
+    "correct": "Heat generation via brown fat and metabolism \u2014 without muscle tremors",
+    "wrong": [
+      "Overheating caused by intense exercise",
+      "Shivering triggered by fever",
+      "Heat loss through sweating"
+    ],
+    "explanation": "Non-shivering thermogenesis generates heat via brown adipose tissue and metabolic pathways without the muscle contractions of shivering. Regular cold exposure trains the body to favour this more efficient heat-generation mechanism."
+  },
+  {
+    "id": "qcp015",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What breathing approach is recommended before entering cold water?",
+    "correct": "Slow, controlled deep breaths",
+    "wrong": [
+      "Hyperventilation",
+      "Breath-holding",
+      "Breathe as fast as possible"
+    ],
+    "explanation": "Slow controlled breathing activates the parasympathetic nervous system before entry, reducing the instinctive cold shock gasp. Controlled breathing is a key element of virtually every cold exposure protocol."
+  }
 ]

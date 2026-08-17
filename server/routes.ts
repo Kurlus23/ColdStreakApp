@@ -4118,9 +4118,10 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
   app.get("/api/brain-freeze/question", async (req, res) => {
     const payload = extractUser(req);
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    const preferColdPlunge = req.query.coldPlunge === "1";
     try {
       const { getQuestion } = await import("./brain-freeze");
-      const q = await getQuestion(payload.userId);
+      const q = await getQuestion(payload.userId, preferColdPlunge);
       if (!q) return res.status(404).json({ message: "No questions available" });
       res.json(q);
     } catch (err) {

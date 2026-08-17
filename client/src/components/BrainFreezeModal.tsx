@@ -89,13 +89,15 @@ export function BrainFreezeModal({
     }
 
     // Solo mode: fetch random question from API
+    // Every 3rd question slot (3, 6, 9…) is a cold-plunge question.
+    const coldPlunge = (questionNumRef.current + 1) % 3 === 0;
     const token = getToken();
     if (!token) return;
     setPhase("loading");
     setQuestion(null);
     setSelected(null);
     try {
-      const res = await fetch("/api/brain-freeze/question", {
+      const res = await fetch(`/api/brain-freeze/question${coldPlunge ? "?coldPlunge=1" : ""}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) return;

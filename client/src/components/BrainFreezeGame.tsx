@@ -49,6 +49,7 @@ export function BrainFreezeGame({
   const dismissedAtRef    = useRef<number | null>(null);
   const firstShownRef     = useRef(false);
   const shownAtElapsedRef = useRef(0);
+  const questionCountRef  = useRef(0); // tracks questions served; every 3rd is a cold-plunge question
 
   // Refs for fast-changing props so callbacks don't need them as deps
   const elapsedSecondsRef  = useRef(elapsedSeconds);
@@ -74,8 +75,12 @@ export function BrainFreezeGame({
     fetchingRef.current = true;
     setPhase("loading");
 
+    // Every 3rd question slot (1-indexed) is a cold-plunge question
+    questionCountRef.current += 1;
+    const coldPlunge = questionCountRef.current % 3 === 0;
+
     try {
-      const res = await fetch("/api/brain-freeze/question", {
+      const res = await fetch(`/api/brain-freeze/question${coldPlunge ? "?coldPlunge=1" : ""}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) { setPhase("idle"); return; }

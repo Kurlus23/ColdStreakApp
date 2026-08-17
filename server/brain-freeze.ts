@@ -23,6 +23,7 @@ const EXPECTED_CATEGORIES = [
   "Science & Technology",
   "History & Famous Firsts",
   "Sports & World Records",
+  "Cold Plunge & Ice Bath",
 ];
 
 async function ensureSeeded() {
@@ -156,7 +157,9 @@ export function pickFromPool<T extends { category: string }>(
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
-export async function getQuestion(userId: number) {
+const COLD_PLUNGE_CATEGORY = "Cold Plunge & Ice Bath";
+
+export async function getQuestion(userId: number, preferColdPlunge = false) {
   await ensureSeeded();
 
   // Avoid questions answered in the last 30 days
@@ -169,6 +172,24 @@ export async function getQuestion(userId: number) {
       gte(brainFreezeAnswers.answeredAt, cutoff),
     ));
   const seenIds = recentAnswers.map(r => r.questionId);
+
+  // ── Cold Plunge slot (every 3rd question) ────────────────────────────────
+  // When the caller marks this as a cold-plunge slot, pick from that category
+  // first. If all cold-plunge questions have been seen recently, fall through
+  // to the normal selection so the session always makes progress.
+  if (preferColdPlunge) {
+    const cpWhere = seenIds.length > 0
+      ? and(eq(brainFreezeQuestions.category, COLD_PLUNGE_CATEGORY), notInArray(brainFreezeQuestions.id, seenIds))
+      : eq(brainFreezeQuestions.category, COLD_PLUNGE_CATEGORY);
+    const [cpQ] = await db
+      .select()
+      .from(brainFreezeQuestions)
+      .where(cpWhere)
+      .orderBy(sql`RANDOM()`)
+      .limit(1);
+    if (cpQ) return cpQ;
+    // All cold-plunge questions seen recently — fall through to any unseen
+  }
 
   // Find the category of the user's most-recently answered question so we can
   // avoid serving the same category back-to-back.
@@ -194,7 +215,6 @@ export async function getQuestion(userId: number) {
       .orderBy(sql`RANDOM()`)
       .limit(1);
   } else if (lastCategory) {
-    // No recently-seen questions but we still know the last category
     [q] = await db
       .select()
       .from(brainFreezeQuestions)
@@ -204,8 +224,6 @@ export async function getQuestion(userId: number) {
   }
 
   // ── 2. Fallback: unseen, any category ────────────────────────────────────
-  // (Reached only when all unseen questions share the same category as the
-  //  last answer — an edge case with a very narrow question pool.)
   if (!q && seenIds.length > 0) {
     [q] = await db
       .select()
@@ -215,7 +233,7 @@ export async function getQuestion(userId: number) {
       .limit(1);
   }
 
-  // ── 3. Final fallback: all 200 questions (all seen recently) ─────────────
+  // ── 3. Final fallback: all questions (all seen recently) ─────────────────
   if (!q) {
     [q] = await db
       .select()
