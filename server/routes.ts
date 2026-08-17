@@ -4277,7 +4277,12 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     const payload = extractUser(req);
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
     try {
-      const { getPendingBrainFreezeChallenges } = await import("./brain-freeze");
+      const { getPendingBrainFreezeChallenges, deleteExpiredBrainFreezeChallenges } = await import("./brain-freeze");
+      // Fire-and-forget cleanup: remove expired non-complete rows so they
+      // never pile up in the DB even if the expiresAt filter is ever missed.
+      deleteExpiredBrainFreezeChallenges().catch(e =>
+        console.error("[brain-freeze] cleanup error:", e),
+      );
       const rows = await getPendingBrainFreezeChallenges(payload.userId);
       const challenges = await Promise.all(
         rows.map(async (r) => {

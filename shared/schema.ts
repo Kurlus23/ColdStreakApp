@@ -503,7 +503,7 @@ export const brainFreezeAnswers = pgTable("brain_freeze_answers", {
   plungeElapsedSeconds: integer("plunge_elapsed_seconds"), // seconds into plunge (null if out-of-plunge)
   waterTempF: integer("water_temp_f"),                     // water temp at answer time (null if out-of-plunge)
   plungeId: integer("plunge_id").references(() => plunges.id, { onDelete: "set null" }),
-  challengeId: integer("challenge_id"), // FK enforced at DB level → brain_freeze_challenges(id)
+  challengeId: integer("challenge_id").references(() => brainFreezeChallenges.id, { onDelete: "set null" }), // null once the challenge expires/is deleted
   answeredAt: timestamp("answered_at").defaultNow().notNull(),
 }, (t) => [index("bf_answers_user_idx").on(t.userId, t.answeredAt)]);
 
@@ -524,7 +524,10 @@ export const brainFreezeChallenges = pgTable("brain_freeze_challenges", {
   status:         text("status").notNull().default("pending"),
   createdAt:      timestamp("created_at").defaultNow().notNull(),
   expiresAt:      timestamp("expires_at").notNull(), // 48 h from creation
-});
+}, (t) => [
+  // Speeds up the expiry filter used by both the pending query and the cleanup job.
+  index("brain_freeze_challenges_expires_status_idx").on(t.expiresAt, t.status),
+]);
 
 export type BrainFreezeChallenge = typeof brainFreezeChallenges.$inferSelect;
 

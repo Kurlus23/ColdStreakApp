@@ -7,7 +7,7 @@
 
 import { db } from "./db";
 import { brainFreezeQuestions, brainFreezeAnswers, brainFreezeChallenges } from "../shared/schema";
-import { eq, and, or, ne, notInArray, inArray, gte, desc, sql } from "drizzle-orm";
+import { eq, and, or, ne, notInArray, inArray, gte, lt, desc, sql } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 
@@ -662,6 +662,24 @@ export async function getBrainFreezeChallenge(challengeId: number) {
   if (!row) return null;
   const questions = await getQuestionsById(row.questionIds as number[]);
   return { ...row, questions };
+}
+
+/**
+ * Delete expired, non-complete Brain Freeze challenges.
+ * Safe to run on every pending-challenges fetch — it's fast and idempotent.
+ * Returns the number of rows deleted.
+ */
+export async function deleteExpiredBrainFreezeChallenges(): Promise<number> {
+  const result = await db
+    .delete(brainFreezeChallenges)
+    .where(
+      and(
+        lt(brainFreezeChallenges.expiresAt, new Date()),
+        ne(brainFreezeChallenges.status, "complete"),
+      )
+    )
+    .returning({ id: brainFreezeChallenges.id });
+  return result.length;
 }
 
 /** List non-expired challenges where userId is the challengee and hasn't played yet. */
