@@ -2793,5 +2793,655 @@
       "Breathe as fast as possible"
     ],
     "explanation": "Slow controlled breathing activates the parasympathetic nervous system before entry, reducing the instinctive cold shock gasp. Controlled breathing is a key element of virtually every cold exposure protocol."
+  },
+  {
+    "id": "qcp016",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What causes shivering during cold exposure?",
+    "correct": "Rapid muscle contractions",
+    "wrong": [
+      "Faster digestion",
+      "Increased sweating",
+      "Slower breathing"
+    ],
+    "explanation": "Shivering uses rapid muscle contractions to generate heat."
+  },
+  {
+    "id": "qcp017",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What happens to skin blood vessels in cold?",
+    "correct": "They constrict",
+    "wrong": [
+      "They constrict",
+      "They disappear",
+      "They rupture"
+    ],
+    "explanation": "Vasoconstriction reduces blood flow near the skin and limits heat loss."
+  },
+  {
+    "id": "qcp018",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is cold-induced vasoconstriction designed to reduce?",
+    "correct": "Heat loss",
+    "wrong": [
+      "Oxygen intake",
+      "Muscle growth",
+      "Blood sugar"
+    ],
+    "explanation": "Narrowing surface blood vessels helps conserve core heat."
+  },
+  {
+    "id": "qcp019",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is shivering primarily used for?",
+    "correct": "Generating heat",
+    "wrong": [
+      "Cooling the body",
+      "Increasing digestion",
+      "Lowering blood pressure"
+    ],
+    "explanation": "Shivering converts muscle activity into heat."
+  },
+  {
+    "id": "qcp020",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Which tissue can produce heat without shivering?",
+    "correct": "Brown fat",
+    "wrong": [
+      "White blood cells",
+      "Skin cells",
+      "Tendons"
+    ],
+    "explanation": "Brown fat can generate heat through a process called non-shivering thermogenesis."
+  },
+  {
+    "id": "qcp021",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is brown adipose tissue commonly called?",
+    "correct": "Brown fat",
+    "wrong": [
+      "Deep fat",
+      "Thermal fat",
+      "Muscle fat"
+    ],
+    "explanation": "Brown fat contains many mitochondria that help produce heat."
+  },
+  {
+    "id": "qcp022",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What can happen to breathing during sudden cold exposure?",
+    "correct": "It may accelerate",
+    "wrong": [
+      "It always stops",
+      "It becomes slower",
+      "It becomes deeper only"
+    ],
+    "explanation": "Sudden cold can trigger rapid, involuntary breathing."
+  },
+  {
+    "id": "qcp023",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is a common first response to cold-water entry?",
+    "correct": "An involuntary gasp",
+    "wrong": [
+      "Immediate sweating",
+      "Muscle relaxation",
+      "Falling asleep"
+    ],
+    "explanation": "The initial gasp is part of the body's cold-shock response."
+  },
+  {
+    "id": "qcp024",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is the cold-shock response?",
+    "correct": "Rapid physiological response",
+    "wrong": [
+      "Gradual muscle adaptation",
+      "Delayed immune response",
+      "Sleep-related cooling"
+    ],
+    "explanation": "Cold shock can rapidly affect breathing, heart rate and blood pressure."
+  },
+  {
+    "id": "qcp025",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Which system strongly influences the cold-shock response?",
+    "correct": "Autonomic nervous system",
+    "wrong": [
+      "Digestive system",
+      "Skeletal system",
+      "Reproductive system"
+    ],
+    "explanation": "Your autonomic nervous system controls many involuntary responses to cold."
+  },
+  {
+    "id": "qcp026",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "Why does water cool you faster than air?",
+    "correct": "Water conducts heat faster",
+    "wrong": [
+      "Water contains less oxygen",
+      "Water weighs more",
+      "Water increases sweating"
+    ],
+    "explanation": "Water transfers heat away from your body far more efficiently than air."
+  },
+  {
+    "id": "qcp027",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "Which removes body heat faster?",
+    "correct": "Cold water",
+    "wrong": [
+      "Cold air",
+      "Both equally",
+      "Neither"
+    ],
+    "explanation": "Immersion exposes much more of your body to efficient heat transfer."
+  },
+  {
+    "id": "qcp028",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What generally happens as water temperature decreases?",
+    "correct": "Heat loss increases",
+    "wrong": [
+      "Heat loss disappears",
+      "Heat loss stops",
+      "Heat loss reverses"
+    ],
+    "explanation": "Colder water creates a larger temperature difference between your body and the water."
+  },
+  {
+    "id": "qcp029",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "Which temperature is most important for thermoregulation?",
+    "correct": "Core temperature",
+    "wrong": [
+      "Fingertip temperature",
+      "Ear temperature",
+      "Skin temperature"
+    ],
+    "explanation": "Your body works continuously to keep core temperature within a narrow range."
+  },
+  {
+    "id": "qcp030",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "Which body surface loses heat during immersion?",
+    "correct": "Exposed skin",
+    "wrong": [
+      "Fingernails",
+      "Hair",
+      "Teeth"
+    ],
+    "explanation": "Skin is the interface where much of the heat exchange occurs."
+  },
+  {
+    "id": "qcp031",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What happens as skin temperature falls?",
+    "correct": "Cold responses increase",
+    "wrong": [
+      "Sweating always increases",
+      "Digestion stops",
+      "Blood disappears"
+    ],
+    "explanation": "Falling skin temperature activates your body's defenses against heat loss."
+  },
+  {
+    "id": "qcp032",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is thermoregulation?",
+    "correct": "Maintaining body temperature",
+    "wrong": [
+      "Increasing muscle size",
+      "Controlling blood sugar",
+      "Increasing lung capacity"
+    ],
+    "explanation": "Thermoregulation balances heat production with heat loss."
+  },
+  {
+    "id": "qcp033",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "Which factor strongly affects cold-water heat loss?",
+    "correct": "Water temperature",
+    "wrong": [
+      "Eye color",
+      "Hair length",
+      "Hand dominance"
+    ],
+    "explanation": "Water temperature is one of the most important variables in cold-water exposure."
+  },
+  {
+    "id": "qcp034",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What does immersion mean in cold-water therapy?",
+    "correct": "Submerging in water",
+    "wrong": [
+      "Drinking cold water",
+      "Breathing cold air",
+      "Applying an ice pack"
+    ],
+    "explanation": "Immersion exposes a large portion of the body to the surrounding water."
+  },
+  {
+    "id": "qcp035",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is cold-water immersion commonly abbreviated as?",
+    "correct": "CWI",
+    "wrong": [
+      "CWT",
+      "CWP",
+      "CWS"
+    ],
+    "explanation": "CWI is a common abbreviation in sports-science research."
+  },
+  {
+    "id": "qcp036",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Which nervous system drives many automatic cold responses?",
+    "correct": "Autonomic nervous system",
+    "wrong": [
+      "Skeletal nervous system",
+      "Digestive nervous system",
+      "Visual nervous system"
+    ],
+    "explanation": "The autonomic nervous system regulates involuntary responses such as heart rate and blood-vessel constriction."
+  },
+  {
+    "id": "qcp037",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What can sudden cold exposure trigger first?",
+    "correct": "Cold shock",
+    "wrong": [
+      "Deep sleep",
+      "Muscle growth",
+      "Digestion"
+    ],
+    "explanation": "Cold shock happens rapidly when the body encounters sudden cold."
+  },
+  {
+    "id": "qcp038",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Why can controlling breathing matter during cold entry?",
+    "correct": "Cold can disrupt breathing",
+    "wrong": [
+      "Cold stops oxygen use",
+      "Cold increases lung size",
+      "Cold eliminates reflexes"
+    ],
+    "explanation": "The initial cold shock can make breathing rapid and difficult to control."
+  },
+  {
+    "id": "qcp039",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What can happen to heart rate during sudden cold exposure?",
+    "correct": "It may increase",
+    "wrong": [
+      "It always decreases",
+      "It stops",
+      "It becomes constant"
+    ],
+    "explanation": "Cold shock can rapidly activate the cardiovascular system."
+  },
+  {
+    "id": "qcp040",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What can happen to blood pressure during cold exposure?",
+    "correct": "It may increase",
+    "wrong": [
+      "It always decreases",
+      "It becomes zero",
+      "It never changes"
+    ],
+    "explanation": "Vasoconstriction and cold-shock responses can temporarily raise blood pressure."
+  },
+  {
+    "id": "qcp041",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What response can become less intense with repeated cold exposure?",
+    "correct": "Cold shock",
+    "wrong": [
+      "Bone growth",
+      "Digestion",
+      "Vision"
+    ],
+    "explanation": "Repeated exposure can reduce some components of the initial cold-shock response."
+  },
+  {
+    "id": "qcp042",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is cold habituation?",
+    "correct": "Reduced response to cold",
+    "wrong": [
+      "Increased body temperature",
+      "Permanent cold immunity",
+      "Complete loss of shivering"
+    ],
+    "explanation": "Habituation means a particular response becomes less pronounced after repeated exposure."
+  },
+  {
+    "id": "qcp043",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is one possible cold-acclimation change?",
+    "correct": "Metabolic adjustment",
+    "wrong": [
+      "Bone expansion",
+      "Lung growth",
+      "Muscle paralysis"
+    ],
+    "explanation": "Repeated cold exposure can change how the body produces and conserves heat."
+  },
+  {
+    "id": "qcp044",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What can repeated cold exposure change?",
+    "correct": "Cold responses",
+    "wrong": [
+      "Eye color",
+      "Bone length",
+      "Blood type"
+    ],
+    "explanation": "The body can adapt to repeated cold exposure in several ways."
+  },
+  {
+    "id": "qcp045",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What does your brain help regulate during a plunge?",
+    "correct": "Body temperature",
+    "wrong": [
+      "Hair growth",
+      "Bone density",
+      "Tooth enamel"
+    ],
+    "explanation": "Brain regions involved in thermoregulation help coordinate the body's response to temperature changes."
+  },
+  {
+    "id": "qcp046",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is cold-water immersion commonly used for after exercise?",
+    "correct": "Recovery",
+    "wrong": [
+      "Building bone",
+      "Increasing height",
+      "Improving eyesight"
+    ],
+    "explanation": "Athletes commonly use CWI as a recovery strategy after demanding exercise."
+  },
+  {
+    "id": "qcp047",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What muscle symptom can CWI sometimes reduce?",
+    "correct": "Muscle soreness",
+    "wrong": [
+      "Muscle length",
+      "Muscle color",
+      "Muscle temperature permanently"
+    ],
+    "explanation": "Research suggests CWI can reduce perceived muscle soreness after strenuous exercise."
+  },
+  {
+    "id": "qcp048",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What does DOMS stand for?",
+    "correct": "Delayed onset muscle soreness",
+    "wrong": [
+      "Deep oxygen muscle stress",
+      "Direct oxygen metabolism system",
+      "Delayed oxygen muscle syndrome"
+    ],
+    "explanation": "DOMS commonly develops after unfamiliar or strenuous exercise."
+  },
+  {
+    "id": "qcp049",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "When does DOMS commonly become noticeable?",
+    "correct": "Hours after exercise",
+    "wrong": [
+      "Before exercise",
+      "During sleep only",
+      "Immediately every time"
+    ],
+    "explanation": "DOMS often develops several hours after exercise and can peak later."
+  },
+  {
+    "id": "qcp050",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What does CWI stand for?",
+    "correct": "Cold-water immersion",
+    "wrong": [
+      "Cold-weather interval",
+      "Circulatory water intake",
+      "Controlled water inhalation"
+    ],
+    "explanation": "You'll see CWI frequently when reading about cold-water recovery research."
+  },
+  {
+    "id": "qcp051",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What recovery measure may improve after CWI?",
+    "correct": "Perceived recovery",
+    "wrong": [
+      "Height",
+      "Vision",
+      "Bone density"
+    ],
+    "explanation": "Some studies find people report feeling more recovered after CWI."
+  },
+  {
+    "id": "qcp052",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What can CWI temporarily affect immediately after immersion?",
+    "correct": "Explosive power",
+    "wrong": [
+      "Bone strength",
+      "Flexibility permanently",
+      "Muscle length"
+    ],
+    "explanation": "Cold muscles can temporarily perform differently immediately after immersion."
+  },
+  {
+    "id": "qcp053",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Why might athletes use CWI after hard exercise?",
+    "correct": "To reduce soreness",
+    "wrong": [
+      "To increase height",
+      "To prevent sweating",
+      "To build bone"
+    ],
+    "explanation": "Reduced perceived soreness is one of the better-supported uses of post-exercise CWI."
+  },
+  {
+    "id": "qcp054",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Does CWI guarantee faster athletic recovery?",
+    "correct": "No",
+    "wrong": [
+      "Yes, always",
+      "Only overnight",
+      "Only below 40\u00b0F"
+    ],
+    "explanation": "Recovery effects vary depending on the person, exercise and immersion protocol."
+  },
+  {
+    "id": "qcp055",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Is there one perfect CWI protocol?",
+    "correct": "No",
+    "wrong": [
+      "Yes",
+      "Only for athletes",
+      "Only below freezing"
+    ],
+    "explanation": "Temperature, duration, timing and individual factors all influence the response."
+  },
+  {
+    "id": "qcp056",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What should you avoid deliberately doing before entering cold water?",
+    "correct": "Hyperventilating",
+    "wrong": [
+      "Breathing normally",
+      "Checking temperature",
+      "Entering carefully"
+    ],
+    "explanation": "Hyperventilation can increase the risk of dizziness or loss of consciousness in water."
+  },
+  {
+    "id": "qcp057",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "Why can sudden cold-water entry be risky?",
+    "correct": "Breathing can become uncontrolled",
+    "wrong": [
+      "Water becomes toxic",
+      "Blood stops circulating",
+      "Muscles immediately freeze"
+    ],
+    "explanation": "Cold shock can trigger involuntary gasping and rapid breathing."
+  },
+  {
+    "id": "qcp058",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What should you know before starting a plunge?",
+    "correct": "Water temperature",
+    "wrong": [
+      "Water weight",
+      "Water color",
+      "Water taste"
+    ],
+    "explanation": "Temperature helps you understand the intensity of your exposure."
+  },
+  {
+    "id": "qcp059",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What can happen after leaving cold water?",
+    "correct": "Core cooling can continue",
+    "wrong": [
+      "Temperature instantly normalizes",
+      "Shivering always stops",
+      "Blood stops moving"
+    ],
+    "explanation": "Heat redistribution can cause continued cooling after you leave the water."
+  },
+  {
+    "id": "qcp060",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is \"afterdrop\"?",
+    "correct": "Continued cooling after exit",
+    "wrong": [
+      "Falling into water",
+      "Lowering water temperature",
+      "Dropping equipment"
+    ],
+    "explanation": "Afterdrop refers to continued decline in core temperature during or after rewarming."
+  },
+  {
+    "id": "qcp061",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What can shivering indicate during rewarming?",
+    "correct": "Heat production",
+    "wrong": [
+      "Dehydration",
+      "Muscle growth",
+      "Improved flexibility"
+    ],
+    "explanation": "Shivering is one way your body generates heat during cold exposure and rewarming."
+  },
+  {
+    "id": "qcp062",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What should you do if you feel unwell?",
+    "correct": "Exit the water",
+    "wrong": [
+      "Stay longer",
+      "Swim harder",
+      "Hold your breath"
+    ],
+    "explanation": "A cold plunge is never worth ignoring warning signs from your body."
+  },
+  {
+    "id": "qcp063",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What should happen before increasing plunge difficulty?",
+    "correct": "Build tolerance gradually",
+    "wrong": [
+      "Skip acclimation",
+      "Lower temperature immediately",
+      "Double the duration"
+    ],
+    "explanation": "Gradual exposure allows you to learn how your body responds to cold."
+  },
+  {
+    "id": "qcp064",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What matters more than winning a plunge challenge?",
+    "correct": "Staying safe",
+    "wrong": [
+      "Staying longer",
+      "Going colder",
+      "Beating yesterday's time"
+    ],
+    "explanation": "Cold exposure is a stressor; longer and colder isn't automatically better."
+  },
+  {
+    "id": "qcp065",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What makes a cold plunge a cold plunge?",
+    "correct": "Cold-water immersion",
+    "wrong": [
+      "Ice on skin",
+      "Cold air exposure",
+      "Drinking ice water"
+    ],
+    "explanation": "A plunge specifically involves immersing the body in cold water."
   }
 ]
