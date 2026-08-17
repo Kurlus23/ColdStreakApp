@@ -28,6 +28,7 @@ interface BadgeProfile {
   avatarUrl?: string | null;
   bio?: string | null;
   socialLinks?: string;
+  userId?: number | null;
 }
 
 interface SocialLinks {
@@ -144,6 +145,26 @@ export default function BadgeProfile() {
     },
     enabled: !!username,
     retry: false,
+  });
+
+  // Brain Freeze head-to-head record — only when viewer is logged in and viewing someone else's profile
+  const profileOwnerId = profile?.userId ?? null;
+  const isViewerLoggedIn = !!getAuthToken();
+  // Compute viewer-not-owner early (myUsername and username from params are available here)
+  const isNotOwnerViewer = !!myUsername && !!username
+    ? myUsername.toLowerCase() !== username.toLowerCase()
+    : true;
+  const { data: h2hData } = useQuery<{ record: { wins: number; losses: number; ties: number } | null }>({
+    queryKey: ["/api/brain-freeze/head-to-head", profileOwnerId],
+    queryFn: async () => {
+      const r = await fetch(`/api/brain-freeze/head-to-head/${profileOwnerId}`, {
+        headers: { Authorization: `Bearer ${getAuthToken() ?? ""}` },
+      });
+      if (!r.ok) return { record: null };
+      return r.json();
+    },
+    enabled: isViewerLoggedIn && !!profileOwnerId && isNotOwnerViewer,
+    staleTime: 30_000,
   });
 
   // Must be called unconditionally before any early returns
@@ -437,6 +458,25 @@ export default function BadgeProfile() {
               </>
             )}
           </div>
+
+          {/* Brain Freeze head-to-head record — shown to logged-in viewers who have played against this user */}
+          {h2hData?.record && (
+            <div
+              data-testid="h2h-record"
+              className="mt-3 rounded-2xl px-4 py-3 flex items-center justify-between"
+              style={{ background: "rgba(14,30,54,0.8)", border: "1px solid rgba(34,211,238,0.12)" }}
+            >
+              <span className="text-blue-300 text-xs font-semibold">🧠 Brain Freeze</span>
+              <span className="text-white text-xs font-bold">
+                <span className="text-green-400">{h2hData.record.wins}W</span>
+                {" · "}
+                <span className="text-red-400">{h2hData.record.losses}L</span>
+                {" · "}
+                <span className="text-slate-400">{h2hData.record.ties}T</span>
+                <span className="text-slate-500 font-normal ml-1">vs {profile.username.split(" ")[0]}</span>
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Owner action bar */}

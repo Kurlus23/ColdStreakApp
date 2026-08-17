@@ -3464,7 +3464,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
           featuredBadges = computeAutoFeaturedBadges(coldestTemp, uniqueDays);
         }
       } catch { /* leave as-is */ }
-      return res.json({ ...storedProfile, plungeCount, uniqueDays, coldestTemp, foundingPlunger: liveFoundingPlunger, featuredBadges });
+      return res.json({ ...storedProfile, plungeCount, uniqueDays, coldestTemp, foundingPlunger: liveFoundingPlunger, featuredBadges, userId: user?.id ?? null });
     }
 
     // Auto-compute when no published profile exists yet (but user account found)
@@ -3482,6 +3482,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
       bio: null,
       socialLinks: "{}",
       computed: true,
+      userId: user?.id ?? null,
     });
   });
 
