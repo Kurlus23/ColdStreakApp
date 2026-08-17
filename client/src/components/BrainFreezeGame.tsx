@@ -25,7 +25,7 @@ interface BrainFreezeGameProps {
 }
 
 const FIRST_QUESTION_AT = 30;  // seconds into plunge before first question
-const BETWEEN_QUESTIONS = 60;  // seconds between questions (after dismissal)
+const BETWEEN_QUESTIONS = 45;  // seconds between questions (after dismissal)
 const QUESTION_TIMEOUT  = 20;  // seconds allowed to answer
 const LABELS            = ["A", "B", "C", "D"];
 
