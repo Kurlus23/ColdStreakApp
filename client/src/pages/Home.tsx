@@ -9211,6 +9211,13 @@ export default function Home() {
           onDismissChallenger={() => setPendingChallengers([])}
           plungeStartTime={startTimeRef.current}
           brainFreezeEnabled={brainFreezeEnabled}
+          targetDurationSeconds={
+            countdownMode
+              ? countdownTotalRef.current
+              : primaryBenefit === "recovery" ? 480
+              : primaryBenefit === "performance" ? 360
+              : 300
+          }
           onBrainFreezeScore={(s) => { brainFreezeScoreRef.current = s; }}
           onBrainFreezeStats={(c, t) => { brainFreezeCorrectRef.current = c; brainFreezeTotalRef.current = t; }}
           onBrainFreezeToggle={(next) => {

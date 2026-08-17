@@ -22,10 +22,13 @@ interface BrainFreezeGameProps {
   onStopPlunge?: () => void;
   onCountdownUpdate?: (seconds: number | null) => void;
   onBrainFreezeStats?: (correct: number, total: number) => void;
+  /** Expected plunge duration in seconds — used to space questions evenly. */
+  targetDurationSeconds?: number;
 }
 
 const FIRST_QUESTION_AT = 30;  // seconds into plunge before first question
-const BETWEEN_QUESTIONS = 45;  // seconds between questions (after dismissal)
+const TARGET_QUESTIONS   = 10; // how many questions to fit into a plunge
+const MIN_INTERVAL       = 20; // never faster than 20s between questions
 const QUESTION_TIMEOUT  = 20;  // seconds allowed to answer
 const LABELS            = ["A", "B", "C", "D"];
 
@@ -55,7 +58,13 @@ export function BrainFreezeGame({
   onStopPlunge,
   onCountdownUpdate,
   onBrainFreezeStats,
+  targetDurationSeconds,
 }: BrainFreezeGameProps) {
+  // Spread TARGET_QUESTIONS evenly across the expected plunge duration.
+  // Falls back to 45 s when no target is provided.
+  const intervalSecs = targetDurationSeconds
+    ? Math.max(MIN_INTERVAL, Math.round((targetDurationSeconds - FIRST_QUESTION_AT) / (TARGET_QUESTIONS - 1)))
+    : 45;
   const [question, setQuestion]   = useState<Question | null>(null);
   const [phase, setPhase]         = useState<Phase>("idle");
   const [answers, setAnswers]     = useState<string[]>([]);
@@ -96,7 +105,7 @@ export function BrainFreezeGame({
     }
     // phase === "idle" or "answered" — compute seconds until next question
     if (firstShownRef.current && dismissedAtRef.current !== null) {
-      const secsLeft = Math.max(0, dismissedAtRef.current + BETWEEN_QUESTIONS - elapsedSeconds);
+      const secsLeft = Math.max(0, dismissedAtRef.current + intervalSecs - elapsedSeconds);
       onCountdownUpdate?.(secsLeft);
     } else {
       onCountdownUpdate?.(null);
@@ -156,7 +165,7 @@ export function BrainFreezeGame({
     }
 
     if (firstShownRef.current && dismissedAtRef.current !== null &&
-        elapsedSeconds >= dismissedAtRef.current + BETWEEN_QUESTIONS) {
+        elapsedSeconds >= dismissedAtRef.current + intervalSecs) {
       dismissedAtRef.current = null;
       fetchQuestion(elapsedSeconds);
     }
