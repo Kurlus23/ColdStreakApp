@@ -13,10 +13,12 @@ export interface CompletionCardData {
   tempMin?: number;
   tempMax?: number;
   brainFreezeScore?: number;
+  brainFreezeCorrect?: number;
+  brainFreezeTotal?: number;
 }
 
 /**
- * Returns the brainFreezeScore field to spread into the completion card data
+ * Returns the brainFreeze fields to spread into the completion card data
  * and createPlunge payload.  Returns an empty object when Brain Freeze is
  * disabled or no questions were answered (score === 0).
  *
@@ -27,20 +29,20 @@ export interface CompletionCardData {
 export function buildBrainFreezeField(
   brainFreezeEnabled: boolean,
   score: number,
-): { brainFreezeScore?: number } {
+  correct?: number,
+  total?: number,
+): { brainFreezeScore?: number; brainFreezeCorrect?: number; brainFreezeTotal?: number } {
   if (brainFreezeEnabled && score > 0) {
-    return { brainFreezeScore: score };
+    return {
+      brainFreezeScore: score,
+      ...(total != null && total > 0 ? { brainFreezeCorrect: correct ?? 0, brainFreezeTotal: total } : {}),
+    };
   }
   return {};
 }
 
 /**
  * Render guard for the Brain Freeze row on the completion card.
- *
- * Mirrors the JSX condition at line ~8391 of Home.tsx:
- *   promptPlungeRef.current?.brainFreezeScore != null &&
- *   promptPlungeRef.current.brainFreezeScore > 0
- *
  * Returns true only when a positive Brain Freeze score was recorded.
  */
 export function shouldShowBrainFreezeRow(
@@ -51,14 +53,18 @@ export function shouldShowBrainFreezeRow(
 
 /**
  * Label text shown inside the Brain Freeze row.
- *
- * Mirrors the JSX text at line ~8395 of Home.tsx:
- *   `${promptPlungeRef.current.brainFreezeScore} correct`
+ * Shows "X/Y correct · N pts" when correct/total counts are available,
+ * otherwise falls back to points only.
  */
 export function brainFreezeRowLabel(
   data: CompletionCardData | null | undefined,
 ): string | null {
   const score = data?.brainFreezeScore;
   if (score == null || score <= 0) return null;
-  return `${score} correct`;
+  const correct = data?.brainFreezeCorrect;
+  const total   = data?.brainFreezeTotal;
+  if (total != null && total > 0) {
+    return `${correct ?? 0}/${total} correct · ${score} pts`;
+  }
+  return `${score} pts`;
 }

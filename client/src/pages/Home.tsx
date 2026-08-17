@@ -3213,7 +3213,9 @@ export default function Home() {
   // ─────────────────────────────────────────────────────────────────────────
   // ─────────────────────────────────────────────────────────────────────────
 
-  const brainFreezeScoreRef = useRef(0);
+  const brainFreezeScoreRef   = useRef(0);
+  const brainFreezeCorrectRef = useRef(0);
+  const brainFreezeTotalRef   = useRef(0);
 
   const doLogPlunge = useCallback(async (durationSec: number, startedAtOverride?: Date, challenger?: { userId: number; score: number }) => {
     // Use the average of all temperature samples collected during this session.
@@ -3242,7 +3244,7 @@ export default function Home() {
         duration: durationSec, temperature: avgTemp, score: String(score), timerUsed: true, calories: caloriesAtLogTime,
         hrAvg,
         spo2Avg: null,
-        ...buildBrainFreezeField(brainFreezeEnabled, brainFreezeScoreRef.current),
+        ...buildBrainFreezeField(brainFreezeEnabled, brainFreezeScoreRef.current, brainFreezeCorrectRef.current, brainFreezeTotalRef.current),
         ...(challenger ? { challengerUserId: challenger.userId, challengerScore: challenger.score } : {}),
       },
       {
@@ -3267,7 +3269,7 @@ export default function Home() {
           const tempRangeStr = (tempMin !== undefined && tempMax !== undefined && tempMax - tempMin >= 1)
             ? ` avg (${tempMin} → ${tempMax}°F)` : `°F`;
           toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${avgTemp}${tempRangeStr}` });
-          promptPlungeRef.current = { score: String(score), duration: durationSec, temperature: avgTemp, timerUsed: true, tempMin, tempMax, ...buildBrainFreezeField(brainFreezeEnabled, brainFreezeScoreRef.current) };
+          promptPlungeRef.current = { score: String(score), duration: durationSec, temperature: avgTemp, timerUsed: true, tempMin, tempMax, ...buildBrainFreezeField(brainFreezeEnabled, brainFreezeScoreRef.current, brainFreezeCorrectRef.current, brainFreezeTotalRef.current) };
           if (!auth.user) setPendingSignupNudge(true);
           setPromptColdTake(unlockColdTake({
             seconds: durationSec,
@@ -3527,7 +3529,9 @@ export default function Home() {
       setCountdownElapsed(0);
       setCountdown(total);
       tempSamplesRef.current = [temperature];
-      brainFreezeScoreRef.current = 0;
+      brainFreezeScoreRef.current   = 0;
+      brainFreezeCorrectRef.current = 0;
+      brainFreezeTotalRef.current   = 0;
       setCountdownRunning(true);
       localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "countdown", startTime: now, countdownTotal: total, minutesInput, secondsInput, entryTemp: temperature, challengers: pendingChallengers }));
     } else {
@@ -3535,7 +3539,9 @@ export default function Home() {
       const now = Date.now();
       startTimeRef.current = now;
       tempSamplesRef.current = [temperature];
-      brainFreezeScoreRef.current = 0;
+      brainFreezeScoreRef.current   = 0;
+      brainFreezeCorrectRef.current = 0;
+      brainFreezeTotalRef.current   = 0;
       setIsRunning(true);
       localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "stopwatch", startTime: now, entryTemp: temperature, challengers: pendingChallengers }));
     }
@@ -9206,6 +9212,7 @@ export default function Home() {
           plungeStartTime={startTimeRef.current}
           brainFreezeEnabled={brainFreezeEnabled}
           onBrainFreezeScore={(s) => { brainFreezeScoreRef.current = s; }}
+          onBrainFreezeStats={(c, t) => { brainFreezeCorrectRef.current = c; brainFreezeTotalRef.current = t; }}
           onBrainFreezeToggle={(next) => {
             setBrainFreezeEnabled(next);
             localStorage.setItem("coldstreak-brain-freeze", String(next));

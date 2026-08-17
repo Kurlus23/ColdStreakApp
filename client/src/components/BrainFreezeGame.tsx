@@ -21,10 +21,11 @@ interface BrainFreezeGameProps {
   onStopGame?: () => void;
   onStopPlunge?: () => void;
   onCountdownUpdate?: (seconds: number | null) => void;
+  onBrainFreezeStats?: (correct: number, total: number) => void;
 }
 
 const FIRST_QUESTION_AT = 30;  // seconds into plunge before first question
-const BETWEEN_QUESTIONS = 90;  // seconds between questions (after dismissal)
+const BETWEEN_QUESTIONS = 60;  // seconds between questions (after dismissal)
 const QUESTION_TIMEOUT  = 20;  // seconds allowed to answer
 const LABELS            = ["A", "B", "C", "D"];
 
@@ -53,6 +54,7 @@ export function BrainFreezeGame({
   onStopGame,
   onStopPlunge,
   onCountdownUpdate,
+  onBrainFreezeStats,
 }: BrainFreezeGameProps) {
   const [question, setQuestion]   = useState<Question | null>(null);
   const [phase, setPhase]         = useState<Phase>("idle");
@@ -65,6 +67,8 @@ export function BrainFreezeGame({
   const [autoCloseLeft, setAutoCloseLeft] = useState<number | null>(null);
 
   const scoreRef          = useRef(0);
+  const correctCountRef   = useRef(0);
+  const totalAnsweredRef  = useRef(0);
   const phaseRef          = useRef<Phase>("idle");
   const fetchingRef       = useRef(false);
   const dismissedAtRef    = useRef<number | null>(null);
@@ -205,8 +209,11 @@ export function BrainFreezeGame({
       scoreRef.current += pts;
       onScoreUpdateRef.current?.(scoreRef.current);
     }
+    if (correct) correctCountRef.current += 1;
+    totalAnsweredRef.current += 1;
+    onBrainFreezeStats?.(correctCountRef.current, totalAnsweredRef.current);
     // No auto-dismiss — user taps "Next →"
-  }, [question]);
+  }, [question, onBrainFreezeStats]);
 
   // Dismiss handler — records when the user closes the card
   const handleDismiss = useCallback(() => {
