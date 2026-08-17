@@ -146,6 +146,7 @@ export function BrainFreezeGame({
             questionId:           question.id,
             isCorrect:            correct,
             responseTimeMs:       responseMs,
+            timedOut:             ans === null,
             inPlunge:             true,
             plungeElapsedSeconds: shownAtElapsedRef.current,
             waterTempF:           Math.round(temperatureRef.current),

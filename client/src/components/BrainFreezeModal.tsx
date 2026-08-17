@@ -172,6 +172,7 @@ export function BrainFreezeModal({
             questionId:     question.id,
             isCorrect:      correct,
             responseTimeMs: ans === null ? QUESTION_TIMEOUT * 1000 : elapsedMs,
+            timedOut:       ans === null,
             inPlunge:       false,
             ...(challengeIdRef.current ? { challengeId: challengeIdRef.current } : {}),
           }),

@@ -247,16 +247,48 @@ export async function getQuestion(userId: number, preferColdPlunge = false) {
 
 // ─── Answer logging ───────────────────────────────────────────────────────────
 
-/** Points formula: 100 base (correct) + up to 50 speed bonus (scales linearly 0-20 s). */
-const ANSWER_BASE_POINTS  = 100;
-const ANSWER_SPEED_BONUS  = 50;
-const ANSWER_TIMEOUT_MS   = 20_000;
+/**
+ * Speed tiers (0-indexed, evaluated in order against responseTimeMs).
+ * "No answer" (timedOut) always returns 0 before reaching this table.
+ */
+const SPEED_TIERS = [
+  { maxMs:  4_000, correct: 125, wrong: 25 }, // instant   0–4 s
+  { maxMs:  8_000, correct: 110, wrong: 20 }, // fast      4–8 s
+  { maxMs: 14_000, correct:  90, wrong: 10 }, // normal    8–14 s
+  { maxMs: 20_000, correct:  60, wrong:   5 }, // slow/barely  14–20 s
+] as const;
 
-export function computePoints(isCorrect: boolean, responseTimeMs: number): number {
-  if (!isCorrect) return 0;
-  const speedFraction = Math.max(0, 1 - responseTimeMs / ANSWER_TIMEOUT_MS);
-  return ANSWER_BASE_POINTS + Math.round(ANSWER_SPEED_BONUS * speedFraction);
-  // min 100 pts (answered at wire limit) · max 150 pts (near-instant answer)
+/**
+ * Cold-water multiplier applied only during an active plunge.
+ * Colder water → bigger bonus (reward for playing while genuinely cold).
+ */
+function coldTempMultiplier(waterTempF: number | null | undefined): number {
+  if (!waterTempF) return 1.0;
+  if (waterTempF < 40) return 1.50; // sub-4 °C — extreme
+  if (waterTempF < 50) return 1.30; // 4–10 °C — very cold
+  if (waterTempF < 60) return 1.15; // 10–15 °C — cold
+  return 1.0;                        // ≥ 15 °C — mild, no bonus
+}
+
+/**
+ * Compute points for a Brain Freeze answer.
+ *
+ * - timedOut (no tap)            → 0
+ * - Wrong answers score by speed (25 / 20 / 10 / 5)
+ * - Correct answers score by speed (125 / 110 / 90 / 60)
+ * - In-plunge answers get a cold-temp multiplier (1.0–1.5×)
+ */
+export function computePoints(
+  isCorrect:     boolean,
+  responseTimeMs: number,
+  waterTempF?:   number | null,
+  timedOut?:     boolean,
+): number {
+  if (timedOut) return 0;
+  const tier = SPEED_TIERS.find(t => responseTimeMs <= t.maxMs) ?? SPEED_TIERS[SPEED_TIERS.length - 1];
+  const base = isCorrect ? tier.correct : tier.wrong;
+  const multiplier = waterTempF ? coldTempMultiplier(waterTempF) : 1.0;
+  return Math.round(base * multiplier);
 }
 
 export async function logAnswer(data: {
@@ -264,13 +296,14 @@ export async function logAnswer(data: {
   questionId:           number;
   isCorrect:            boolean;
   responseTimeMs:       number;
+  timedOut?:            boolean;
   inPlunge:             boolean;
   plungeElapsedSeconds?: number | null;
   waterTempF?:          number | null;
   plungeId?:            number | null;
   challengeId?:         number | null;
 }) {
-  const pointsEarned = computePoints(data.isCorrect, data.responseTimeMs);
+  const pointsEarned = computePoints(data.isCorrect, data.responseTimeMs, data.waterTempF, data.timedOut);
   const [row] = await db
     .insert(brainFreezeAnswers)
     .values({

@@ -4137,6 +4137,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
       questionId:           z.number().int().positive(),
       isCorrect:            z.boolean(),
       responseTimeMs:       z.number().int().min(0).max(30000),
+      timedOut:             z.boolean().optional(),
       inPlunge:             z.boolean(),
       plungeElapsedSeconds: z.number().int().min(0).optional().nullable(),
       waterTempF:           z.number().int().optional().nullable(),
