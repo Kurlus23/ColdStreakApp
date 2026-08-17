@@ -36,6 +36,13 @@ function getSpeedTier(points: number, correct: boolean, timedOut: boolean): stri
   return null;
 }
 
+function getColdBonusLabel(waterTempF: number): string | null {
+  if (waterTempF < 40) return "🧊 +50% cold bonus";
+  if (waterTempF < 50) return "🧊 +30% cold bonus";
+  if (waterTempF < 60) return "🧊 +15% cold bonus";
+  return null;
+}
+
 export function BrainFreezeGame({
   elapsedSeconds,
   temperature,
@@ -52,6 +59,7 @@ export function BrainFreezeGame({
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [timeLeft, setTimeLeft]   = useState(QUESTION_TIMEOUT);
   const [lastPoints, setLastPoints] = useState<number | null>(null);
+  const [lastTempF, setLastTempF]   = useState<number | null>(null);
 
   const scoreRef          = useRef(0);
   const phaseRef          = useRef<Phase>("idle");
@@ -103,6 +111,7 @@ export function BrainFreezeGame({
       setSelected(null);
       setIsCorrect(null);
       setLastPoints(null);
+      setLastTempF(null);
       setTimeLeft(QUESTION_TIMEOUT);
       setPhase("showing");
     } catch {
@@ -141,7 +150,9 @@ export function BrainFreezeGame({
       ? QUESTION_TIMEOUT * 1000
       : Math.min((QUESTION_TIMEOUT - tl) * 1000, QUESTION_TIMEOUT * 1000);
 
+    const snapTempF = Math.round(temperatureRef.current);
     setLastPoints(null);
+    setLastTempF(snapTempF);
     setSelected(ans);
     setIsCorrect(correct);
     setPhase("answered");
@@ -161,7 +172,7 @@ export function BrainFreezeGame({
             timedOut:             ans === null,
             inPlunge:             true,
             plungeElapsedSeconds: shownAtElapsedRef.current,
-            waterTempF:           Math.round(temperatureRef.current),
+            waterTempF:           snapTempF,
           }),
         });
         if (res.ok) {
@@ -339,10 +350,15 @@ export function BrainFreezeGame({
                   {isCorrect ? "Correct! 🧊" : selected === null ? "Time's up" : `Answer: ${question?.correct}`}
                 </p>
                 {lastPoints !== null && (
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                     {getSpeedTier(lastPoints, !!isCorrect, selected === null) && (
                       <span className="text-[10px] font-semibold text-blue-300/70">
                         {getSpeedTier(lastPoints, !!isCorrect, selected === null)}
+                      </span>
+                    )}
+                    {selected !== null && lastTempF !== null && getColdBonusLabel(lastTempF) && (
+                      <span className="text-[10px] font-semibold text-cyan-300/80">
+                        {getColdBonusLabel(lastTempF)}
                       </span>
                     )}
                     <span
