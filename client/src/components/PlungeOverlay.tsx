@@ -188,6 +188,7 @@ interface PlungeOverlayProps {
   brainFreezeEnabled?: boolean;
   onBrainFreezeScore?: (score: number) => void;
   onBrainFreezeToggle?: (enabled: boolean) => void;
+  onBrainFreezeCountdown?: (seconds: number | null) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -218,8 +219,10 @@ export function PlungeOverlay({
   brainFreezeEnabled = false,
   onBrainFreezeScore,
   onBrainFreezeToggle,
+  onBrainFreezeCountdown,
   plungeStartTime,
 }: PlungeOverlayProps) {
+  const [nextQuestionIn, setNextQuestionIn] = useState<number | null>(null);
   // ── Wall-clock display timer ──────────────────────────────────────────────────
   // Drives its own setInterval from the raw start timestamp so the clock stays
   // accurate even if the parent's 1-second interval is throttled or dropped on iOS.
@@ -517,13 +520,6 @@ export function PlungeOverlay({
                       First question in {Math.max(0, 30 - localDisplaySecs)}s
                     </p>
                   </div>
-                  <button
-                    onClick={() => onBrainFreezeToggle?.(false)}
-                    className="shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-semibold text-slate-400 transition-all active:scale-95"
-                    style={{ background: "rgba(15,30,70,0.7)", border: "1px solid rgba(59,130,246,0.2)" }}
-                  >
-                    Turn off
-                  </button>
                 </div>
               )}
             </>
@@ -589,9 +585,16 @@ export function PlungeOverlay({
         >
           <div className="flex items-center gap-2.5">
             <img src="/brain-freeze-icon.png" alt="" className="w-6 h-6 rounded-lg object-cover shrink-0" style={{ opacity: brainFreezeEnabled ? 1 : 0.4 }} />
-            <span className="text-xs font-semibold" style={{ color: brainFreezeEnabled ? "#67e8f9" : "#475569" }}>
-              Brain Freeze Trivia
-            </span>
+            <div className="flex flex-col items-start">
+              <span className="text-xs font-semibold" style={{ color: brainFreezeEnabled ? "#67e8f9" : "#475569" }}>
+                Brain Freeze Trivia
+              </span>
+              {brainFreezeEnabled && nextQuestionIn !== null && (
+                <span className="text-[10px] leading-none mt-0.5" style={{ color: "rgba(103,232,249,0.55)" }}>
+                  Next question in {nextQuestionIn}s
+                </span>
+              )}
+            </div>
           </div>
           {/* Toggle pill */}
           <div className={`relative w-10 h-5 rounded-full transition-colors ${brainFreezeEnabled ? "bg-cyan-500" : "bg-slate-700"}`}>
@@ -621,6 +624,7 @@ export function PlungeOverlay({
         onScoreUpdate={onBrainFreezeScore}
         onStopGame={() => onBrainFreezeToggle?.(false)}
         onStopPlunge={onStop}
+        onCountdownUpdate={(secs) => { setNextQuestionIn(secs); onBrainFreezeCountdown?.(secs); }}
       />
     </div>
   );

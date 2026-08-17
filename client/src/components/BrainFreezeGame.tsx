@@ -20,6 +20,7 @@ interface BrainFreezeGameProps {
   onScoreUpdate?: (score: number) => void;
   onStopGame?: () => void;
   onStopPlunge?: () => void;
+  onCountdownUpdate?: (seconds: number | null) => void;
 }
 
 const FIRST_QUESTION_AT = 30;  // seconds into plunge before first question
@@ -51,6 +52,7 @@ export function BrainFreezeGame({
   onScoreUpdate,
   onStopGame,
   onStopPlunge,
+  onCountdownUpdate,
 }: BrainFreezeGameProps) {
   const [question, setQuestion]   = useState<Question | null>(null);
   const [phase, setPhase]         = useState<Phase>("idle");
@@ -58,8 +60,9 @@ export function BrainFreezeGame({
   const [selected, setSelected]   = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [timeLeft, setTimeLeft]   = useState(QUESTION_TIMEOUT);
-  const [lastPoints, setLastPoints] = useState<number | null>(null);
-  const [lastTempF, setLastTempF]   = useState<number | null>(null);
+  const [lastPoints, setLastPoints]     = useState<number | null>(null);
+  const [lastTempF, setLastTempF]       = useState<number | null>(null);
+  const [autoCloseLeft, setAutoCloseLeft] = useState<number | null>(null);
 
   const scoreRef          = useRef(0);
   const phaseRef          = useRef<Phase>("idle");
@@ -80,6 +83,21 @@ export function BrainFreezeGame({
   useEffect(() => { temperatureRef.current = temperature; }, [temperature]);
   useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
   useEffect(() => { onScoreUpdateRef.current = onScoreUpdate; }, [onScoreUpdate]);
+
+  // Fire countdown every second so the plunge screen can display "Next question in Xs"
+  useEffect(() => {
+    if (!enabled || phase === "showing" || phase === "loading") {
+      onCountdownUpdate?.(null);
+      return;
+    }
+    // phase === "idle" or "answered" — compute seconds until next question
+    if (firstShownRef.current && dismissedAtRef.current !== null) {
+      const secsLeft = Math.max(0, dismissedAtRef.current + BETWEEN_QUESTIONS - elapsedSeconds);
+      onCountdownUpdate?.(secsLeft);
+    } else {
+      onCountdownUpdate?.(null);
+    }
+  }, [enabled, phase, elapsedSeconds, onCountdownUpdate]);
 
   const getToken = () => {
     try { return localStorage.getItem("coldstreak-auth-token"); } catch { return null; }
@@ -205,16 +223,27 @@ export function BrainFreezeGame({
     onStopGame?.();
   }, [onStopGame]);
 
-  // Countdown — proper deps so it isn't cancelled by parent re-renders
+  // Question countdown — auto-submit when time runs out
   useEffect(() => {
     if (phase !== "showing") return;
-    if (timeLeft <= 0) {
-      handleAnswer(null);
-      return;
-    }
+    if (timeLeft <= 0) { handleAnswer(null); return; }
     const t = setTimeout(() => setTimeLeft((tl) => tl - 1), 1000);
     return () => clearTimeout(t);
   }, [phase, timeLeft, handleAnswer]);
+
+  // Auto-close countdown — dismiss the answer card after 10 s if user doesn't tap Next
+  const AUTO_CLOSE_SECS = 10;
+  useEffect(() => {
+    if (phase !== "answered") { setAutoCloseLeft(null); return; }
+    setAutoCloseLeft(AUTO_CLOSE_SECS);
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "answered" || autoCloseLeft === null) return;
+    if (autoCloseLeft <= 0) { handleDismiss(); return; }
+    const t = setTimeout(() => setAutoCloseLeft((n) => (n ?? 1) - 1), 1000);
+    return () => clearTimeout(t);
+  }, [phase, autoCloseLeft, handleDismiss]);
 
   if (!enabled || phase === "idle" || phase === "loading") return null;
 
@@ -380,7 +409,7 @@ export function BrainFreezeGame({
                 className="px-5 py-2 rounded-xl text-xs font-semibold text-cyan-300 transition-all active:scale-95"
                 style={{ background: "rgba(34,211,238,0.15)", border: "1px solid rgba(34,211,238,0.3)" }}
               >
-                Next →
+                Next {autoCloseLeft !== null ? `(${autoCloseLeft}s)` : "→"}
               </button>
             </div>
           </>
