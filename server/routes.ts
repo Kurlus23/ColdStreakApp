@@ -4107,7 +4107,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     try {
       const { reseedBrainFreezeQuestions } = await import("./brain-freeze");
       const result = await reseedBrainFreezeQuestions();
-      console.log(`[brain-freeze-reseed] done: deleted=${result.deleted} inserted=${result.inserted}`);
+      console.log(`[brain-freeze-reseed] done: upserted=${result.upserted}`);
       res.json({ ok: true, ...result });
     } catch (err) {
       console.error("[brain-freeze-reseed] error:", err);
