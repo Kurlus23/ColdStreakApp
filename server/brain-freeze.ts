@@ -7,7 +7,7 @@
 
 import { db } from "./db";
 import { brainFreezeQuestions, brainFreezeAnswers } from "../shared/schema";
-import { eq, and, notInArray, inArray, gte, desc, sql } from "drizzle-orm";
+import { eq, and, ne, notInArray, inArray, gte, desc, sql } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 
@@ -136,22 +136,77 @@ export async function reseedBrainFreezeQuestions(): Promise<{ upserted: number }
 
 // ─── Question serving ─────────────────────────────────────────────────────────
 
+/**
+ * Pure helper: given a pool of candidate questions and the category of the
+ * user's last-answered question, pick one — preferring a different category to
+ * avoid back-to-back repetition.  Falls back to the full pool only when every
+ * candidate belongs to the same category.
+ *
+ * Exported for unit testing.
+ */
+export function pickFromPool<T extends { category: string }>(
+  pool: T[],
+  lastCategory: string | null,
+): T | null {
+  if (pool.length === 0) return null;
+  const diffCat = lastCategory
+    ? pool.filter(q => q.category !== lastCategory)
+    : pool;
+  const candidates = diffCat.length > 0 ? diffCat : pool;
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
 export async function getQuestion(userId: number) {
   await ensureSeeded();
 
   // Avoid questions answered in the last 30 days
   const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const seen = await db
+  const recentAnswers = await db
     .select({ questionId: brainFreezeAnswers.questionId })
     .from(brainFreezeAnswers)
     .where(and(
       eq(brainFreezeAnswers.userId, userId),
       gte(brainFreezeAnswers.answeredAt, cutoff),
     ));
-  const seenIds = seen.map(r => r.questionId);
+  const seenIds = recentAnswers.map(r => r.questionId);
 
+  // Find the category of the user's most-recently answered question so we can
+  // avoid serving the same category back-to-back.
+  const [lastAnswerRow] = await db
+    .select({ category: brainFreezeQuestions.category })
+    .from(brainFreezeAnswers)
+    .innerJoin(brainFreezeQuestions, eq(brainFreezeAnswers.questionId, brainFreezeQuestions.id))
+    .where(eq(brainFreezeAnswers.userId, userId))
+    .orderBy(desc(brainFreezeAnswers.answeredAt))
+    .limit(1);
+  const lastCategory = lastAnswerRow?.category ?? null;
+
+  // ── 1. Best case: unseen + different category ────────────────────────────
   let q;
-  if (seenIds.length > 0) {
+  if (seenIds.length > 0 && lastCategory) {
+    [q] = await db
+      .select()
+      .from(brainFreezeQuestions)
+      .where(and(
+        notInArray(brainFreezeQuestions.id, seenIds),
+        ne(brainFreezeQuestions.category, lastCategory),
+      ))
+      .orderBy(sql`RANDOM()`)
+      .limit(1);
+  } else if (lastCategory) {
+    // No recently-seen questions but we still know the last category
+    [q] = await db
+      .select()
+      .from(brainFreezeQuestions)
+      .where(ne(brainFreezeQuestions.category, lastCategory))
+      .orderBy(sql`RANDOM()`)
+      .limit(1);
+  }
+
+  // ── 2. Fallback: unseen, any category ────────────────────────────────────
+  // (Reached only when all unseen questions share the same category as the
+  //  last answer — an edge case with a very narrow question pool.)
+  if (!q && seenIds.length > 0) {
     [q] = await db
       .select()
       .from(brainFreezeQuestions)
@@ -159,7 +214,8 @@ export async function getQuestion(userId: number) {
       .orderBy(sql`RANDOM()`)
       .limit(1);
   }
-  // Fall back to any question if all 200 have been seen recently
+
+  // ── 3. Final fallback: all 200 questions (all seen recently) ─────────────
   if (!q) {
     [q] = await db
       .select()
@@ -167,6 +223,7 @@ export async function getQuestion(userId: number) {
       .orderBy(sql`RANDOM()`)
       .limit(1);
   }
+
   return q ?? null;
 }
 
