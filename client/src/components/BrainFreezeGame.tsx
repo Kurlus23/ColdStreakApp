@@ -27,6 +27,15 @@ const BETWEEN_QUESTIONS = 90;  // seconds between questions (after dismissal)
 const QUESTION_TIMEOUT  = 20;  // seconds allowed to answer
 const LABELS            = ["A", "B", "C", "D"];
 
+function getSpeedTier(points: number, correct: boolean, timedOut: boolean): string | null {
+  if (timedOut || !correct) return null;
+  if (points >= 125) return "⚡⚡ Instant";
+  if (points >= 110) return "⚡ Fast";
+  if (points >= 90)  return "✅ Normal";
+  if (points >= 60)  return "🐢 Slow";
+  return null;
+}
+
 export function BrainFreezeGame({
   elapsedSeconds,
   temperature,
@@ -42,6 +51,7 @@ export function BrainFreezeGame({
   const [selected, setSelected]   = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [timeLeft, setTimeLeft]   = useState(QUESTION_TIMEOUT);
+  const [lastPoints, setLastPoints] = useState<number | null>(null);
 
   const scoreRef          = useRef(0);
   const phaseRef          = useRef<Phase>("idle");
@@ -92,6 +102,7 @@ export function BrainFreezeGame({
       setAnswers(all);
       setSelected(null);
       setIsCorrect(null);
+      setLastPoints(null);
       setTimeLeft(QUESTION_TIMEOUT);
       setPhase("showing");
     } catch {
@@ -130,6 +141,7 @@ export function BrainFreezeGame({
       ? QUESTION_TIMEOUT * 1000
       : Math.min((QUESTION_TIMEOUT - tl) * 1000, QUESTION_TIMEOUT * 1000);
 
+    setLastPoints(null);
     setSelected(ans);
     setIsCorrect(correct);
     setPhase("answered");
@@ -155,6 +167,7 @@ export function BrainFreezeGame({
         if (res.ok) {
           const data = await res.json();
           pts = data.points ?? (correct ? 100 : 0);
+          setLastPoints(pts);
         }
       } catch {}
     }
@@ -314,20 +327,37 @@ export function BrainFreezeGame({
         {/* Explanation + Got it button */}
         {phase === "answered" && (
           <>
-            {question?.explanation && (
-              <div
-                className="mx-4 rounded-2xl px-3 py-2.5"
-                style={{
-                  background: isCorrect ? "rgba(16,94,46,0.2)" : "rgba(96,165,250,0.07)",
-                  border: `1px solid ${isCorrect ? "rgba(34,197,94,0.25)" : "rgba(96,165,250,0.14)"}`,
-                }}
-              >
-                <p className="text-[11px] font-semibold mb-0.5" style={{ color: isCorrect ? "#86efac" : "#fca5a5" }}>
-                  {isCorrect ? "Correct! 🧊" : selected === null ? "Time's up" : `Answer: ${question.correct}`}
+            <div
+              className="mx-4 rounded-2xl px-3 py-2.5"
+              style={{
+                background: isCorrect ? "rgba(16,94,46,0.2)" : selected === null ? "rgba(60,60,60,0.3)" : "rgba(96,165,250,0.07)",
+                border: `1px solid ${isCorrect ? "rgba(34,197,94,0.25)" : selected === null ? "rgba(96,165,250,0.15)" : "rgba(96,165,250,0.14)"}`,
+              }}
+            >
+              <div className="flex items-center justify-between gap-2 mb-0.5">
+                <p className="text-[11px] font-semibold" style={{ color: isCorrect ? "#86efac" : selected === null ? "#94a3b8" : "#fca5a5" }}>
+                  {isCorrect ? "Correct! 🧊" : selected === null ? "Time's up" : `Answer: ${question?.correct}`}
                 </p>
-                <p className="text-blue-300/75 text-[11px] leading-snug">{question.explanation}</p>
+                {lastPoints !== null && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {getSpeedTier(lastPoints, !!isCorrect, selected === null) && (
+                      <span className="text-[10px] font-semibold text-blue-300/70">
+                        {getSpeedTier(lastPoints, !!isCorrect, selected === null)}
+                      </span>
+                    )}
+                    <span
+                      className="text-[11px] font-black tabular-nums"
+                      style={{ color: isCorrect ? "#34d399" : selected === null ? "#64748b" : "#f87171" }}
+                    >
+                      {selected === null ? "0 pts" : `+${lastPoints} pts`}
+                    </span>
+                  </div>
+                )}
               </div>
-            )}
+              {question?.explanation && (
+                <p className="text-blue-300/75 text-[11px] leading-snug">{question.explanation}</p>
+              )}
+            </div>
             <div className="px-4 pt-3 flex justify-end">
               <button
                 onClick={handleDismiss}

@@ -26,6 +26,15 @@ const QUESTION_TIMEOUT = 20;   // seconds to answer
 const MAX_QUESTIONS    = 10;
 const LABELS           = ["A", "B", "C", "D"];
 
+function getSpeedTier(points: number, isCorrect: boolean, timedOut: boolean): string | null {
+  if (timedOut || !isCorrect) return null;
+  if (points >= 125) return "⚡⚡ Instant";
+  if (points >= 110) return "⚡ Fast";
+  if (points >= 90)  return "✅ Normal";
+  if (points >= 60)  return "🐢 Slow";
+  return null;
+}
+
 function getToken() {
   try { return localStorage.getItem("coldstreak-auth-token"); } catch { return null; }
 }
@@ -44,6 +53,7 @@ export function BrainFreezeModal({
   const [sessionPoints,  setSessionPoints]  = useState(0);
   const [challengeStatus, setChallengeStatus] = useState<"won" | "lost" | "tie" | "waiting" | null>(null);
   const [challengeOpponentScore, setChallengeOpponentScore] = useState<number | null>(null);
+  const [lastPoints, setLastPoints] = useState<number | null>(null);
 
   // Stable refs so callbacks never go stale
   const phaseRef         = useRef<Phase>("loading");
@@ -157,6 +167,7 @@ export function BrainFreezeModal({
     const elapsedMs = Math.min(Date.now() - shownAtRef.current, QUESTION_TIMEOUT * 1000);
 
     if (correct) correctCountRef.current += 1;
+    setLastPoints(null);
     setSelected(ans);
     setPhase("answered");
     setSessionTotal((t) => t + 1);
@@ -180,6 +191,7 @@ export function BrainFreezeModal({
         if (res.ok) {
           const data = await res.json();
           const pts: number = data.points ?? 0;
+          setLastPoints(pts);
           if (pts > 0) {
             sessionPointsRef.current += pts;
             setSessionPoints((p) => p + pts);
@@ -433,9 +445,26 @@ export function BrainFreezeModal({
                   border: `1px solid ${isCorrect ? "rgba(34,197,94,0.3)" : timedOut ? "rgba(96,165,250,0.15)" : "rgba(239,68,68,0.3)"}`,
                 }}
               >
-                <p className="text-[11px] font-semibold mb-0.5" style={{ color: isCorrect ? "#86efac" : timedOut ? "#94a3b8" : "#fca5a5" }}>
-                  {isCorrect ? "Correct! 🧊" : timedOut ? "Time's up" : `Answer: ${question.correct}`}
-                </p>
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <p className="text-[11px] font-semibold" style={{ color: isCorrect ? "#86efac" : timedOut ? "#94a3b8" : "#fca5a5" }}>
+                    {isCorrect ? "Correct! 🧊" : timedOut ? "Time's up" : `Answer: ${question.correct}`}
+                  </p>
+                  {lastPoints !== null && (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {getSpeedTier(lastPoints, isCorrect, timedOut) && (
+                        <span className="text-[10px] font-semibold text-blue-300/70">
+                          {getSpeedTier(lastPoints, isCorrect, timedOut)}
+                        </span>
+                      )}
+                      <span
+                        className="text-[11px] font-black tabular-nums"
+                        style={{ color: isCorrect ? "#34d399" : timedOut ? "#64748b" : "#f87171" }}
+                      >
+                        {timedOut ? "0 pts" : `+${lastPoints} pts`}
+                      </span>
+                    </div>
+                  )}
+                </div>
                 {question.explanation && (
                   <p className="text-blue-300/70 text-[11px] leading-snug">{question.explanation}</p>
                 )}
