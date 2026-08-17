@@ -6,7 +6,7 @@
  */
 
 import { db } from "./db";
-import { brainFreezeQuestions, brainFreezeAnswers } from "../shared/schema";
+import { brainFreezeQuestions, brainFreezeAnswers, brainFreezeChallenges } from "../shared/schema";
 import { eq, and, ne, notInArray, inArray, gte, desc, sql } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
@@ -250,6 +250,7 @@ export async function logAnswer(data: {
   plungeElapsedSeconds?: number | null;
   waterTempF?:          number | null;
   plungeId?:            number | null;
+  challengeId?:         number | null;
 }) {
   const pointsEarned = computePoints(data.isCorrect, data.responseTimeMs);
   const [row] = await db
@@ -264,6 +265,7 @@ export async function logAnswer(data: {
       plungeElapsedSeconds: data.plungeElapsedSeconds ?? null,
       waterTempF:           data.waterTempF ?? null,
       plungeId:             data.plungeId ?? null,
+      challengeId:          data.challengeId ?? null,
     })
     .returning();
   return row;
@@ -448,6 +450,192 @@ export interface BrainFreezeEmailStats {
   outPlungeCount:    number;
   accuracyDeltaPct:  number;   // positive = better in cold
   adaptationNote:    string | null; // e.g. "Up 10 pts vs your first 4 weeks"
+}
+
+// ─── Brain Freeze Challenges ──────────────────────────────────────────────────
+
+const CHALLENGE_Q_COUNT  = 10;
+const CHALLENGE_EXPIRY_H = 48;
+
+/** Pick CHALLENGE_Q_COUNT question IDs, avoiding recent history of both players. */
+export async function pickChallengeQuestions(
+  challengerId: number,
+  challengeeId: number,
+): Promise<number[]> {
+  await ensureSeeded();
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const recent = await db
+    .select({ questionId: brainFreezeAnswers.questionId })
+    .from(brainFreezeAnswers)
+    .where(and(
+      inArray(brainFreezeAnswers.userId, [challengerId, challengeeId]),
+      gte(brainFreezeAnswers.answeredAt, cutoff),
+    ));
+  const seenIds = [...new Set(recent.map(r => r.questionId))];
+
+  // Pull a random pool of fresh questions (2× the target size for category diversity)
+  const wanted = CHALLENGE_Q_COUNT * 2;
+  let pool: { id: number; category: string }[] = [];
+  if (seenIds.length > 0) {
+    pool = await db
+      .select({ id: brainFreezeQuestions.id, category: brainFreezeQuestions.category })
+      .from(brainFreezeQuestions)
+      .where(notInArray(brainFreezeQuestions.id, seenIds))
+      .orderBy(sql`RANDOM()`)
+      .limit(wanted);
+  } else {
+    pool = await db
+      .select({ id: brainFreezeQuestions.id, category: brainFreezeQuestions.category })
+      .from(brainFreezeQuestions)
+      .orderBy(sql`RANDOM()`)
+      .limit(wanted);
+  }
+
+  // Top-up if not enough fresh questions
+  if (pool.length < CHALLENGE_Q_COUNT) {
+    const haveIds = pool.map(q => q.id);
+    const extra = await db
+      .select({ id: brainFreezeQuestions.id, category: brainFreezeQuestions.category })
+      .from(brainFreezeQuestions)
+      .where(haveIds.length ? notInArray(brainFreezeQuestions.id, haveIds) : sql`true`)
+      .orderBy(sql`RANDOM()`)
+      .limit(CHALLENGE_Q_COUNT - pool.length);
+    pool = [...pool, ...extra];
+  }
+
+  // Greedy category-diversity pass: avoid back-to-back same category
+  const selected: { id: number; category: string }[] = [];
+  for (const q of pool) {
+    if (selected.length >= CHALLENGE_Q_COUNT) break;
+    const lastCat = selected[selected.length - 1]?.category ?? null;
+    const otherCats = pool.filter(p => p.category !== lastCat && !selected.some(s => s.id === p.id));
+    if (lastCat && lastCat === q.category && otherCats.length > 0) continue;
+    selected.push(q);
+  }
+  // Fill any remaining slots
+  if (selected.length < CHALLENGE_Q_COUNT) {
+    const taken = new Set(selected.map(q => q.id));
+    for (const q of pool) {
+      if (selected.length >= CHALLENGE_Q_COUNT) break;
+      if (!taken.has(q.id)) selected.push(q);
+    }
+  }
+
+  return selected.slice(0, CHALLENGE_Q_COUNT).map(q => q.id);
+}
+
+/** Fetch full question objects in the original challenge order. */
+async function getQuestionsById(ids: number[]) {
+  if (!ids.length) return [];
+  const rows = await db
+    .select()
+    .from(brainFreezeQuestions)
+    .where(inArray(brainFreezeQuestions.id, ids));
+  const map = new Map(rows.map(q => [q.id, q]));
+  return ids.map(id => map.get(id)).filter(Boolean) as (typeof rows);
+}
+
+/** Create a BF challenge and return the row plus the ordered question objects. */
+export async function createBrainFreezeChallenge(challengerId: number, challengeeId: number) {
+  const questionIds = await pickChallengeQuestions(challengerId, challengeeId);
+  const expiresAt   = new Date(Date.now() + CHALLENGE_EXPIRY_H * 3_600_000);
+  const [row] = await db
+    .insert(brainFreezeChallenges)
+    .values({ challengerId, challengeeId, questionIds, expiresAt })
+    .returning();
+  const questions = await getQuestionsById(questionIds);
+  return { challenge: row, questions };
+}
+
+/** Get a challenge with its ordered questions (called when the challengee opens it). */
+export async function getBrainFreezeChallenge(challengeId: number) {
+  const [row] = await db
+    .select()
+    .from(brainFreezeChallenges)
+    .where(eq(brainFreezeChallenges.id, challengeId));
+  if (!row) return null;
+  const questions = await getQuestionsById(row.questionIds as number[]);
+  return { ...row, questions };
+}
+
+/** List non-expired challenges where userId is the challengee and hasn't played yet. */
+export async function getPendingBrainFreezeChallenges(challengeeId: number) {
+  return db
+    .select()
+    .from(brainFreezeChallenges)
+    .where(and(
+      eq(brainFreezeChallenges.challengeeId, challengeeId),
+      inArray(brainFreezeChallenges.status, ["pending", "challenger_done"]),
+      gte(brainFreezeChallenges.expiresAt, new Date()),
+    ))
+    .orderBy(desc(brainFreezeChallenges.createdAt));
+}
+
+/**
+ * After the player answers all questions, sum their score and detect completion.
+ * Returns null if the player hasn't finished all CHALLENGE_Q_COUNT questions yet.
+ */
+export async function checkAndFinalizeChallengeAnswer(
+  challengeId: number,
+  userId:      number,
+): Promise<{
+  statusForCaller: "won" | "lost" | "tie" | "waiting";
+  opponentScore:   number | null;
+  opponentId:      number;
+  isComplete:      boolean;
+  myScore:         number;
+} | null> {
+  const myAnswers = await db
+    .select({ pointsEarned: brainFreezeAnswers.pointsEarned })
+    .from(brainFreezeAnswers)
+    .where(and(
+      eq(brainFreezeAnswers.challengeId, challengeId),
+      eq(brainFreezeAnswers.userId, userId),
+    ));
+
+  if (myAnswers.length < CHALLENGE_Q_COUNT) return null;
+
+  const myScore = myAnswers.reduce((s, r) => s + r.pointsEarned, 0);
+
+  const [challenge] = await db
+    .select()
+    .from(brainFreezeChallenges)
+    .where(eq(brainFreezeChallenges.id, challengeId));
+  if (!challenge) return null;
+
+  const isChallenger  = challenge.challengerId === userId;
+  const opponentId    = isChallenger ? challenge.challengeeId : challenge.challengerId;
+  const opponentScore = isChallenger ? challenge.challengeeScore : challenge.challengerScore;
+  const newStatus     = opponentScore !== null
+    ? "complete"
+    : (isChallenger ? "challenger_done" : "challengee_done");
+
+  let winnerId: number | null = null;
+  if (newStatus === "complete" && opponentScore !== null) {
+    if (myScore > opponentScore)      winnerId = userId;
+    else if (opponentScore > myScore) winnerId = opponentId;
+  }
+
+  await db
+    .update(brainFreezeChallenges)
+    .set({
+      ...(isChallenger ? { challengerScore: myScore } : { challengeeScore: myScore }),
+      status: newStatus,
+      ...(newStatus === "complete" ? { winnerId } : {}),
+    })
+    .where(eq(brainFreezeChallenges.id, challengeId));
+
+  let statusForCaller: "won" | "lost" | "tie" | "waiting";
+  if (newStatus === "complete") {
+    if (winnerId === null)        statusForCaller = "tie";
+    else if (winnerId === userId) statusForCaller = "won";
+    else                          statusForCaller = "lost";
+  } else {
+    statusForCaller = "waiting";
+  }
+
+  return { statusForCaller, opponentScore: opponentScore ?? null, opponentId, isComplete: newStatus === "complete", myScore };
 }
 
 export async function getEmailLabStats(

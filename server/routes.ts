@@ -4140,12 +4140,54 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
       plungeElapsedSeconds: z.number().int().min(0).optional().nullable(),
       waterTempF:           z.number().int().optional().nullable(),
       plungeId:             z.number().int().optional().nullable(),
+      challengeId:          z.number().int().positive().optional().nullable(),
     }).safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Invalid input" });
     try {
-      const { logAnswer } = await import("./brain-freeze");
+      const { logAnswer, checkAndFinalizeChallengeAnswer } = await import("./brain-freeze");
       const row = await logAnswer({ userId: payload.userId, ...parsed.data });
-      res.json({ ok: true, id: row.id, points: row.pointsEarned });
+
+      // If this answer belongs to a challenge, check whether the player just finished
+      let challengeStatus: string | undefined;
+      let opponentScore: number | undefined;
+      if (parsed.data.challengeId) {
+        try {
+          const result = await checkAndFinalizeChallengeAnswer(parsed.data.challengeId, payload.userId);
+          if (result) {
+            challengeStatus = result.statusForCaller;
+            if (result.isComplete && result.opponentScore !== null) opponentScore = result.opponentScore;
+            // Push notification to opponent (best-effort)
+            const opponentSubs = await storage.getPushSubscriptionsByUser(result.opponentId);
+            const caller = await storage.getUserById(payload.userId);
+            const callerName = caller?.displayName || caller?.username || "Your friend";
+            let pushTitle: string, pushBody: string;
+            if (result.isComplete) {
+              if (result.statusForCaller === "won") {
+                pushTitle = "🧠 Brain Freeze result"; pushBody = `${callerName} beat you! Check the score.`;
+              } else if (result.statusForCaller === "lost") {
+                pushTitle = "🎉 You won the Brain Freeze!"; pushBody = `You beat ${callerName}! See the results.`;
+              } else {
+                pushTitle = "🤝 Brain Freeze: It's a tie!"; pushBody = "You and your friend scored exactly the same!";
+              }
+            } else {
+              pushTitle = "🧠 Brain Freeze Challenge";
+              pushBody = `${callerName} finished their round — your turn!`;
+            }
+            const pushPayload = JSON.stringify({ title: pushTitle, body: pushBody, tag: `bf-challenge-${parsed.data.challengeId}` });
+            for (const sub of opponentSubs) {
+              try {
+                await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, pushPayload);
+              } catch (err: any) {
+                if (err.statusCode === 410 || err.statusCode === 404) await storage.deletePushSubscription(sub.endpoint);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("[brain-freeze] challenge finalize error:", e);
+        }
+      }
+
+      res.json({ ok: true, id: row.id, points: row.pointsEarned, ...(challengeStatus ? { challengeStatus, opponentScore } : {}) });
     } catch (err) {
       console.error("[brain-freeze] answer error:", err);
       res.status(500).json({ message: "Failed to log answer" });
@@ -4184,6 +4226,102 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     } catch (err) {
       console.error("[brain-freeze] lab error:", err);
       res.status(500).json({ message: "Failed to fetch lab data" });
+    }
+  });
+
+  // ── Brain Freeze Challenges ───────────────────────────────────────────────
+
+  // Create a challenge: picks 10 shared questions, notifies the friend, and
+  // returns the questions so the challenger can play immediately.
+  app.post("/api/brain-freeze/challenge/:userId", async (req, res) => {
+    const caller = extractUser(req);
+    if (!caller) return res.status(401).json({ message: "Unauthorized" });
+    const friendId = Number(req.params.userId);
+    if (isNaN(friendId) || friendId === caller.userId) {
+      return res.status(400).json({ message: "Invalid user" });
+    }
+    const friendship = await storage.getFriendship(caller.userId, friendId);
+    if (!friendship || friendship.status !== "accepted") {
+      return res.status(403).json({ message: "Not friends" });
+    }
+    try {
+      const { createBrainFreezeChallenge } = await import("./brain-freeze");
+      const { challenge, questions } = await createBrainFreezeChallenge(caller.userId, friendId);
+      // Push notification to the challengee
+      const challenger = await storage.getUserById(caller.userId);
+      const callerName = challenger?.displayName || challenger?.username || "Someone";
+      const subs = await storage.getPushSubscriptionsByUser(friendId);
+      const pushPayload = JSON.stringify({
+        title: `🧠 ${callerName} challenged you to Brain Freeze!`,
+        body: "Answer 10 trivia questions — can you beat their score?",
+        tag: `bf-challenge-${challenge.id}`,
+      });
+      for (const sub of subs) {
+        try {
+          await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, pushPayload);
+        } catch (err: any) {
+          if (err.statusCode === 410 || err.statusCode === 404) await storage.deletePushSubscription(sub.endpoint);
+        }
+      }
+      res.json({ challengeId: challenge.id, questions });
+    } catch (err) {
+      console.error("[brain-freeze] challenge create error:", err);
+      res.status(500).json({ message: "Failed to create challenge" });
+    }
+  });
+
+  // List pending BF challenges for the current user (as challengee).
+  app.get("/api/brain-freeze/challenge/pending", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    try {
+      const { getPendingBrainFreezeChallenges } = await import("./brain-freeze");
+      const rows = await getPendingBrainFreezeChallenges(payload.userId);
+      const challenges = await Promise.all(
+        rows.map(async (r) => {
+          const challenger = await storage.getUserById(r.challengerId);
+          return {
+            challengeId:     r.id,
+            challengerId:    r.challengerId,
+            challengerName:  challenger?.displayName || challenger?.username || "Someone",
+            challengerScore: r.challengerScore,
+            status:          r.status,
+          };
+        }),
+      );
+      res.json({ challenges });
+    } catch (err) {
+      console.error("[brain-freeze] pending challenges error:", err);
+      res.status(500).json({ message: "Failed to fetch pending challenges" });
+    }
+  });
+
+  // Get a specific challenge (questions + state) — used when the challengee taps the banner.
+  app.get("/api/brain-freeze/challenge/:id", async (req, res) => {
+    const payload = extractUser(req);
+    if (!payload) return res.status(401).json({ message: "Unauthorized" });
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    try {
+      const { getBrainFreezeChallenge } = await import("./brain-freeze");
+      const data = await getBrainFreezeChallenge(id);
+      if (!data) return res.status(404).json({ message: "Challenge not found" });
+      if (data.challengerId !== payload.userId && data.challengeeId !== payload.userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      res.json({
+        challengeId:     data.id,
+        challengerId:    data.challengerId,
+        challengeeId:    data.challengeeId,
+        status:          data.status,
+        challengerScore: data.challengerScore,
+        challengeeScore: data.challengeeScore,
+        winnerId:        data.winnerId,
+        questions:       data.questions,
+      });
+    } catch (err) {
+      console.error("[brain-freeze] challenge get error:", err);
+      res.status(500).json({ message: "Failed to fetch challenge" });
     }
   });
 

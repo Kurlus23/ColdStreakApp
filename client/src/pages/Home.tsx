@@ -673,6 +673,11 @@ export default function Home() {
   // Tracks whether the user tapped "Later" — hides the modal but keeps the
   // challenger context alive so the timer overlay still shows their scores.
   const [pendingChallengeModalDismissed, setPendingChallengeModalDismissed] = useState(false);
+  // Brain Freeze challenge state
+  const [pendingBfChallenges, setPendingBfChallenges] = useState<Array<{challengeId: number; challengerId: number; challengerName: string; challengerScore: number | null}>>([]);
+  const [activeBfChallenge, setActiveBfChallenge] = useState<{challengeId: number; opponentName: string; questions: any[]; opponentScore: number | null} | null>(null);
+  const [sendingBfChallengeId, setSendingBfChallengeId] = useState<number | null>(null);
+  const [sentBfChallengeIds, setSentBfChallengeIds] = useState<Set<number>>(new Set());
   // Queue of challenge results — one card is shown at a time; dismiss pops the queue.
   const [challengeResults, setChallengeResults] = useState<ChallengeResult[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
@@ -1958,6 +1963,21 @@ export default function Home() {
           });
         if (incoming.length === 0) return;
         setPendingChallengers(incoming.map((c) => ({ userId: c.fromUserId, name: c.fromName })));
+      })
+      .catch(() => {});
+  }, [auth.user]);
+
+  // Load pending Brain Freeze challenges on login
+  useEffect(() => {
+    if (!auth.user) return;
+    const token = localStorage.getItem("coldstreak-auth-token");
+    if (!token) return;
+    fetch("/api/brain-freeze/challenge/pending", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.challenges?.length > 0) {
+          setPendingBfChallenges(data.challenges);
+        }
       })
       .catch(() => {});
   }, [auth.user]);
@@ -5917,6 +5937,41 @@ export default function Home() {
                         : ((b.bestScore ?? 0) - (a.bestScore ?? 0)) || (b.streak - a.streak)
                     );
                     return (<>
+                      {/* ── Pending BF Challenge banner ── */}
+                      {pendingBfChallenges.length > 0 && (
+                        <button
+                          className="w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 mb-1 text-left active:scale-[0.98] transition-transform"
+                          style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.35)" }}
+                          onClick={async () => {
+                            const chal = pendingBfChallenges[0];
+                            const token = localStorage.getItem("coldstreak-auth-token");
+                            if (!token) return;
+                            try {
+                              const r = await fetch(`/api/brain-freeze/challenge/${chal.challengeId}`, { headers: { Authorization: `Bearer ${token}` } });
+                              if (!r.ok) return;
+                              const data = await r.json();
+                              const meId = auth.user?.id;
+                              const opponentScore = data.challengerId === meId ? data.challengeeScore : data.challengerScore;
+                              setActiveBfChallenge({
+                                challengeId:  chal.challengeId,
+                                opponentName: chal.challengerName,
+                                questions:    data.questions,
+                                opponentScore,
+                              });
+                              setPendingBfChallenges(prev => prev.slice(1));
+                            } catch {}
+                          }}
+                        >
+                          <img src="/brain-freeze-icon.png" alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" style={{ opacity: 0.9 }} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-cyan-300 text-xs font-bold leading-none">🧠 Brain Freeze Challenge</p>
+                            <p className="text-blue-400/70 text-[10px] mt-0.5 leading-none">
+                              {pendingBfChallenges[0].challengerName} challenged you — tap to play!
+                            </p>
+                          </div>
+                          <span className="text-cyan-400 text-sm shrink-0">→</span>
+                        </button>
+                      )}
                       {/* Sort toggle */}
                       <div className="flex gap-1 bg-blue-900/40 rounded-xl p-1 mb-1">
                         <button
@@ -6005,6 +6060,57 @@ export default function Home() {
                                     : "bg-orange-500/20 border border-orange-500/40 text-orange-300 hover:bg-orange-500/30"
                                 }`}
                               >{challengingId === f.userId ? "…" : challengedIds.has(f.userId) ? "✓ Challenged" : (f.plungedToday && f.latestScore != null && todayScore > 0 && f.latestScore > todayScore ? "🏆 Winner" : "⚡ Challenge")}</button>
+                            )}
+
+                            {/* Brain Freeze challenge button */}
+                            {!isMe && (
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (sendingBfChallengeId === f.userId || sentBfChallengeIds.has(f.userId)) return;
+                                  setSendingBfChallengeId(f.userId);
+                                  try {
+                                    const token = localStorage.getItem("coldstreak-auth-token");
+                                    const res = await fetch(`/api/brain-freeze/challenge/${f.userId}`, {
+                                      method: "POST",
+                                      headers: { Authorization: `Bearer ${token ?? ""}` },
+                                    });
+                                    if (res.ok) {
+                                      const data = await res.json();
+                                      setSentBfChallengeIds(prev => new Set(prev).add(f.userId));
+                                      setActiveBfChallenge({
+                                        challengeId:  data.challengeId,
+                                        opponentName: f.displayName || f.username || "Friend",
+                                        questions:    data.questions,
+                                        opponentScore: null,
+                                      });
+                                    } else {
+                                      toast({ title: "Couldn't start Brain Freeze challenge", variant: "destructive" });
+                                    }
+                                  } catch {
+                                    toast({ title: "Couldn't start Brain Freeze challenge", variant: "destructive" });
+                                  } finally {
+                                    setSendingBfChallengeId(null);
+                                  }
+                                }}
+                                className="w-full flex items-center justify-center gap-1.5 rounded-xl py-1.5 text-[10px] font-bold transition-all active:scale-95"
+                                style={{
+                                  background: sentBfChallengeIds.has(f.userId)
+                                    ? "rgba(34,197,94,0.15)"
+                                    : "rgba(34,211,238,0.1)",
+                                  border: sentBfChallengeIds.has(f.userId)
+                                    ? "1px solid rgba(34,197,94,0.4)"
+                                    : "1px solid rgba(34,211,238,0.3)",
+                                  color: sentBfChallengeIds.has(f.userId) ? "#86efac" : "#67e8f9",
+                                  opacity: sendingBfChallengeId === f.userId ? 0.6 : 1,
+                                }}
+                              >
+                                {sendingBfChallengeId === f.userId
+                                  ? "Starting…"
+                                  : sentBfChallengeIds.has(f.userId)
+                                  ? "✓ Challenge sent"
+                                  : "🧠 Brain Freeze Challenge"}
+                              </button>
                             )}
 
                             {/* Brain Freeze points row */}
@@ -9199,7 +9305,14 @@ export default function Home() {
         );
       })()}
 
-      <BrainFreezeModal isOpen={showBrainFreezeModal} onClose={() => setShowBrainFreezeModal(false)} onComplete={() => loadFriends()} />
+      <BrainFreezeModal
+        isOpen={showBrainFreezeModal || activeBfChallenge !== null}
+        onClose={() => { setShowBrainFreezeModal(false); setActiveBfChallenge(null); }}
+        onComplete={() => loadFriends()}
+        challengeId={activeBfChallenge?.challengeId}
+        challengeOpponentName={activeBfChallenge?.opponentName}
+        challengeQuestions={activeBfChallenge?.questions}
+      />
 
       {showBenefitPicker && (
         <div

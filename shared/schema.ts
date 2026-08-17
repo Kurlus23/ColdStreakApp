@@ -503,11 +503,30 @@ export const brainFreezeAnswers = pgTable("brain_freeze_answers", {
   plungeElapsedSeconds: integer("plunge_elapsed_seconds"), // seconds into plunge (null if out-of-plunge)
   waterTempF: integer("water_temp_f"),                     // water temp at answer time (null if out-of-plunge)
   plungeId: integer("plunge_id").references(() => plunges.id, { onDelete: "set null" }),
+  challengeId: integer("challenge_id"), // FK enforced at DB level → brain_freeze_challenges(id)
   answeredAt: timestamp("answered_at").defaultNow().notNull(),
 }, (t) => [index("bf_answers_user_idx").on(t.userId, t.answeredAt)]);
 
 export type BrainFreezeQuestion = typeof brainFreezeQuestions.$inferSelect;
 export type BrainFreezeAnswer   = typeof brainFreezeAnswers.$inferSelect;
+
+// ── Brain Freeze Challenges ──────────────────────────────────────────────────
+// A "duel" where both players answer the same pre-selected question set.
+// status flow: pending → challenger_done | challengee_done → complete
+export const brainFreezeChallenges = pgTable("brain_freeze_challenges", {
+  id:             serial("id").primaryKey(),
+  challengerId:   integer("challenger_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  challengeeId:   integer("challengee_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  questionIds:    jsonb("question_ids").$type<number[]>().notNull(), // ordered question IDs (same for both)
+  challengerScore: integer("challenger_score"),   // null until challenger plays
+  challengeeScore: integer("challengee_score"),   // null until challengee plays
+  winnerId:       integer("winner_id").references(() => users.id, { onDelete: "set null" }), // null = tie
+  status:         text("status").notNull().default("pending"),
+  createdAt:      timestamp("created_at").defaultNow().notNull(),
+  expiresAt:      timestamp("expires_at").notNull(), // 48 h from creation
+});
+
+export type BrainFreezeChallenge = typeof brainFreezeChallenges.$inferSelect;
 
 // ── Friendships ────────────────────────────────────────────────────────────────
 export const friendships = pgTable("friendships", {
