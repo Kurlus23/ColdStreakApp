@@ -39,6 +39,19 @@ function getToken() {
   try { return localStorage.getItem("coldstreak-auth-token"); } catch { return null; }
 }
 
+/** Decode userId from the stored JWT without verifying the signature. */
+function getUserIdFromToken(): number | null {
+  try {
+    const token = getToken();
+    if (!token) return null;
+    const raw = token.split(".")[1];
+    if (!raw) return null;
+    const json = atob(raw.replace(/-/g, "+").replace(/_/g, "/"));
+    const payload = JSON.parse(json);
+    return typeof payload.userId === "number" ? payload.userId : null;
+  } catch { return null; }
+}
+
 export function BrainFreezeModal({
   isOpen, onClose, onComplete,
   challengeId, challengeOpponentName, challengeQuestions,
@@ -211,6 +224,69 @@ export function BrainFreezeModal({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question]);
 
+  // ── Poll for opponent completion while waiting ──────────────────────────
+  useEffect(() => {
+    // Only poll in challenge mode, on the done screen, while still waiting
+    if (!isOpen) return;
+    if (phase !== "done") return;
+    if (!isChallenge || !challengeId) return;
+    if (challengeStatus && challengeStatus !== "waiting") return;
+
+    let cancelled = false;
+    const currentUserId = getUserIdFromToken();
+
+    const poll = async () => {
+      if (cancelled) return;
+      const token = getToken();
+      if (!token) return;
+      try {
+        const res = await fetch(`/api/brain-freeze/challenge/${challengeId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (data.status === "complete") {
+          const opponentScore =
+            data.challengerId === currentUserId
+              ? data.challengeeScore
+              : data.challengerScore;
+
+          let result: "won" | "lost" | "tie";
+          if (data.winnerId === null || data.winnerId === undefined) {
+            result = "tie";
+          } else if (data.winnerId === currentUserId) {
+            result = "won";
+          } else {
+            result = "lost";
+          }
+
+          if (!cancelled) {
+            setChallengeStatus(result);
+            if (typeof opponentScore === "number") {
+              setChallengeOpponentScore(opponentScore);
+            }
+          }
+        }
+      } catch {
+        // network hiccup — retry next tick
+      }
+    };
+
+    poll(); // immediate first check
+    const interval = setInterval(poll, 10_000);
+
+    // Also poll immediately when the page becomes visible again (push notification tap)
+    const onVisible = () => { if (!document.hidden) poll(); };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, phase, isChallenge, challengeId, challengeStatus]);
+
   if (!isOpen) return null;
 
   const isCorrect = selected !== null && selected === question?.correct;
@@ -314,7 +390,7 @@ export function BrainFreezeModal({
                     style={{ background: "rgba(234,179,8,0.1)", border: "1px solid rgba(234,179,8,0.3)" }}
                   >
                     <p className="text-yellow-300 text-sm font-semibold">⏳ Waiting for {challengeOpponentName}…</p>
-                    <p className="text-blue-400/60 text-xs mt-0.5">They'll be notified — check back soon.</p>
+                    <p className="text-blue-400/60 text-xs mt-0.5">We'll update automatically when they finish.</p>
                   </div>
                 ) : challengeStatus === "won" ? (
                   <div
