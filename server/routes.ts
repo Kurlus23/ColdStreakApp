@@ -4093,6 +4093,20 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
 
   // ── Brain Freeze ──────────────────────────────────────────────────────────
 
+  // Admin: aggregate Brain Freeze usage stats
+  app.get("/api/admin/brain-freeze/stats", async (req, res) => {
+    const caller = extractUser(req);
+    if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
+    try {
+      const { getBrainFreezeAdminStats } = await import("./brain-freeze");
+      const stats = await getBrainFreezeAdminStats();
+      res.json(stats);
+    } catch (err) {
+      console.error("[admin/brain-freeze/stats] error:", err);
+      res.status(500).json({ message: "Failed to load stats", error: String(err) });
+    }
+  });
+
   // Admin: delete all questions and re-seed from the JSON file.
   // Requires header: X-Admin-Reset-Secret matching env ADMIN_RESET_SECRET.
   app.post("/api/admin/brain-freeze/reseed", async (req, res) => {

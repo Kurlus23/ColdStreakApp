@@ -1566,6 +1566,9 @@ export default function Admin() {
             </div>
           )}
 
+          {/* Brain Freeze usage */}
+          <BrainFreezeStatsPanel />
+
           {/* Recalculate plunge stats */}
           <RecalcPlungeStatsPanel />
 
@@ -1876,6 +1879,166 @@ export default function Admin() {
         </DraggableTile>
       ))}
 
+    </div>
+  );
+}
+
+// ─── Brain Freeze Stats panel ─────────────────────────────────────────────────
+
+type BFOverview = {
+  total: number; correct: number; inPlunge: number; pts: number; players: number;
+  last7d: number; last30d: number; players7d: number; players30d: number;
+};
+type BFTrendRow    = { date: string; count: number };
+type BFLeaderRow   = {
+  userId: number; email: string; username: string | null; displayName: string | null;
+  answers: number; correct: number; pts: number; inPlunge: number; lastPlayed: string;
+};
+type BFStats = { overview: BFOverview; trend: BFTrendRow[]; leaderboard: BFLeaderRow[] };
+
+function BrainFreezeStatsPanel() {
+  const [expanded, setExpanded] = useState(false);
+  const { data, isLoading } = useQuery<BFStats>({
+    queryKey: ["/api/admin/brain-freeze/stats"],
+    enabled: expanded,
+  });
+
+  const overview = data?.overview;
+  const trend    = data?.trend ?? [];
+  const board    = data?.leaderboard ?? [];
+
+  // Simple CSS bar chart for the daily trend
+  const maxCount = Math.max(...trend.map(r => r.count), 1);
+
+  const pct = (n: number, d: number) => d === 0 ? "—" : `${Math.round(n / d * 100)}%`;
+  const fmt = (d: string) => {
+    const dt = new Date(d);
+    return `${dt.getMonth() + 1}/${dt.getDate()}`;
+  };
+  const fmtAgo = (d: string) => {
+    const ms = Date.now() - new Date(d).getTime();
+    const h  = Math.floor(ms / 3600_000);
+    if (h < 1)  return "just now";
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  };
+
+  return (
+    <div className="border border-cyan-800/40 rounded-xl overflow-hidden">
+      <button
+        data-testid="button-toggle-brain-freeze-stats"
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-cyan-950/60 text-left"
+      >
+        <span className="font-semibold text-cyan-200 text-sm">
+          🧊 Brain Freeze Usage
+          {overview && (
+            <span className="ml-2 text-xs font-normal text-cyan-400">
+              {overview.total.toLocaleString()} answers · {overview.players} players
+            </span>
+          )}
+        </span>
+        <span className="text-cyan-500 text-xs">{expanded ? "▲ Hide" : "▼ Show"}</span>
+      </button>
+
+      {expanded && (
+        <div className="p-4 space-y-5 bg-cyan-950/10">
+          {isLoading && <p className="text-cyan-400 text-sm text-center py-4">Loading…</p>}
+
+          {overview && (
+            <>
+              {/* ── Headline stats ── */}
+              <div className="grid grid-cols-3 gap-2 text-center">
+                {[
+                  { label: "All-time answers", value: overview.total.toLocaleString() },
+                  { label: "Last 30d answers", value: overview.last30d.toLocaleString() },
+                  { label: "Last 7d answers",  value: overview.last7d.toLocaleString() },
+                  { label: "Total players",    value: overview.players },
+                  { label: "Players 30d",      value: overview.players30d },
+                  { label: "Players 7d",       value: overview.players7d },
+                  { label: "All-time accuracy", value: pct(overview.correct, overview.total) },
+                  { label: "In-plunge %",       value: pct(overview.inPlunge, overview.total) },
+                  { label: "Total pts earned",  value: overview.pts.toLocaleString() },
+                ].map(s => (
+                  <div key={s.label} className="rounded-xl bg-slate-800/60 border border-slate-700/50 px-2 py-2.5">
+                    <div className="text-[10px] uppercase tracking-wide text-slate-400 leading-tight">{s.label}</div>
+                    <div className="text-xl font-bold text-white tabular-nums mt-0.5">{s.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── 30-day daily bar chart ── */}
+              {trend.length > 0 && (
+                <div>
+                  <p className="text-xs text-slate-400 mb-2">Daily answers — last 30 days</p>
+                  <div className="flex items-end gap-0.5 h-16 bg-slate-900/50 rounded-lg px-2 py-1.5">
+                    {trend.map(r => (
+                      <div
+                        key={r.date}
+                        title={`${fmt(r.date)}: ${r.count}`}
+                        className="flex-1 bg-cyan-500/70 hover:bg-cyan-400 rounded-sm transition-colors"
+                        style={{ height: `${Math.max(8, Math.round((r.count / maxCount) * 100))}%` }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-600 mt-0.5 px-1">
+                    <span>{fmt(trend[0].date)}</span>
+                    <span>{fmt(trend[trend.length - 1].date)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Leaderboard ── */}
+              {board.length > 0 && (
+                <div>
+                  <p className="text-xs text-slate-400 mb-2">Top players by total points</p>
+                  <div className="overflow-x-auto rounded-xl border border-slate-700/50">
+                    <table className="min-w-full text-xs">
+                      <thead className="bg-slate-900/70 text-slate-300">
+                        <tr>
+                          <th className="px-3 py-2 text-left">#</th>
+                          <th className="px-3 py-2 text-left">User</th>
+                          <th className="px-3 py-2 text-right">Pts</th>
+                          <th className="px-3 py-2 text-right">Answers</th>
+                          <th className="px-3 py-2 text-right">Accuracy</th>
+                          <th className="px-3 py-2 text-right">In-plunge</th>
+                          <th className="px-3 py-2 text-right">Last played</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800">
+                        {board.map((row, i) => (
+                          <tr key={row.userId} className="hover:bg-slate-800/40">
+                            <td className="px-3 py-2 text-slate-500">{i + 1}</td>
+                            <td className="px-3 py-2">
+                              <div className="font-medium text-white">
+                                {row.displayName ?? row.username ?? row.email.split("@")[0]}
+                              </div>
+                              <div className="text-slate-500 truncate max-w-[160px]">{row.email}</div>
+                            </td>
+                            <td className="px-3 py-2 text-right font-bold text-cyan-300 tabular-nums">
+                              {row.pts.toLocaleString()}
+                            </td>
+                            <td className="px-3 py-2 text-right text-slate-200 tabular-nums">{row.answers}</td>
+                            <td className="px-3 py-2 text-right tabular-nums">
+                              <span className={row.correct / row.answers >= 0.7 ? "text-green-400" : "text-slate-300"}>
+                                {pct(row.correct, row.answers)}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-right text-slate-400 tabular-nums">
+                              {row.inPlunge}/{row.answers}
+                            </td>
+                            <td className="px-3 py-2 text-right text-slate-500">{fmtAgo(row.lastPlayed)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

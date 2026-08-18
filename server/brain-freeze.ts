@@ -6,7 +6,7 @@
  */
 
 import { db } from "./db";
-import { brainFreezeQuestions, brainFreezeAnswers, brainFreezeChallenges } from "../shared/schema";
+import { brainFreezeQuestions, brainFreezeAnswers, brainFreezeChallenges, users } from "../shared/schema";
 import { eq, and, or, ne, notInArray, inArray, gte, lt, desc, sql } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
@@ -854,5 +854,74 @@ export async function getEmailLabStats(
     outPlungeCount:   outP.length,
     accuracyDeltaPct: +((inAcc - outAcc) * 100).toFixed(1),
     adaptationNote,
+  };
+}
+
+// ─── Admin: aggregate Brain Freeze usage stats ───────────────────────────────
+
+export async function getBrainFreezeAdminStats() {
+  const now   = new Date();
+  const ago7  = new Date(now.getTime() -  7 * 86400_000);
+  const ago30 = new Date(now.getTime() - 30 * 86400_000);
+
+  // Headline totals — single pass over all rows
+  const [totals] = await db
+    .select({
+      total:    sql<number>`count(*)::int`,
+      correct:  sql<number>`sum(case when ${brainFreezeAnswers.isCorrect} then 1 else 0 end)::int`,
+      inPlunge: sql<number>`sum(case when ${brainFreezeAnswers.inPlunge}  then 1 else 0 end)::int`,
+      pts:      sql<number>`coalesce(sum(${brainFreezeAnswers.pointsEarned}), 0)::int`,
+      players:  sql<number>`count(distinct ${brainFreezeAnswers.userId})::int`,
+      last7d:   sql<number>`sum(case when ${brainFreezeAnswers.answeredAt} >= ${ago7}  then 1 else 0 end)::int`,
+      last30d:  sql<number>`sum(case when ${brainFreezeAnswers.answeredAt} >= ${ago30} then 1 else 0 end)::int`,
+      players7d:  sql<number>`count(distinct case when ${brainFreezeAnswers.answeredAt} >= ${ago7}  then ${brainFreezeAnswers.userId} end)::int`,
+      players30d: sql<number>`count(distinct case when ${brainFreezeAnswers.answeredAt} >= ${ago30} then ${brainFreezeAnswers.userId} end)::int`,
+    })
+    .from(brainFreezeAnswers);
+
+  // Daily answer count for last 30 days
+  const trend = await db
+    .select({
+      date:  sql<string>`(date_trunc('day', ${brainFreezeAnswers.answeredAt}) at time zone 'utc')::date::text`,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(brainFreezeAnswers)
+    .where(gte(brainFreezeAnswers.answeredAt, ago30))
+    .groupBy(sql`date_trunc('day', ${brainFreezeAnswers.answeredAt})`)
+    .orderBy(sql`date_trunc('day', ${brainFreezeAnswers.answeredAt})`);
+
+  // Per-user leaderboard — top 25 by total points
+  const leaderboard = await db
+    .select({
+      userId:      brainFreezeAnswers.userId,
+      email:       users.email,
+      username:    users.username,
+      displayName: users.displayName,
+      answers:     sql<number>`count(*)::int`,
+      correct:     sql<number>`sum(case when ${brainFreezeAnswers.isCorrect} then 1 else 0 end)::int`,
+      pts:         sql<number>`coalesce(sum(${brainFreezeAnswers.pointsEarned}), 0)::int`,
+      inPlunge:    sql<number>`sum(case when ${brainFreezeAnswers.inPlunge}  then 1 else 0 end)::int`,
+      lastPlayed:  sql<string>`max(${brainFreezeAnswers.answeredAt})::text`,
+    })
+    .from(brainFreezeAnswers)
+    .innerJoin(users, eq(brainFreezeAnswers.userId, users.id))
+    .groupBy(brainFreezeAnswers.userId, users.email, users.username, users.displayName)
+    .orderBy(sql`coalesce(sum(${brainFreezeAnswers.pointsEarned}), 0) desc`)
+    .limit(25);
+
+  return {
+    overview: {
+      total:      totals?.total      ?? 0,
+      correct:    totals?.correct    ?? 0,
+      inPlunge:   totals?.inPlunge   ?? 0,
+      pts:        totals?.pts        ?? 0,
+      players:    totals?.players    ?? 0,
+      last7d:     totals?.last7d     ?? 0,
+      last30d:    totals?.last30d    ?? 0,
+      players7d:  totals?.players7d  ?? 0,
+      players30d: totals?.players30d ?? 0,
+    },
+    trend,
+    leaderboard,
   };
 }
