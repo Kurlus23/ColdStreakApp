@@ -54,6 +54,7 @@ export function BrainFreezeModal({
   const [challengeStatus, setChallengeStatus] = useState<"won" | "lost" | "tie" | "waiting" | null>(null);
   const [challengeOpponentScore, setChallengeOpponentScore] = useState<number | null>(null);
   const [lastPoints, setLastPoints] = useState<number | null>(null);
+  const [pointsAnimKey, setPointsAnimKey] = useState(0);
 
   // Stable refs so callbacks never go stale
   const phaseRef         = useRef<Phase>("loading");
@@ -192,6 +193,7 @@ export function BrainFreezeModal({
           const data = await res.json();
           const pts: number = data.points ?? 0;
           setLastPoints(pts);
+          if (pts > 0) setPointsAnimKey((k) => k + 1);
           if (pts > 0) {
             sessionPointsRef.current += pts;
             setSessionPoints((p) => p + pts);
@@ -452,13 +454,21 @@ export function BrainFreezeModal({
                   {lastPoints !== null && (
                     <div className="flex items-center gap-1.5 shrink-0">
                       {getSpeedTier(lastPoints, isCorrect, timedOut) && (
-                        <span className="text-[10px] font-semibold text-blue-300/70">
+                        <span
+                          key={`tier-${pointsAnimKey}`}
+                          className="text-[10px] font-semibold text-blue-300/70"
+                          style={{ animation: "pts-slide 280ms ease-out 80ms both" }}
+                        >
                           {getSpeedTier(lastPoints, isCorrect, timedOut)}
                         </span>
                       )}
                       <span
+                        key={`pts-${pointsAnimKey}`}
                         className="text-[11px] font-black tabular-nums"
-                        style={{ color: isCorrect ? "#34d399" : timedOut ? "#64748b" : "#f87171" }}
+                        style={{
+                          color: isCorrect ? "#34d399" : timedOut ? "#64748b" : "#f87171",
+                          animation: "pts-pop 300ms cubic-bezier(0.34,1.56,0.64,1) both",
+                        }}
                       >
                         {timedOut ? "0 pts" : `+${lastPoints} pts`}
                       </span>

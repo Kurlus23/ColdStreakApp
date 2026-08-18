@@ -73,6 +73,7 @@ export function BrainFreezeGame({
   const [timeLeft, setTimeLeft]   = useState(QUESTION_TIMEOUT);
   const [lastPoints, setLastPoints]     = useState<number | null>(null);
   const [lastTempF, setLastTempF]       = useState<number | null>(null);
+  const [pointsAnimKey, setPointsAnimKey] = useState(0);
   const [autoCloseLeft, setAutoCloseLeft] = useState<number | null>(null);
 
   const scoreRef          = useRef(0);
@@ -210,6 +211,7 @@ export function BrainFreezeGame({
           const data = await res.json();
           pts = data.points ?? (correct ? 100 : 0);
           setLastPoints(pts);
+          if (pts > 0) setPointsAnimKey((k) => k + 1);
         }
       } catch {}
     }
@@ -397,18 +399,30 @@ export function BrainFreezeGame({
                 {lastPoints !== null && (
                   <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                     {getSpeedTier(lastPoints, !!isCorrect, selected === null) && (
-                      <span className="text-[10px] font-semibold text-blue-300/70">
+                      <span
+                        key={`tier-${pointsAnimKey}`}
+                        className="text-[10px] font-semibold text-blue-300/70"
+                        style={{ animation: "pts-slide 280ms ease-out 80ms both" }}
+                      >
                         {getSpeedTier(lastPoints, !!isCorrect, selected === null)}
                       </span>
                     )}
                     {selected !== null && lastTempF !== null && getColdBonusLabel(lastTempF) && (
-                      <span className="text-[10px] font-semibold text-cyan-300/80">
+                      <span
+                        key={`cold-${pointsAnimKey}`}
+                        className="text-[10px] font-semibold text-cyan-300/80"
+                        style={{ animation: "pts-slide 280ms ease-out 140ms both" }}
+                      >
                         {getColdBonusLabel(lastTempF)}
                       </span>
                     )}
                     <span
+                      key={`pts-${pointsAnimKey}`}
                       className="text-[11px] font-black tabular-nums"
-                      style={{ color: isCorrect ? "#34d399" : selected === null ? "#64748b" : "#f87171" }}
+                      style={{
+                        color: isCorrect ? "#34d399" : selected === null ? "#64748b" : "#f87171",
+                        animation: "pts-pop 300ms cubic-bezier(0.34,1.56,0.64,1) both",
+                      }}
                     >
                       {selected === null ? "0 pts" : `+${lastPoints} pts`}
                     </span>

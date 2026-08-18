@@ -8,6 +8,16 @@ html, body {
   overscroll-behavior: none;
 }
 
+/* Brain Freeze points pop-in animation */
+@keyframes pts-pop {
+  from { opacity: 0; transform: scale(0.5); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes pts-slide {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* Give #root an explicit height matching the viewport so the body has
    nothing to elastic-scroll. Home's own overflow-hidden root div fills
    this exactly; other pages (Admin, etc.) can still body-scroll freely. */
