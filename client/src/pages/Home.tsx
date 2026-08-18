@@ -6059,83 +6059,87 @@ export default function Home() {
                                 </div>
                               </div>
                             </div>
-                            {/* Challenge pill — top-right corner */}
+                            {/* Challenge buttons row — plunge + Brain Freeze side by side */}
                             {!isMe && (
-                              <button
-                                data-testid={`button-challenge-${f.userId}`}
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  if (challengingId === f.userId || challengedIds.has(f.userId)) return;
-                                  setChallengingId(f.userId);
-                                  await sendFriendChallengeImpl(f.userId, f.displayName || f.username || "Friend", {
-                                    authFetch, navigate, toast,
-                                    clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
-                                  });
-                                  setChallengingId(null);
-                                  setChallengedIds(prev => new Set(prev).add(f.userId));
-                                }}
-                                disabled={challengingId === f.userId || challengedIds.has(f.userId)}
-                                className={`absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[9px] font-bold transition-colors active:scale-95 disabled:opacity-90 leading-none ${
-                                  challengedIds.has(f.userId)
-                                    ? "bg-green-500/20 border border-green-500/40 text-green-300"
-                                    : f.plungedToday && f.latestScore != null && todayScore > 0 && f.latestScore > todayScore
-                                    ? "bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/30"
-                                    : "bg-orange-500/20 border border-orange-500/40 text-orange-300 hover:bg-orange-500/30"
-                                }`}
-                              >{challengingId === f.userId ? "…" : challengedIds.has(f.userId) ? "✓ Challenged" : (f.plungedToday && f.latestScore != null && todayScore > 0 && f.latestScore > todayScore ? "🏆 Winner" : "⚡ Challenge")}</button>
-                            )}
-
-                            {/* Brain Freeze challenge button */}
-                            {!isMe && (
-                              <button
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  if (sendingBfChallengeId === f.userId || sentBfChallengeIds.has(f.userId)) return;
-                                  setSendingBfChallengeId(f.userId);
-                                  try {
-                                    const token = localStorage.getItem("coldstreak-auth-token");
-                                    const res = await fetch(`/api/brain-freeze/challenge/${f.userId}`, {
-                                      method: "POST",
-                                      headers: { Authorization: `Bearer ${token ?? ""}` },
+                              <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                                {/* Plunge challenge pill */}
+                                <button
+                                  data-testid={`button-challenge-${f.userId}`}
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (challengingId === f.userId || challengedIds.has(f.userId)) return;
+                                    setChallengingId(f.userId);
+                                    await sendFriendChallengeImpl(f.userId, f.displayName || f.username || "Friend", {
+                                      authFetch, navigate, toast,
+                                      clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
                                     });
-                                    if (res.ok) {
-                                      const data = await res.json();
-                                      setSentBfChallengeIds(prev => new Set(prev).add(f.userId));
-                                      setActiveBfChallenge({
-                                        challengeId:  data.challengeId,
-                                        opponentName: f.displayName || f.username || "Friend",
-                                        questions:    data.questions,
-                                        opponentScore: null,
+                                    setChallengingId(null);
+                                    setChallengedIds(prev => new Set(prev).add(f.userId));
+                                  }}
+                                  disabled={challengingId === f.userId || challengedIds.has(f.userId)}
+                                  className={`flex-1 flex items-center justify-center gap-1 rounded-xl py-1.5 text-[10px] font-bold transition-all active:scale-95 disabled:opacity-90 border ${
+                                    challengedIds.has(f.userId)
+                                      ? "bg-green-500/15 border-green-500/40 text-green-300"
+                                      : f.plungedToday && f.latestScore != null && todayScore > 0 && f.latestScore > todayScore
+                                      ? "bg-yellow-500/15 border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/25"
+                                      : "bg-orange-500/15 border-orange-500/40 text-orange-300 hover:bg-orange-500/25"
+                                  }`}
+                                >
+                                  {challengingId === f.userId ? "…" : challengedIds.has(f.userId) ? "✓ Challenged" : (f.plungedToday && f.latestScore != null && todayScore > 0 && f.latestScore > todayScore ? "🏆 Winner" : "⚡ Challenge")}
+                                </button>
+
+                                {/* Brain Freeze challenge pill */}
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (sendingBfChallengeId === f.userId || sentBfChallengeIds.has(f.userId)) return;
+                                    setSendingBfChallengeId(f.userId);
+                                    try {
+                                      const token = localStorage.getItem("coldstreak-auth-token");
+                                      const res = await fetch(`/api/brain-freeze/challenge/${f.userId}`, {
+                                        method: "POST",
+                                        headers: { Authorization: `Bearer ${token ?? ""}` },
                                       });
-                                    } else if (res.status === 409) {
-                                      toast({ title: "Challenge already sent", description: "You already have an active Brain Freeze challenge with this player.", variant: "destructive" });
-                                    } else {
+                                      if (res.ok) {
+                                        const data = await res.json();
+                                        setSentBfChallengeIds(prev => new Set(prev).add(f.userId));
+                                        setActiveBfChallenge({
+                                          challengeId:  data.challengeId,
+                                          opponentName: f.displayName || f.username || "Friend",
+                                          questions:    data.questions,
+                                          opponentScore: null,
+                                        });
+                                      } else if (res.status === 409) {
+                                        toast({ title: "Challenge already sent", description: "You already have an active Brain Freeze challenge with this player.", variant: "destructive" });
+                                      } else {
+                                        toast({ title: "Couldn't start Brain Freeze challenge", variant: "destructive" });
+                                      }
+                                    } catch {
                                       toast({ title: "Couldn't start Brain Freeze challenge", variant: "destructive" });
+                                    } finally {
+                                      setSendingBfChallengeId(null);
                                     }
-                                  } catch {
-                                    toast({ title: "Couldn't start Brain Freeze challenge", variant: "destructive" });
-                                  } finally {
-                                    setSendingBfChallengeId(null);
-                                  }
-                                }}
-                                className="w-full flex items-center justify-center gap-1.5 rounded-xl py-1.5 text-[10px] font-bold transition-all active:scale-95"
-                                style={{
-                                  background: sentBfChallengeIds.has(f.userId)
-                                    ? "rgba(34,197,94,0.15)"
-                                    : "rgba(34,211,238,0.1)",
-                                  border: sentBfChallengeIds.has(f.userId)
-                                    ? "1px solid rgba(34,197,94,0.4)"
-                                    : "1px solid rgba(34,211,238,0.3)",
-                                  color: sentBfChallengeIds.has(f.userId) ? "#86efac" : "#67e8f9",
-                                  opacity: sendingBfChallengeId === f.userId ? 0.6 : 1,
-                                }}
-                              >
-                                {sendingBfChallengeId === f.userId
-                                  ? "Starting…"
-                                  : sentBfChallengeIds.has(f.userId)
-                                  ? "✓ Challenge sent"
-                                  : "🧠 Brain Freeze Challenge"}
-                              </button>
+                                  }}
+                                  disabled={sendingBfChallengeId === f.userId || sentBfChallengeIds.has(f.userId)}
+                                  className={`flex-1 flex items-center justify-center gap-1 rounded-xl py-1.5 text-[10px] font-bold transition-all active:scale-95 disabled:opacity-90 border ${
+                                    sentBfChallengeIds.has(f.userId)
+                                      ? "bg-green-500/15 border-green-500/40 text-green-300"
+                                      : "bg-cyan-500/10 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20"
+                                  }`}
+                                  style={{ opacity: sendingBfChallengeId === f.userId ? 0.6 : 1 }}
+                                >
+                                  {sendingBfChallengeId === f.userId ? (
+                                    "Starting…"
+                                  ) : sentBfChallengeIds.has(f.userId) ? (
+                                    "✓ BF sent"
+                                  ) : (
+                                    <>
+                                      <img src="/brain-freeze-icon.png" alt="" className="w-3.5 h-3.5 rounded-sm object-cover shrink-0" />
+                                      Brain Freeze
+                                    </>
+                                  )}
+                                </button>
+                              </div>
                             )}
 
                             {/* Brain Freeze points row */}
