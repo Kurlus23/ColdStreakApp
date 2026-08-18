@@ -4251,14 +4251,17 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
       return res.status(403).json({ message: "Not friends" });
     }
     try {
-      const { createBrainFreezeChallenge, hasActiveBrainFreezeChallenge } = await import("./brain-freeze");
+      const { createBrainFreezeChallenge } = await import("./brain-freeze");
 
-      const alreadyActive = await hasActiveBrainFreezeChallenge(caller.userId, friendId);
-      if (alreadyActive) {
+      // createBrainFreezeChallenge is atomic: it holds a Postgres advisory lock
+      // while it checks for an existing active challenge and inserts the new row.
+      // It returns null when a duplicate is detected (concurrent-safe).
+      const result = await createBrainFreezeChallenge(caller.userId, friendId);
+      if (!result) {
         return res.status(409).json({ message: "You already have an active challenge with this player" });
       }
 
-      const { challenge, questions } = await createBrainFreezeChallenge(caller.userId, friendId);
+      const { challenge, questions } = result;
       // Push notification to the challengee
       const challenger = await storage.getUserById(caller.userId);
       const callerName = challenger?.displayName || challenger?.username || "Someone";

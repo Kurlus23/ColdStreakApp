@@ -642,37 +642,61 @@ async function getQuestionsById(ids: number[]) {
 }
 
 /**
- * Returns true when a non-expired, non-complete Brain Freeze challenge already
- * exists from challengerId → challengeeId. Used by the route handler to guard
- * against duplicate sends before calling createBrainFreezeChallenge.
+ * Create a BF challenge and return the row plus the ordered question objects.
+ *
+ * Concurrency-safe: the check for an existing active challenge and the insert
+ * are both executed inside a transaction that holds a PostgreSQL session-level
+ * advisory lock keyed on (challengerId, challengeeId).  This ensures that two
+ * simultaneous POST requests for the same pair cannot both pass the duplicate
+ * check and produce two rows.
+ *
+ * Returns `null` when the challenger already has a non-expired, non-complete
+ * challenge against this challengee — the caller should respond with HTTP 409.
  */
-export async function hasActiveBrainFreezeChallenge(
+export async function createBrainFreezeChallenge(
   challengerId: number,
   challengeeId: number,
-): Promise<boolean> {
-  const [row] = await db
-    .select({ id: brainFreezeChallenges.id })
-    .from(brainFreezeChallenges)
-    .where(
-      and(
-        eq(brainFreezeChallenges.challengerId, challengerId),
-        eq(brainFreezeChallenges.challengeeId, challengeeId),
-        ne(brainFreezeChallenges.status, "complete"),
-        gte(brainFreezeChallenges.expiresAt, new Date()),
-      )
-    )
-    .limit(1);
-  return !!row;
-}
-
-/** Create a BF challenge and return the row plus the ordered question objects. */
-export async function createBrainFreezeChallenge(challengerId: number, challengeeId: number) {
+): Promise<{ challenge: typeof brainFreezeChallenges.$inferSelect; questions: Awaited<ReturnType<typeof getQuestionsById>> } | null> {
+  // Pick questions outside the transaction (read-only, no ordering concerns).
   const questionIds = await pickChallengeQuestions(challengerId, challengeeId);
   const expiresAt   = new Date(Date.now() + CHALLENGE_EXPIRY_H * 3_600_000);
-  const [row] = await db
-    .insert(brainFreezeChallenges)
-    .values({ challengerId, challengeeId, questionIds, expiresAt })
-    .returning();
+
+  const row = await db.transaction(async (tx) => {
+    // Acquire a transaction-scoped advisory lock for this (challenger, challengee)
+    // pair.  pg_advisory_xact_lock blocks until the lock is free and releases
+    // automatically when the transaction ends — no manual release needed.
+    // The two-argument form takes two int4 values and combines them into a
+    // single int8 lock key, so concurrent pairs don't collide.
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(${challengerId}::int, ${challengeeId}::int)`,
+    );
+
+    // Authoritative duplicate check inside the lock.
+    const [existing] = await tx
+      .select({ id: brainFreezeChallenges.id })
+      .from(brainFreezeChallenges)
+      .where(
+        and(
+          eq(brainFreezeChallenges.challengerId, challengerId),
+          eq(brainFreezeChallenges.challengeeId, challengeeId),
+          ne(brainFreezeChallenges.status, "complete"),
+          gte(brainFreezeChallenges.expiresAt, new Date()),
+        ),
+      )
+      .limit(1);
+
+    if (existing) return null; // Duplicate — signal 409 to the caller.
+
+    const [inserted] = await tx
+      .insert(brainFreezeChallenges)
+      .values({ challengerId, challengeeId, questionIds, expiresAt })
+      .returning();
+
+    return inserted;
+  });
+
+  if (!row) return null;
+
   const questions = await getQuestionsById(questionIds);
   return { challenge: row, questions };
 }
