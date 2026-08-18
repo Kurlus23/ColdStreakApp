@@ -25,10 +25,11 @@ interface BrainFreezeGameProps {
   onColdBonusUpdate?: (totalColdBonus: number) => void;
   /** Expected plunge duration in seconds — used to space questions evenly. */
   targetDurationSeconds?: number;
+  /** How many questions to target for this benefit (default 6). */
+  targetQuestions?: number;
 }
 
 const FIRST_QUESTION_AT = 30;  // seconds into plunge before first question
-const TARGET_QUESTIONS   = 10; // how many questions to fit into a plunge
 const MIN_INTERVAL       = 45; // never faster than 45s between questions — keeps the timer as the primary experience
 const QUESTION_TIMEOUT  = 20;  // seconds allowed to answer
 const LABELS            = ["A", "B", "C", "D"];
@@ -61,11 +62,12 @@ export function BrainFreezeGame({
   onBrainFreezeStats,
   onColdBonusUpdate,
   targetDurationSeconds,
+  targetQuestions = 6,
 }: BrainFreezeGameProps) {
-  // Spread TARGET_QUESTIONS evenly across the expected plunge duration.
-  // Falls back to 45 s when no target is provided.
+  // Spread targetQuestions evenly across the expected plunge duration,
+  // never faster than MIN_INTERVAL. Falls back to 45s when no target is provided.
   const intervalSecs = targetDurationSeconds
-    ? Math.max(MIN_INTERVAL, Math.round((targetDurationSeconds - FIRST_QUESTION_AT) / (TARGET_QUESTIONS - 1)))
+    ? Math.max(MIN_INTERVAL, Math.round((targetDurationSeconds - FIRST_QUESTION_AT) / (targetQuestions - 1)))
     : 45;
   const [question, setQuestion]   = useState<Question | null>(null);
   const [phase, setPhase]         = useState<Phase>("idle");

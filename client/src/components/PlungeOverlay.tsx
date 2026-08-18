@@ -192,6 +192,7 @@ interface PlungeOverlayProps {
   onBrainFreezeStats?: (correct: number, total: number) => void;
   onColdBonusUpdate?: (totalColdBonus: number) => void;
   targetDurationSeconds?: number;
+  targetQuestions?: number;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -226,6 +227,7 @@ export function PlungeOverlay({
   onBrainFreezeStats,
   onColdBonusUpdate,
   targetDurationSeconds,
+  targetQuestions,
   plungeStartTime,
 }: PlungeOverlayProps) {
   const [nextQuestionIn, setNextQuestionIn] = useState<number | null>(null);
@@ -634,6 +636,7 @@ export function PlungeOverlay({
         onBrainFreezeStats={onBrainFreezeStats}
         onColdBonusUpdate={onColdBonusUpdate}
         targetDurationSeconds={targetDurationSeconds}
+        targetQuestions={targetQuestions}
       />
     </div>
   );

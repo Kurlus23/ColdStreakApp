@@ -9233,9 +9233,16 @@ export default function Home() {
           targetDurationSeconds={
             countdownMode
               ? countdownTotalRef.current
-              : primaryBenefit === "recovery" ? 480
-              : primaryBenefit === "performance" ? 360
-              : 300
+              : primaryBenefit === "recovery"   ? 480  // 8 min
+              : primaryBenefit === "metabolism" ? 360  // 6 min
+              : primaryBenefit === "mood"       ? 300  // 5 min
+              : 240                                    // energy / default: 4 min
+          }
+          targetQuestions={
+            primaryBenefit === "recovery"   ? 10 :
+            primaryBenefit === "metabolism" ?  8 :
+            primaryBenefit === "mood"       ?  7 :
+            6  // energy / default
           }
           onBrainFreezeScore={(s) => { brainFreezeScoreRef.current = s; }}
           onBrainFreezeStats={(c, t) => { brainFreezeCorrectRef.current = c; brainFreezeTotalRef.current = t; }}
