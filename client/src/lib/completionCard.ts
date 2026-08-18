@@ -15,6 +15,7 @@ export interface CompletionCardData {
   brainFreezeScore?: number;
   brainFreezeCorrect?: number;
   brainFreezeTotal?: number;
+  brainFreezeColdBonus?: number;
 }
 
 /**
@@ -31,11 +32,13 @@ export function buildBrainFreezeField(
   score: number,
   correct?: number,
   total?: number,
-): { brainFreezeScore?: number; brainFreezeCorrect?: number; brainFreezeTotal?: number } {
+  coldBonus?: number,
+): { brainFreezeScore?: number; brainFreezeCorrect?: number; brainFreezeTotal?: number; brainFreezeColdBonus?: number } {
   if (brainFreezeEnabled && score > 0) {
     return {
       brainFreezeScore: score,
       ...(total != null && total > 0 ? { brainFreezeCorrect: correct ?? 0, brainFreezeTotal: total } : {}),
+      ...(coldBonus != null && coldBonus > 0 ? { brainFreezeColdBonus: coldBonus } : {}),
     };
   }
   return {};
@@ -67,4 +70,24 @@ export function brainFreezeRowLabel(
     return `${correct ?? 0}/${total} correct · ${score} pts`;
   }
   return `${score} pts`;
+}
+
+/**
+ * Returns true only when the session had at least one cold-water bonus answer.
+ */
+export function shouldShowColdBonusRow(
+  data: CompletionCardData | null | undefined,
+): boolean {
+  return data?.brainFreezeColdBonus != null && data.brainFreezeColdBonus > 0;
+}
+
+/**
+ * Label for the cold-water bonus row, e.g. "+47 pts from cold water".
+ */
+export function coldBonusRowLabel(
+  data: CompletionCardData | null | undefined,
+): string | null {
+  const bonus = data?.brainFreezeColdBonus;
+  if (bonus == null || bonus <= 0) return null;
+  return `+${bonus} pts from cold water`;
 }

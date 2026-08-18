@@ -4147,8 +4147,11 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     }).safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Invalid input" });
     try {
-      const { logAnswer, checkAndFinalizeChallengeAnswer } = await import("./brain-freeze");
+      const { logAnswer, computePoints, checkAndFinalizeChallengeAnswer } = await import("./brain-freeze");
       const row = await logAnswer({ userId: payload.userId, ...parsed.data });
+      // Cold bonus = extra points from the cold-water multiplier (0 when no multiplier applied)
+      const basePoints = computePoints(parsed.data.isCorrect, parsed.data.responseTimeMs, null, parsed.data.timedOut);
+      const coldBonus = Math.max(0, row.pointsEarned - basePoints);
 
       // If this answer belongs to a challenge, check whether the player just finished
       let challengeStatus: string | undefined;
@@ -4190,7 +4193,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
         }
       }
 
-      res.json({ ok: true, id: row.id, points: row.pointsEarned, ...(challengeStatus ? { challengeStatus, opponentScore } : {}) });
+      res.json({ ok: true, id: row.id, points: row.pointsEarned, ...(coldBonus > 0 ? { coldBonus } : {}), ...(challengeStatus ? { challengeStatus, opponentScore } : {}) });
     } catch (err) {
       console.error("[brain-freeze] answer error:", err);
       res.status(500).json({ message: "Failed to log answer" });

@@ -67,7 +67,7 @@ import { sendFriendRequest as sendFriendRequestImpl } from "@/lib/sendFriendRequ
 import { respondFriendRequest as respondFriendRequestImpl } from "@/lib/respondFriendRequest";
 import { sendFriendChallenge as sendFriendChallengeImpl } from "@/lib/sendFriendChallenge";
 import { handleSwMessage } from "@/lib/swMessageHandler";
-import { buildBrainFreezeField, shouldShowBrainFreezeRow, brainFreezeRowLabel } from "@/lib/completionCard";
+import { buildBrainFreezeField, shouldShowBrainFreezeRow, brainFreezeRowLabel, shouldShowColdBonusRow, coldBonusRowLabel } from "@/lib/completionCard";
 
 // Pick a fresh cold take the user hasn't unlocked yet and persist it to the
 // unlocked collection. Falls back to a repeat only if the pool is exhausted.
@@ -1568,7 +1568,7 @@ export default function Home() {
     staleTime: 30_000,
   });
   // Plunge data stored for leaderboard submission after save
-  const promptPlungeRef = useRef<{ score: string; duration: number; temperature: number; timerUsed: boolean; tempMin?: number; tempMax?: number; brainFreezeScore?: number } | null>(null);
+  const promptPlungeRef = useRef<{ score: string; duration: number; temperature: number; timerUsed: boolean; tempMin?: number; tempMax?: number; brainFreezeScore?: number; brainFreezeCorrect?: number; brainFreezeTotal?: number; brainFreezeColdBonus?: number } | null>(null);
 
   const { toast } = useToast();
 
@@ -3213,9 +3213,10 @@ export default function Home() {
   // ─────────────────────────────────────────────────────────────────────────
   // ─────────────────────────────────────────────────────────────────────────
 
-  const brainFreezeScoreRef   = useRef(0);
-  const brainFreezeCorrectRef = useRef(0);
-  const brainFreezeTotalRef   = useRef(0);
+  const brainFreezeScoreRef     = useRef(0);
+  const brainFreezeCorrectRef   = useRef(0);
+  const brainFreezeTotalRef     = useRef(0);
+  const brainFreezeColdBonusRef = useRef(0);
 
   const doLogPlunge = useCallback(async (durationSec: number, startedAtOverride?: Date, challenger?: { userId: number; score: number }) => {
     // Use the average of all temperature samples collected during this session.
@@ -3244,7 +3245,7 @@ export default function Home() {
         duration: durationSec, temperature: avgTemp, score: String(score), timerUsed: true, calories: caloriesAtLogTime,
         hrAvg,
         spo2Avg: null,
-        ...buildBrainFreezeField(brainFreezeEnabled, brainFreezeScoreRef.current, brainFreezeCorrectRef.current, brainFreezeTotalRef.current),
+        ...buildBrainFreezeField(brainFreezeEnabled, brainFreezeScoreRef.current, brainFreezeCorrectRef.current, brainFreezeTotalRef.current, brainFreezeColdBonusRef.current),
         ...(challenger ? { challengerUserId: challenger.userId, challengerScore: challenger.score } : {}),
       },
       {
@@ -3269,7 +3270,7 @@ export default function Home() {
           const tempRangeStr = (tempMin !== undefined && tempMax !== undefined && tempMax - tempMin >= 1)
             ? ` avg (${tempMin} → ${tempMax}°F)` : `°F`;
           toast({ title: "Plunge Logged! ❄️", description: `Score: ${score} — ${formatTime(durationSec)} at ${avgTemp}${tempRangeStr}` });
-          promptPlungeRef.current = { score: String(score), duration: durationSec, temperature: avgTemp, timerUsed: true, tempMin, tempMax, ...buildBrainFreezeField(brainFreezeEnabled, brainFreezeScoreRef.current, brainFreezeCorrectRef.current, brainFreezeTotalRef.current) };
+          promptPlungeRef.current = { score: String(score), duration: durationSec, temperature: avgTemp, timerUsed: true, tempMin, tempMax, ...buildBrainFreezeField(brainFreezeEnabled, brainFreezeScoreRef.current, brainFreezeCorrectRef.current, brainFreezeTotalRef.current, brainFreezeColdBonusRef.current) };
           if (!auth.user) setPendingSignupNudge(true);
           setPromptColdTake(unlockColdTake({
             seconds: durationSec,
@@ -3529,9 +3530,10 @@ export default function Home() {
       setCountdownElapsed(0);
       setCountdown(total);
       tempSamplesRef.current = [temperature];
-      brainFreezeScoreRef.current   = 0;
-      brainFreezeCorrectRef.current = 0;
-      brainFreezeTotalRef.current   = 0;
+      brainFreezeScoreRef.current     = 0;
+      brainFreezeCorrectRef.current   = 0;
+      brainFreezeTotalRef.current     = 0;
+      brainFreezeColdBonusRef.current = 0;
       setCountdownRunning(true);
       localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "countdown", startTime: now, countdownTotal: total, minutesInput, secondsInput, entryTemp: temperature, challengers: pendingChallengers }));
     } else {
@@ -3539,9 +3541,10 @@ export default function Home() {
       const now = Date.now();
       startTimeRef.current = now;
       tempSamplesRef.current = [temperature];
-      brainFreezeScoreRef.current   = 0;
-      brainFreezeCorrectRef.current = 0;
-      brainFreezeTotalRef.current   = 0;
+      brainFreezeScoreRef.current     = 0;
+      brainFreezeCorrectRef.current   = 0;
+      brainFreezeTotalRef.current     = 0;
+      brainFreezeColdBonusRef.current = 0;
       setIsRunning(true);
       localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "stopwatch", startTime: now, entryTemp: temperature, challengers: pendingChallengers }));
     }
@@ -8579,6 +8582,20 @@ export default function Home() {
               </div>
             )}
 
+            {/* Cold-water bonus row — only when multiplier was applied to ≥1 answer */}
+            {shouldShowColdBonusRow(promptPlungeRef.current) && (
+              <div
+                data-testid="cold-bonus-row"
+                className="flex items-center gap-3 bg-cyan-950/30 border border-cyan-700/30 rounded-2xl px-4 py-2.5"
+              >
+                <span className="text-lg shrink-0">🧊</span>
+                <div className="flex-1">
+                  <span data-testid="cold-bonus-label" className="text-cyan-300 font-semibold text-sm">{coldBonusRowLabel(promptPlungeRef.current)}</span>
+                  <span className="text-cyan-500/60 text-xs font-medium ml-1.5">· cold water bonus</span>
+                </div>
+              </div>
+            )}
+
             {/* Streak banner */}
             <div className="bg-gradient-to-r from-orange-500/15 to-amber-500/5 border border-orange-500/20 rounded-xl p-3.5 flex items-center justify-between shadow-[0_0_15px_rgba(249,115,22,0.1)]">
                 <div className="flex items-center gap-3">
@@ -9222,6 +9239,7 @@ export default function Home() {
           }
           onBrainFreezeScore={(s) => { brainFreezeScoreRef.current = s; }}
           onBrainFreezeStats={(c, t) => { brainFreezeCorrectRef.current = c; brainFreezeTotalRef.current = t; }}
+          onColdBonusUpdate={(b) => { brainFreezeColdBonusRef.current = b; }}
           onBrainFreezeToggle={(next) => {
             setBrainFreezeEnabled(next);
             localStorage.setItem("coldstreak-brain-freeze", String(next));

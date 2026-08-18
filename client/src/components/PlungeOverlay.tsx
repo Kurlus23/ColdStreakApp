@@ -190,6 +190,7 @@ interface PlungeOverlayProps {
   onBrainFreezeToggle?: (enabled: boolean) => void;
   onBrainFreezeCountdown?: (seconds: number | null) => void;
   onBrainFreezeStats?: (correct: number, total: number) => void;
+  onColdBonusUpdate?: (totalColdBonus: number) => void;
   targetDurationSeconds?: number;
 }
 
@@ -223,6 +224,7 @@ export function PlungeOverlay({
   onBrainFreezeToggle,
   onBrainFreezeCountdown,
   onBrainFreezeStats,
+  onColdBonusUpdate,
   targetDurationSeconds,
   plungeStartTime,
 }: PlungeOverlayProps) {
@@ -630,6 +632,7 @@ export function PlungeOverlay({
         onStopPlunge={onStop}
         onCountdownUpdate={(secs) => { setNextQuestionIn(secs); onBrainFreezeCountdown?.(secs); }}
         onBrainFreezeStats={onBrainFreezeStats}
+        onColdBonusUpdate={onColdBonusUpdate}
         targetDurationSeconds={targetDurationSeconds}
       />
     </div>

@@ -22,6 +22,7 @@ interface BrainFreezeGameProps {
   onStopPlunge?: () => void;
   onCountdownUpdate?: (seconds: number | null) => void;
   onBrainFreezeStats?: (correct: number, total: number) => void;
+  onColdBonusUpdate?: (totalColdBonus: number) => void;
   /** Expected plunge duration in seconds — used to space questions evenly. */
   targetDurationSeconds?: number;
 }
@@ -58,6 +59,7 @@ export function BrainFreezeGame({
   onStopPlunge,
   onCountdownUpdate,
   onBrainFreezeStats,
+  onColdBonusUpdate,
   targetDurationSeconds,
 }: BrainFreezeGameProps) {
   // Spread TARGET_QUESTIONS evenly across the expected plunge duration.
@@ -77,6 +79,7 @@ export function BrainFreezeGame({
   const [autoCloseLeft, setAutoCloseLeft] = useState<number | null>(null);
 
   const scoreRef          = useRef(0);
+  const coldBonusTotalRef = useRef(0);
   const correctCountRef   = useRef(0);
   const totalAnsweredRef  = useRef(0);
   const phaseRef          = useRef<Phase>("idle");
@@ -212,6 +215,11 @@ export function BrainFreezeGame({
           pts = data.points ?? (correct ? 100 : 0);
           setLastPoints(pts);
           if (pts > 0) setPointsAnimKey((k) => k + 1);
+          // Accumulate cold-water bonus returned by the server
+          if (data.coldBonus && data.coldBonus > 0) {
+            coldBonusTotalRef.current += data.coldBonus;
+            onColdBonusUpdate?.(coldBonusTotalRef.current);
+          }
         }
       } catch {}
     }
