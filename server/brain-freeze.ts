@@ -641,6 +641,30 @@ async function getQuestionsById(ids: number[]) {
   return ids.map(id => map.get(id)).filter(Boolean) as (typeof rows);
 }
 
+/**
+ * Returns true when a non-expired, non-complete Brain Freeze challenge already
+ * exists from challengerId → challengeeId. Used by the route handler to guard
+ * against duplicate sends before calling createBrainFreezeChallenge.
+ */
+export async function hasActiveBrainFreezeChallenge(
+  challengerId: number,
+  challengeeId: number,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ id: brainFreezeChallenges.id })
+    .from(brainFreezeChallenges)
+    .where(
+      and(
+        eq(brainFreezeChallenges.challengerId, challengerId),
+        eq(brainFreezeChallenges.challengeeId, challengeeId),
+        ne(brainFreezeChallenges.status, "complete"),
+        gte(brainFreezeChallenges.expiresAt, new Date()),
+      )
+    )
+    .limit(1);
+  return !!row;
+}
+
 /** Create a BF challenge and return the row plus the ordered question objects. */
 export async function createBrainFreezeChallenge(challengerId: number, challengeeId: number) {
   const questionIds = await pickChallengeQuestions(challengerId, challengeeId);

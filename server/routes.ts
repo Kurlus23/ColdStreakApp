@@ -4248,7 +4248,13 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
       return res.status(403).json({ message: "Not friends" });
     }
     try {
-      const { createBrainFreezeChallenge } = await import("./brain-freeze");
+      const { createBrainFreezeChallenge, hasActiveBrainFreezeChallenge } = await import("./brain-freeze");
+
+      const alreadyActive = await hasActiveBrainFreezeChallenge(caller.userId, friendId);
+      if (alreadyActive) {
+        return res.status(409).json({ message: "You already have an active challenge with this player" });
+      }
+
       const { challenge, questions } = await createBrainFreezeChallenge(caller.userId, friendId);
       // Push notification to the challengee
       const challenger = await storage.getUserById(caller.userId);

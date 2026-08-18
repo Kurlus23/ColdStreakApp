@@ -6104,6 +6104,8 @@ export default function Home() {
                                         questions:    data.questions,
                                         opponentScore: null,
                                       });
+                                    } else if (res.status === 409) {
+                                      toast({ title: "Challenge already sent", description: "You already have an active Brain Freeze challenge with this player.", variant: "destructive" });
                                     } else {
                                       toast({ title: "Couldn't start Brain Freeze challenge", variant: "destructive" });
                                     }
