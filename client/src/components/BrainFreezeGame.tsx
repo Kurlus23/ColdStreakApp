@@ -29,7 +29,7 @@ interface BrainFreezeGameProps {
 
 const FIRST_QUESTION_AT = 30;  // seconds into plunge before first question
 const TARGET_QUESTIONS   = 10; // how many questions to fit into a plunge
-const MIN_INTERVAL       = 20; // never faster than 20s between questions
+const MIN_INTERVAL       = 45; // never faster than 45s between questions — keeps the timer as the primary experience
 const QUESTION_TIMEOUT  = 20;  // seconds allowed to answer
 const LABELS            = ["A", "B", "C", "D"];
 
