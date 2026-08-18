@@ -41,7 +41,7 @@ function getSpeedTier(points: number, correct: boolean, timedOut: boolean): stri
   return null;
 }
 
-function getColdBonusLabel(waterTempF: number): string | null {
+export function getColdBonusLabel(waterTempF: number): string | null {
   if (waterTempF < 40) return "🧊 +50% cold bonus";
   if (waterTempF < 50) return "🧊 +30% cold bonus";
   if (waterTempF < 60) return "🧊 +15% cold bonus";
