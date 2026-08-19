@@ -165,17 +165,26 @@ export function BrainFreezeGame({
     if (p === "loading" || p === "showing" || p === "answered") return;
 
     if (!firstShownRef.current && elapsedSeconds >= FIRST_QUESTION_AT) {
-      firstShownRef.current = true;
-      fetchQuestion(elapsedSeconds);
+      if (questionCountRef.current < targetQuestions) {
+        firstShownRef.current = true;
+        fetchQuestion(elapsedSeconds);
+      }
       return;
     }
 
-    if (firstShownRef.current && dismissedAtRef.current !== null &&
-        elapsedSeconds >= dismissedAtRef.current + intervalSecs) {
-      dismissedAtRef.current = null;
-      fetchQuestion(elapsedSeconds);
+    // Subsequent questions use a fixed schedule anchored to plunge start so that
+    // answering/auto-close time doesn't accumulate and push later questions out.
+    // Q(n) is scheduled at FIRST_QUESTION_AT + n * intervalSecs where n is the
+    // number of questions already fetched (questionCountRef is incremented inside
+    // fetchQuestion before the network call).
+    if (firstShownRef.current && dismissedAtRef.current !== null) {
+      const scheduled = FIRST_QUESTION_AT + questionCountRef.current * intervalSecs;
+      if (elapsedSeconds >= scheduled && questionCountRef.current < targetQuestions) {
+        dismissedAtRef.current = null;
+        fetchQuestion(elapsedSeconds);
+      }
     }
-  }, [elapsedSeconds, enabled, isActive, fetchQuestion]);
+  }, [elapsedSeconds, enabled, isActive, fetchQuestion, intervalSecs, targetQuestions]);
 
   // Answer handler — stable: uses refs for timeLeft, temperature, elapsedSeconds
   const handleAnswer = useCallback(async (ans: string | null) => {
