@@ -142,11 +142,32 @@ interface CommunityLocation {
   city: string | null;
   state: string | null;
   country: string;
+  latitude: string | number | null;
+  longitude: string | number | null;
+  accessLat: string | number | null;
+  accessLng: string | number | null;
   isBusiness: boolean;
   businessVerified: boolean | null;
   isHidden: boolean | null;
   nominationCount: number;
   submittedBy: string | null;
+  submitterEmail?: string | null;
+  submitterUserId?: number | null;
+  submitterUsername?: string | null;
+  submitterDisplayName?: string | null;
+}
+
+function getLocationMapDetails(location: CommunityLocation): { label: string; lat: number; lng: number; url: string } | null {
+  const hasAccessPoint = location.accessLat != null && location.accessLng != null;
+  const lat = Number(hasAccessPoint ? location.accessLat : location.latitude);
+  const lng = Number(hasAccessPoint ? location.accessLng : location.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return {
+    label: hasAccessPoint ? "Access GPS" : "GPS",
+    lat,
+    lng,
+    url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`,
+  };
 }
 
 interface AdminEvent {
@@ -1678,63 +1699,89 @@ export default function Admin() {
                 {communityLocations.length === 0 ? (
                   <p className="text-blue-400 text-sm text-center py-4">No community locations yet.</p>
                 ) : (
-                  communityLocations.map((loc) => (
-                    <div
-                      key={loc.id}
-                      data-testid={`admin-location-${loc.id}`}
-                      className={`rounded-xl px-4 py-3 flex flex-col gap-2 border ${
-                        loc.isHidden ? "bg-gray-900/60 border-gray-700/40 opacity-70" : "bg-blue-900/60 border-blue-700/30"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3 flex-wrap">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold text-sm text-slate-200">{loc.name}</p>
-                            {loc.isHidden && <Badge className="bg-gray-600 text-white text-[10px] px-1.5 py-0.5">Hidden</Badge>}
+                  communityLocations.map((loc) => {
+                    const mapDetails = getLocationMapDetails(loc);
+                    return (
+                      <div
+                        key={loc.id}
+                        data-testid={`admin-location-${loc.id}`}
+                        className={`rounded-xl px-4 py-3 flex flex-col gap-2 border ${
+                          loc.isHidden ? "bg-gray-900/60 border-gray-700/40 opacity-70" : "bg-blue-900/60 border-blue-700/30"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3 flex-wrap">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-semibold text-sm text-slate-200">{loc.name}</p>
+                              {loc.isHidden && <Badge className="bg-gray-600 text-white text-[10px] px-1.5 py-0.5">Hidden</Badge>}
+                            </div>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              {[loc.city, loc.state, loc.country].filter(Boolean).join(", ")}
+                              {loc.submittedBy ? ` · by ${loc.submittedBy}` : ""}
+                              {loc.submitterUserId != null ? ` · submitter user #${loc.submitterUserId}` : ""}
+                              {loc.submitterEmail ? ` · ${loc.submitterEmail}` : ""}
+                              {" · "}Location #{loc.id} · {loc.nominationCount} vote{loc.nominationCount !== 1 ? "s" : ""}
+                            </p>
                           </div>
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            {[loc.city, loc.state, loc.country].filter(Boolean).join(", ")}
-                            {loc.submittedBy ? ` · by ${loc.submittedBy}` : ""} · ID #{loc.id} · {loc.nominationCount} vote{loc.nominationCount !== 1 ? "s" : ""}
-                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap text-xs text-slate-300">
+                          {mapDetails ? (
+                            <>
+                              <span>
+                                {mapDetails.label}: {mapDetails.lat.toFixed(6)}, {mapDetails.lng.toFixed(6)}
+                              </span>
+                              <a
+                                href={mapDetails.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                data-testid={`admin-location-map-${loc.id}`}
+                                className="text-cyan-300 hover:text-cyan-200 underline underline-offset-2"
+                              >
+                                Open in Google Maps
+                              </a>
+                            </>
+                          ) : (
+                            <span className="text-amber-300">No GPS coordinates saved</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Button
+                            data-testid={`btn-toggle-community-visibility-${loc.id}`}
+                            size="sm" variant="outline"
+                            className={loc.isHidden ? "border-green-700/60 text-green-400 hover:bg-green-900/30 text-xs" : "border-gray-600 text-gray-400 hover:bg-gray-800/40 text-xs"}
+                            disabled={toggleLocationVisibilityMutation.isPending}
+                            onClick={() => toggleLocationVisibilityMutation.mutate({ id: loc.id, hidden: !loc.isHidden })}
+                          >
+                            {loc.isHidden ? "Unhide" : "Hide"}
+                          </Button>
+                          {confirmDeleteLoc === loc.id ? (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                data-testid={`btn-confirm-delete-community-${loc.id}`}
+                                size="sm"
+                                className="bg-red-600 hover:bg-red-500 text-white text-xs"
+                                disabled={deleteLocationMutation.isPending}
+                                onClick={() => deleteLocationMutation.mutate(loc.id)}
+                              >
+                                {deleteLocationMutation.isPending ? "Deleting…" : "Yes, Delete"}
+                              </Button>
+                              <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 text-xs" onClick={() => setConfirmDeleteLoc(null)}>Cancel</Button>
+                            </div>
+                          ) : (
+                            <Button
+                              data-testid={`btn-delete-community-${loc.id}`}
+                              size="sm" variant="outline"
+                              className="border-red-700/50 text-red-400 hover:bg-red-900/30 hover:border-red-500 text-xs"
+                              disabled={deleteLocationMutation.isPending || toggleLocationVisibilityMutation.isPending}
+                              onClick={() => setConfirmDeleteLoc(loc.id)}
+                            >
+                              Delete
+                            </Button>
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Button
-                          data-testid={`btn-toggle-community-visibility-${loc.id}`}
-                          size="sm" variant="outline"
-                          className={loc.isHidden ? "border-green-700/60 text-green-400 hover:bg-green-900/30 text-xs" : "border-gray-600 text-gray-400 hover:bg-gray-800/40 text-xs"}
-                          disabled={toggleLocationVisibilityMutation.isPending}
-                          onClick={() => toggleLocationVisibilityMutation.mutate({ id: loc.id, hidden: !loc.isHidden })}
-                        >
-                          {loc.isHidden ? "Unhide" : "Hide"}
-                        </Button>
-                        {confirmDeleteLoc === loc.id ? (
-                          <div className="flex items-center gap-1">
-                            <Button
-                              data-testid={`btn-confirm-delete-loc-${loc.id}`}
-                              size="sm"
-                              className="bg-red-600 hover:bg-red-500 text-white text-xs"
-                              disabled={deleteLocationMutation.isPending}
-                              onClick={() => deleteLocationMutation.mutate(loc.id)}
-                            >
-                              {deleteLocationMutation.isPending ? "Deleting…" : "Yes, Delete"}
-                            </Button>
-                            <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 text-xs" onClick={() => setConfirmDeleteLoc(null)}>Cancel</Button>
-                          </div>
-                        ) : (
-                          <Button
-                            data-testid={`btn-delete-community-${loc.id}`}
-                            size="sm" variant="outline"
-                            className="border-red-700/50 text-red-400 hover:bg-red-900/30 hover:border-red-500 text-xs"
-                            disabled={deleteLocationMutation.isPending || toggleLocationVisibilityMutation.isPending}
-                            onClick={() => setConfirmDeleteLoc(loc.id)}
-                          >
-                            Delete
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}

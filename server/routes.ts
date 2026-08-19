@@ -1103,10 +1103,24 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     const callerEmail = caller?.email?.toLowerCase().trim() ?? null;
     const admin = isCallerAdmin(caller);
     const locations = await storage.getUserLocations(country, admin);
-    const sanitized = locations.map(({ contactEmail, ...rest }) => ({
-      ...rest,
-      isOwner: callerEmail ? callerEmail === (contactEmail ?? "").toLowerCase().trim() : false,
-      isAdmin: admin,
+    const sanitized = await Promise.all(locations.map(async ({ contactEmail, ...rest }) => {
+      // Admins need enough provenance to verify a submission, but contact
+      // emails must remain private from the public locations response.
+      const submitter = admin
+        ? (rest.submittedBy ? await storage.getUserByUsernameInsensitive(rest.submittedBy) : null)
+          ?? (contactEmail ? await storage.getUserByEmail(contactEmail) : null)
+        : null;
+      return {
+        ...rest,
+        isOwner: callerEmail ? callerEmail === (contactEmail ?? "").toLowerCase().trim() : false,
+        isAdmin: admin,
+        ...(admin ? {
+          submitterEmail: contactEmail,
+          submitterUserId: submitter?.id ?? null,
+          submitterUsername: submitter?.username ?? rest.submittedBy ?? null,
+          submitterDisplayName: submitter?.displayName ?? null,
+        } : {}),
+      };
     }));
     res.json(sanitized);
   });
@@ -1140,6 +1154,15 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
       // Auto-attach the caller's email for ownership tracking
       if (caller?.email && !input.contactEmail) {
         (input as any).contactEmail = caller.email.toLowerCase().trim();
+      }
+      // Never trust a client-provided submitter name when an authenticated
+      // account is available. Keep the display name compatible with existing
+      // public cards while deriving the user ID for Admin from contactEmail.
+      if (caller?.userId) {
+        const submitter = await storage.getUserById(caller.userId);
+        if (submitter) {
+          input.submittedBy = submitter.username ?? `user-${submitter.id}`;
+        }
       }
       const loc = await storage.createUserLocation(input);
       res.status(201).json(loc);
