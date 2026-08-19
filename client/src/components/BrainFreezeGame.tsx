@@ -64,10 +64,15 @@ export function BrainFreezeGame({
   targetDurationSeconds,
   targetQuestions = 6,
 }: BrainFreezeGameProps) {
-  // Spread targetQuestions evenly across the expected plunge duration,
-  // never faster than MIN_INTERVAL. Falls back to 45s when no target is provided.
+  // Spread targetQuestions evenly, subtracting QUESTION_TIMEOUT from the effective
+  // window so the last question is scheduled before the plunge boundary, not at it.
+  // Without this adjustment the final slot lands exactly at targetDurationSeconds, where
+  // isActive goes false and the trigger guard prevents the fetch from firing.
+  // (Due to integer rounding the actual gap before the boundary is at least 18 s for the
+  // 8-minute / 10-question recovery case — enough for the card to appear and auto-close.)
+  // Falls back to 45 s when no target duration is provided.
   const intervalSecs = targetDurationSeconds
-    ? Math.max(MIN_INTERVAL, Math.round((targetDurationSeconds - FIRST_QUESTION_AT) / (targetQuestions - 1)))
+    ? Math.max(MIN_INTERVAL, Math.round((targetDurationSeconds - FIRST_QUESTION_AT - QUESTION_TIMEOUT) / (targetQuestions - 1)))
     : 45;
   const [question, setQuestion]   = useState<Question | null>(null);
   const [phase, setPhase]         = useState<Phase>("idle");
@@ -109,14 +114,16 @@ export function BrainFreezeGame({
       onCountdownUpdate?.(null);
       return;
     }
-    // phase === "idle" or "answered" — compute seconds until next question
+    // phase === "idle" or "answered" — compute seconds until next question.
+    // Uses the fixed-offset schedule so the displayed countdown matches the actual trigger.
     if (firstShownRef.current && dismissedAtRef.current !== null) {
-      const secsLeft = Math.max(0, dismissedAtRef.current + intervalSecs - elapsedSeconds);
+      const nextAt  = FIRST_QUESTION_AT + questionCountRef.current * intervalSecs;
+      const secsLeft = Math.max(0, nextAt - elapsedSeconds);
       onCountdownUpdate?.(secsLeft);
     } else {
       onCountdownUpdate?.(null);
     }
-  }, [enabled, phase, elapsedSeconds, onCountdownUpdate]);
+  }, [enabled, phase, elapsedSeconds, intervalSecs, onCountdownUpdate]);
 
   const getToken = () => {
     try { return localStorage.getItem("coldstreak-auth-token"); } catch { return null; }
@@ -158,33 +165,34 @@ export function BrainFreezeGame({
     }
   }, []);
 
-  // Trigger questions based on elapsed time
+  // Trigger questions based on elapsed time.
+  // Uses fixed offsets from plunge start (Q1 = FIRST_QUESTION_AT, Q2 = FIRST_QUESTION_AT +
+  // intervalSecs, …) so that answer / auto-close time never pushes later questions past the
+  // plunge end.  The targetQuestions gate prevents an 11th fetch.
   useEffect(() => {
     if (!enabled || !isActive) return;
     const p = phaseRef.current;
     if (p === "loading" || p === "showing" || p === "answered") return;
 
     if (!firstShownRef.current && elapsedSeconds >= FIRST_QUESTION_AT) {
-      if (questionCountRef.current < targetQuestions) {
-        firstShownRef.current = true;
-        fetchQuestion(elapsedSeconds);
-      }
+      firstShownRef.current = true;
+      fetchQuestion(elapsedSeconds);
       return;
     }
 
-    // Subsequent questions use a fixed schedule anchored to plunge start so that
-    // answering/auto-close time doesn't accumulate and push later questions out.
-    // Q(n) is scheduled at FIRST_QUESTION_AT + n * intervalSecs where n is the
-    // number of questions already fetched (questionCountRef is incremented inside
-    // fetchQuestion before the network call).
-    if (firstShownRef.current && dismissedAtRef.current !== null) {
-      const scheduled = FIRST_QUESTION_AT + questionCountRef.current * intervalSecs;
-      if (elapsedSeconds >= scheduled && questionCountRef.current < targetQuestions) {
-        dismissedAtRef.current = null;
-        fetchQuestion(elapsedSeconds);
-      }
+    // Fixed-offset schedule: Qn fires at FIRST_QUESTION_AT + (n-1) * intervalSecs.
+    // questionCountRef is already incremented when the previous question was fetched, so
+    // it equals the index of the NEXT question (0-based count of questions not yet fetched).
+    if (
+      firstShownRef.current &&
+      dismissedAtRef.current !== null &&
+      questionCountRef.current < targetQuestions &&
+      elapsedSeconds >= FIRST_QUESTION_AT + questionCountRef.current * intervalSecs
+    ) {
+      dismissedAtRef.current = null;
+      fetchQuestion(elapsedSeconds);
     }
-  }, [elapsedSeconds, enabled, isActive, fetchQuestion, intervalSecs, targetQuestions]);
+  }, [elapsedSeconds, enabled, isActive, fetchQuestion, targetQuestions, intervalSecs]);
 
   // Answer handler — stable: uses refs for timeLeft, temperature, elapsedSeconds
   const handleAnswer = useCallback(async (ans: string | null) => {
