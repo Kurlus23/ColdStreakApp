@@ -2120,7 +2120,7 @@ export default function Home() {
     }).catch(() => {});
   };
 
-  // Fetch Brain Freeze Lab stats whenever the Insights tab is opened
+  // Fetch Brain Freeze stats whenever the Insights tab is opened
   useEffect(() => {
     if (profileTab !== 'stats') return;
     const token = localStorage.getItem("coldstreak-auth-token");
@@ -3885,7 +3885,7 @@ export default function Home() {
               onClick={() => setShowBrainFreezeModal(true)}
               className="relative w-9 h-9 rounded-xl overflow-hidden active:scale-90 transition-transform"
               style={{ boxShadow: "0 0 10px rgba(96,165,250,0.35), 0 0 4px rgba(147,197,253,0.2)" }}
-              aria-label="Brain Freeze Lab"
+              aria-label="Brain Freeze"
             >
               <img
                 src="/brain-freeze-icon.png"
@@ -7544,11 +7544,11 @@ export default function Home() {
                     );
                   })()}
 
-                  {/* ── Brain Freeze Lab ── */}
+                  {/* ── Brain Freeze ── */}
                   <div className="space-y-2">
                     <_InsightSectionHeader
                       imgSrc="/brain-freeze-icon.png"
-                      title="Brain Freeze Lab"
+                      title="Brain Freeze"
                       subtitle={brainFreezeLabData?.inPlunge ? "Your cognitive performance in and out of the cold" : undefined}
                     />
                     {brainFreezeLabData && (brainFreezeLabData.inPlunge || brainFreezeLabData.outOfPlunge) ? (
@@ -7677,7 +7677,7 @@ export default function Home() {
                         <div className="flex items-center gap-2.5 mb-2">
                           <span className="text-lg opacity-50">🧠</span>
                           <div>
-                            <p className="text-blue-300 font-semibold text-xs">Brain Freeze Lab</p>
+                            <p className="text-blue-300 font-semibold text-xs">Brain Freeze</p>
                             <p className="text-blue-500 text-[11px] mt-0.5">
                               🔒 Need {brainFreezeLabData.minForStat ?? 10} answers in each context — you have {brainFreezeLabData.totalAnswers} total
                             </p>
@@ -7690,7 +7690,7 @@ export default function Home() {
                         <div className="flex items-center gap-2.5 mb-2">
                           <span className="text-lg opacity-50">🧠</span>
                           <div>
-                            <p className="text-blue-300 font-semibold text-xs">Brain Freeze Lab</p>
+                            <p className="text-blue-300 font-semibold text-xs">Brain Freeze</p>
                             <p className="text-blue-500 text-[11px] mt-0.5">🔒 Unlocks after your first Brain Freeze sessions</p>
                           </div>
                         </div>
