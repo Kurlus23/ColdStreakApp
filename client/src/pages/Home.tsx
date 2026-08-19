@@ -8551,11 +8551,8 @@ export default function Home() {
                 <div className="flex-1 bg-blue-950/40 border border-blue-800/50 rounded-2xl p-3 flex flex-col items-center justify-center gap-1">
                   <Thermometer className="w-4 h-4 text-cyan-400" />
                   <span data-testid="text-complete-temp" className="text-white font-bold text-sm">
-                    {promptPlungeRef.current.temperature}°F{(promptPlungeRef.current.tempMin !== undefined && promptPlungeRef.current.tempMax !== undefined && promptPlungeRef.current.tempMax - promptPlungeRef.current.tempMin >= 1) && <span className="text-cyan-400/70 font-normal"> avg</span>}
+                    {promptPlungeRef.current.temperature}°F
                   </span>
-                  {(promptPlungeRef.current.tempMin !== undefined && promptPlungeRef.current.tempMax !== undefined && promptPlungeRef.current.tempMax - promptPlungeRef.current.tempMin >= 1) && (
-                    <span className="text-cyan-300/60 text-[10px] font-medium">{promptPlungeRef.current.tempMin} → {promptPlungeRef.current.tempMax}°F</span>
-                  )}
                   <span className="text-blue-400 text-[10px] uppercase tracking-wider font-semibold">Temp</span>
                 </div>
                 <div className="flex-1 bg-blue-950/40 border border-blue-800/50 rounded-2xl p-3 flex flex-col items-center justify-center gap-1">
@@ -8575,27 +8572,22 @@ export default function Home() {
               </div>
             )}
 
-            {/* Brain Freeze score row */}
+            {/* Brain Freeze score row — cold water bonus appended inline when present */}
             {shouldShowBrainFreezeRow(promptPlungeRef.current) && (
               <div className="flex items-center gap-3 bg-blue-950/40 border border-cyan-800/40 rounded-2xl px-4 py-3">
                 <img src="/brain-freeze-icon.png" alt="Brain Freeze" className="w-7 h-7 rounded-lg object-cover shrink-0" style={{ boxShadow: "0 0 8px rgba(96,165,250,0.3)" }} />
-                <div className="flex-1">
-                  <span className="text-white font-bold text-sm">{brainFreezeRowLabel(promptPlungeRef.current)}</span>
-                  <span className="text-cyan-400/70 text-xs font-medium ml-1.5">· Brain Freeze</span>
-                </div>
-              </div>
-            )}
-
-            {/* Cold-water bonus row — only when multiplier was applied to ≥1 answer */}
-            {shouldShowColdBonusRow(promptPlungeRef.current) && (
-              <div
-                data-testid="cold-bonus-row"
-                className="flex items-center gap-3 bg-cyan-950/30 border border-cyan-700/30 rounded-2xl px-4 py-2.5"
-              >
-                <span className="text-lg shrink-0">🧊</span>
-                <div className="flex-1">
-                  <span data-testid="cold-bonus-label" className="text-cyan-300 font-semibold text-sm">{coldBonusRowLabel(promptPlungeRef.current)}</span>
-                  <span className="text-cyan-500/60 text-xs font-medium ml-1.5">· cold water bonus</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline flex-wrap gap-x-1.5">
+                    <span className="text-white font-bold text-sm">{brainFreezeRowLabel(promptPlungeRef.current)}</span>
+                    <span className="text-cyan-400/70 text-xs font-medium">· Brain Freeze</span>
+                  </div>
+                  {shouldShowColdBonusRow(promptPlungeRef.current) && (
+                    <div data-testid="cold-bonus-row" className="flex items-center gap-1 mt-0.5">
+                      <span className="text-sm leading-none">🧊</span>
+                      <span data-testid="cold-bonus-label" className="text-cyan-300 text-xs font-semibold">{coldBonusRowLabel(promptPlungeRef.current)}</span>
+                      <span className="text-cyan-500/60 text-[10px] font-medium">· cold water bonus</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
