@@ -904,6 +904,10 @@ export async function getBrainFreezeAdminStats() {
       correct:     sql<number>`sum(case when ${brainFreezeAnswers.isCorrect} then 1 else 0 end)::int`,
       pts:         sql<number>`coalesce(sum(${brainFreezeAnswers.pointsEarned}), 0)::int`,
       inPlunge:    sql<number>`sum(case when ${brainFreezeAnswers.inPlunge}  then 1 else 0 end)::int`,
+      inPlungeCorrect: sql<number>`sum(case when ${brainFreezeAnswers.inPlunge} and ${brainFreezeAnswers.isCorrect} then 1 else 0 end)::int`,
+      inPlungeAnswers: sql<number>`sum(case when ${brainFreezeAnswers.inPlunge} then 1 else 0 end)::int`,
+      outOfPlungeCorrect: sql<number>`sum(case when not ${brainFreezeAnswers.inPlunge} and ${brainFreezeAnswers.isCorrect} then 1 else 0 end)::int`,
+      outOfPlungeAnswers: sql<number>`sum(case when not ${brainFreezeAnswers.inPlunge} then 1 else 0 end)::int`,
       lastPlayed:  sql<string>`max(${brainFreezeAnswers.answeredAt})::text`,
     })
     .from(brainFreezeAnswers)

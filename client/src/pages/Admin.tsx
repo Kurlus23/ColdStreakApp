@@ -1895,7 +1895,10 @@ type BFOverview = {
 type BFTrendRow    = { date: string; count: number };
 type BFLeaderRow   = {
   userId: number; email: string; username: string | null; displayName: string | null;
-  answers: number; correct: number; pts: number; inPlunge: number; lastPlayed: string;
+  answers: number; correct: number; pts: number; inPlunge: number;
+  inPlungeCorrect: number; inPlungeAnswers: number;
+  outOfPlungeCorrect: number; outOfPlungeAnswers: number;
+  lastPlayed: string;
 };
 type BFStats = { overview: BFOverview; trend: BFTrendRow[]; leaderboard: BFLeaderRow[] };
 
@@ -2039,7 +2042,8 @@ function BrainFreezeStatsPanel() {
                           <th className="px-3 py-2 text-right">Pts</th>
                           <th className="px-3 py-2 text-right">Answers</th>
                           <th className="px-3 py-2 text-right">Accuracy</th>
-                          <th className="px-3 py-2 text-right">In-plunge</th>
+                          <th className="px-3 py-2 text-right">In-plunge accuracy</th>
+                          <th className="px-3 py-2 text-right">Out-of-plunge accuracy</th>
                           <th className="px-3 py-2 text-right">Last played</th>
                         </tr>
                       </thead>
@@ -2062,8 +2066,21 @@ function BrainFreezeStatsPanel() {
                                 {pct(row.correct, row.answers)}
                               </span>
                             </td>
-                            <td className="px-3 py-2 text-right text-slate-400 tabular-nums">
-                              {row.inPlunge}/{row.answers}
+                            <td className="px-3 py-2 text-right tabular-nums">
+                              <span className={row.inPlungeAnswers > 0 && row.inPlungeCorrect / row.inPlungeAnswers >= 0.7 ? "text-green-400" : "text-slate-300"}>
+                                {pct(row.inPlungeCorrect, row.inPlungeAnswers)}
+                              </span>
+                              <div className="text-[10px] text-slate-600">
+                                {row.inPlungeCorrect}/{row.inPlungeAnswers}
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-right tabular-nums">
+                              <span className={row.outOfPlungeAnswers > 0 && row.outOfPlungeCorrect / row.outOfPlungeAnswers >= 0.7 ? "text-green-400" : "text-slate-300"}>
+                                {pct(row.outOfPlungeCorrect, row.outOfPlungeAnswers)}
+                              </span>
+                              <div className="text-[10px] text-slate-600">
+                                {row.outOfPlungeCorrect}/{row.outOfPlungeAnswers}
+                              </div>
                             </td>
                             <td className="px-3 py-2 text-right text-slate-500">{fmtAgo(row.lastPlayed)}</td>
                           </tr>
