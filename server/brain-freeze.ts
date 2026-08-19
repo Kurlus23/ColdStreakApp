@@ -174,32 +174,17 @@ export async function getQuestion(userId: number, preferColdPlunge = false) {
   const seenIds = recentAnswers.map(r => r.questionId);
 
   // ── Cold Plunge slot (every 3rd question) ────────────────────────────────
-  // Cold-plunge questions use a 7-day exclusion window (vs 30-day for general)
-  // because we only have ~65 of them — a 30-day window exhausts the pool for
-  // active users and silently falls back to general questions.
+  // No exclusion window for cold-plunge questions — always pick randomly from
+  // the full pool so active users always get cold-specific content.
   if (preferColdPlunge) {
-    const cpCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const recentCpAnswers = await db
-      .select({ questionId: brainFreezeAnswers.questionId })
-      .from(brainFreezeAnswers)
-      .innerJoin(brainFreezeQuestions, eq(brainFreezeAnswers.questionId, brainFreezeQuestions.id))
-      .where(and(
-        eq(brainFreezeAnswers.userId, userId),
-        gte(brainFreezeAnswers.answeredAt, cpCutoff),
-        eq(brainFreezeQuestions.category, COLD_PLUNGE_CATEGORY),
-      ));
-    const recentCpIds = recentCpAnswers.map(r => r.questionId);
-    const cpWhere = recentCpIds.length > 0
-      ? and(eq(brainFreezeQuestions.category, COLD_PLUNGE_CATEGORY), notInArray(brainFreezeQuestions.id, recentCpIds))
-      : eq(brainFreezeQuestions.category, COLD_PLUNGE_CATEGORY);
     const [cpQ] = await db
       .select()
       .from(brainFreezeQuestions)
-      .where(cpWhere)
+      .where(eq(brainFreezeQuestions.category, COLD_PLUNGE_CATEGORY))
       .orderBy(sql`RANDOM()`)
       .limit(1);
     if (cpQ) return cpQ;
-    // All cold-plunge questions seen in last 7 days — fall through to any unseen
+    // No cold-plunge questions seeded yet — fall through to general pool
   }
 
   // Find the category of the user's most-recently answered question so we can

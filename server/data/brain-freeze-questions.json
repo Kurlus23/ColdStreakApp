@@ -3443,5 +3443,802 @@
       "Drinking ice water"
     ],
     "explanation": "A plunge specifically involves immersing the body in cold water."
+  },
+  {
+    "id": "qcp066",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Which neurotransmitter surges most dramatically after a cold plunge?",
+    "correct": "Norepinephrine",
+    "wrong": ["Serotonin", "Dopamine", "Acetylcholine"],
+    "explanation": "Cold exposure can spike norepinephrine by 200–300%, driving alertness and mood elevation."
+  },
+  {
+    "id": "qcp067",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is the primary goal of a post-workout cold plunge?",
+    "correct": "Reduce inflammation and speed recovery",
+    "wrong": ["Build muscle faster", "Increase flexibility", "Boost testosterone immediately"],
+    "explanation": "Cold water constricts blood vessels and reduces metabolic waste, accelerating muscle recovery."
+  },
+  {
+    "id": "qcp068",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What is 'cold shock response' and when does it peak?",
+    "correct": "Involuntary gasping and hyperventilation peaking in the first 30 seconds",
+    "wrong": [
+      "Muscle cramping peaking at 2 minutes",
+      "Cardiac arrhythmia peaking at 5 minutes",
+      "Hypothermia onset peaking at 10 minutes"
+    ],
+    "explanation": "Cold shock triggers a gasp reflex and rapid breathing immediately on immersion — the most dangerous phase."
+  },
+  {
+    "id": "qcp069",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "How does cold water immersion affect cortisol?",
+    "correct": "It briefly spikes then drops below baseline",
+    "wrong": [
+      "It stays elevated for hours",
+      "It drops immediately and stays low",
+      "It has no measurable effect"
+    ],
+    "explanation": "Cortisol rises as a stress response but the rebound drop contributes to the post-plunge calm feeling."
+  },
+  {
+    "id": "qcp070",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is 'afterdrop' in cold water immersion?",
+    "correct": "Core temperature continuing to fall after you exit the water",
+    "wrong": [
+      "A sudden warm flush when you get out",
+      "Drop in blood pressure on exit",
+      "Loss of feeling in the extremities"
+    ],
+    "explanation": "Cold blood from the limbs continues flowing to the core after exit, dropping core temperature further."
+  },
+  {
+    "id": "qcp071",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Which professional sport was the earliest to formally adopt ice bath protocols?",
+    "correct": "American football",
+    "wrong": ["Swimming", "Cycling", "Tennis"],
+    "explanation": "NFL teams were among the first to standardize ice bath recovery for players in the 1970s–80s."
+  },
+  {
+    "id": "qcp072",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What physiological process is responsible for brown fat activation during cold exposure?",
+    "correct": "Non-shivering thermogenesis via UCP1 protein",
+    "wrong": [
+      "Shivering muscle contractions",
+      "Glycolysis in white fat cells",
+      "Adrenaline-driven lipolysis"
+    ],
+    "explanation": "Brown adipose tissue burns energy to generate heat through uncoupling protein 1 (UCP1), independent of shivering."
+  },
+  {
+    "id": "qcp073",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "Why do most cold plunge experts recommend breathing slowly during immersion?",
+    "correct": "To calm the cold shock response and lower heart rate",
+    "wrong": [
+      "To warm the water with exhaled air",
+      "To prevent hyperventilation from removing CO2",
+      "To avoid swallowing water"
+    ],
+    "explanation": "Controlled breathing activates the parasympathetic nervous system, counteracting the panic-like cold shock."
+  },
+  {
+    "id": "qcp074",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "At what water temperature does swimming ability become significantly impaired?",
+    "correct": "Below 15°C (59°F)",
+    "wrong": ["Below 25°C (77°F)", "Below 10°C (50°F)", "Below 20°C (68°F)"],
+    "explanation": "Below 15°C, muscle cooling and cold incapacitation markedly reduce coordination and stroke efficiency."
+  },
+  {
+    "id": "qcp075",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is 'vasoconstriction' as it relates to cold plunging?",
+    "correct": "Blood vessels narrowing to reduce heat loss",
+    "wrong": [
+      "Blood vessels expanding to warm the skin",
+      "Muscles tightening to generate heat",
+      "Oxygen molecules contracting in cold blood"
+    ],
+    "explanation": "Vasoconstriction shunts blood away from the skin surface to protect core temperature."
+  },
+  {
+    "id": "qcp076",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "How long does the 'euphoria window' typically last after exiting a cold plunge?",
+    "correct": "1–3 hours",
+    "wrong": ["5–10 minutes", "4–6 hours", "All day"],
+    "explanation": "The norepinephrine and endorphin boost typically sustains elevated mood and energy for 1–3 hours post-plunge."
+  },
+  {
+    "id": "qcp077",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What does research say about timing a cold plunge immediately after strength training?",
+    "correct": "It may blunt muscle protein synthesis and long-term hypertrophy",
+    "wrong": [
+      "It maximally accelerates muscle growth",
+      "It has no effect on muscle building",
+      "It only affects endurance, not strength gains"
+    ],
+    "explanation": "Cold immediately post-lifting can suppress mTOR signaling, reducing the anabolic response. Wait 4+ hours if hypertrophy is the goal."
+  },
+  {
+    "id": "qcp078",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is the recommended position for beginners in a cold plunge tub?",
+    "correct": "Seated or submerged to the shoulders",
+    "wrong": [
+      "Standing with only feet in",
+      "Lying face down",
+      "Head fully submerged"
+    ],
+    "explanation": "Shoulder-depth immersion maximizes the cold exposure effect while keeping the airway safe and accessible."
+  },
+  {
+    "id": "qcp079",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Which part of the body cools fastest during cold water immersion?",
+    "correct": "The hands and feet",
+    "wrong": ["The torso", "The head", "The thighs"],
+    "explanation": "Extremities have a high surface-area-to-volume ratio and thin insulation, cooling most rapidly."
+  },
+  {
+    "id": "qcp080",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is 'cold adaptation' in the context of regular cold plunging?",
+    "correct": "The body becoming more efficient at maintaining core temperature with repeated exposure",
+    "wrong": [
+      "Getting used to the pain so it stops hurting",
+      "The water feeling warmer over time due to body heat",
+      "Skin thickening to resist cold"
+    ],
+    "explanation": "Repeated cold exposure trains thermoregulatory systems — brown fat grows, shivering threshold drops, and mental tolerance improves."
+  },
+  {
+    "id": "qcp081",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What is the 'hunting reaction' (Lewis waves) in cold water immersion?",
+    "correct": "Cyclic blood flow oscillations in the fingers during prolonged cold exposure",
+    "wrong": [
+      "Involuntary arm movements when entering cold water",
+      "Heart rate spiking every 30 seconds",
+      "Muscle tremors in the legs when standing in cold water"
+    ],
+    "explanation": "Lewis waves are alternating periods of vasoconstriction and vasodilation that protect fingers from freezing."
+  },
+  {
+    "id": "qcp082",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is the safest way to warm up after a cold plunge?",
+    "correct": "Gentle movement and dry warm clothing",
+    "wrong": [
+      "A hot shower immediately",
+      "Staying still under a blanket",
+      "Drinking hot alcohol"
+    ],
+    "explanation": "Light movement generates internal heat; a hot shower too soon can cause fainting due to rapid blood pressure changes."
+  },
+  {
+    "id": "qcp083",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "How does cold exposure affect insulin sensitivity?",
+    "correct": "It improves glucose uptake by activating brown fat and muscle",
+    "wrong": [
+      "It reduces insulin sensitivity",
+      "It has no measurable effect",
+      "It only helps diabetics"
+    ],
+    "explanation": "Cold-stimulated brown fat and cold-induced muscle contractions both enhance glucose clearance from the blood."
+  },
+  {
+    "id": "qcp084",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is the typical ice-to-water ratio recommended for a DIY ice bath?",
+    "correct": "Roughly 1 part ice to 3–4 parts water",
+    "wrong": [
+      "Equal parts ice and water",
+      "Mostly ice with just enough water to cover",
+      "No ice — very cold tap water is sufficient"
+    ],
+    "explanation": "A 1:3 ratio typically achieves 10–15°C (50–59°F) and avoids frostbite risk from direct ice contact."
+  },
+  {
+    "id": "qcp085",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What cardiovascular risk is elevated when cold water hits the face?",
+    "correct": "Trigeminocardiac reflex causing sudden bradycardia",
+    "wrong": [
+      "Pulmonary embolism",
+      "Stroke from blood pressure spike",
+      "Atrial fibrillation from cold blood returning to heart"
+    ],
+    "explanation": "The trigeminocardiac reflex can instantly slow the heart when cold water stimulates facial nerves — part of the diving reflex."
+  },
+  {
+    "id": "qcp086",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Which athlete famously credited daily ice baths for extending his career past age 40?",
+    "correct": "Tom Brady",
+    "wrong": ["LeBron James", "Cristiano Ronaldo", "Roger Federer"],
+    "explanation": "Brady's TB12 Method emphasizes cold recovery including ice baths as a core longevity practice."
+  },
+  {
+    "id": "qcp087",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What mental skill does consistent cold plunging most directly train?",
+    "correct": "Tolerating discomfort voluntarily",
+    "wrong": [
+      "Faster reaction time",
+      "Memory under stress",
+      "Reading emotional cues"
+    ],
+    "explanation": "Getting into cold water despite not wanting to is a daily practice in voluntary discomfort — transferable to other challenges."
+  },
+  {
+    "id": "qcp088",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What does 'habituation' mean in cold plunging?",
+    "correct": "The nervous system response diminishing with repeated identical exposures",
+    "wrong": [
+      "Getting physically stronger from cold",
+      "The water warming up from body heat",
+      "Developing immunity to frostbite"
+    ],
+    "explanation": "Habituation is why varying temperature and duration keeps cold plunging challenging and effective."
+  },
+  {
+    "id": "qcp089",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What is the primary thermoregulatory role of shivering?",
+    "correct": "Generating heat through rapid involuntary muscle contractions",
+    "wrong": [
+      "Pumping warm blood to the extremities",
+      "Burning brown fat directly",
+      "Signaling the hypothalamus to release hormones"
+    ],
+    "explanation": "Shivering produces heat via muscle ATP hydrolysis — the body's most powerful short-term warming mechanism."
+  },
+  {
+    "id": "qcp090",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What does 'CWI' stand for in sports science?",
+    "correct": "Cold Water Immersion",
+    "wrong": [
+      "Core Warm-up Interval",
+      "Cardio Water Intensity",
+      "Cold Weather Index"
+    ],
+    "explanation": "CWI is the scientific term for deliberate cold water immersion used in recovery research."
+  },
+  {
+    "id": "qcp091",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Why is breathing through the nose recommended during cold plunge entry?",
+    "correct": "Nasal breathing slows the breath and activates the parasympathetic nervous system faster",
+    "wrong": [
+      "The nose warms air before it reaches the lungs",
+      "Mouth breathing causes water aspiration",
+      "Nose breathing retains more CO2 for warmth"
+    ],
+    "explanation": "Nasal breathing forces slower, diaphragmatic breathing which directly activates the vagus nerve and calms the fight-or-flight response."
+  },
+  {
+    "id": "qcp092",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is a common cold plunge protocol used by Wim Hof?",
+    "correct": "Breathwork followed by 2-minute cold shower or immersion",
+    "wrong": [
+      "30-minute ice bath after every meal",
+      "Cold water fasting for 24 hours",
+      "Alternating 5 minutes cold and 5 minutes hot, 5 rounds"
+    ],
+    "explanation": "Hof combines his breathing technique — hyperventilation then breath hold — with cold exposure to manage the physiological response."
+  },
+  {
+    "id": "qcp093",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What is 'cold diuresis' and why does it happen?",
+    "correct": "Increased urine production during cold exposure because blood is redirected to the core",
+    "wrong": [
+      "Sweating stopping because cold closes pores",
+      "Kidneys working faster to filter cooled blood",
+      "Loss of fluid through shivering muscles"
+    ],
+    "explanation": "Vasoconstriction raises central blood pressure; the kidneys respond by excreting fluid to compensate, increasing urine output."
+  },
+  {
+    "id": "qcp094",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is the most common beginner mistake with cold plunges?",
+    "correct": "Holding their breath during entry",
+    "wrong": [
+      "Plunging too slowly",
+      "Wearing too many clothes",
+      "Eating beforehand"
+    ],
+    "explanation": "Holding the breath amplifies the cold shock reflex. Breathing through entry is the single most important beginner skill."
+  },
+  {
+    "id": "qcp095",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "How does cold water immersion compare to cold air (cryotherapy chamber) for norepinephrine release?",
+    "correct": "Cold water immersion produces a significantly greater norepinephrine response",
+    "wrong": [
+      "Cryotherapy produces a greater response",
+      "They produce identical responses",
+      "Neither produces meaningful norepinephrine changes"
+    ],
+    "explanation": "Water conducts heat 25× faster than air, creating a stronger thermal stress and larger hormonal response."
+  },
+  {
+    "id": "qcp096",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What body composition factor affects how quickly someone gets cold during a plunge?",
+    "correct": "Body fat percentage — more fat means slower cooling",
+    "wrong": [
+      "Muscle mass — more muscle means faster cooling",
+      "Height — taller people get cold faster",
+      "Age — older people are always warmer"
+    ],
+    "explanation": "Fat is a better insulator than muscle. Leaner individuals lose core heat faster in cold water."
+  },
+  {
+    "id": "qcp097",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What is 'thermal neutrality' and how does it relate to cold plunging?",
+    "correct": "The temperature at which no metabolic energy is used to maintain core temp — cold plunging works by going below it",
+    "wrong": [
+      "The water temperature that feels neither hot nor cold",
+      "The body temperature at rest without clothing",
+      "The point where brown fat deactivates"
+    ],
+    "explanation": "Thermal neutral zone for nude humans is roughly 28–32°C (82–90°F). Cold plunging well below this activates all thermogenic systems."
+  },
+  {
+    "id": "qcp098",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Which is more effective for reducing delayed onset muscle soreness (DOMS)?",
+    "correct": "Cold water immersion (10–15°C) for 10–15 minutes",
+    "wrong": [
+      "Cryotherapy spray on the muscle",
+      "Hot bath immediately post-exercise",
+      "Ice pack on the skin surface"
+    ],
+    "explanation": "Whole-body CWI at the right temperature has the strongest evidence for DOMS reduction — local treatments miss systemic inflammation."
+  },
+  {
+    "id": "qcp099",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is the term for the practice of alternating between hot and cold water?",
+    "correct": "Contrast therapy",
+    "wrong": [
+      "Thermal cycling",
+      "Hydrotherapy oscillation",
+      "Polar bathing"
+    ],
+    "explanation": "Contrast therapy alternates hot and cold immersion to drive blood in and out of tissues, flushing metabolic waste."
+  },
+  {
+    "id": "qcp100",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is the optimal water temperature for maximizing metabolic (fat burning) effects of cold exposure?",
+    "correct": "14–16°C (57–61°F)",
+    "wrong": [
+      "0–4°C (32–39°F)",
+      "20–22°C (68–72°F)",
+      "8–10°C (46–50°F)"
+    ],
+    "explanation": "Research suggests moderate cold (around 14–16°C) activates brown fat thermogenesis without the extreme stress of ice-cold water."
+  },
+  {
+    "id": "qcp101",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What happens to intramuscular glycogen during cold water immersion?",
+    "correct": "It is preserved rather than depleted, unlike during active exercise",
+    "wrong": [
+      "It is rapidly consumed to generate heat",
+      "It converts to brown fat during immersion",
+      "It leaks into the bloodstream"
+    ],
+    "explanation": "Heat generation during CWI relies mainly on fat and shivering — glycogen stores remain largely intact, unlike aerobic exercise."
+  },
+  {
+    "id": "qcp102",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is the 'cold face effect'?",
+    "correct": "Splashing cold water on the face to quickly calm the nervous system",
+    "wrong": [
+      "The look on someone's face during a cold plunge",
+      "Cold air making facial muscles seize",
+      "Frostbite on the cheeks"
+    ],
+    "explanation": "Cold water on the face triggers the diving reflex which dramatically slows the heart rate and calms stress response."
+  },
+  {
+    "id": "qcp103",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Which hormone most directly regulates the shivering response?",
+    "correct": "Thyroid hormone (T3/T4)",
+    "wrong": ["Cortisol", "Insulin", "Growth hormone"],
+    "explanation": "Thyroid hormones set the metabolic rate and shivering threshold — hypothyroid individuals are more cold-sensitive."
+  },
+  {
+    "id": "qcp104",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is 'polar plunging'?",
+    "correct": "Jumping into near-freezing natural open water, often as a tradition or event",
+    "wrong": [
+      "Cold plunging at the North or South Pole only",
+      "A type of cold shower protocol",
+      "Diving to the bottom of a cold lake"
+    ],
+    "explanation": "Polar plunges are popular fundraising events and winter traditions worldwide — participants jump into icy lakes or oceans."
+  },
+  {
+    "id": "qcp105",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What does the research say about cold plunging's effect on reactive oxygen species (ROS)?",
+    "correct": "It reduces oxidative stress markers after exercise by slowing metabolic activity",
+    "wrong": [
+      "It dramatically increases ROS production",
+      "It has no measurable effect on ROS",
+      "It converts ROS into heat energy"
+    ],
+    "explanation": "Cold slows cellular metabolism post-exercise, reducing the rate of free radical production and oxidative damage."
+  },
+  {
+    "id": "qcp106",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is 'immersion foot' (trench foot) and how is it prevented?",
+    "correct": "Tissue damage from prolonged cold-wet immersion, prevented by keeping feet dry and limiting exposure",
+    "wrong": [
+      "Cramping from cold water entering shoes",
+      "Blisters caused by rapid warming after immersion",
+      "A fungal infection common in cold water"
+    ],
+    "explanation": "Trench foot was a WWI epidemic — prolonged cold-wet exposure damages nerves and blood vessels without actual freezing."
+  },
+  {
+    "id": "qcp107",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is the primary benefit of morning cold plunges vs. evening ones?",
+    "correct": "Morning plunges provide an energy and alertness boost to start the day",
+    "wrong": [
+      "Morning water is colder",
+      "Evening plunges interfere with sleep",
+      "Morning cortisol blocks the cold shock response"
+    ],
+    "explanation": "The norepinephrine surge from a morning plunge aligns with natural cortisol peaks, maximizing energy and focus for the day."
+  },
+  {
+    "id": "qcp108",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "How does cold water immersion affect vagal tone?",
+    "correct": "It increases vagal tone, improving heart rate variability",
+    "wrong": [
+      "It suppresses vagal tone for hours",
+      "It has no effect on the vagus nerve",
+      "It permanently lowers resting heart rate"
+    ],
+    "explanation": "Regular cold exposure strengthens parasympathetic (vagus nerve) activity, associated with better stress resilience and HRV."
+  },
+  {
+    "id": "qcp109",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "In cold water survival, what is the '1-10-1' principle?",
+    "correct": "1 minute to control breathing, 10 minutes of meaningful movement, 1 hour before unconsciousness from hypothermia",
+    "wrong": [
+      "1°C drop per minute, 10 minutes to help, 1 hour to rescue",
+      "1 breath per 10 strokes, 1 hour of survival time",
+      "1 meter visibility, 10°C threshold, 1 hour immersion limit"
+    ],
+    "explanation": "The 1-10-1 principle helps cold water accident victims understand their survival timeline and prioritize actions."
+  },
+  {
+    "id": "qcp110",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "Why do some cold plunge enthusiasts avoid toweling off immediately after?",
+    "correct": "To extend the thermogenic (heat-generating) effect and burn more energy warming up naturally",
+    "wrong": [
+      "Towels absorb beneficial skin oils released by cold water",
+      "Toweling off causes afterdrop",
+      "It is a meditative practice with no physiological basis"
+    ],
+    "explanation": "Air-drying forces the body to generate more of its own heat through brown fat and shivering, prolonging the metabolic benefit."
+  },
+  {
+    "id": "qcp111",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Which country has the longest cultural tradition of regular cold water bathing?",
+    "correct": "Finland (through ice swimming and sauna culture)",
+    "wrong": ["Japan", "Russia", "Norway"],
+    "explanation": "Finland's avanto (ice swimming) tradition is thousands of years old, deeply tied to sauna culture and national identity."
+  },
+  {
+    "id": "qcp112",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is the scientific term for brown fat?",
+    "correct": "Brown adipose tissue (BAT)",
+    "wrong": [
+      "Thermogenic lipid mass",
+      "Mitochondrial fat reserve",
+      "Visceral thermocyte layer"
+    ],
+    "explanation": "Brown adipose tissue is packed with mitochondria (giving it its color) and specialized for heat production."
+  },
+  {
+    "id": "qcp113",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What should you do if you feel dizzy during a cold plunge?",
+    "correct": "Exit immediately and sit or lie down in a safe place",
+    "wrong": [
+      "Breathe faster to raise blood pressure",
+      "Stay in — dizziness passes in 30 seconds",
+      "Submerge your head to equalize pressure"
+    ],
+    "explanation": "Dizziness signals a circulatory response that could lead to fainting — exit the water before losing consciousness."
+  },
+  {
+    "id": "qcp114",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What is the relationship between cold exposure and BDNF (brain-derived neurotrophic factor)?",
+    "correct": "Cold exposure increases BDNF, supporting neuroplasticity and learning",
+    "wrong": [
+      "Cold suppresses BDNF to conserve energy for survival",
+      "BDNF is unaffected by temperature changes",
+      "Cold only increases BDNF in the elderly"
+    ],
+    "explanation": "BDNF is nicknamed 'fertilizer for the brain' — cold water triggers its release, potentially enhancing memory and mood."
+  },
+  {
+    "id": "qcp115",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is the ideal ratio of hot sauna to cold plunge in contrast therapy?",
+    "correct": "Roughly 3:1 hot-to-cold by time (e.g. 15 min sauna, 5 min cold)",
+    "wrong": [
+      "Equal time in each",
+      "2:1 cold-to-hot",
+      "The sauna must always be twice as long as the cold"
+    ],
+    "explanation": "A 3:1 hot-to-cold ratio is commonly recommended, though individual tolerance and goals vary the exact split."
+  },
+  {
+    "id": "qcp116",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is the 'gasp reflex' when entering cold water?",
+    "correct": "An involuntary sharp inhalation triggered by cold hitting the skin",
+    "wrong": [
+      "A deep voluntary exhale to prepare the lungs",
+      "Oxygen leaving the lungs when cold water compresses the chest",
+      "A yawn-like response from the diving reflex"
+    ],
+    "explanation": "The gasp reflex is dangerous in open water because inhaling while face-submerged causes immediate drowning."
+  },
+  {
+    "id": "qcp117",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "How many minutes of cold water immersion per week does Huberman Lab research suggest for measurable metabolic benefits?",
+    "correct": "11 minutes total per week",
+    "wrong": ["30 minutes", "5 minutes", "60 minutes"],
+    "explanation": "Dr. Andrew Huberman's synthesis of multiple studies points to ~11 minutes/week (in 2–4 sessions) as an effective threshold for metabolic effect."
+  },
+  {
+    "id": "qcp118",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What is 'paradoxical undressing' and how does it relate to cold water?",
+    "correct": "A hypothermia symptom where victims feel hot and remove clothing as they near death",
+    "wrong": [
+      "The false warmth felt when entering very cold water",
+      "The skin flushing red after exiting cold water",
+      "A deliberate thermoregulation technique in cold exposure therapy"
+    ],
+    "explanation": "In late hypothermia, peripheral vasodilation causes a false burning sensation — victims tragically remove clothing, accelerating heat loss."
+  },
+  {
+    "id": "qcp119",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is the most important safety rule for solo cold plunging?",
+    "correct": "Never plunge alone — have someone nearby",
+    "wrong": [
+      "Always wear a wetsuit",
+      "Never stay longer than 2 minutes",
+      "Warm up with a hot shower first"
+    ],
+    "explanation": "Even experienced plungers can experience cardiac events or fainting. A nearby person can be the difference between life and death."
+  },
+  {
+    "id": "qcp120",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What phenomenon causes the skin to appear red after cold water immersion?",
+    "correct": "Reactive vasodilation (blood vessels reopening after vasoconstriction)",
+    "wrong": [
+      "Increased melanin production from cold stress",
+      "Burst capillaries from rapid temperature change",
+      "Inflammatory response from cold-damaged cells"
+    ],
+    "explanation": "When you exit cold water, blood vessels reopen rapidly — the skin flushes red as warm blood returns to the surface."
+  },
+  {
+    "id": "qcp121",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What is 'cold thermogenesis' as defined by Dr. Jack Kruse?",
+    "correct": "Using cold environments to upregulate mitochondrial density and metabolic efficiency",
+    "wrong": [
+      "The scientific term for shivering",
+      "Lowering core temperature to extend lifespan",
+      "Using cold to replace cardio exercise"
+    ],
+    "explanation": "Kruse popularized the idea that cold exposure — especially over time — remodels mitochondrial function and improves leptin signaling."
+  },
+  {
+    "id": "qcp122",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is 'plunge envy'?",
+    "correct": "The desire to plunge after seeing others do it",
+    "wrong": [
+      "Jealousy over someone else's cold plunge tub",
+      "The feeling of missing your next plunge when you skip it",
+      "Competitive cold plunging between friends"
+    ],
+    "explanation": "Social cold plunging is growing partly because seeing others plunge — and feeling better — is highly motivating for newcomers."
+  },
+  {
+    "id": "qcp123",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "Which swimmer holds the record for the longest cold water swim in the Antarctic?",
+    "correct": "Lewis Pugh",
+    "wrong": ["Diana Nyad", "Wim Hof", "Lynne Cox"],
+    "explanation": "Lewis Pugh has completed multiple polar swims including a 1 km swim near the North Pole in 0°C water."
+  },
+  {
+    "id": "qcp124",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is the Japanese practice of 'Misogi' as it relates to cold water?",
+    "correct": "A Shinto purification ritual involving standing under cold waterfalls",
+    "wrong": [
+      "A samurai training method of daily ocean swimming",
+      "Drinking cold spring water at dawn for clarity",
+      "An ice meditation practice from Buddhist monks"
+    ],
+    "explanation": "Misogi involves standing under cold waterfalls (takigyo) as a purification and mental training practice in Shinto tradition."
+  },
+  {
+    "id": "qcp125",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What does research show about cold plunging's effect on testosterone?",
+    "correct": "Short acute cold exposure may briefly raise testosterone, but chronic extreme cold may suppress it",
+    "wrong": [
+      "Cold reliably raises testosterone by 30% with daily use",
+      "Cold has no measurable effect on testosterone",
+      "Cold always suppresses testosterone production"
+    ],
+    "explanation": "Evidence is mixed — acute cold stress can transiently elevate testosterone, but excessive cold stress may suppress the HPG axis over time."
+  },
+  {
+    "id": "qcp126",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What is the recommended minimum duration for a cold plunge to get cardiovascular benefits?",
+    "correct": "2–3 minutes",
+    "wrong": ["30 seconds", "10 minutes", "1 minute"],
+    "explanation": "Most research protocols use at least 2–3 minutes of immersion to observe meaningful cardiovascular and hormonal responses."
+  },
+  {
+    "id": "qcp127",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is the 'Viking' cold plunge tradition?",
+    "correct": "Rolling in snow or jumping in frozen water after a sauna, practiced in Scandinavia",
+    "wrong": [
+      "A full-body salt water immersion before battle",
+      "Daily ocean swimming throughout winter",
+      "Pouring ice water over the head at winter solstice"
+    ],
+    "explanation": "Nordic sauna-to-snow or sauna-to-cold-water traditions date back centuries and remain core to Scandinavian wellness culture."
+  },
+  {
+    "id": "qcp128",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "hard",
+    "question": "What is the physiological explanation for the 'second wind' feeling some plungers experience mid-session?",
+    "correct": "Endorphin and norepinephrine release overcoming the initial pain response",
+    "wrong": [
+      "The water warming up around the body",
+      "Numbness eliminating pain signals",
+      "Oxygen flooding muscles from rapid breathing"
+    ],
+    "explanation": "As the stress hormones peak and endorphins kick in, many plungers experience a shift from discomfort to calm or even euphoria."
+  },
+  {
+    "id": "qcp129",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "medium",
+    "question": "What is the most evidence-backed benefit of cold plunging for mental health?",
+    "correct": "Reduction in depressive symptoms through monoamine modulation",
+    "wrong": [
+      "Elimination of anxiety disorders",
+      "Improved REM sleep quality",
+      "Increased GABA production"
+    ],
+    "explanation": "A landmark case report and subsequent studies show cold water swimming/immersion can significantly reduce depression symptoms."
+  },
+  {
+    "id": "qcp130",
+    "category": "Cold Plunge & Ice Bath",
+    "difficulty": "easy",
+    "question": "What does your body do in the first 90 seconds of a cold plunge that gets easier if you just wait?",
+    "correct": "The cold shock response — gasping, elevated heart rate, and panic",
+    "wrong": [
+      "Skin freezing on the surface",
+      "Oxygen dropping in the blood",
+      "Muscles locking up from the cold"
+    ],
+    "explanation": "The cold shock response naturally subsides within 60–90 seconds. Knowing this is almost everything a beginner needs."
   }
 ]
