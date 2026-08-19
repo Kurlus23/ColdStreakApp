@@ -15,17 +15,6 @@ import path from "path";
 
 let _seeded = false;
 
-// Categories present in the current (diverse) question bank.
-// If the DB is missing ALL of these, it still has the old cold-plunge-only set
-// and must be reseeded.
-const EXPECTED_CATEGORIES = [
-  "Human Body & Biology",
-  "Science & Technology",
-  "History & Famous Firsts",
-  "Sports & World Records",
-  "Cold Plunge & Ice Bath",
-];
-
 async function ensureSeeded() {
   if (_seeded) return;
 
@@ -36,25 +25,32 @@ async function ensureSeeded() {
     question: string; correct: string; wrong: string[]; explanation: string;
   }> = JSON.parse(raw);
 
-  // Check whether the DB already has the new diverse question bank by looking
-  // for any of the expected new categories.
-  const [sampleRow] = await db
-    .select({ category: brainFreezeQuestions.category })
-    .from(brainFreezeQuestions)
-    .where(inArray(brainFreezeQuestions.category, EXPECTED_CATEGORIES))
-    .limit(1);
+  const jsonIds = questions.map(q => q.id);
 
-  if (sampleRow) {
-    // DB already has the new question bank — nothing to do.
+  // Count how many of the JSON's external IDs already exist in the DB.
+  // Using a membership check (WHERE external_id IN (...)) rather than a
+  // total-row-count comparison means we correctly detect missing questions
+  // even when the DB has the same (or more) total rows — e.g. after a
+  // question ID is replaced or legacy rows are present.
+  const [countRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(brainFreezeQuestions)
+    .where(inArray(brainFreezeQuestions.externalId, jsonIds));
+
+  const dbMatchCount = countRow?.count ?? 0;
+
+  if (dbMatchCount >= questions.length) {
+    // All JSON questions are present in the DB — nothing to do.
     _seeded = true;
     return;
   }
 
-  // The DB is empty or only has the old cold-plunge-only categories.
-  // Use upsert (ON CONFLICT external_id DO UPDATE) so that:
+  // One or more JSON questions are missing from the DB.
+  // Upsert the full set using ON CONFLICT external_id DO UPDATE so that:
+  //   - Missing rows are inserted
   //   - Existing rows are updated in-place → FK from brain_freeze_answers stays valid
-  //   - New rows are inserted if any external_id doesn't exist yet
-  // This preserves all user answer history while replacing question content.
+  // This preserves all user answer history while adding/updating question content.
+  console.log(`[brain-freeze] DB has ${dbMatchCount}/${questions.length} JSON questions — upserting missing entries`);
   const CHUNK = 50;
   let upserted = 0;
   for (let i = 0; i < questions.length; i += CHUNK) {
@@ -83,7 +79,7 @@ async function ensureSeeded() {
     upserted += batch.length;
   }
   _seeded = true;
-  console.log(`[brain-freeze] upserted ${upserted} questions (diverse bank)`);
+  console.log(`[brain-freeze] upserted ${upserted} questions (matched=${dbMatchCount}, json=${questions.length})`);
 }
 
 /**

@@ -28,7 +28,7 @@
  * DB call sequence inside getQuestion(userId, true) with seenIds=[] and
  * lastCategory=null (new user, no answer history):
  *
- *   call 1 — ensureSeeded() category check         → [{category: "Human Body & Biology"}]
+ *   call 1 — ensureSeeded() membership count        → [{count: 99999}]  (≥ json length → skip upsert)
  *   call 2 — recentAnswers (no .limit())            → []
  *   call 3 — cold-plunge pool (preferColdPlunge)    → []   ← empty pool triggers fallback
  *   call 4 — lastAnswerRow (inner-join)             → []
@@ -96,11 +96,11 @@ describe("getQuestion() – fallback when cold-plunge pool is empty (DB mocked)"
     // Prime the response queue for the five sequential DB calls that
     // getQuestion(userId, true) makes for a user with no answer history.
     responseQueue.push(
-      [{ category: "Human Body & Biology" }],  // call 1: ensureSeeded — already seeded
-      [],                                        // call 2: recentAnswers — none
-      [],                                        // call 3: cold-plunge pool — EMPTY (fallback trigger)
-      [],                                        // call 4: lastAnswerRow — none
-      [GENERAL_QUESTION],                        // call 5: final fallback — general question
+      [{ count: 99999 }],    // call 1: ensureSeeded membership count — already seeded (count ≥ json length)
+      [],                    // call 2: recentAnswers — none
+      [],                    // call 3: cold-plunge pool — EMPTY (fallback trigger)
+      [],                    // call 4: lastAnswerRow — none
+      [GENERAL_QUESTION],    // call 5: final fallback — general question
     );
 
     const q = await getQuestion(1 /* userId */, true /* preferColdPlunge */);
@@ -112,11 +112,11 @@ describe("getQuestion() – fallback when cold-plunge pool is empty (DB mocked)"
 
   it("returns null when preferColdPlunge=true and both the cold-plunge pool and the general pool are empty", async () => {
     responseQueue.push(
-      [{ category: "Human Body & Biology" }],  // call 1: ensureSeeded
-      [],                                        // call 2: recentAnswers
-      [],                                        // call 3: cold-plunge pool — empty
-      [],                                        // call 4: lastAnswerRow
-      [],                                        // call 5: final fallback — also empty
+      [{ count: 99999 }],    // call 1: ensureSeeded membership count — already seeded
+      [],                    // call 2: recentAnswers
+      [],                    // call 3: cold-plunge pool — empty
+      [],                    // call 4: lastAnswerRow
+      [],                    // call 5: final fallback — also empty
     );
 
     const q = await getQuestion(1, true);
