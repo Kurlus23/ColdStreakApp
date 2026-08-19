@@ -11,6 +11,10 @@ ColdStreak is a cold plunge tracking web application, PWA, and Android app that 
 *   **DB Push (Drizzle)**: `npm run db:push`
 *   **Environment Variables**: `VITE_API_URL`, `DATABASE_URL`, `JWT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `POSTHOG_API_KEY`, `SENTRY_DSN`, `APPLE_MUSIC_TEAM_ID`, `APPLE_MUSIC_KEY_ID`, `APPLE_MUSIC_PRIVATE_KEY`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SESSION_SECRET`, `SITE_URL`.
 
+## User Preferences
+
+- **Always deploy to production** after completing changes, unless explicitly told otherwise.
+
 ## Stack
 
 *   **Frontend**: React 18, TypeScript, Vite, `wouter`, TanStack React Query, `shadcn/ui`, Tailwind CSS.
