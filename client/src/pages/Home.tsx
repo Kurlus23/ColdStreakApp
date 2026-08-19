@@ -7365,53 +7365,6 @@ export default function Home() {
                     </div>
                   )}
 
-                  {/* ── Sweet Spot (Insights version with confidence) ── */}
-                  {plunges.length > 0 && (
-                    <div className="space-y-2">
-                      <_InsightSectionHeader
-                        emoji="🎯"
-                        title="Your Sweet Spot"
-                        subtitle={_hasSweetSpot ? "Temperature & duration with your best responses" : undefined}
-                      />
-                      {_hasSweetSpot && _insight ? (
-                        <div className="bg-gradient-to-br from-blue-950 to-slate-900 border border-cyan-500/30 rounded-2xl p-4">
-                          <div className="grid grid-cols-3 gap-2 mb-3">
-                            <div className="bg-blue-900/50 rounded-xl p-2.5 text-center">
-                              <p className="text-cyan-300 text-base font-bold">{_insight.tempLabel}</p>
-                              <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Temperature</p>
-                            </div>
-                            <div className="bg-blue-900/50 rounded-xl p-2.5 text-center">
-                              <p className="text-cyan-300 text-base font-bold">{_insight.durLabel}</p>
-                              <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Duration</p>
-                            </div>
-                            <div className="bg-blue-900/50 rounded-xl p-2.5 text-center">
-                              <p className="text-emerald-300 text-base font-bold">{_insight.sweetSpotFor}</p>
-                              <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Best for</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <p className="text-blue-400 text-[10px]">Based on {_ratedCount} check-ins</p>
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border" style={{
-                              color: _ratedCount >= 30 ? "#22d3ee" : _ratedCount >= 15 ? "#fbbf24" : "#94a3b8",
-                              borderColor: (_ratedCount >= 30 ? "#22d3ee" : _ratedCount >= 15 ? "#fbbf24" : "#94a3b8") + "44",
-                              background:  (_ratedCount >= 30 ? "#22d3ee" : _ratedCount >= 15 ? "#fbbf24" : "#94a3b8") + "15",
-                            }}>
-                              {_ratedCount >= 30 ? "High confidence" : _ratedCount >= 15 ? "Medium confidence" : "Low confidence"}
-                            </span>
-                          </div>
-                          {_insight.diminishing && (
-                            <div className="mt-3 bg-amber-900/20 border border-amber-500/25 rounded-xl p-3">
-                              <p className="text-amber-300 text-xs font-semibold mb-1">📉 Diminishing returns detected</p>
-                              <p className="text-slate-400 text-[11px] leading-relaxed">Sessions longer than 6 min aren't associated with meaningfully higher Mood or Energy compared to your 3–6 min plunges.</p>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <_InsightLockedSection title="Sweet Spot" emoji="🎯" need={10} have={_ratedCount} />
-                      )}
-                    </div>
-                  )}
-
                   {/* ── Morning Advantage ── */}
                   {_hasMorning && _insight && (
                     <div className="space-y-2">
