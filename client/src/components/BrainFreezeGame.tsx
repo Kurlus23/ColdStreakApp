@@ -140,8 +140,6 @@ export function BrainFreezeGame({
     // Every 3rd question slot (1-indexed) is a cold-plunge question
     questionCountRef.current += 1;
     const coldPlunge = questionCountRef.current % 3 === 0;
-    console.log(`[BrainFreeze] fetch Q${questionCountRef.current} coldPlunge=${coldPlunge}`);
-
     try {
       const res = await fetch(`/api/brain-freeze/question${coldPlunge ? "?coldPlunge=1" : ""}`, {
         headers: { Authorization: `Bearer ${token}` },

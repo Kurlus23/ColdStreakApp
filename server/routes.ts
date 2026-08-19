@@ -4138,7 +4138,6 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
       const { getQuestion } = await import("./brain-freeze");
       const q = await getQuestion(payload.userId, preferColdPlunge);
       if (!q) return res.status(404).json({ message: "No questions available" });
-      console.log(`[brain-freeze] question served uid=${payload.userId} cold=${preferColdPlunge} cat="${q.category}" id=${q.id}`);
       res.json(q);
     } catch (err) {
       console.error("[brain-freeze] question error:", err);
