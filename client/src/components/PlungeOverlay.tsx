@@ -501,39 +501,6 @@ export function PlungeOverlay({
       {/* Bottom HUD — no unified panel; each row floats independently */}
       <div className="w-full z-10 shrink-0 px-6 pb-10 flex flex-col gap-4">
 
-        {/* Brain Freeze incoming announcement — shown for first 30s when enabled */}
-        {(() => {
-          const showAnnouncement = brainFreezeEnabled && isActive && localDisplaySecs < 30;
-          return (
-            <>
-              {showAnnouncement && (
-                <div
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl"
-                  style={{
-                    background: "rgba(34,211,238,0.09)",
-                    border: "1px solid rgba(34,211,238,0.3)",
-                    backdropFilter: "blur(8px)",
-                    boxShadow: "0 0 20px rgba(34,211,238,0.08)",
-                  }}
-                >
-                  <img
-                    src="/brain-freeze-icon.png"
-                    alt=""
-                    className="w-8 h-8 rounded-xl object-cover shrink-0"
-                    style={{ boxShadow: "0 0 10px rgba(96,165,250,0.4)" }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-cyan-300 text-xs font-bold leading-none mb-0.5">Brain Freeze Trivia</p>
-                    <p className="text-blue-400/70 text-[10px] leading-none">
-                      First question in {Math.max(0, 30 - localDisplaySecs)}s
-                    </p>
-                  </div>
-                </div>
-              )}
-            </>
-          );
-        })()}
-
         {/* Stats row — pill-shaped glass card */}
         <div
           className="flex items-center justify-between px-5 py-3 rounded-2xl"
@@ -597,9 +564,13 @@ export function PlungeOverlay({
               <span className="text-xs font-semibold" style={{ color: brainFreezeEnabled ? "#67e8f9" : "#475569" }}>
                 Brain Freeze Trivia
               </span>
-              {brainFreezeEnabled && nextQuestionIn !== null && (
+              {brainFreezeEnabled && (
                 <span className="text-[10px] leading-none mt-0.5" style={{ color: "rgba(103,232,249,0.55)" }}>
-                  Next question in {nextQuestionIn}s
+                  {nextQuestionIn !== null
+                    ? `Next question in ${nextQuestionIn}s`
+                    : isActive && localDisplaySecs < 30
+                      ? `First question in ${Math.max(0, 30 - localDisplaySecs)}s`
+                      : null}
                 </span>
               )}
             </div>
