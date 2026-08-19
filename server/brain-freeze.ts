@@ -855,6 +855,10 @@ export async function getBrainFreezeAdminStats() {
   const now   = new Date();
   const ago7  = new Date(now.getTime() -  7 * 86400_000);
   const ago30 = new Date(now.getTime() - 30 * 86400_000);
+  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const weekStart = new Date(todayStart);
+  weekStart.setUTCDate(weekStart.getUTCDate() - ((weekStart.getUTCDay() + 6) % 7));
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
   // Headline totals — single pass over all rows
   const [totals] = await db
@@ -868,6 +872,13 @@ export async function getBrainFreezeAdminStats() {
       last30d:  sql<number>`sum(case when ${brainFreezeAnswers.answeredAt} >= ${ago30} then 1 else 0 end)::int`,
       players7d:  sql<number>`count(distinct case when ${brainFreezeAnswers.answeredAt} >= ${ago7}  then ${brainFreezeAnswers.userId} end)::int`,
       players30d: sql<number>`count(distinct case when ${brainFreezeAnswers.answeredAt} >= ${ago30} then ${brainFreezeAnswers.userId} end)::int`,
+      pointsToday: sql<number>`coalesce(sum(case when ${brainFreezeAnswers.answeredAt} >= ${todayStart} then ${brainFreezeAnswers.pointsEarned} else 0 end), 0)::int`,
+      pointsWeek:  sql<number>`coalesce(sum(case when ${brainFreezeAnswers.answeredAt} >= ${weekStart} then ${brainFreezeAnswers.pointsEarned} else 0 end), 0)::int`,
+      pointsMonth: sql<number>`coalesce(sum(case when ${brainFreezeAnswers.answeredAt} >= ${monthStart} then ${brainFreezeAnswers.pointsEarned} else 0 end), 0)::int`,
+      inPlungeCorrect: sql<number>`sum(case when ${brainFreezeAnswers.inPlunge} and ${brainFreezeAnswers.isCorrect} then 1 else 0 end)::int`,
+      inPlungeAnswers: sql<number>`sum(case when ${brainFreezeAnswers.inPlunge} then 1 else 0 end)::int`,
+      outOfPlungeCorrect: sql<number>`sum(case when not ${brainFreezeAnswers.inPlunge} and ${brainFreezeAnswers.isCorrect} then 1 else 0 end)::int`,
+      outOfPlungeAnswers: sql<number>`sum(case when not ${brainFreezeAnswers.inPlunge} then 1 else 0 end)::int`,
     })
     .from(brainFreezeAnswers);
 
@@ -912,6 +923,14 @@ export async function getBrainFreezeAdminStats() {
       last30d:    totals?.last30d    ?? 0,
       players7d:  totals?.players7d  ?? 0,
       players30d: totals?.players30d ?? 0,
+      pointsToday: totals?.pointsToday ?? 0,
+      pointsWeek:  totals?.pointsWeek  ?? 0,
+      pointsMonth: totals?.pointsMonth ?? 0,
+      pointsAllTime: totals?.pts ?? 0,
+      inPlungeCorrect: totals?.inPlungeCorrect ?? 0,
+      inPlungeAnswers: totals?.inPlungeAnswers ?? 0,
+      outOfPlungeCorrect: totals?.outOfPlungeCorrect ?? 0,
+      outOfPlungeAnswers: totals?.outOfPlungeAnswers ?? 0,
     },
     trend,
     leaderboard,

@@ -1888,6 +1888,9 @@ export default function Admin() {
 type BFOverview = {
   total: number; correct: number; inPlunge: number; pts: number; players: number;
   last7d: number; last30d: number; players7d: number; players30d: number;
+  pointsToday: number; pointsWeek: number; pointsMonth: number; pointsAllTime: number;
+  inPlungeCorrect: number; inPlungeAnswers: number;
+  outOfPlungeCorrect: number; outOfPlungeAnswers: number;
 };
 type BFTrendRow    = { date: string; count: number };
 type BFLeaderRow   = {
@@ -1947,6 +1950,24 @@ function BrainFreezeStatsPanel() {
 
           {overview && (
             <>
+              {/* ── Points by period ── */}
+              <div>
+                <p className="text-xs text-slate-400 mb-2">Points earned</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                  {[
+                    { label: "Today", value: overview.pointsToday },
+                    { label: "This week", value: overview.pointsWeek },
+                    { label: "This month", value: overview.pointsMonth },
+                    { label: "All time", value: overview.pointsAllTime },
+                  ].map(s => (
+                    <div key={s.label} className="rounded-xl bg-slate-800/60 border border-cyan-800/40 px-2 py-2.5">
+                      <div className="text-[10px] uppercase tracking-wide text-slate-400 leading-tight">{s.label}</div>
+                      <div className="text-xl font-bold text-cyan-300 tabular-nums mt-0.5">{s.value.toLocaleString()}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* ── Headline stats ── */}
               <div className="grid grid-cols-3 gap-2 text-center">
                 {[
@@ -1965,6 +1986,23 @@ function BrainFreezeStatsPanel() {
                     <div className="text-xl font-bold text-white tabular-nums mt-0.5">{s.value}</div>
                   </div>
                 ))}
+              </div>
+
+              {/* ── Accuracy by context ── */}
+              <div>
+                <p className="text-xs text-slate-400 mb-2">Accuracy by context</p>
+                <div className="grid grid-cols-2 gap-2 text-center">
+                  {[
+                    { label: "In-plunge", correct: overview.inPlungeCorrect, total: overview.inPlungeAnswers },
+                    { label: "Out of plunge", correct: overview.outOfPlungeCorrect, total: overview.outOfPlungeAnswers },
+                  ].map(s => (
+                    <div key={s.label} className="rounded-xl bg-slate-800/60 border border-slate-700/50 px-2 py-2.5">
+                      <div className="text-[10px] uppercase tracking-wide text-slate-400 leading-tight">{s.label}</div>
+                      <div className="text-xl font-bold text-white tabular-nums mt-0.5">{pct(s.correct, s.total)}</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">{s.correct.toLocaleString()} / {s.total.toLocaleString()} correct</div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* ── 30-day daily bar chart ── */}
