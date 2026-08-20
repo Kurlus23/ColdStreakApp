@@ -626,6 +626,7 @@ export default function Admin() {
     const ok = await auth.login(username, password);
     if (!ok) setLoginError(auth.error ?? "Login failed. Check credentials.");
   };
+  const tileOrder = useTileOrder();
 
   if (!auth.user) {
     return (
@@ -684,7 +685,6 @@ export default function Admin() {
     incomplete: "bg-yellow-600", past_due: "bg-orange-600",
   };
 
-  const tileOrder = useTileOrder();
   const tileLabels: Record<TileId, string> = {
     "top-tools": "Tools",
     "visitors": "Visitors",
