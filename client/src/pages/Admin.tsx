@@ -1939,6 +1939,7 @@ type BFOverview = {
   inPlungeCorrect: number; inPlungeAnswers: number;
   outOfPlungeCorrect: number; outOfPlungeAnswers: number;
 };
+type BFPeriod = "all" | "30d" | "7d";
 type BFTrendRow    = { date: string; count: number };
 type BFPlungeBreakdown = {
   plungeId: number; duration: number; questionTotal: number;
@@ -1957,9 +1958,16 @@ type BFStats = { overview: BFOverview; trend: BFTrendRow[]; leaderboard: BFLeade
 
 function BrainFreezeStatsPanel() {
   const [expanded, setExpanded] = useState(false);
+  const [period, setPeriod] = useState<BFPeriod>("all");
   const [expandedUsers, setExpandedUsers] = useState<Set<number>>(new Set());
+  const periodLabel: Record<BFPeriod, string> = {
+    all: "All-time",
+    "30d": "Last 30 days",
+    "7d": "Last 7 days",
+  };
+  const selectedPeriodLabel = periodLabel[period];
   const { data, isLoading } = useQuery<BFStats>({
-    queryKey: ["/api/admin/brain-freeze/stats"],
+    queryKey: [`/api/admin/brain-freeze/stats?period=${period}`],
     enabled: expanded,
   });
 
@@ -2007,7 +2015,7 @@ function BrainFreezeStatsPanel() {
           🧊 Brain Freeze Usage
           {overview && (
             <span className="ml-2 text-xs font-normal text-cyan-400">
-              {overview.total.toLocaleString()} answers · {overview.players} players
+              {overview.total.toLocaleString()} answers · {overview.players} players · {selectedPeriodLabel}
             </span>
           )}
         </span>
@@ -2016,6 +2024,25 @@ function BrainFreezeStatsPanel() {
 
       {expanded && (
         <div className="p-4 space-y-5 bg-cyan-950/10">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label htmlFor="brain-freeze-period" className="text-xs text-slate-400">
+              Reporting period
+            </label>
+            <select
+              id="brain-freeze-period"
+              data-testid="select-brain-freeze-period"
+              value={period}
+              onChange={(event) => {
+                setPeriod(event.target.value as BFPeriod);
+                setExpandedUsers(new Set());
+              }}
+              className="rounded-lg border border-cyan-800/60 bg-slate-900 px-3 py-1.5 text-xs text-cyan-100 focus:outline-none focus:border-cyan-400"
+            >
+              <option value="all">All-time</option>
+              <option value="30d">Last 30 days</option>
+              <option value="7d">Last 7 days</option>
+            </select>
+          </div>
           {isLoading && <p className="text-cyan-400 text-sm text-center py-4">Loading…</p>}
 
           {overview && (
@@ -2041,15 +2068,15 @@ function BrainFreezeStatsPanel() {
               {/* ── Headline stats ── */}
               <div className="grid grid-cols-3 gap-2 text-center">
                 {[
-                  { label: "All-time answers", value: overview.total.toLocaleString() },
+                  { label: `${selectedPeriodLabel} answers`, value: overview.total.toLocaleString() },
                   { label: "Last 30d answers", value: overview.last30d.toLocaleString() },
                   { label: "Last 7d answers",  value: overview.last7d.toLocaleString() },
-                  { label: "Total players",    value: overview.players },
+                  { label: `${selectedPeriodLabel} players`, value: overview.players },
                   { label: "Players 30d",      value: overview.players30d },
                   { label: "Players 7d",       value: overview.players7d },
-                  { label: "All-time accuracy", value: pct(overview.correct, overview.total) },
-                  { label: "In-plunge %",       value: pct(overview.inPlunge, overview.total) },
-                  { label: "Total pts earned",  value: overview.pts.toLocaleString() },
+                  { label: `${selectedPeriodLabel} accuracy`, value: pct(overview.correct, overview.total) },
+                  { label: `${selectedPeriodLabel} in-plunge %`, value: pct(overview.inPlunge, overview.total) },
+                  { label: `${selectedPeriodLabel} pts earned`, value: overview.pts.toLocaleString() },
                 ].map(s => (
                   <div key={s.label} className="rounded-xl bg-slate-800/60 border border-slate-700/50 px-2 py-2.5">
                     <div className="text-[10px] uppercase tracking-wide text-slate-400 leading-tight">{s.label}</div>
@@ -2060,11 +2087,11 @@ function BrainFreezeStatsPanel() {
 
               {/* ── Accuracy by context ── */}
               <div>
-                <p className="text-xs text-slate-400 mb-2">Accuracy by context</p>
+                <p className="text-xs text-slate-400 mb-2">{selectedPeriodLabel} accuracy by context</p>
                 <div className="grid grid-cols-2 gap-2 text-center">
                   {[
-                    { label: "In-plunge", correct: overview.inPlungeCorrect, total: overview.inPlungeAnswers },
-                    { label: "Out of plunge", correct: overview.outOfPlungeCorrect, total: overview.outOfPlungeAnswers },
+                    { label: `${selectedPeriodLabel} in-plunge`, correct: overview.inPlungeCorrect, total: overview.inPlungeAnswers },
+                    { label: `${selectedPeriodLabel} out of plunge`, correct: overview.outOfPlungeCorrect, total: overview.outOfPlungeAnswers },
                   ].map(s => (
                     <div key={s.label} className="rounded-xl bg-slate-800/60 border border-slate-700/50 px-2 py-2.5">
                       <div className="text-[10px] uppercase tracking-wide text-slate-400 leading-tight">{s.label}</div>
@@ -2100,7 +2127,7 @@ function BrainFreezeStatsPanel() {
               {board.length > 0 && (
                 <div>
                   <p className="text-xs text-slate-400 mb-2">
-                    Top players by total points · <span className="text-cyan-400">all-time</span>
+                    Top players by total points · <span className="text-cyan-400">{selectedPeriodLabel}</span>
                   </p>
                   <div className="overflow-x-auto rounded-xl border border-slate-700/50">
                     <table className="min-w-full text-xs">
@@ -2109,10 +2136,10 @@ function BrainFreezeStatsPanel() {
                           <th className="px-3 py-2 text-left">#</th>
                           <th className="px-3 py-2 text-left">User</th>
                           <th className="px-3 py-2 text-right">Pts</th>
-                          <th className="px-3 py-2 text-right">All-time answers</th>
-                          <th className="px-3 py-2 text-right">All-time accuracy</th>
-                          <th className="px-3 py-2 text-right">In-plunge accuracy</th>
-                          <th className="px-3 py-2 text-right">Out-of-plunge accuracy</th>
+                          <th className="px-3 py-2 text-right">{selectedPeriodLabel} answers</th>
+                          <th className="px-3 py-2 text-right">{selectedPeriodLabel} accuracy</th>
+                          <th className="px-3 py-2 text-right">{selectedPeriodLabel} in-plunge accuracy</th>
+                          <th className="px-3 py-2 text-right">{selectedPeriodLabel} out-of-plunge accuracy</th>
                           <th className="px-3 py-2 text-right">Plunge details</th>
                           <th className="px-3 py-2 text-right">Last played</th>
                         </tr>
@@ -2170,7 +2197,7 @@ function BrainFreezeStatsPanel() {
                                 <td colSpan={9} className="px-4 py-3">
                                   <div className="space-y-2">
                                     <div className="text-[10px] uppercase tracking-wide text-cyan-400">
-                                      In-plunge answers by plunge · all-time
+                                      In-plunge answers by plunge · {selectedPeriodLabel}
                                     </div>
                                     {row.plunges.length > 0 ? (
                                       <div className="grid gap-1.5">
@@ -2195,13 +2222,13 @@ function BrainFreezeStatsPanel() {
                                     )}
                                     {row.unlinkedInPlungeAnswers > 0 && (
                                       <div className="rounded-lg border border-amber-900/60 bg-amber-950/20 px-3 py-2 text-amber-200">
-                                        <span className="font-medium">Unlinked in-plunge answers · all-time:</span>{" "}
+                                        <span className="font-medium">Unlinked in-plunge answers · {selectedPeriodLabel}:</span>{" "}
                                         {row.unlinkedInPlungeCorrect}/{row.unlinkedInPlungeAnswers} correct
                                         <span className="ml-2 text-amber-400/80">(not assigned to a saved plunge)</span>
                                       </div>
                                     )}
                                     <div className="rounded-lg border border-slate-700/60 bg-slate-800/30 px-3 py-2 text-slate-400">
-                                      <span className="text-slate-300">Out-of-plunge answers · all-time:</span>{" "}
+                                      <span className="text-slate-300">Out-of-plunge answers · {selectedPeriodLabel}:</span>{" "}
                                       {row.outOfPlungeCorrect}/{row.outOfPlungeAnswers} correct
                                     </div>
                                   </div>

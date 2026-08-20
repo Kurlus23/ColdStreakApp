@@ -4135,7 +4135,11 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     if (!isCallerAdmin(caller)) return res.status(403).json({ message: "Admin only" });
     try {
       const { getBrainFreezeAdminStats } = await import("./brain-freeze");
-      const stats = await getBrainFreezeAdminStats();
+      const requestedPeriod = typeof req.query.period === "string" ? req.query.period : "all";
+      if (requestedPeriod !== "all" && requestedPeriod !== "30d" && requestedPeriod !== "7d") {
+        return res.status(400).json({ message: "Invalid reporting period" });
+      }
+      const stats = await getBrainFreezeAdminStats(requestedPeriod);
       res.json(stats);
     } catch (err) {
       console.error("[admin/brain-freeze/stats] error:", err);

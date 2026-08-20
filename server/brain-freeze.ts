@@ -860,7 +860,9 @@ export interface BrainFreezeAdminPlungeBreakdown {
   startedAt: string;
 }
 
-export async function getBrainFreezeAdminStats() {
+export type BrainFreezeAdminPeriod = "all" | "30d" | "7d";
+
+export async function getBrainFreezeAdminStats(period: BrainFreezeAdminPeriod = "all") {
   const now   = new Date();
   const ago7  = new Date(now.getTime() -  7 * 86400_000);
   const ago30 = new Date(now.getTime() - 30 * 86400_000);
@@ -868,9 +870,15 @@ export async function getBrainFreezeAdminStats() {
   const weekStart = new Date(todayStart);
   weekStart.setUTCDate(weekStart.getUTCDate() - ((weekStart.getUTCDay() + 6) % 7));
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const periodCondition = period === "7d"
+    ? gte(brainFreezeAnswers.answeredAt, ago7)
+    : period === "30d"
+      ? gte(brainFreezeAnswers.answeredAt, ago30)
+      : sql`true`;
 
-  // Headline totals — single pass over all rows
-  const [totals] = await db
+  // Keep the comparison cards and points-by-period cards all-time/current,
+  // even while the selected period changes the leaderboard below.
+  const [allTimeTotals] = await db
     .select({
       total:    sql<number>`count(*)::int`,
       correct:  sql<number>`sum(case when ${brainFreezeAnswers.isCorrect} then 1 else 0 end)::int`,
@@ -890,6 +898,21 @@ export async function getBrainFreezeAdminStats() {
       outOfPlungeAnswers: sql<number>`sum(case when not ${brainFreezeAnswers.inPlunge} then 1 else 0 end)::int`,
     })
     .from(brainFreezeAnswers);
+
+  const [periodTotals] = await db
+    .select({
+      total:    sql<number>`count(*)::int`,
+      correct:  sql<number>`sum(case when ${brainFreezeAnswers.isCorrect} then 1 else 0 end)::int`,
+      inPlunge: sql<number>`sum(case when ${brainFreezeAnswers.inPlunge} then 1 else 0 end)::int`,
+      pts:      sql<number>`coalesce(sum(${brainFreezeAnswers.pointsEarned}), 0)::int`,
+      players:  sql<number>`count(distinct ${brainFreezeAnswers.userId})::int`,
+      inPlungeCorrect: sql<number>`sum(case when ${brainFreezeAnswers.inPlunge} and ${brainFreezeAnswers.isCorrect} then 1 else 0 end)::int`,
+      inPlungeAnswers: sql<number>`sum(case when ${brainFreezeAnswers.inPlunge} then 1 else 0 end)::int`,
+      outOfPlungeCorrect: sql<number>`sum(case when not ${brainFreezeAnswers.inPlunge} and ${brainFreezeAnswers.isCorrect} then 1 else 0 end)::int`,
+      outOfPlungeAnswers: sql<number>`sum(case when not ${brainFreezeAnswers.inPlunge} then 1 else 0 end)::int`,
+    })
+    .from(brainFreezeAnswers)
+    .where(periodCondition);
 
   // Daily answer count for last 30 days
   const trend = await db
@@ -921,6 +944,7 @@ export async function getBrainFreezeAdminStats() {
     })
     .from(brainFreezeAnswers)
     .innerJoin(users, eq(brainFreezeAnswers.userId, users.id))
+    .where(periodCondition)
     .groupBy(brainFreezeAnswers.userId, users.email, users.username, users.displayName)
     .orderBy(sql`coalesce(sum(${brainFreezeAnswers.pointsEarned}), 0) desc`)
     .limit(25);
@@ -948,6 +972,7 @@ export async function getBrainFreezeAdminStats() {
       .where(and(
         inArray(brainFreezeAnswers.userId, leaderboardUserIds),
         eq(brainFreezeAnswers.inPlunge, true),
+        periodCondition,
       ))
       .groupBy(
         brainFreezeAnswers.userId,
@@ -979,6 +1004,7 @@ export async function getBrainFreezeAdminStats() {
         inArray(brainFreezeAnswers.userId, leaderboardUserIds),
         eq(brainFreezeAnswers.inPlunge, true),
         isNull(plunges.id),
+        periodCondition,
       ))
       .groupBy(brainFreezeAnswers.userId)
     : [];
@@ -1004,28 +1030,29 @@ export async function getBrainFreezeAdminStats() {
   );
 
   return {
+    period,
     overview: {
-      total:      totals?.total      ?? 0,
-      correct:    totals?.correct    ?? 0,
-      inPlunge:   totals?.inPlunge   ?? 0,
-      pts:        totals?.pts        ?? 0,
-      players:    totals?.players    ?? 0,
-      last7d:     totals?.last7d     ?? 0,
-      last30d:    totals?.last30d    ?? 0,
-      players7d:  totals?.players7d  ?? 0,
-      players30d: totals?.players30d ?? 0,
-      pointsToday: totals?.pointsToday ?? 0,
-      pointsWeek:  totals?.pointsWeek  ?? 0,
-      pointsMonth: totals?.pointsMonth ?? 0,
-      pointsAllTime: totals?.pts ?? 0,
-      inPlungeCorrect: totals?.inPlungeCorrect ?? 0,
-      inPlungeAnswers: totals?.inPlungeAnswers ?? 0,
-      outOfPlungeCorrect: totals?.outOfPlungeCorrect ?? 0,
-      outOfPlungeAnswers: totals?.outOfPlungeAnswers ?? 0,
+      total:      periodTotals?.total      ?? 0,
+      correct:    periodTotals?.correct    ?? 0,
+      inPlunge:   periodTotals?.inPlunge   ?? 0,
+      pts:        periodTotals?.pts        ?? 0,
+      players:    periodTotals?.players    ?? 0,
+      last7d:     allTimeTotals?.last7d     ?? 0,
+      last30d:    allTimeTotals?.last30d    ?? 0,
+      players7d:  allTimeTotals?.players7d  ?? 0,
+      players30d: allTimeTotals?.players30d ?? 0,
+      pointsToday: allTimeTotals?.pointsToday ?? 0,
+      pointsWeek:  allTimeTotals?.pointsWeek  ?? 0,
+      pointsMonth: allTimeTotals?.pointsMonth ?? 0,
+      pointsAllTime: allTimeTotals?.pts ?? 0,
+      inPlungeCorrect: periodTotals?.inPlungeCorrect ?? 0,
+      inPlungeAnswers: periodTotals?.inPlungeAnswers ?? 0,
+      outOfPlungeCorrect: periodTotals?.outOfPlungeCorrect ?? 0,
+      outOfPlungeAnswers: periodTotals?.outOfPlungeAnswers ?? 0,
     },
     trend,
-    // The leaderboard remains all-time. The nested rows prevent its answer
-    // count from being read as the question count of a single plunge.
+    // The nested rows prevent a user's selected-period answer count from being
+    // read as the question count of a single plunge.
     leaderboard: leaderboard.map(row => ({
       ...row,
       plunges: plungeBreakdowns.get(row.userId) ?? [],
