@@ -742,6 +742,19 @@ export async function registerRoutes(
     return { ok: true };
   }
 
+  // Brain Freeze answer history always belongs to an authenticated account.
+  // Unlike general plunge editing, it cannot safely attach to a legacy
+  // identity-less plunge because the caller cannot prove ownership of it.
+  async function assertBrainFreezePlungeOwnership(req: Request, id: number): Promise<{ ok: true } | { ok: false; status: number; message: string }> {
+    const plunge = await storage.getPlungeById(id);
+    if (!plunge) return { ok: false, status: 404, message: "Plunge not found" };
+    const authUser = extractUser(req);
+    if (!authUser || plunge.userId == null || authUser.userId !== plunge.userId) {
+      return { ok: false, status: 403, message: "Not allowed" };
+    }
+    return { ok: true };
+  }
+
   app.patch("/api/plunges/:id", async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
@@ -4184,6 +4197,10 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     }).safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Invalid input" });
     try {
+      if (parsed.data.plungeId != null) {
+        const owner = await assertBrainFreezePlungeOwnership(req, parsed.data.plungeId);
+        if (!owner.ok) return res.status(owner.status).json({ message: owner.message });
+      }
       const { logAnswer, computePoints, checkAndFinalizeChallengeAnswer } = await import("./brain-freeze");
       const row = await logAnswer({ userId: payload.userId, ...parsed.data });
       // Cold bonus = extra points from the cold-water multiplier (0 when no multiplier applied)
@@ -4246,6 +4263,8 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     }).safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Invalid input" });
     try {
+      const owner = await assertBrainFreezePlungeOwnership(req, parsed.data.plungeId);
+      if (!owner.ok) return res.status(owner.status).json({ message: owner.message });
       const { linkAnswersToPlunge } = await import("./brain-freeze");
       const updated = await linkAnswersToPlunge({
         userId:   payload.userId,

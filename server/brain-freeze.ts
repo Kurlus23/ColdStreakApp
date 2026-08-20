@@ -6,8 +6,8 @@
  */
 
 import { db } from "./db";
-import { brainFreezeQuestions, brainFreezeAnswers, brainFreezeChallenges, users } from "../shared/schema";
-import { eq, and, or, ne, notInArray, inArray, gte, lt, desc, sql } from "drizzle-orm";
+import { brainFreezeQuestions, brainFreezeAnswers, brainFreezeChallenges, plunges, users } from "../shared/schema";
+import { eq, and, or, ne, notInArray, inArray, gte, lt, desc, isNull, sql } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 
@@ -851,6 +851,15 @@ export async function getEmailLabStats(
 
 // ─── Admin: aggregate Brain Freeze usage stats ───────────────────────────────
 
+export interface BrainFreezeAdminPlungeBreakdown {
+  plungeId: number;
+  duration: number;
+  questionTotal: number;
+  correct: number;
+  pts: number;
+  startedAt: string;
+}
+
 export async function getBrainFreezeAdminStats() {
   const now   = new Date();
   const ago7  = new Date(now.getTime() -  7 * 86400_000);
@@ -916,6 +925,84 @@ export async function getBrainFreezeAdminStats() {
     .orderBy(sql`coalesce(sum(${brainFreezeAnswers.pointsEarned}), 0) desc`)
     .limit(25);
 
+  // Keep the per-plunge view separate from the all-time leaderboard totals.
+  // In-plunge answers are back-filled with plungeId after a plunge is saved, so
+  // joining to plunges gives Admin the actual duration for every grouped set.
+  const leaderboardUserIds = leaderboard.map(row => row.userId);
+  const plungeBreakdownRows = leaderboardUserIds.length > 0
+    ? await db
+      .select({
+        userId:       brainFreezeAnswers.userId,
+        plungeId:     plunges.id,
+        duration:     plunges.duration,
+        questionTotal: sql<number>`count(*)::int`,
+        correct:      sql<number>`sum(case when ${brainFreezeAnswers.isCorrect} then 1 else 0 end)::int`,
+        pts:          sql<number>`coalesce(sum(${brainFreezeAnswers.pointsEarned}), 0)::int`,
+        startedAt:    sql<string>`${plunges.createdAt}::text`,
+      })
+      .from(brainFreezeAnswers)
+      .innerJoin(plunges, and(
+        eq(brainFreezeAnswers.plungeId, plunges.id),
+        eq(brainFreezeAnswers.userId, plunges.userId),
+      ))
+      .where(and(
+        inArray(brainFreezeAnswers.userId, leaderboardUserIds),
+        eq(brainFreezeAnswers.inPlunge, true),
+      ))
+      .groupBy(
+        brainFreezeAnswers.userId,
+        plunges.id,
+        plunges.duration,
+        plunges.createdAt,
+      )
+      .orderBy(desc(plunges.createdAt))
+    : [];
+
+  // An answer can temporarily remain unlinked if a plunge was not saved, the
+  // linking request did not complete, or the saved plunge was removed. Keep
+  // these answers visible instead of silently dropping them from the session
+  // breakdown. The user match in the join also prevents a malformed answer
+  // record from borrowing another player's plunge duration.
+  const unlinkedInPlungeRows = leaderboardUserIds.length > 0
+    ? await db
+      .select({
+        userId:   brainFreezeAnswers.userId,
+        correct:  sql<number>`sum(case when ${brainFreezeAnswers.isCorrect} then 1 else 0 end)::int`,
+        answers:  sql<number>`count(*)::int`,
+      })
+      .from(brainFreezeAnswers)
+      .leftJoin(plunges, and(
+        eq(brainFreezeAnswers.plungeId, plunges.id),
+        eq(brainFreezeAnswers.userId, plunges.userId),
+      ))
+      .where(and(
+        inArray(brainFreezeAnswers.userId, leaderboardUserIds),
+        eq(brainFreezeAnswers.inPlunge, true),
+        isNull(plunges.id),
+      ))
+      .groupBy(brainFreezeAnswers.userId)
+    : [];
+
+  const plungeBreakdowns = new Map<number, BrainFreezeAdminPlungeBreakdown[]>();
+  for (const row of plungeBreakdownRows) {
+    const existing = plungeBreakdowns.get(row.userId) ?? [];
+    existing.push({
+      plungeId:      row.plungeId,
+      duration:      row.duration,
+      questionTotal: row.questionTotal,
+      correct:       row.correct,
+      pts:           row.pts,
+      startedAt:     row.startedAt,
+    });
+    plungeBreakdowns.set(row.userId, existing);
+  }
+  const unlinkedInPlunge = new Map(
+    unlinkedInPlungeRows.map(row => [row.userId, {
+      correct: row.correct,
+      answers: row.answers,
+    }]),
+  );
+
   return {
     overview: {
       total:      totals?.total      ?? 0,
@@ -937,6 +1024,13 @@ export async function getBrainFreezeAdminStats() {
       outOfPlungeAnswers: totals?.outOfPlungeAnswers ?? 0,
     },
     trend,
-    leaderboard,
+    // The leaderboard remains all-time. The nested rows prevent its answer
+    // count from being read as the question count of a single plunge.
+    leaderboard: leaderboard.map(row => ({
+      ...row,
+      plunges: plungeBreakdowns.get(row.userId) ?? [],
+      unlinkedInPlungeCorrect: unlinkedInPlunge.get(row.userId)?.correct ?? 0,
+      unlinkedInPlungeAnswers: unlinkedInPlunge.get(row.userId)?.answers ?? 0,
+    })),
   };
 }

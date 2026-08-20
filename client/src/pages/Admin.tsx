@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, type ReactNode } from "react";
+import { Fragment, useState, useMemo, useEffect, type ReactNode } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -1940,17 +1940,24 @@ type BFOverview = {
   outOfPlungeCorrect: number; outOfPlungeAnswers: number;
 };
 type BFTrendRow    = { date: string; count: number };
+type BFPlungeBreakdown = {
+  plungeId: number; duration: number; questionTotal: number;
+  correct: number; pts: number; startedAt: string;
+};
 type BFLeaderRow   = {
   userId: number; email: string; username: string | null; displayName: string | null;
   answers: number; correct: number; pts: number; inPlunge: number;
   inPlungeCorrect: number; inPlungeAnswers: number;
   outOfPlungeCorrect: number; outOfPlungeAnswers: number;
+  unlinkedInPlungeCorrect: number; unlinkedInPlungeAnswers: number;
   lastPlayed: string;
+  plunges: BFPlungeBreakdown[];
 };
 type BFStats = { overview: BFOverview; trend: BFTrendRow[]; leaderboard: BFLeaderRow[] };
 
 function BrainFreezeStatsPanel() {
   const [expanded, setExpanded] = useState(false);
+  const [expandedUsers, setExpandedUsers] = useState<Set<number>>(new Set());
   const { data, isLoading } = useQuery<BFStats>({
     queryKey: ["/api/admin/brain-freeze/stats"],
     enabled: expanded,
@@ -1974,6 +1981,19 @@ function BrainFreezeStatsPanel() {
     if (h < 1)  return "just now";
     if (h < 24) return `${h}h ago`;
     return `${Math.floor(h / 24)}d ago`;
+  };
+  const fmtDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainder = seconds % 60;
+    return minutes > 0 ? `${minutes}m ${remainder}s` : `${remainder}s`;
+  };
+  const toggleUser = (userId: number) => {
+    setExpandedUsers(previous => {
+      const next = new Set(previous);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
   };
 
   return (
@@ -2079,7 +2099,9 @@ function BrainFreezeStatsPanel() {
               {/* ── Leaderboard ── */}
               {board.length > 0 && (
                 <div>
-                  <p className="text-xs text-slate-400 mb-2">Top players by total points</p>
+                  <p className="text-xs text-slate-400 mb-2">
+                    Top players by total points · <span className="text-cyan-400">all-time</span>
+                  </p>
                   <div className="overflow-x-auto rounded-xl border border-slate-700/50">
                     <table className="min-w-full text-xs">
                       <thead className="bg-slate-900/70 text-slate-300">
@@ -2087,50 +2109,106 @@ function BrainFreezeStatsPanel() {
                           <th className="px-3 py-2 text-left">#</th>
                           <th className="px-3 py-2 text-left">User</th>
                           <th className="px-3 py-2 text-right">Pts</th>
-                          <th className="px-3 py-2 text-right">Answers</th>
-                          <th className="px-3 py-2 text-right">Accuracy</th>
+                          <th className="px-3 py-2 text-right">All-time answers</th>
+                          <th className="px-3 py-2 text-right">All-time accuracy</th>
                           <th className="px-3 py-2 text-right">In-plunge accuracy</th>
                           <th className="px-3 py-2 text-right">Out-of-plunge accuracy</th>
+                          <th className="px-3 py-2 text-right">Plunge details</th>
                           <th className="px-3 py-2 text-right">Last played</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800">
                         {board.map((row, i) => (
-                          <tr key={row.userId} className="hover:bg-slate-800/40">
-                            <td className="px-3 py-2 text-slate-500">{i + 1}</td>
-                            <td className="px-3 py-2">
-                              <div className="font-medium text-white">
-                                {row.displayName ?? row.username ?? row.email.split("@")[0]}
-                              </div>
-                              <div className="text-slate-500 truncate max-w-[160px]">{row.email}</div>
-                            </td>
-                            <td className="px-3 py-2 text-right font-bold text-cyan-300 tabular-nums">
-                              {row.pts.toLocaleString()}
-                            </td>
-                            <td className="px-3 py-2 text-right text-slate-200 tabular-nums">{row.answers}</td>
-                            <td className="px-3 py-2 text-right tabular-nums">
-                              <span className={row.correct / row.answers >= 0.7 ? "text-green-400" : "text-slate-300"}>
-                                {pct(row.correct, row.answers)}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2 text-right tabular-nums">
-                              <span className={row.inPlungeAnswers > 0 && row.inPlungeCorrect / row.inPlungeAnswers >= 0.7 ? "text-green-400" : "text-slate-300"}>
-                                {pct(row.inPlungeCorrect, row.inPlungeAnswers)}
-                              </span>
-                              <div className="text-[10px] text-slate-600">
-                                {row.inPlungeCorrect}/{row.inPlungeAnswers}
-                              </div>
-                            </td>
-                            <td className="px-3 py-2 text-right tabular-nums">
-                              <span className={row.outOfPlungeAnswers > 0 && row.outOfPlungeCorrect / row.outOfPlungeAnswers >= 0.7 ? "text-green-400" : "text-slate-300"}>
-                                {pct(row.outOfPlungeCorrect, row.outOfPlungeAnswers)}
-                              </span>
-                              <div className="text-[10px] text-slate-600">
-                                {row.outOfPlungeCorrect}/{row.outOfPlungeAnswers}
-                              </div>
-                            </td>
-                            <td className="px-3 py-2 text-right text-slate-500">{fmtAgo(row.lastPlayed)}</td>
-                          </tr>
+                          <Fragment key={row.userId}>
+                            <tr className="hover:bg-slate-800/40">
+                              <td className="px-3 py-2 text-slate-500">{i + 1}</td>
+                              <td className="px-3 py-2">
+                                <div className="font-medium text-white">
+                                  {row.displayName ?? row.username ?? row.email.split("@")[0]}
+                                </div>
+                                <div className="text-slate-500 truncate max-w-[160px]">{row.email}</div>
+                              </td>
+                              <td className="px-3 py-2 text-right font-bold text-cyan-300 tabular-nums">
+                                {row.pts.toLocaleString()}
+                              </td>
+                              <td className="px-3 py-2 text-right text-slate-200 tabular-nums">{row.answers}</td>
+                              <td className="px-3 py-2 text-right tabular-nums">
+                                <span className={row.correct / row.answers >= 0.7 ? "text-green-400" : "text-slate-300"}>
+                                  {pct(row.correct, row.answers)}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-right tabular-nums">
+                                <span className={row.inPlungeAnswers > 0 && row.inPlungeCorrect / row.inPlungeAnswers >= 0.7 ? "text-green-400" : "text-slate-300"}>
+                                  {pct(row.inPlungeCorrect, row.inPlungeAnswers)}
+                                </span>
+                                <div className="text-[10px] text-slate-600">
+                                  {row.inPlungeCorrect}/{row.inPlungeAnswers}
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-right tabular-nums">
+                                <span className={row.outOfPlungeAnswers > 0 && row.outOfPlungeCorrect / row.outOfPlungeAnswers >= 0.7 ? "text-green-400" : "text-slate-300"}>
+                                  {pct(row.outOfPlungeCorrect, row.outOfPlungeAnswers)}
+                                </span>
+                                <div className="text-[10px] text-slate-600">
+                                  {row.outOfPlungeCorrect}/{row.outOfPlungeAnswers}
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <button
+                                  type="button"
+                                  data-testid={`button-toggle-brain-freeze-plunges-${row.userId}`}
+                                  onClick={() => toggleUser(row.userId)}
+                                  className="text-cyan-400 hover:text-cyan-200 whitespace-nowrap"
+                                >
+                                  {expandedUsers.has(row.userId) ? "Hide" : "Show"} {row.plunges.length} plunge{row.plunges.length === 1 ? "" : "s"}
+                                </button>
+                              </td>
+                              <td className="px-3 py-2 text-right text-slate-500">{fmtAgo(row.lastPlayed)}</td>
+                            </tr>
+                            {expandedUsers.has(row.userId) && (
+                              <tr className="bg-slate-900/50">
+                                <td colSpan={9} className="px-4 py-3">
+                                  <div className="space-y-2">
+                                    <div className="text-[10px] uppercase tracking-wide text-cyan-400">
+                                      In-plunge answers by plunge · all-time
+                                    </div>
+                                    {row.plunges.length > 0 ? (
+                                      <div className="grid gap-1.5">
+                                        {row.plunges.map(plunge => (
+                                          <div
+                                            key={plunge.plungeId}
+                                            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg border border-cyan-900/50 bg-cyan-950/20 px-3 py-2"
+                                          >
+                                            <span className="text-slate-300">
+                                              Plunge #{plunge.plungeId} · {fmtDuration(plunge.duration)} · {fmtAgo(plunge.startedAt)}
+                                            </span>
+                                            <span className="text-slate-400">
+                                              {plunge.questionTotal} question{plunge.questionTotal === 1 ? "" : "s"} ·{" "}
+                                              <span className="text-slate-200">{plunge.correct}/{plunge.questionTotal} correct</span>
+                                            </span>
+                                            <span className="text-cyan-300 tabular-nums">{plunge.pts.toLocaleString()} pts</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-slate-500">No saved plunge is linked to these in-plunge answers.</p>
+                                    )}
+                                    {row.unlinkedInPlungeAnswers > 0 && (
+                                      <div className="rounded-lg border border-amber-900/60 bg-amber-950/20 px-3 py-2 text-amber-200">
+                                        <span className="font-medium">Unlinked in-plunge answers · all-time:</span>{" "}
+                                        {row.unlinkedInPlungeCorrect}/{row.unlinkedInPlungeAnswers} correct
+                                        <span className="ml-2 text-amber-400/80">(not assigned to a saved plunge)</span>
+                                      </div>
+                                    )}
+                                    <div className="rounded-lg border border-slate-700/60 bg-slate-800/30 px-3 py-2 text-slate-400">
+                                      <span className="text-slate-300">Out-of-plunge answers · all-time:</span>{" "}
+                                      {row.outOfPlungeCorrect}/{row.outOfPlungeAnswers} correct
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
                         ))}
                       </tbody>
                     </table>
