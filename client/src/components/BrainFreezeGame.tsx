@@ -84,6 +84,9 @@ export function BrainFreezeGame({
   const [lastTempF, setLastTempF]       = useState<number | null>(null);
   const [pointsAnimKey, setPointsAnimKey] = useState(0);
   const [autoCloseLeft, setAutoCloseLeft] = useState<number | null>(null);
+  const [isPageVisible, setIsPageVisible] = useState(
+    () => typeof document === "undefined" || document.visibilityState === "visible",
+  );
 
   const scoreRef          = useRef(0);
   const coldBonusTotalRef = useRef(0);
@@ -94,6 +97,7 @@ export function BrainFreezeGame({
   const dismissedAtRef    = useRef<number | null>(null);
   const firstShownRef     = useRef(false);
   const shownAtElapsedRef = useRef(0);
+  const lastQuestionShownAtRef = useRef<number | null>(null);
   const questionCountRef  = useRef(0); // tracks questions served; every 3rd is a cold-plunge question
 
   // Refs for fast-changing props so callbacks don't need them as deps
@@ -108,22 +112,40 @@ export function BrainFreezeGame({
   useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
   useEffect(() => { onScoreUpdateRef.current = onScoreUpdate; }, [onScoreUpdate]);
 
+  // Do not serve, time out, or auto-close questions while the app is backgrounded.
+  // On return, the scheduler can show at most one overdue question; its next slot is
+  // rebased from when that question was actually shown instead of catching up all
+  // elapsed fixed-offset slots back-to-back.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const syncVisibility = () => setIsPageVisible(document.visibilityState === "visible");
+    syncVisibility();
+    document.addEventListener("visibilitychange", syncVisibility);
+    return () => document.removeEventListener("visibilitychange", syncVisibility);
+  }, []);
+
   // Fire countdown every second so the plunge screen can display "Next question in Xs"
   useEffect(() => {
-    if (!enabled || phase === "showing" || phase === "loading") {
+    if (!enabled || !isPageVisible || phase === "showing" || phase === "loading") {
       onCountdownUpdate?.(null);
       return;
     }
     // phase === "idle" or "answered" — compute seconds until next question.
-    // Uses the fixed-offset schedule so the displayed countdown matches the actual trigger.
+    // Use the fixed schedule unless a prior question was shown later than its slot
+    // (for example after returning to the app). The countdown must match the
+    // minimum-spacing guard in the fetch effect below.
     if (firstShownRef.current && dismissedAtRef.current !== null) {
-      const nextAt  = FIRST_QUESTION_AT + questionCountRef.current * intervalSecs;
+      const scheduledAt = FIRST_QUESTION_AT + questionCountRef.current * intervalSecs;
+      const spacingAt = lastQuestionShownAtRef.current === null
+        ? scheduledAt
+        : lastQuestionShownAtRef.current + MIN_INTERVAL;
+      const nextAt = Math.max(scheduledAt, spacingAt);
       const secsLeft = Math.max(0, nextAt - elapsedSeconds);
       onCountdownUpdate?.(secsLeft);
     } else {
       onCountdownUpdate?.(null);
     }
-  }, [enabled, phase, elapsedSeconds, intervalSecs, onCountdownUpdate]);
+  }, [enabled, isPageVisible, phase, elapsedSeconds, intervalSecs, onCountdownUpdate]);
 
   const getToken = () => {
     try { return localStorage.getItem("coldstreak-auth-token"); } catch { return null; }
@@ -149,6 +171,10 @@ export function BrainFreezeGame({
 
       const all = [q.correct, ...q.wrong].sort(() => Math.random() - 0.5);
       shownAtElapsedRef.current = currentElapsed;
+      // A question fetched after a background gap may be far past its planned
+      // offset. Space the next question from when this one actually becomes
+      // visible so missed offsets never turn into a catch-up burst.
+      lastQuestionShownAtRef.current = Math.max(currentElapsed, elapsedSecondsRef.current);
       setQuestion(q);
       setAnswers(all);
       setSelected(null);
@@ -166,10 +192,12 @@ export function BrainFreezeGame({
 
   // Trigger questions based on elapsed time.
   // Uses fixed offsets from plunge start (Q1 = FIRST_QUESTION_AT, Q2 = FIRST_QUESTION_AT +
-  // intervalSecs, …) so that answer / auto-close time never pushes later questions past the
-  // plunge end.  The targetQuestions gate prevents an 11th fetch.
+  // intervalSecs, …) while the plunge remains active. If the app has been
+  // backgrounded, a separate minimum-spacing guard skips the catch-up burst that
+  // would otherwise occur from multiple overdue offsets. The targetQuestions gate
+  // prevents an 11th fetch.
   useEffect(() => {
-    if (!enabled || !isActive) return;
+    if (!enabled || !isActive || !isPageVisible) return;
     const p = phaseRef.current;
     if (p === "loading" || p === "showing" || p === "answered") return;
 
@@ -182,16 +210,23 @@ export function BrainFreezeGame({
     // Fixed-offset schedule: Qn fires at FIRST_QUESTION_AT + (n-1) * intervalSecs.
     // questionCountRef is already incremented when the previous question was fetched, so
     // it equals the index of the NEXT question (0-based count of questions not yet fetched).
+    // Do not let a wall-clock jump make multiple slots due at once: after any
+    // displayed question, wait at least MIN_INTERVAL before the next fetch.
+    const scheduledAt = FIRST_QUESTION_AT + questionCountRef.current * intervalSecs;
+    const spacingAt = lastQuestionShownAtRef.current === null
+      ? scheduledAt
+      : lastQuestionShownAtRef.current + MIN_INTERVAL;
+    const nextAt = Math.max(scheduledAt, spacingAt);
     if (
       firstShownRef.current &&
       dismissedAtRef.current !== null &&
       questionCountRef.current < targetQuestions &&
-      elapsedSeconds >= FIRST_QUESTION_AT + questionCountRef.current * intervalSecs
+      elapsedSeconds >= nextAt
     ) {
       dismissedAtRef.current = null;
       fetchQuestion(elapsedSeconds);
     }
-  }, [elapsedSeconds, enabled, isActive, fetchQuestion, targetQuestions, intervalSecs]);
+  }, [elapsedSeconds, enabled, isActive, isPageVisible, fetchQuestion, targetQuestions, intervalSecs]);
 
   // Answer handler — stable: uses refs for timeLeft, temperature, elapsedSeconds
   const handleAnswer = useCallback(async (ans: string | null) => {
@@ -269,11 +304,11 @@ export function BrainFreezeGame({
 
   // Question countdown — auto-submit when time runs out
   useEffect(() => {
-    if (phase !== "showing") return;
+    if (phase !== "showing" || !isPageVisible) return;
     if (timeLeft <= 0) { handleAnswer(null); return; }
     const t = setTimeout(() => setTimeLeft((tl) => tl - 1), 1000);
     return () => clearTimeout(t);
-  }, [phase, timeLeft, handleAnswer]);
+  }, [phase, timeLeft, isPageVisible, handleAnswer]);
 
   // Auto-close countdown — dismiss the answer card after 10 s if user doesn't tap Next
   const AUTO_CLOSE_SECS = 10;
@@ -283,11 +318,11 @@ export function BrainFreezeGame({
   }, [phase]);
 
   useEffect(() => {
-    if (phase !== "answered" || autoCloseLeft === null) return;
+    if (phase !== "answered" || autoCloseLeft === null || !isPageVisible) return;
     if (autoCloseLeft <= 0) { handleDismiss(); return; }
     const t = setTimeout(() => setAutoCloseLeft((n) => (n ?? 1) - 1), 1000);
     return () => clearTimeout(t);
-  }, [phase, autoCloseLeft, handleDismiss]);
+  }, [phase, autoCloseLeft, isPageVisible, handleDismiss]);
 
   if (!enabled || phase === "idle" || phase === "loading") return null;
 

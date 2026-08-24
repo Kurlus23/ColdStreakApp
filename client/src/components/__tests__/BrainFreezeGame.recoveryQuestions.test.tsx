@@ -26,7 +26,7 @@
  */
 
 import { vi, describe, test, expect, beforeAll, beforeEach, afterEach } from "vitest";
-import { render, act } from "@testing-library/react";
+import { render, act, fireEvent, screen } from "@testing-library/react";
 import { BrainFreezeGame } from "../BrainFreezeGame";
 
 // ---------------------------------------------------------------------------
@@ -145,6 +145,76 @@ async function simulatePlunge(
 // ---------------------------------------------------------------------------
 
 describe("BrainFreezeGame – recovery user, 8-minute plunge, 10 questions", () => {
+  test("a background gap yields one overdue question, then restores the normal minimum gap", async () => {
+    const fetchMock = buildFetchMock();
+    vi.stubGlobal("fetch", fetchMock);
+
+    let visibility: DocumentVisibilityState = "visible";
+    const visibilitySpy = vi
+      .spyOn(document, "visibilityState", "get")
+      .mockImplementation(() => visibility);
+
+    const game = (elapsedSeconds: number) => (
+      <BrainFreezeGame
+        elapsedSeconds={elapsedSeconds}
+        temperature={55}
+        isActive
+        enabled
+        targetDurationSeconds={TARGET_DURATION}
+        targetQuestions={TARGET_QUESTIONS}
+      />
+    );
+
+    const { rerender } = render(game(0));
+
+    // Show and dismiss Q1 normally at its first slot.
+    await act(async () => {
+      rerender(game(FIRST_QUESTION_AT));
+      await Promise.resolve();
+    });
+    expect(questionFetchCount(fetchMock)).toBe(1);
+
+    fireEvent.click(screen.getByRole("button", { name: /CorrectAnswer/ }));
+    await act(async () => { await Promise.resolve(); });
+    fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
+
+    // Several slots pass while the app is hidden. No question may fetch in the background.
+    visibility = "hidden";
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+      rerender(game(300));
+      await Promise.resolve();
+    });
+    expect(questionFetchCount(fetchMock)).toBe(1);
+
+    // Returning may offer one overdue prompt, but it must not start a catch-up burst.
+    visibility = "visible";
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+      await Promise.resolve();
+    });
+    expect(questionFetchCount(fetchMock)).toBe(2);
+
+    fireEvent.click(screen.getByRole("button", { name: /CorrectAnswer/ }));
+    await act(async () => { await Promise.resolve(); });
+    fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
+
+    // Q3 cannot appear until 45 seconds after the resumed Q2 was shown.
+    await act(async () => {
+      rerender(game(344));
+      await Promise.resolve();
+    });
+    expect(questionFetchCount(fetchMock)).toBe(2);
+
+    await act(async () => {
+      rerender(game(345));
+      await Promise.resolve();
+    });
+    expect(questionFetchCount(fetchMock)).toBe(3);
+
+    visibilitySpy.mockRestore();
+  });
+
   test("exactly 10 question fetches fire before elapsedSeconds reaches 480", async () => {
     const fetchMock = buildFetchMock();
     vi.stubGlobal("fetch", fetchMock);
