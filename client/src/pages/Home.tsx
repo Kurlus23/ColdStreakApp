@@ -61,6 +61,7 @@ import { WelcomeBackCard } from "@/components/WelcomeBackCard";
 import { ColdAdaptationCard } from "@/components/ColdAdaptationCard";
 import { TryThisNextCard } from "@/components/TryThisNextCard";
 import { DiscoveryReportCard } from "@/components/DiscoveryReportCard";
+import { FriendBrainFreezeScore } from "@/components/FriendBrainFreezeScore";
 import { cacheFriends, loadFriends as loadFriendsImpl, readCachedFriends } from "@/lib/loadFriends";
 import { searchFriends as searchFriendsImpl } from "@/lib/searchFriends";
 import { sendFriendRequest as sendFriendRequestImpl } from "@/lib/sendFriendRequest";
@@ -6197,31 +6198,11 @@ export default function Home() {
 
                             {/* Brain Freeze points row */}
                             {((f.bfScoreAllTime ?? 0) > 0 || isMe) && (
-                              <div
-                                className="grid grid-cols-3 gap-0 rounded-xl overflow-hidden"
-                                style={{ border: "1px solid rgba(34,211,238,0.13)", background: "rgba(8,30,60,0.55)" }}
-                                onClick={e => e.stopPropagation()}
-                              >
-                                <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 px-1.5 py-1.5 border-r border-cyan-900/40">
-                                  <img src="/brain-freeze-icon.png" alt="" className="w-3.5 h-3.5 rounded-sm object-cover shrink-0" style={{ opacity: 0.8 }} />
-                                  <span className="text-[8px] leading-tight text-blue-500 uppercase tracking-[0.12em] font-semibold text-center">Last Plunge</span>
-                                  <span className="text-[11px] leading-none font-bold text-cyan-300">
-                                    {f.bfScoreThisPlunge != null ? f.bfScoreThisPlunge : "—"}
-                                  </span>
-                                </div>
-                                <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 px-1.5 py-1.5 border-r border-cyan-900/40">
-                                  <span className="text-[8px] leading-tight text-blue-500 uppercase tracking-[0.12em] font-semibold text-center">Today</span>
-                                  <span className="text-[11px] leading-none font-bold text-cyan-300">
-                                    {(f.bfScoreToday ?? 0) > 0 ? f.bfScoreToday : "—"}
-                                  </span>
-                                </div>
-                                <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 px-1.5 py-1.5">
-                                  <span className="text-[8px] leading-tight text-blue-500 uppercase tracking-[0.12em] font-semibold text-center">All Time</span>
-                                  <span className="text-[11px] leading-none font-bold text-cyan-300">
-                                    {(f.bfScoreAllTime ?? 0) > 0 ? f.bfScoreAllTime : "—"}
-                                  </span>
-                                </div>
-                              </div>
+                              <FriendBrainFreezeScore
+                                scoreThisPlunge={f.bfScoreThisPlunge}
+                                scoreToday={f.bfScoreToday}
+                                scoreAllTime={f.bfScoreAllTime}
+                              />
                             )}
                           </div>
                         );
