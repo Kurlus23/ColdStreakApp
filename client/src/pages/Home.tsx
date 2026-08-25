@@ -6198,26 +6198,26 @@ export default function Home() {
                             {/* Brain Freeze points row */}
                             {((f.bfScoreAllTime ?? 0) > 0 || isMe) && (
                               <div
-                                className="flex items-center gap-0 rounded-xl overflow-hidden"
+                                className="grid grid-cols-3 gap-0 rounded-xl overflow-hidden"
                                 style={{ border: "1px solid rgba(34,211,238,0.13)", background: "rgba(8,30,60,0.55)" }}
                                 onClick={e => e.stopPropagation()}
                               >
-                                <div className="flex items-center gap-1.5 px-2.5 py-1.5 flex-1 border-r border-cyan-900/40">
+                                <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 px-1.5 py-1.5 border-r border-cyan-900/40">
                                   <img src="/brain-freeze-icon.png" alt="" className="w-3.5 h-3.5 rounded-sm object-cover shrink-0" style={{ opacity: 0.8 }} />
-                                  <span className="text-[9px] text-blue-500 uppercase tracking-widest font-semibold">This Plunge</span>
-                                  <span className="text-[11px] font-bold text-cyan-300 ml-auto">
+                                  <span className="text-[8px] leading-tight text-blue-500 uppercase tracking-[0.12em] font-semibold text-center">Last Plunge</span>
+                                  <span className="text-[11px] leading-none font-bold text-cyan-300">
                                     {f.bfScoreThisPlunge != null ? f.bfScoreThisPlunge : "—"}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-1.5 px-2.5 py-1.5 flex-1 border-r border-cyan-900/40">
-                                  <span className="text-[9px] text-blue-500 uppercase tracking-widest font-semibold">Today</span>
-                                  <span className="text-[11px] font-bold text-cyan-300 ml-auto">
+                                <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 px-1.5 py-1.5 border-r border-cyan-900/40">
+                                  <span className="text-[8px] leading-tight text-blue-500 uppercase tracking-[0.12em] font-semibold text-center">Today</span>
+                                  <span className="text-[11px] leading-none font-bold text-cyan-300">
                                     {(f.bfScoreToday ?? 0) > 0 ? f.bfScoreToday : "—"}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-1.5 px-2.5 py-1.5 flex-1">
-                                  <span className="text-[9px] text-blue-500 uppercase tracking-widest font-semibold">All Time</span>
-                                  <span className="text-[11px] font-bold text-cyan-300 ml-auto">
+                                <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 px-1.5 py-1.5">
+                                  <span className="text-[8px] leading-tight text-blue-500 uppercase tracking-[0.12em] font-semibold text-center">All Time</span>
+                                  <span className="text-[11px] leading-none font-bold text-cyan-300">
                                     {(f.bfScoreAllTime ?? 0) > 0 ? f.bfScoreAllTime : "—"}
                                   </span>
                                 </div>
