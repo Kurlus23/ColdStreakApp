@@ -61,7 +61,7 @@ import { WelcomeBackCard } from "@/components/WelcomeBackCard";
 import { ColdAdaptationCard } from "@/components/ColdAdaptationCard";
 import { TryThisNextCard } from "@/components/TryThisNextCard";
 import { DiscoveryReportCard } from "@/components/DiscoveryReportCard";
-import { loadFriends as loadFriendsImpl } from "@/lib/loadFriends";
+import { cacheFriends, loadFriends as loadFriendsImpl, readCachedFriends } from "@/lib/loadFriends";
 import { searchFriends as searchFriendsImpl } from "@/lib/searchFriends";
 import { sendFriendRequest as sendFriendRequestImpl } from "@/lib/sendFriendRequest";
 import { respondFriendRequest as respondFriendRequestImpl } from "@/lib/respondFriendRequest";
@@ -666,7 +666,12 @@ export default function Home() {
   interface FriendEntry { friendshipId: number; userId: number; username: string | null; displayName: string | null; avatarUrl: string | null; featuredBadges?: string; streak: number; plungedToday: boolean; latestScore: number | null; bestScore: number | null; bfScoreThisPlunge?: number | null; bfScoreToday?: number; bfScoreAllTime?: number; }
   interface FriendRequest { friendshipId: number; requesterId: number; requesterUsername: string | null; requesterDisplayName: string | null; requesterAvatarUrl: string | null; requesterStreak: number; requesterPlungeCount: number; createdAt: string; }
   interface UserResult { id: number; username: string | null; displayName: string | null; avatarUrl: string | null; friendshipStatus: string | null; }
-  const [friends, setFriends] = useState<FriendEntry[]>([]);
+  const [friends, setFriends] = useState<FriendEntry[]>(
+    () => readCachedFriends(auth.user?.id) ?? []
+  );
+  const [friendsOwnerId, setFriendsOwnerId] = useState<number | null>(
+    () => auth.user?.id ?? null
+  );
   const [myBf, setMyBf] = useState<{ thisPlunge: number | null; today: number; allTime: number }>({ thisPlunge: null, today: 0, allTime: 0 });
   // Array of all users who have challenged the current user (pending challenges).
   const [pendingChallengers, setPendingChallengers] = useState<Array<{userId: number; name: string}>>([]);
@@ -682,6 +687,7 @@ export default function Home() {
   const [challengeResults, setChallengeResults] = useState<ChallengeResult[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
+  const [friendsLoadError, setFriendsLoadError] = useState<string | null>(null);
   const [friendsView, setFriendsView] = useState<'friends' | 'add'>('friends');
   const [friendsSort, setFriendsSort] = useState<'daily' | 'score'>('daily');
   const [friendSearch, setFriendSearch] = useState('');
@@ -708,6 +714,10 @@ export default function Home() {
   // Ref so the service-worker message handler can read the current screen
   // without being stale — avoids showing a badge when already on friends.
   const isOnFriendsScreenRef = useRef(false);
+  const activeFriendsUserIdRef = useRef<number | null>(auth.user?.id ?? null);
+  const friendsRequestIdRef = useRef(0);
+  activeFriendsUserIdRef.current = auth.user?.id ?? null;
+  const currentFriends = friendsOwnerId === (auth.user?.id ?? null) ? friends : [];
 
   const authFetch = useCallback((url: string, opts: RequestInit = {}) => {
     const token = localStorage.getItem("coldstreak-auth-token") ?? "";
@@ -715,18 +725,46 @@ export default function Home() {
   }, []);
 
   const loadFriends = useCallback(async () => {
-    if (!auth.user) return;
+    const userId = auth.user?.id;
+    if (!userId) return;
+    const requestId = ++friendsRequestIdRef.current;
+    const isCurrentUserRequest = () =>
+      friendsRequestIdRef.current === requestId && activeFriendsUserIdRef.current === userId;
+
     await loadFriendsImpl({
       authFetch,
-      navigate,
+      navigate: (path) => { if (isCurrentUserRequest()) navigate(path); },
       toast,
-      setFriendsLoading,
-      setFriends,
-      setMyBf,
-      setPendingRequests,
-      clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
+      setFriendsLoading: (loading) => { if (isCurrentUserRequest()) setFriendsLoading(loading); },
+      setFriends: (loadedFriends) => {
+        if (!isCurrentUserRequest()) return;
+        setFriendsOwnerId(userId);
+        setFriends(loadedFriends);
+      },
+      setMyBf: (stats) => { if (isCurrentUserRequest()) setMyBf(stats); },
+      setPendingRequests: (requests) => { if (isCurrentUserRequest()) setPendingRequests(requests); },
+      setFriendsLoadError: (message) => { if (isCurrentUserRequest()) setFriendsLoadError(message); },
+      onFriendsLoaded: (loadedFriends) => {
+        if (isCurrentUserRequest()) cacheFriends(userId, loadedFriends);
+      },
+      clearAuthToken: () => {
+        if (isCurrentUserRequest()) localStorage.removeItem("coldstreak-auth-token");
+      },
     });
   }, [auth.user, authFetch, navigate]);
+
+  // A resumed native WebView can recreate this component before its next
+  // network request resolves. Restore only this signed-in account's confirmed
+  // list, then let loadFriends replace it with fresh server data.
+  useEffect(() => {
+    friendsRequestIdRef.current += 1;
+    setFriendsOwnerId(auth.user?.id ?? null);
+    setFriends(readCachedFriends(auth.user?.id) ?? []);
+    setPendingRequests([]);
+    setMyBf({ thisPlunge: null, today: 0, allTime: 0 });
+    setFriendsLoadError(null);
+    setFriendsLoading(false);
+  }, [auth.user?.id]);
 
   // Re-fetch friends list when the service worker resolves a friend request
   // via notification action buttons (Accept / Decline) while the app is open.
@@ -1666,30 +1704,30 @@ export default function Home() {
   // Restore selectedFriend when returning from a badge profile navigation.
   useEffect(() => {
     if (screen !== "friends") return;
-    if (friends.length === 0) return;
+    if (currentFriends.length === 0) return;
     try {
       const stored = sessionStorage.getItem("coldstreak-return-friend");
       if (!stored) return;
       sessionStorage.removeItem("coldstreak-return-friend");
       const saved = JSON.parse(stored) as FriendEntry;
       // Re-find from live friends list so stats are fresh
-      const live = friends.find(f => f.userId === saved.userId) ?? saved;
+      const live = currentFriends.find(f => f.userId === saved.userId) ?? saved;
       setSelectedFriend(live);
     } catch { /* ignore */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, friends]);
+  }, [screen, currentFriends]);
 
   // Challenge tip: first time user is on the Friends screen with at least one friend.
   useEffect(() => {
     if (!auth.user) return;
     if (screen !== "friends") return;
-    if (friends.length < 1) return;
+    if (currentFriends.length < 1) return;
     if (localStorage.getItem(CHALLENGE_TIP_KEY)) return;
     localStorage.setItem(CHALLENGE_TIP_KEY, "1");
     const id = setTimeout(() => setShowChallengeTip(true), 800);
     return () => clearTimeout(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auth.user, screen, friends.length]);
+  }, [auth.user, screen, currentFriends.length]);
 
   const createPlunge = useCreatePlunge();
   const updatePlunge = useUpdatePlunge();
@@ -3569,7 +3607,7 @@ export default function Home() {
     // Capture challenger context before any state changes
     const primaryChallenger = pendingChallengers[0] ?? null;
     const primaryChallengerFriend = primaryChallenger
-      ? friends.find((f) => f.userId === primaryChallenger.userId) ?? null
+      ? currentFriends.find((f) => f.userId === primaryChallenger.userId) ?? null
       : null;
     const primaryChallengerScore = primaryChallengerFriend?.latestScore ?? primaryChallengerFriend?.bestScore ?? null;
     const challengerOpts = primaryChallenger && primaryChallengerScore != null
@@ -3682,7 +3720,7 @@ export default function Home() {
   // A fresh session after a long gap gets a clean bar.
   // Build per-challenger array from pending challengers + friends list
   const challengers = pendingChallengers.map((pc) => {
-    const friend = friends.find((f) => f.userId === pc.userId);
+    const friend = currentFriends.find((f) => f.userId === pc.userId);
     return {
       name: pc.name || friend?.displayName || friend?.username || "Friend",
       score: (friend?.latestScore ?? friend?.bestScore ?? null) as number | null,
@@ -3690,7 +3728,7 @@ export default function Home() {
   });
   // Aliases kept for the pending-challenge modal (first challenger)
   const primaryChallengerFriendForModal = pendingChallengers[0]
-    ? friends.find((f) => f.userId === pendingChallengers[0].userId) ?? null
+    ? currentFriends.find((f) => f.userId === pendingChallengers[0].userId) ?? null
     : null;
   const challengerScore = challengers[0]?.score ?? null;
 
@@ -4869,7 +4907,7 @@ export default function Home() {
                         isPro={isPro}
                         avatarUrl={ownAvatarUrl}
                         useCelsius={useCelsius}
-                        friends={friends.map((f) => ({ userId: f.userId, displayName: f.displayName, username: f.username }))}
+                        friends={currentFriends.map((f) => ({ userId: f.userId, displayName: f.displayName, username: f.username }))}
                         onChallengeFriend={async (userId, displayName) => {
                           await sendFriendChallengeImpl(userId, displayName, {
                             authFetch, navigate, toast,
@@ -5928,7 +5966,7 @@ export default function Home() {
               {/* ── Friends tab ── */}
               {friendsView === 'friends' && (
                 <div className="flex-1 px-4 pb-4 space-y-2 overflow-y-auto overscroll-none">
-                  {friendsLoading ? (
+                  {friendsLoading && currentFriends.length === 0 ? (
                     <div className="flex items-center justify-center py-10">
                       <span className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
                     </div>
@@ -5954,12 +5992,27 @@ export default function Home() {
                       bfScoreToday: myBf.today,
                       bfScoreAllTime: myBf.allTime,
                     };
-                    const sorted = [meEntry, ...friends].sort((a, b) =>
+                    const sorted = [meEntry, ...currentFriends].sort((a, b) =>
                       friendsSort === 'daily'
                         ? (Number(b.plungedToday) - Number(a.plungedToday)) || ((b.latestScore ?? 0) - (a.latestScore ?? 0)) || (b.streak - a.streak)
                         : ((b.bestScore ?? 0) - (a.bestScore ?? 0)) || (b.streak - a.streak)
                     );
                     return (<>
+                      {friendsLoadError && (
+                        <div
+                          role="alert"
+                          className="flex items-center gap-3 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2.5"
+                        >
+                          <p className="flex-1 text-amber-100 text-[11px] leading-snug">{friendsLoadError}</p>
+                          <button
+                            type="button"
+                            onClick={() => loadFriends()}
+                            className="shrink-0 rounded-lg border border-amber-400/50 px-2.5 py-1.5 text-[10px] font-bold text-amber-200 hover:bg-amber-400/10 active:scale-95"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      )}
                       {/* ── Pending BF Challenge banner ── */}
                       {pendingBfChallenges.length > 0 && (
                         <button
@@ -6175,7 +6228,7 @@ export default function Home() {
                       })}
 
                       {/* No friends nudge — shown below your own entry */}
-                      {friends.length === 0 && (
+                      {currentFriends.length === 0 && !friendsLoadError && (
                         <div className="flex flex-col items-center gap-2 pt-3 pb-1">
                           <p className="text-blue-500 text-xs text-center">No friends added yet.</p>
                           <button
@@ -9398,7 +9451,7 @@ export default function Home() {
           result={challengeResults[0]}
           onDismiss={() => setChallengeResults((prev) => prev.slice(1))}
           onChallengeBack={async (userId) => {
-            const friend = friends.find((f) => f.userId === userId);
+            const friend = currentFriends.find((f) => f.userId === userId);
             await sendFriendChallengeImpl(userId, friend?.displayName || friend?.username || "Friend", {
               authFetch, navigate, toast,
               clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),

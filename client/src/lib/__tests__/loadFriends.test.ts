@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { loadFriends, type FriendEntry, type FriendRequest } from "../loadFriends";
+import { cacheFriends, loadFriends, readCachedFriends, type FriendEntry, type FriendRequest } from "../loadFriends";
 
 // ---- helpers ----------------------------------------------------------------
 
@@ -19,6 +19,9 @@ function makeDeps(authFetch: (url: string) => Promise<Response>) {
     setFriendsLoading: vi.fn(),
     setFriends: vi.fn(),
     setPendingRequests: vi.fn(),
+    setMyBf: vi.fn(),
+    setFriendsLoadError: vi.fn(),
+    onFriendsLoaded: vi.fn(),
     clearAuthToken: vi.fn(),
   };
 }
@@ -54,12 +57,16 @@ const sampleRequests: FriendRequest[] = [
 describe("loadFriends", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it("populates friends and requests on a successful response", async () => {
     const authFetch = vi
       .fn()
-      .mockResolvedValueOnce(makeResponse(200, sampleFriends))
+      .mockResolvedValueOnce(makeResponse(200, {
+        friends: sampleFriends,
+        myBf: { thisPlunge: 120, today: 240, allTime: 480 },
+      }))
       .mockResolvedValueOnce(makeResponse(200, sampleRequests));
 
     const deps = makeDeps(authFetch);
@@ -67,6 +74,9 @@ describe("loadFriends", () => {
 
     expect(deps.setFriendsLoading).toHaveBeenCalledWith(true);
     expect(deps.setFriends).toHaveBeenCalledWith(sampleFriends);
+    expect(deps.onFriendsLoaded).toHaveBeenCalledWith(sampleFriends);
+    expect(deps.setFriendsLoadError).toHaveBeenCalledWith(null);
+    expect(deps.setMyBf).toHaveBeenCalledWith({ thisPlunge: 120, today: 240, allTime: 480 });
     expect(deps.setPendingRequests).toHaveBeenCalledWith(sampleRequests);
     expect(deps.toast).not.toHaveBeenCalled();
     expect(deps.navigate).not.toHaveBeenCalled();
@@ -123,6 +133,9 @@ describe("loadFriends", () => {
     );
     expect(deps.navigate).not.toHaveBeenCalled();
     expect(deps.setFriends).not.toHaveBeenCalled();
+    expect(deps.setFriendsLoadError).toHaveBeenCalledWith(
+      "We couldn't refresh your friends. Check your connection and try again."
+    );
     expect(deps.setFriendsLoading).toHaveBeenCalledWith(false);
   });
 
@@ -140,6 +153,37 @@ describe("loadFriends", () => {
     );
     expect(deps.navigate).not.toHaveBeenCalled();
     expect(deps.setFriends).not.toHaveBeenCalled();
+    expect(deps.setFriendsLoadError).toHaveBeenCalledWith(
+      "We couldn't refresh your friends. Check your connection and try again."
+    );
     expect(deps.setFriendsLoading).toHaveBeenCalledWith(false);
+  });
+
+  it("reports malformed friends data as a refresh failure without clearing the current list", async () => {
+    const authFetch = vi
+      .fn()
+      .mockResolvedValueOnce(makeResponse(200, { unexpected: true }))
+      .mockResolvedValueOnce(makeResponse(200, sampleRequests));
+
+    const deps = makeDeps(authFetch);
+    await loadFriends(deps);
+
+    expect(deps.setFriends).not.toHaveBeenCalled();
+    expect(deps.setFriendsLoadError).toHaveBeenCalledWith(
+      "We couldn't refresh your friends. Check your connection and try again."
+    );
+  });
+
+  it("restores only the matching account's saved friend list", () => {
+    cacheFriends(12, sampleFriends);
+
+    expect(readCachedFriends(12)).toEqual(sampleFriends);
+    expect(readCachedFriends(13)).toBeNull();
+  });
+
+  it("ignores corrupted cached friend data", () => {
+    localStorage.setItem("coldstreak-friends-cache:v1:12", JSON.stringify([{ friendshipId: "not-a-number" }]));
+
+    expect(readCachedFriends(12)).toBeNull();
   });
 });
