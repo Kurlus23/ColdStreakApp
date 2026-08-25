@@ -2,9 +2,10 @@
  * Task 281 – Confirm a recovery user gets exactly 10 questions during an 8-minute plunge.
  *
  * The scheduling bug caused only 8 questions because answer + auto-close time
- * accumulated and pushed Q9/Q10 past the plunge end.  The fix uses fixed offsets
- * from plunge start (Q1 = 30 s, Q2 = 78 s, …, Q10 = 462 s) instead of chaining
- * from the dismiss timestamp.
+ * accumulated and pushed Q9/Q10 past the plunge end. The fix uses fixed offsets
+ * from active Brain Freeze time (Q1 = 30 s, Q2 = 78 s, …, Q10 = 462 s) instead
+ * of chaining from the dismiss timestamp. Background time is paused from this
+ * schedule so it cannot create an overdue-question backlog on return.
  *
  * A second bug was that Q10 was originally scheduled at the plunge boundary (480 s),
  * which is exactly when isActive goes false and the trigger guard kills the fetch.
@@ -145,7 +146,7 @@ async function simulatePlunge(
 // ---------------------------------------------------------------------------
 
 describe("BrainFreezeGame – recovery user, 8-minute plunge, 10 questions", () => {
-  test("a background gap yields one overdue question, then restores the normal minimum gap", async () => {
+  test("a background gap pauses the Brain Freeze schedule without stacking missed questions", async () => {
     const fetchMock = buildFetchMock();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -178,39 +179,43 @@ describe("BrainFreezeGame – recovery user, 8-minute plunge, 10 questions", () 
     await act(async () => { await Promise.resolve(); });
     fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
 
-    // Several slots pass while the app is hidden. No question may fetch in the background.
+    // Let the next-question countdown run for 20 seconds before leaving.
+    await act(async () => {
+      rerender(game(50));
+      await Promise.resolve();
+    });
+
+    // Several question slots pass while the app is hidden. No question may fetch in
+    // the background, and the Brain Freeze clock must not consume that hidden time.
     visibility = "hidden";
     await act(async () => {
       document.dispatchEvent(new Event("visibilitychange"));
-      rerender(game(300));
+      rerender(game(300)); // Q2-Q6 would be overdue on the raw plunge clock.
       await Promise.resolve();
     });
     expect(questionFetchCount(fetchMock)).toBe(1);
 
-    // Returning may offer one overdue prompt, but it must not start a catch-up burst.
+    // Returning must not show an overdue prompt or start a catch-up burst.
     visibility = "visible";
     await act(async () => {
       document.dispatchEvent(new Event("visibilitychange"));
       await Promise.resolve();
     });
-    expect(questionFetchCount(fetchMock)).toBe(2);
+    expect(questionFetchCount(fetchMock)).toBe(1);
 
-    fireEvent.click(screen.getByRole("button", { name: /CorrectAnswer/ }));
-    await act(async () => { await Promise.resolve(); });
-    fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
-
-    // Q3 cannot appear until 45 seconds after the resumed Q2 was shown.
+    // The hidden 250 seconds are excluded from the Brain Freeze clock. Q2 is due
+    // when the raw plunge clock reaches 328 (= hiddenAt 50 + scheduled 78 - 30).
     await act(async () => {
-      rerender(game(344));
+      rerender(game(327)); // effective Brain Freeze elapsed = 77
+      await Promise.resolve();
+    });
+    expect(questionFetchCount(fetchMock)).toBe(1);
+
+    await act(async () => {
+      rerender(game(328)); // effective Brain Freeze elapsed = 78
       await Promise.resolve();
     });
     expect(questionFetchCount(fetchMock)).toBe(2);
-
-    await act(async () => {
-      rerender(game(345));
-      await Promise.resolve();
-    });
-    expect(questionFetchCount(fetchMock)).toBe(3);
 
     visibilitySpy.mockRestore();
   });

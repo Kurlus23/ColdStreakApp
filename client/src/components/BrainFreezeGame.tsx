@@ -99,26 +99,53 @@ export function BrainFreezeGame({
   const shownAtElapsedRef = useRef(0);
   const lastQuestionShownAtRef = useRef<number | null>(null);
   const questionCountRef  = useRef(0); // tracks questions served; every 3rd is a cold-plunge question
+  const rawElapsedSecondsRef = useRef(elapsedSeconds);
+  const brainFreezeElapsedRef = useRef(elapsedSeconds);
+  const hiddenAtElapsedRef = useRef<number | null>(null);
+  const [pausedElapsedSeconds, setPausedElapsedSeconds] = useState(0);
 
   // Refs for fast-changing props so callbacks don't need them as deps
-  const elapsedSecondsRef  = useRef(elapsedSeconds);
   const temperatureRef     = useRef(temperature);
   const timeLeftRef        = useRef(QUESTION_TIMEOUT);
   const onScoreUpdateRef   = useRef(onScoreUpdate);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
-  useEffect(() => { elapsedSecondsRef.current = elapsedSeconds; }, [elapsedSeconds]);
+  useEffect(() => { rawElapsedSecondsRef.current = elapsedSeconds; }, [elapsedSeconds]);
   useEffect(() => { temperatureRef.current = temperature; }, [temperature]);
   useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
   useEffect(() => { onScoreUpdateRef.current = onScoreUpdate; }, [onScoreUpdate]);
 
-  // Do not serve, time out, or auto-close questions while the app is backgrounded.
-  // On return, the scheduler can show at most one overdue question; its next slot is
-  // rebased from when that question was actually shown instead of catching up all
-  // elapsed fixed-offset slots back-to-back.
+  // Brain Freeze has its own elapsed clock. The plunge timer may continue while the
+  // app is backgrounded, but Brain Freeze should not consume question time the user
+  // could not see. Hidden time is removed from the schedule instead of being queued
+  // as a burst of missed questions on return.
+  const brainFreezeElapsedSeconds = Math.max(
+    0,
+    (hiddenAtElapsedRef.current ?? elapsedSeconds) - pausedElapsedSeconds,
+  );
+  brainFreezeElapsedRef.current = brainFreezeElapsedSeconds;
+
+  useEffect(() => {
+    if (
+      isPageVisible &&
+      hiddenAtElapsedRef.current !== null &&
+      elapsedSeconds > hiddenAtElapsedRef.current
+    ) {
+      const hiddenDuration = elapsedSeconds - hiddenAtElapsedRef.current;
+      hiddenAtElapsedRef.current = null;
+      setPausedElapsedSeconds((paused) => paused + hiddenDuration);
+    }
+  }, [elapsedSeconds, isPageVisible]);
+
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const syncVisibility = () => setIsPageVisible(document.visibilityState === "visible");
+    const syncVisibility = () => {
+      const visible = document.visibilityState === "visible";
+      if (!visible && hiddenAtElapsedRef.current === null) {
+        hiddenAtElapsedRef.current = rawElapsedSecondsRef.current;
+      }
+      setIsPageVisible(visible);
+    };
     syncVisibility();
     document.addEventListener("visibilitychange", syncVisibility);
     return () => document.removeEventListener("visibilitychange", syncVisibility);
@@ -140,12 +167,12 @@ export function BrainFreezeGame({
         ? scheduledAt
         : lastQuestionShownAtRef.current + MIN_INTERVAL;
       const nextAt = Math.max(scheduledAt, spacingAt);
-      const secsLeft = Math.max(0, nextAt - elapsedSeconds);
+      const secsLeft = Math.max(0, nextAt - brainFreezeElapsedSeconds);
       onCountdownUpdate?.(secsLeft);
     } else {
       onCountdownUpdate?.(null);
     }
-  }, [enabled, isPageVisible, phase, elapsedSeconds, intervalSecs, onCountdownUpdate]);
+  }, [enabled, isPageVisible, phase, brainFreezeElapsedSeconds, intervalSecs, onCountdownUpdate]);
 
   const getToken = () => {
     try { return localStorage.getItem("coldstreak-auth-token"); } catch { return null; }
@@ -174,7 +201,7 @@ export function BrainFreezeGame({
       // A question fetched after a background gap may be far past its planned
       // offset. Space the next question from when this one actually becomes
       // visible so missed offsets never turn into a catch-up burst.
-      lastQuestionShownAtRef.current = Math.max(currentElapsed, elapsedSecondsRef.current);
+      lastQuestionShownAtRef.current = Math.max(currentElapsed, brainFreezeElapsedRef.current);
       setQuestion(q);
       setAnswers(all);
       setSelected(null);
@@ -191,19 +218,18 @@ export function BrainFreezeGame({
   }, []);
 
   // Trigger questions based on elapsed time.
-  // Uses fixed offsets from plunge start (Q1 = FIRST_QUESTION_AT, Q2 = FIRST_QUESTION_AT +
-  // intervalSecs, …) while the plunge remains active. If the app has been
-  // backgrounded, a separate minimum-spacing guard skips the catch-up burst that
-  // would otherwise occur from multiple overdue offsets. The targetQuestions gate
-  // prevents an 11th fetch.
+  // Uses fixed offsets from the Brain Freeze clock (Q1 = FIRST_QUESTION_AT,
+  // Q2 = FIRST_QUESTION_AT + intervalSecs, …). Hidden time is excluded from this
+  // clock, so returning from the background resumes the same schedule without
+  // replaying missed questions. The targetQuestions gate prevents an 11th fetch.
   useEffect(() => {
     if (!enabled || !isActive || !isPageVisible) return;
     const p = phaseRef.current;
     if (p === "loading" || p === "showing" || p === "answered") return;
 
-    if (!firstShownRef.current && elapsedSeconds >= FIRST_QUESTION_AT) {
+    if (!firstShownRef.current && brainFreezeElapsedSeconds >= FIRST_QUESTION_AT) {
       firstShownRef.current = true;
-      fetchQuestion(elapsedSeconds);
+      fetchQuestion(brainFreezeElapsedSeconds);
       return;
     }
 
@@ -221,12 +247,12 @@ export function BrainFreezeGame({
       firstShownRef.current &&
       dismissedAtRef.current !== null &&
       questionCountRef.current < targetQuestions &&
-      elapsedSeconds >= nextAt
+      brainFreezeElapsedSeconds >= nextAt
     ) {
       dismissedAtRef.current = null;
-      fetchQuestion(elapsedSeconds);
+      fetchQuestion(brainFreezeElapsedSeconds);
     }
-  }, [elapsedSeconds, enabled, isActive, isPageVisible, fetchQuestion, targetQuestions, intervalSecs]);
+  }, [brainFreezeElapsedSeconds, enabled, isActive, isPageVisible, fetchQuestion, targetQuestions, intervalSecs]);
 
   // Answer handler — stable: uses refs for timeLeft, temperature, elapsedSeconds
   const handleAnswer = useCallback(async (ans: string | null) => {
@@ -289,14 +315,14 @@ export function BrainFreezeGame({
 
   // Dismiss handler — records when the user closes the card
   const handleDismiss = useCallback(() => {
-    dismissedAtRef.current = elapsedSecondsRef.current;
+    dismissedAtRef.current = brainFreezeElapsedRef.current;
     setPhase("idle");
     setQuestion(null);
   }, []);
 
   // Stop game — dismisses overlay and turns off Brain Freeze
   const handleStopGame = useCallback(() => {
-    dismissedAtRef.current = elapsedSecondsRef.current;
+    dismissedAtRef.current = brainFreezeElapsedRef.current;
     setPhase("idle");
     setQuestion(null);
     onStopGame?.();
