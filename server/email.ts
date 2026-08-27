@@ -146,7 +146,7 @@ export async function sendWelcomeEmail(to: string, displayName: string | null | 
         <div style="background:#102f55;border:1px solid #2a638e;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
           <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Turn your plunge into a game</div>
           <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
-            Brain Freeze throws quick trivia questions at you while you’re in the water. Answer correctly, earn points and cold-water bonuses, and challenge your friends.
+            Brain Freeze throws quick trivia questions at you while you’re in the water. Answer correctly, earn points and cold-water bonuses, and challenge your friends. You can also play outside the plunge by tapping the Brain Freeze icon in the top-right corner. Your Insights compare in-plunge and out-of-plunge responses to show how the cold affects your performance.
           </p>
         </div>
 
