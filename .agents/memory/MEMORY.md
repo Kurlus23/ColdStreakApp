@@ -14,3 +14,4 @@
 - [Admin browser-test setup](admin-browser-test-setup.md) — seeded admin passwords can be preserved; use an isolated registered user promoted in the dev DB for repeatable authenticated UI checks.
 - [Brain Freeze background scheduling](brain-freeze-background-scheduling.md) — pause the game clock in background; never queue missed questions for a rapid catch-up.
 - [Insights consolidation](insights-consolidation.md) — keep one report and one monthly trend; show personal Brain Freeze results early while reserving thresholds for conclusions.
+- [Approved welcome email](welcome-email-convention.md) — treat the current welcome email as canonical and flag it for review when product messaging changes.
