@@ -169,9 +169,9 @@ export function ColdAdaptationCard({ plunges }: Props) {
         <div className="flex items-center gap-2">
           <span className="text-lg">❄️</span>
           <div>
-            <p className="text-white text-sm font-bold leading-tight">Cold Adaptation</p>
+            <p className="text-white text-sm font-bold leading-tight">Monthly Check-In Trend</p>
             <p className="text-blue-400 text-[10px] leading-tight mt-0.5">
-              How your check-in ratings have trended
+              Compare your post-plunge ratings month to month
             </p>
           </div>
         </div>

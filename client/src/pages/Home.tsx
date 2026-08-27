@@ -69,6 +69,7 @@ import { respondFriendRequest as respondFriendRequestImpl } from "@/lib/respondF
 import { sendFriendChallenge as sendFriendChallengeImpl } from "@/lib/sendFriendChallenge";
 import { handleSwMessage } from "@/lib/swMessageHandler";
 import { buildBrainFreezeField, shouldShowBrainFreezeRow, brainFreezeRowLabel, shouldShowColdBonusRow, coldBonusRowLabel } from "@/lib/completionCard";
+import { getMissedStreakDate } from "@/lib/streakFreeze";
 
 // Pick a fresh cold take the user hasn't unlocked yet and persist it to the
 // unlocked collection. Falls back to a repeat only if the pool is exhausted.
@@ -635,6 +636,7 @@ export default function Home() {
     byTemp?: { label: string; accuracy: number; avgResponseMs: number; count: number }[] | null;
     adaptation?: { early: { accuracy: number; avgResponseMs: number }; recent: { accuracy: number; avgResponseMs: number }; weeksTracked: number } | null;
   }>(null);
+  const [brainFreezeLabLoading, setBrainFreezeLabLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [countdownRunning, setCountdownRunning] = useState(false);
   const [countdownElapsed, setCountdownElapsed] = useState(0);
@@ -1564,7 +1566,7 @@ export default function Home() {
     enabled: !!auth.user,
   });
 
-  // Streak freezes (Pro feature) — fetch list of frozen days and remaining quota
+  // Streak freezes — fetch list of frozen days and remaining quota
   const { data: freezeData, refetch: refetchFreezes } = useQuery<{ freezes: string[]; usedThisMonth: number; remainingThisMonth: number; monthlyLimit: number }>({
     queryKey: ["/api/streak-freezes", auth.user?.id],
     queryFn: async () => {
@@ -1577,6 +1579,7 @@ export default function Home() {
     enabled: !!auth.user,
   });
   const [showFreezeModal, setShowFreezeModal] = useState(false);
+  const [freezePromptDate, setFreezePromptDate] = useState<string | null>(null);
   const [username, setUsername] = useState<string>(() => {
     return localStorage.getItem("coldstreak-username") ?? "";
   });
@@ -2161,14 +2164,24 @@ export default function Home() {
 
   // Fetch Brain Freeze stats whenever the Insights tab is opened
   useEffect(() => {
-    if (profileTab !== 'stats') return;
+    if (profileTab !== 'stats' || !auth.user?.id) return;
     const token = localStorage.getItem("coldstreak-auth-token");
     if (!token) return;
-    fetch("/api/brain-freeze/lab", { headers: { Authorization: `Bearer ${token}` } })
+    const controller = new AbortController();
+    setBrainFreezeLabLoading(true);
+    setBrainFreezeLabData(null);
+    fetch("/api/brain-freeze/lab", {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data != null) setBrainFreezeLabData(data); })
-      .catch(() => {/* silent */});
-  }, [profileTab]);
+      .catch(() => {/* silent */})
+      .finally(() => {
+        if (!controller.signal.aborted) setBrainFreezeLabLoading(false);
+      });
+    return () => controller.abort();
+  }, [profileTab, auth.user?.id]);
 
   const saveUnitSystem = (u: "imperial" | "metric") => {
     const celsius = u === "metric";
@@ -3767,6 +3780,42 @@ export default function Home() {
   const weeklyPct = Math.min(100, (weeklyMinutes / weeklyGoalMinutes) * 100);
   const streak = getStreak(plunges, freezeData?.freezes ?? []);
 
+  // If an active streak missed exactly yesterday, prompt once when the app
+  // opens. The per-user/date key keeps dismissing the prompt from making it
+  // reappear on every reload, while the server remains the source of truth
+  // for whether a freeze can actually be applied.
+  useEffect(() => {
+    if (
+      !auth.user ||
+      !freezeData ||
+      freezeData.remainingThisMonth <= 0 ||
+      !legalAgreed ||
+      safetyOpen ||
+      pendingChallengers.length > 0 ||
+      photoPromptId !== null ||
+      showBrainFreezeModal
+    ) return;
+
+    const missedDate = getMissedStreakDate(plunges, freezeData.freezes);
+    if (!missedDate) return;
+
+    const promptKey = `coldstreak-freeze-prompt-${auth.user.id}-${missedDate}`;
+    if (localStorage.getItem(promptKey)) return;
+
+    localStorage.setItem(promptKey, "1");
+    setFreezePromptDate(missedDate);
+    setShowFreezeModal(true);
+  }, [
+    auth.user,
+    freezeData,
+    plunges,
+    legalAgreed,
+    safetyOpen,
+    pendingChallengers.length,
+    photoPromptId,
+    showBrainFreezeModal,
+  ]);
+
   // Total unique days plunged in the current calendar year
   const thisYear = new Date().getFullYear();
   const totalPlungeDaysThisYear = new Set(
@@ -4294,6 +4343,31 @@ export default function Home() {
             </div>
           </div>
 
+          {auth.user && (
+            <button
+              type="button"
+              data-testid="button-open-streak-freeze"
+              onClick={() => {
+                setFreezePromptDate(null);
+                setShowFreezeModal(true);
+              }}
+              className="mt-2 flex w-full items-center justify-between rounded-xl border border-cyan-700/40 bg-cyan-950/35 px-3 py-2 text-left transition-colors hover:border-cyan-500/60 hover:bg-cyan-950/55 active:scale-[0.99]"
+            >
+              <span className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-300">
+                  <Snowflake className="h-4 w-4" />
+                </span>
+                <span>
+                  <span className="block text-xs font-bold text-cyan-100">Streak Freeze</span>
+                  <span className="block text-[10px] text-blue-400">Protect a missed day</span>
+                </span>
+              </span>
+              <span className="rounded-lg bg-blue-950/70 px-2 py-1 text-[10px] font-bold text-cyan-300">
+                {freezeData?.remainingThisMonth ?? "—"} left
+              </span>
+            </button>
+          )}
+
           {/* ── Benefit bar (home screen) ── */}
           {/* Uses full today total — no 2-hour window; once earned, stays lit until midnight */}
           <div data-testid="benefit-bar" className="rounded-xl mt-2 px-2 pt-3 pb-1.5 bg-blue-950/90 backdrop-blur-sm border border-blue-800/50">
@@ -4374,7 +4448,10 @@ export default function Home() {
               </button>
             </div>
             <p className="text-sm text-blue-200 mb-3 leading-relaxed">
-              Missed a day? Apply a freeze to keep your streak alive. Pro members get{" "}
+              {freezePromptDate
+                ? "You missed yesterday. Apply a freeze to keep your streak alive. "
+                : "Missed a day? Apply a freeze to keep your streak alive. "}
+              You get{" "}
               <span className="text-cyan-300 font-bold">{freezeData?.monthlyLimit ?? 2}</span> freezes per calendar month.
             </p>
             <div className="bg-slate-800/60 rounded-xl p-3 mb-4 flex items-center justify-between">
@@ -7284,6 +7361,10 @@ export default function Home() {
                   {/* Try This Next nudge */}
                   <TryThisNextCard plunges={plunges} />
 
+                  {/* Legacy all-time check-in sections duplicated the report and
+                      monthly card above. Keep their calculations temporarily for
+                      compatibility, but do not render the duplicate UI. */}
+                  {false && (<>
                   {/* ── Insights Progress (unlock tracker) ── */}
                   {_ratedCount < 20 && plunges.length > 0 && (
                     <div className="bg-blue-900/30 border border-blue-800/40 rounded-2xl p-4 space-y-3">
@@ -7577,6 +7658,7 @@ export default function Home() {
                       </div>
                     );
                   })()}
+                  </>)}
 
                   {/* ── Brain Freeze ── */}
                   <div className="space-y-2">
@@ -7585,7 +7667,11 @@ export default function Home() {
                       title="Brain Freeze"
                       subtitle={brainFreezeLabData?.inPlunge ? "Your cognitive performance in and out of the cold" : undefined}
                     />
-                    {brainFreezeLabData && (brainFreezeLabData.inPlunge || brainFreezeLabData.outOfPlunge) ? (
+                    {brainFreezeLabLoading ? (
+                      <div className="bg-blue-950/60 border border-blue-800/40 rounded-2xl p-4">
+                        <p className="text-blue-400 text-xs">Loading your Brain Freeze results…</p>
+                      </div>
+                    ) : brainFreezeLabData && (brainFreezeLabData.inPlunge || brainFreezeLabData.outOfPlunge) ? (
                       <div className="bg-blue-900/40 border border-blue-800/50 rounded-2xl p-4 space-y-4">
 
                         {/* ── Performance split table ── */}
@@ -7725,7 +7811,7 @@ export default function Home() {
                           <span className="text-lg opacity-50">🧠</span>
                           <div>
                             <p className="text-blue-300 font-semibold text-xs">Brain Freeze</p>
-                            <p className="text-blue-500 text-[11px] mt-0.5">🔒 Unlocks after your first Brain Freeze sessions</p>
+                            <p className="text-blue-500 text-[11px] mt-0.5">🔒 Unlocks after your first Brain Freeze session</p>
                           </div>
                         </div>
                         <p className="text-blue-600 text-[10px]">Answer trivia during plunges and between them to see how cold affects your performance over time.</p>
@@ -8593,6 +8679,22 @@ export default function Home() {
                 <div className="flex items-center gap-2">
                   {StreakBadge}
                   {DaysBadge}
+                  {auth.user && (
+                    <button
+                      type="button"
+                      data-testid="button-open-streak-freeze-complete"
+                      aria-label="Open Streak Freeze"
+                      title="Open Streak Freeze"
+                      onClick={() => {
+                        setFreezePromptDate(null);
+                        setShowFreezeModal(true);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/40 bg-cyan-950/50 px-2 py-1 text-[10px] font-bold text-cyan-300 transition-colors hover:border-cyan-400/70 hover:bg-cyan-900/70 hover:text-white active:scale-95"
+                    >
+                      <Snowflake className="h-3 w-3" />
+                      Freeze
+                    </button>
+                  )}
                 </div>
               </div>
 

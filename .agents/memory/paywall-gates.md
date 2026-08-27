@@ -9,6 +9,12 @@ All paywalls were removed on 2026-07-24 by hardcoding `isPro: true` in the retur
 
 To re-enable paywalls: remove the hardcoded `isPro: true` from the return statement so the real state variable is returned again.
 
+Streak Freeze's server write endpoint is also intentionally available to every authenticated user while regular Pro features are unlocked.
+
+**Why:** A client-only unlock left users able to see and be prompted for Streak Freeze while the server rejected the action.
+
+**How to apply:** If regular Pro paywalls return, restore the server-side entitlement check for applying freezes at the same time as the client gates.
+
 ## Feature Gates by File
 
 ### `client/src/pages/Home.tsx`

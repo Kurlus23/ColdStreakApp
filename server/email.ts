@@ -143,6 +143,19 @@ export async function sendWelcomeEmail(to: string, displayName: string | null | 
           </p>
         </div>
 
+        <div style="background:#102f55;border:1px solid #2a638e;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
+          <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:8px;">Turn every plunge into personal insights</div>
+          <p style="color:#cbd5e1;margin:0 0 10px;line-height:1.6;font-size:14px;">
+            The <strong style="color:#fff;">Benefit Bar</strong> shows what your time in the cold is building toward while you plunge.
+          </p>
+          <p style="color:#cbd5e1;margin:0 0 10px;line-height:1.6;font-size:14px;">
+            Complete the quick post-plunge check-in to uncover your <strong style="color:#fff;">Sweet Spot</strong> for temperature and duration.
+          </p>
+          <p style="color:#cbd5e1;margin:0;line-height:1.6;font-size:14px;">
+            Your weekly and monthly <strong style="color:#fff;">Reports</strong> turn those check-ins into patterns you can actually use.
+          </p>
+        </div>
+
         <div style="border:1px solid #1e4774;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
           <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Turn your plunge into a game</div>
           <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
@@ -154,13 +167,6 @@ export async function sendWelcomeEmail(to: string, displayName: string | null | 
           <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Find your people</div>
           <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
             Discover plunge spots, events, and other cold-plunge enthusiasts near you. Compete on leaderboards or challenge friends.
-          </p>
-        </div>
-
-        <div style="border:1px solid #1e4774;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
-          <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Make it your routine</div>
-          <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
-            Check Profile for personal insights and goals. Connect a compatible Bluetooth thermometer for hands-free readings, or play Spotify or Apple Music during your session.
           </p>
         </div>
 

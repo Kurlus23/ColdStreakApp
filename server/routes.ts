@@ -843,8 +843,8 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  // ── Streak freezes (Pro feature) ───────────────────────────────────────
-  // Pro users get up to MAX_FREEZES_PER_MONTH (2) calendar-month freezes that retroactively
+  // ── Streak freezes ─────────────────────────────────────────────────────
+  // Users get up to MAX_FREEZES_PER_MONTH (2) calendar-month freezes that retroactively
   // protect a missed day so the streak doesn't break. Date is YYYY-MM-DD in user local tz.
   const MAX_FREEZES_PER_MONTH = 2;
 
@@ -866,8 +866,6 @@ export async function registerRoutes(
   app.post("/api/streak-freezes", async (req, res) => {
     const caller = extractUser(req);
     if (!caller?.userId) return res.status(401).json({ error: "Auth required" });
-    const proUser = await storage.getProUser(caller.email);
-    if (!proUser?.active) return res.status(403).json({ error: "Pro subscription required" });
     const { freezeDate } = req.body ?? {};
     if (typeof freezeDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(freezeDate)) {
       return res.status(400).json({ error: "freezeDate must be YYYY-MM-DD" });

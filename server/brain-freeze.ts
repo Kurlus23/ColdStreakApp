@@ -367,7 +367,10 @@ export async function getLabStats(userId: number): Promise<BrainFreezeLabStats |
   const outOfPlunge = answers.filter(a => !a.inPlunge);
 
   const contextStat = (arr: typeof answers): ContextStats | null => {
-    if (arr.length < MIN_FOR_STAT) return null;
+    // Show a user's own results as soon as they have answered a question.
+    // MIN_FOR_STAT still protects higher-level comparisons and adaptation
+    // calculations from drawing conclusions on tiny samples.
+    if (arr.length === 0) return null;
     return {
       count:            arr.length,
       accuracy:         +(arr.filter(a => a.isCorrect).length / arr.length).toFixed(3),
