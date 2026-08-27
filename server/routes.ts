@@ -252,7 +252,10 @@ export async function registerRoutes(
       await storage.setVerifyToken(user.id, verifyToken);
       const origin = getSiteOrigin(req);
       sendVerificationEmail(email, `${origin}/verify-email?token=${verifyToken}`).catch(console.error);
-      sendWelcomeEmail(user.email, user.displayName || user.username, getCanonicalOrigin()).catch(console.error);
+      // Only use a display name the user explicitly chose. createUser defaults the
+      // stored display name to username for leaderboard compatibility, but that
+      // fallback should not make the welcome email feel impersonal.
+      sendWelcomeEmail(user.email, displayName?.trim() || null, getCanonicalOrigin()).catch(console.error);
 
       // Milestone notification — fire and forget
       const MILESTONES = [100, 500, 1000, 2500, 5000, 10000];

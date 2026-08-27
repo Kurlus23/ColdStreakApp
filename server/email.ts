@@ -119,50 +119,57 @@ export async function sendWelcomeEmail(to: string, displayName: string | null | 
       </div>
 
       <div style="padding:30px 32px;">
-        <p style="color:#cbd5e1;margin:0 0 24px;line-height:1.7;font-size:15px;">
-          Here’s how to get the most out of the app:
+        <div style="background:#12345c;border:1px solid #2a638e;border-radius:16px;padding:22px 20px 20px;margin-bottom:26px;">
+          <div style="color:#bae6fd;font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:8px;">Your first plunge</div>
+          <h2 style="color:#fff;margin:0 0 10px;font-size:21px;line-height:1.3;">You’re less than a minute from getting started.</h2>
+          <p style="color:#cbd5e1;margin:0 0 20px;line-height:1.65;font-size:14px;">
+            Open ColdStreak, enter your water temperature, start the timer, and jump in. We’ll take care of the tracking.
+          </p>
+          <a href="${appUrl}"
+             style="display:inline-block;background:#22d3ee;color:#082f49;font-weight:700;
+                    text-decoration:none;padding:14px 22px;border-radius:11px;font-size:15px;">
+            Start Your First Plunge
+          </a>
+        </div>
+
+        <p style="color:#cbd5e1;margin:0 0 18px;line-height:1.7;font-size:15px;">
+          As you keep going, here’s what you’ll discover:
         </p>
 
         <div style="border:1px solid #1e4774;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
-          <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">1. Track every plunge</div>
+          <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Track your progress</div>
           <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
-            Start the timer from Home, choose a countdown or stopwatch, and finish when you’re out. Add your water temperature and optional body metrics to calculate your Cold Score.
+            Use the countdown or stopwatch from Home, then see your duration, water temperature, Cold Score, History, streaks, weekly goals, and achievements all in one place.
           </p>
         </div>
 
         <div style="border:1px solid #1e4774;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
-          <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">2. Build your streak</div>
+          <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Turn your plunge into a game</div>
           <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
-            Check History to see your progress, daily streak, scores, and trends. Set a weekly goal, collect achievements, and use Streak Freeze when you need a rest day.
+            Brain Freeze throws quick trivia questions at you while you’re in the water. Answer correctly, earn points and cold-water bonuses, and challenge your friends.
           </p>
         </div>
 
         <div style="border:1px solid #1e4774;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
-          <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">3. Play Brain Freeze</div>
+          <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Find your people</div>
           <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
-            Answer quick trivia questions during a plunge to earn points and cold-water bonuses. Compare scores with friends and challenge them to a head-to-head game.
+            Discover plunge spots, events, and other cold-plunge enthusiasts near you. Compete on leaderboards or challenge friends.
           </p>
         </div>
 
         <div style="border:1px solid #1e4774;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
-          <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">4. Find your community</div>
+          <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Make it your routine</div>
           <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
-            Open Explore to discover community plunge spots and events. You can submit a spot, browse public profiles, join events, and climb local leaderboards.
+            Check Profile for personal insights and goals. Connect a compatible Bluetooth thermometer for hands-free readings, or play Spotify or Apple Music during your session.
           </p>
         </div>
 
         <div style="border:1px solid #1e4774;border-radius:14px;padding:18px 18px 16px;margin-bottom:26px;">
-          <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">5. Make it yours</div>
+          <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Keep the streak alive</div>
           <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
-            Use Profile for your personal insights and goals. Connect a compatible Bluetooth thermometer for hands-free readings, or connect Spotify or Apple Music to play a playlist during your session.
+            Come back tomorrow, watch your progress build, and use Streak Freeze when you need a rest day.
           </p>
         </div>
-
-        <a href="${appUrl}"
-           style="display:block;background:#22d3ee;color:#082f49;font-weight:700;text-align:center;
-                  text-decoration:none;padding:16px 24px;border-radius:12px;font-size:16px;">
-          Open ColdStreak
-        </a>
 
         <p style="color:#64748b;margin:26px 0 0;font-size:12px;line-height:1.7;">
           Start small: choose a comfortable temperature, set a short timer, and focus on steady breathing. ColdStreak is for personal tracking and motivation, not medical advice. If you have a health condition or are unsure whether cold exposure is right for you, consult a qualified healthcare professional first.
