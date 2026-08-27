@@ -139,7 +139,14 @@ export async function sendWelcomeEmail(to: string, displayName: string | null | 
         <div style="background:#102f55;border:1px solid #2a638e;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
           <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Track your progress</div>
           <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
-            Use the countdown or stopwatch from Home, then see your duration, water temperature, Cold Score, History, streaks, weekly goals, and achievements all in one place.
+            Use the countdown or stopwatch from Home, then see your duration, water temperature, Cold Score, streaks, goals, and achievements all in one place.
+          </p>
+        </div>
+
+        <div style="background:#102f55;border:1px solid #2a638e;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
+          <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Turn your plunge into a game</div>
+          <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
+            Brain Freeze throws quick trivia questions at you while you’re in the water. Answer correctly, earn points and cold-water bonuses, and challenge your friends.
           </p>
         </div>
 
@@ -157,13 +164,6 @@ export async function sendWelcomeEmail(to: string, displayName: string | null | 
         </div>
 
         <div style="background:#102f55;border:1px solid #2a638e;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
-          <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Turn your plunge into a game</div>
-          <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
-            Brain Freeze throws quick trivia questions at you while you’re in the water. Answer correctly, earn points and cold-water bonuses, and challenge your friends.
-          </p>
-        </div>
-
-        <div style="background:#102f55;border:1px solid #2a638e;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
           <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Find your people</div>
           <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
             Discover plunge spots, events, and other cold-plunge enthusiasts near you. Compete on leaderboards or challenge friends.
@@ -177,13 +177,13 @@ export async function sendWelcomeEmail(to: string, displayName: string | null | 
           </p>
         </div>
 
-        <p style="color:#64748b;margin:26px 0 0;font-size:12px;line-height:1.7;">
+        <p style="color:#64748b;margin:26px 0 0;font-size:13px;line-height:1.8;">
           Start small: choose a comfortable temperature, set a short timer, and focus on steady breathing. ColdStreak is for personal tracking and motivation, not medical advice. If you have a health condition or are unsure whether cold exposure is right for you, consult a qualified healthcare professional first.
         </p>
       </div>
 
       <div style="background:#081426;border-top:1px solid #1d456b;padding:20px 32px;">
-        <p style="color:#64748b;margin:0;font-size:12px;line-height:1.6;">
+        <p style="color:#64748b;margin:0;font-size:13px;line-height:1.8;">
           You received this because you created a ColdStreak account.<br>
           Questions? Reply to this email and we’ll help.<br><br>
           Stay cold,<br><strong style="color:#94a3b8;">The ColdStreak Team</strong>
