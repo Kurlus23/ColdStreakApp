@@ -9,7 +9,7 @@ import Stripe from "stripe";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { sendPasswordResetEmail, sendVerificationEmail, sendMilestoneEmail, sendAdminSecurityAlert, sendSupportEmail, sendAdminReplyEmail, sendCoManagerInviteEmail, sendFriendInviteEmail, sendBroadcastEmail } from "./email";
+import { sendPasswordResetEmail, sendVerificationEmail, sendWelcomeEmail, sendMilestoneEmail, sendAdminSecurityAlert, sendSupportEmail, sendAdminReplyEmail, sendCoManagerInviteEmail, sendFriendInviteEmail, sendBroadcastEmail } from "./email";
 import webpush from "web-push";
 import { deriveNudgeForPush, deriveWelcomeBackForPush } from "./nudge";
 
@@ -252,6 +252,7 @@ export async function registerRoutes(
       await storage.setVerifyToken(user.id, verifyToken);
       const origin = getSiteOrigin(req);
       sendVerificationEmail(email, `${origin}/verify-email?token=${verifyToken}`).catch(console.error);
+      sendWelcomeEmail(user.email, user.displayName || user.username, getCanonicalOrigin()).catch(console.error);
 
       // Milestone notification — fire and forget
       const MILESTONES = [100, 500, 1000, 2500, 5000, 10000];
