@@ -111,15 +111,15 @@ export async function sendWelcomeEmail(to: string, displayName: string | null | 
   const greeting = safeName ? `Hey ${safeName},` : "Hey there,";
 
   await sendEmail(to, "Welcome to ColdStreak — your cold journey starts here 🧊", `
-    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#0b1730;color:#e2e8f0;border-radius:20px;overflow:hidden;">
-      <div style="background:linear-gradient(135deg,#12386a 0%,#0d2347 100%);padding:36px 32px 30px;">
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#081426;color:#e2e8f0;border-radius:20px;overflow:hidden;">
+      <div style="background:#102f55;padding:36px 32px 30px;">
         <div style="color:#67e8f9;font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;">ColdStreak</div>
         <h1 style="color:#fff;margin:0 0 12px;font-size:30px;line-height:1.15;">Welcome to your coldest habit.</h1>
         <p style="color:#bae6fd;margin:0;font-size:17px;line-height:1.6;">${greeting} ColdStreak helps you turn cold plunges into a trackable, rewarding routine.</p>
       </div>
 
       <div style="padding:30px 32px;">
-        <div style="background:#12345c;border:1px solid #2a638e;border-radius:16px;padding:22px 20px 20px;margin-bottom:26px;">
+        <div style="background:#102f55;border:1px solid #2a638e;border-radius:16px;padding:22px 20px 20px;margin-bottom:26px;">
           <div style="color:#bae6fd;font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:8px;">Your first plunge</div>
           <h2 style="color:#fff;margin:0 0 10px;font-size:21px;line-height:1.3;">You’re less than a minute from getting started.</h2>
           <p style="color:#cbd5e1;margin:0 0 20px;line-height:1.65;font-size:14px;">
@@ -136,7 +136,7 @@ export async function sendWelcomeEmail(to: string, displayName: string | null | 
           As you keep going, here’s what you’ll discover:
         </p>
 
-        <div style="border:1px solid #1e4774;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
+        <div style="background:#102f55;border:1px solid #2a638e;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
           <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Track your progress</div>
           <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
             Use the countdown or stopwatch from Home, then see your duration, water temperature, Cold Score, History, streaks, weekly goals, and achievements all in one place.
@@ -156,21 +156,21 @@ export async function sendWelcomeEmail(to: string, displayName: string | null | 
           </p>
         </div>
 
-        <div style="border:1px solid #1e4774;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
+        <div style="background:#102f55;border:1px solid #2a638e;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
           <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Turn your plunge into a game</div>
           <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
             Brain Freeze throws quick trivia questions at you while you’re in the water. Answer correctly, earn points and cold-water bonuses, and challenge your friends.
           </p>
         </div>
 
-        <div style="border:1px solid #1e4774;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
+        <div style="background:#102f55;border:1px solid #2a638e;border-radius:14px;padding:18px 18px 16px;margin-bottom:12px;">
           <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Find your people</div>
           <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
             Discover plunge spots, events, and other cold-plunge enthusiasts near you. Compete on leaderboards or challenge friends.
           </p>
         </div>
 
-        <div style="border:1px solid #1e4774;border-radius:14px;padding:18px 18px 16px;margin-bottom:26px;">
+        <div style="background:#102f55;border:1px solid #2a638e;border-radius:14px;padding:18px 18px 16px;margin-bottom:26px;">
           <div style="color:#67e8f9;font-size:15px;font-weight:700;margin-bottom:6px;">Keep the streak alive</div>
           <p style="color:#94a3b8;margin:0;line-height:1.6;font-size:14px;">
             Come back tomorrow, watch your progress build, and use Streak Freeze when you need a rest day.
@@ -182,7 +182,7 @@ export async function sendWelcomeEmail(to: string, displayName: string | null | 
         </p>
       </div>
 
-      <div style="border-top:1px solid #17345b;padding:20px 32px;">
+      <div style="background:#081426;border-top:1px solid #1d456b;padding:20px 32px;">
         <p style="color:#64748b;margin:0;font-size:12px;line-height:1.6;">
           You received this because you created a ColdStreak account.<br>
           Questions? Reply to this email and we’ll help.<br><br>
