@@ -70,6 +70,7 @@ import { sendFriendChallenge as sendFriendChallengeImpl } from "@/lib/sendFriend
 import { handleSwMessage } from "@/lib/swMessageHandler";
 import { buildBrainFreezeField, shouldShowBrainFreezeRow, brainFreezeRowLabel, shouldShowColdBonusRow, coldBonusRowLabel } from "@/lib/completionCard";
 import { getMissedStreakDate } from "@/lib/streakFreeze";
+import { FlowDeviceCard } from "@/components/FlowDeviceCard";
 
 // Pick a fresh cold take the user hasn't unlocked yet and persist it to the
 // unlocked collection. Falls back to a repeat only if the pool is exhausted.
@@ -4059,6 +4060,7 @@ export default function Home() {
       {/* ─── TIMER SCREEN ─── */}
       {screen === "timer" && (
         <div className="absolute bottom-20 left-0 right-0 px-3 pb-2">
+          {auth.user && <FlowDeviceCard compact useCelsius={useCelsius} />}
 
           {/* ── Goal nudge (live countdown / keep-going) ── */}
           <GoalNudge
@@ -5047,6 +5049,8 @@ export default function Home() {
             </>)}
 
             {settingsTab === 'settings' && (<>
+
+            {auth.user && <FlowDeviceCard useCelsius={useCelsius} />}
 
             {/* Replay app tour */}
             <div className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40">

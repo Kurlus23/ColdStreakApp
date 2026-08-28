@@ -12,6 +12,7 @@ import crypto from "crypto";
 import { sendPasswordResetEmail, sendVerificationEmail, sendWelcomeEmail, sendMilestoneEmail, sendAdminSecurityAlert, sendSupportEmail, sendAdminReplyEmail, sendCoManagerInviteEmail, sendFriendInviteEmail, sendBroadcastEmail } from "./email";
 import webpush from "web-push";
 import { deriveNudgeForPush, deriveWelcomeBackForPush } from "./nudge";
+import { registerFlowDeviceRoutes } from "./flow-devices";
 
 webpush.setVapidDetails(
   "mailto:ColdStreakApp17@gmail.com",
@@ -193,6 +194,7 @@ export async function registerRoutes(
   // ── Object Storage upload routes ────────────────────────────────────────
   const { registerObjectStorageRoutes } = await import("./replit_integrations/object_storage");
   registerObjectStorageRoutes(app);
+  registerFlowDeviceRoutes(app, extractUser);
 
   // ── Android App Links verification ──────────────────────────────────────
   app.get("/.well-known/assetlinks.json", (_req, res) => {

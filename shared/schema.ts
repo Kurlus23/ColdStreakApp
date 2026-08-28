@@ -322,6 +322,55 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 
+// ── Flow switch prototype devices ────────────────────────────────────────────
+// The ESP32 owns the safety interlock. The server records what the controller
+// observed and did; it is never in the relay shutdown decision path.
+export const flowDevices = pgTable("flow_devices", {
+  id: serial("id").primaryKey(),
+  deviceId: text("device_id").notNull().unique(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").default("Cold Plunge Controller").notNull(),
+  authTokenHash: text("auth_token_hash").notNull(),
+  firmwareVersion: text("firmware_version"),
+  normalFlowLpm: numeric("normal_flow_lpm", { precision: 10, scale: 3 }),
+  warningThresholdPct: integer("warning_threshold_pct").default(70).notNull(),
+  flowLpm: numeric("flow_lpm", { precision: 10, scale: 3 }),
+  waterTempC: numeric("water_temp_c", { precision: 7, scale: 3 }),
+  relayState: text("relay_state").default("off").notNull(), // off | on | tripped
+  safetyState: text("safety_state").default("boot_safe").notNull(),
+  latestFault: text("latest_fault"),
+  activePlungeId: integer("active_plunge_id").references(() => plunges.id, { onDelete: "set null" }),
+  lastSequence: integer("last_sequence").default(0).notNull(),
+  lastSeenAt: timestamp("last_seen_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("flow_devices_user_idx").on(t.userId),
+]);
+
+export const flowTelemetry = pgTable("flow_telemetry", {
+  id: serial("id").primaryKey(),
+  deviceId: integer("device_id").notNull().references(() => flowDevices.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  plungeId: integer("plunge_id").references(() => plunges.id, { onDelete: "set null" }),
+  sequence: integer("sequence").notNull(),
+  flowLpm: numeric("flow_lpm", { precision: 10, scale: 3 }).notNull(),
+  waterTempC: numeric("water_temp_c", { precision: 7, scale: 3 }).notNull(),
+  normalFlowLpm: numeric("normal_flow_lpm", { precision: 10, scale: 3 }),
+  relayState: text("relay_state").notNull(),
+  safetyState: text("safety_state").notNull(),
+  faultCode: text("fault_code"),
+  controllerUptimeMs: integer("controller_uptime_ms"),
+  recordedAt: timestamp("recorded_at").defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("flow_telemetry_device_sequence_idx").on(t.deviceId, t.sequence),
+  index("flow_telemetry_user_recorded_idx").on(t.userId, t.recordedAt),
+  index("flow_telemetry_plunge_idx").on(t.plungeId),
+]);
+
+export type FlowDevice = typeof flowDevices.$inferSelect;
+export type FlowTelemetry = typeof flowTelemetry.$inferSelect;
+
 export type InsertPlunge = z.infer<typeof insertPlungeSchema>;
 export type UpdatePlunge = z.infer<typeof updatePlungeSchema>;
 export type Plunge = typeof plunges.$inferSelect;

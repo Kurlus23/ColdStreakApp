@@ -1,0 +1,122 @@
+#include <Arduino.h>
+#include <SPI.h>
+#include <WiFi.h>
+#include <WebServer.h>
+#include <ESPmDNS.h>
+#include <Preferences.h>
+#include <HTTPClient.h>
+#include <ScioSense_UFM02.h>
+
+// ============================================================
+//                     COLDSTREAK FLOWGUARD
+// ============================================================
+#define FIRMWARE_VERSION      "1.0.0-proto"
+#define DEVICE_NAME           "Coldstreak Flowguard"
+#define AP_PASSWORD           "flowguard2026"          // Change this!
+#define ACTIVATION_URL        "https://coldstreakapp.com/"  // Replace with real endpoint later
+
+// Pin definitions (change these when you move to custom board)
+#define PIN_CS                5
+#define PIN_INT               2
+#define PIN_RELAY             26
+
+// Flow protection settings
+const float LOW_FLOW_THRESHOLD   = 2.0;    // L/min - turn OFF below this
+const float RECOVERY_THRESHOLD   = 3.0;    // L/min - turn ON above this
+const unsigned long DEBOUNCE_MS  = 5000;   // seconds of low flow before cutoff
+// ============================================================
+
+Preferences prefs;
+WebServer server(80);
+UFM02 ufm02;
+
+bool pumpOn = false;
+bool isActivated = false;
+unsigned long lowFlowStart = 0;
+
+float currentFlow = 0.0;
+float currentTemp = 0.0;
+
+String wifiSSID = "";
+String wifiPass = "";
+String botToken = "";
+String chatID   = "";
+
+// ----------------------- Helper Functions -----------------------
+
+void loadCredentials() {
+  prefs.begin("flowguard", true);
+  wifiSSID   = prefs.getString("ssid", "");
+  wifiPass   = prefs.getString("pass", "");
+  botToken   = prefs.getString("token", "");
+  chatID     = prefs.getString("chat", "");
+  isActivated = prefs.getBool("activated", false);
+  prefs.end();
+}
+
+void saveCredentials() {
+  prefs.begin("flowguard", false);
+  prefs.putString("ssid", wifiSSID);
+  prefs.putString("pass", wifiPass);
+  prefs.putString("token", botToken);
+  prefs.putString("chat", chatID);
+  prefs.putBool("activated", isActivated);
+  prefs.end();
+}
+
+bool checkActivation() {
+  if (isActivated) return true;
+
+  HTTPClient http;
+  http.setTimeout(5000);
+  http.begin(ACTIVATION_URL);
+  int code = http.GET();
+  http.end();
+
+  if (code > 0) {
+    isActivated = true;
+    saveCredentials();
+    Serial.println("Device activated successfully");
+    return true;
+  }
+  Serial.println("Activation check failed");
+  return false;
+}
+
+void sendTelegram(String message) {
+  if (botToken.length() < 10 || chatID.length() < 3) return;
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  HTTPClient http;
+  String url = "https://api.telegram.org/bot" + botToken +
+               "/sendMessage?chat_id=" + chatID +
+               "&text=" + message;
+  http.begin(url);
+  http.GET();
+  http.end();
+}
+
+// ----------------------- Web Interface -----------------------
+
+void handleRoot() {
+  String html = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="5">
+  <title>Coldstreak Flowguard</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0b1320;
+      color: #e0f7fa;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 { color: #4fc3f7; margin-bottom: 5px; }
+    .subtitle { opacity: 0.7; margin-bottom: 30px; }
+    .card {
+     
