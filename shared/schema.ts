@@ -17,7 +17,7 @@ export const users = pgTable("users", {
   bodyFat:   integer("body_fat"),    // stored as tenths of a percent (199 = 19.9%)
   isAdmin: boolean("is_admin").default(false).notNull(),
   isDisabled: boolean("is_disabled").default(false).notNull(),
-  displayPrefs: text("display_prefs"),  // JSON: { useCelsius, countdownMode, countdownMinutes, countdownSeconds }
+  displayPrefs: text("display_prefs"),  // JSON: { useCelsius, countdownMode, countdownMinutes, countdownSeconds, brainFreezeEnabled, brainFreezePromptPending }
   unitSystem: text("unit_system"),      // "imperial" | "metric" — set by user or auto-detected from country
   timezone: text("timezone"), // IANA tz from client (e.g., "America/Los_Angeles")
   country: text("country"),   // ISO-2 country code (e.g., "US", "GB")

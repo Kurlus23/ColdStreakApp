@@ -628,6 +628,8 @@ export default function Home() {
   // Countdown
   const [countdownMode, setCountdownMode] = useState(() => localStorage.getItem("coldstreak-countdown-mode") === "true");
   const [brainFreezeEnabled, setBrainFreezeEnabled] = useState(() => localStorage.getItem("coldstreak-brain-freeze") !== "false");
+  const [brainFreezePromptPending, setBrainFreezePromptPending] = useState(false);
+  const [showBrainFreezeOptIn, setShowBrainFreezeOptIn] = useState(false);
   const [brainFreezeLabData, setBrainFreezeLabData] = useState<null | {
     totalAnswers: number;
     minForStat?: number;
@@ -1901,9 +1903,14 @@ export default function Home() {
         let resolvedCountdownMode = countdownMode;
         let resolvedMinutes = minutesInput;
         let resolvedSeconds = secondsInput;
+        let resolvedBrainFreezeEnabled = brainFreezeEnabled;
+        let resolvedBrainFreezePending = false;
         if (data.displayPrefs) {
           try {
-            const prefs = JSON.parse(data.displayPrefs) as { useCelsius?: boolean; countdownMode?: boolean; countdownMinutes?: number; countdownSeconds?: number; brainFreezeEnabled?: boolean };
+            const prefs = JSON.parse(data.displayPrefs) as { useCelsius?: boolean; countdownMode?: boolean; countdownMinutes?: number; countdownSeconds?: number; brainFreezeEnabled?: boolean; brainFreezePromptPending?: boolean };
+            resolvedBrainFreezePending = prefs.brainFreezePromptPending === true;
+            setBrainFreezePromptPending(resolvedBrainFreezePending);
+            setShowBrainFreezeOptIn(resolvedBrainFreezePending);
             if (typeof prefs.useCelsius === "boolean") {
               hasExplicitCelsius = true;
               setUseCelsius(prefs.useCelsius);
@@ -1925,10 +1932,19 @@ export default function Home() {
               localStorage.setItem("coldstreak-countdown-seconds", String(prefs.countdownSeconds));
             }
             if (typeof prefs.brainFreezeEnabled === "boolean") {
+              resolvedBrainFreezeEnabled = prefs.brainFreezeEnabled;
               setBrainFreezeEnabled(prefs.brainFreezeEnabled);
               localStorage.setItem("coldstreak-brain-freeze", String(prefs.brainFreezeEnabled));
+            } else if (resolvedBrainFreezePending) {
+              // A new account must choose before the first question can appear.
+              resolvedBrainFreezeEnabled = false;
+              setBrainFreezeEnabled(false);
+              localStorage.setItem("coldstreak-brain-freeze", "false");
             }
           } catch { /* ignore malformed prefs */ }
+        } else {
+          setBrainFreezePromptPending(false);
+          setShowBrainFreezeOptIn(false);
         }
 
         // Restore unit system from server (overrides localStorage; country-based auto-detect as fallback).
@@ -1960,7 +1976,7 @@ export default function Home() {
           // still be the old (stale) values if used directly.
           const tok2 = localStorage.getItem("coldstreak-auth-token");
           if (tok2) {
-            const mergedPrefs = JSON.stringify({ useCelsius: celsius, countdownMode: resolvedCountdownMode, countdownMinutes: resolvedMinutes, countdownSeconds: resolvedSeconds });
+            const mergedPrefs = JSON.stringify({ useCelsius: celsius, countdownMode: resolvedCountdownMode, countdownMinutes: resolvedMinutes, countdownSeconds: resolvedSeconds, brainFreezeEnabled: resolvedBrainFreezeEnabled, brainFreezePromptPending: resolvedBrainFreezePending });
             fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok2}` }, body: JSON.stringify({ unitSystem: detected, displayPrefs: mergedPrefs }) }).catch(() => {});
           }
         }
@@ -2152,8 +2168,8 @@ export default function Home() {
 
   // Save an edited account username from the Profile menu (validates + handles 409).
   // ── Persistent display preferences (timer only) ─────────────────────────
-  const saveDisplayPrefs = (prefs: { useCelsius?: boolean; countdownMode?: boolean; countdownMinutes?: number; countdownSeconds?: number; brainFreezeEnabled?: boolean }) => {
-    const merged = { useCelsius, countdownMode, countdownMinutes: minutesInput, countdownSeconds: secondsInput, brainFreezeEnabled, ...prefs };
+  const saveDisplayPrefs = (prefs: { useCelsius?: boolean; countdownMode?: boolean; countdownMinutes?: number; countdownSeconds?: number; brainFreezeEnabled?: boolean; brainFreezePromptPending?: boolean }) => {
+    const merged = { useCelsius, countdownMode, countdownMinutes: minutesInput, countdownSeconds: secondsInput, brainFreezeEnabled, brainFreezePromptPending, ...prefs };
     const tok = localStorage.getItem("coldstreak-auth-token");
     if (!tok) return;
     fetch("/api/auth/profile", {
@@ -2161,6 +2177,14 @@ export default function Home() {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
       body: JSON.stringify({ displayPrefs: JSON.stringify(merged) }),
     }).catch(() => {});
+  };
+
+  const setBrainFreezePreference = (enabled: boolean) => {
+    setBrainFreezeEnabled(enabled);
+    setBrainFreezePromptPending(false);
+    setShowBrainFreezeOptIn(false);
+    localStorage.setItem("coldstreak-brain-freeze", String(enabled));
+    saveDisplayPrefs({ brainFreezeEnabled: enabled, brainFreezePromptPending: false });
   };
 
   // Fetch Brain Freeze stats whenever the Insights tab is opened
@@ -5145,10 +5169,7 @@ export default function Home() {
               <button
                 data-testid="button-toggle-brain-freeze"
                 onClick={() => {
-                  const next = !brainFreezeEnabled;
-                  setBrainFreezeEnabled(next);
-                  localStorage.setItem("coldstreak-brain-freeze", String(next));
-                  saveDisplayPrefs({ brainFreezeEnabled: next });
+                  setBrainFreezePreference(!brainFreezeEnabled);
                 }}
                 className={`relative w-11 h-6 rounded-full transition-colors ${brainFreezeEnabled ? "bg-cyan-500" : "bg-blue-800/80"}`}
               >
@@ -9295,11 +9316,7 @@ export default function Home() {
           onBrainFreezeScore={(s) => { brainFreezeScoreRef.current = s; }}
           onBrainFreezeStats={(c, t) => { brainFreezeCorrectRef.current = c; brainFreezeTotalRef.current = t; }}
           onColdBonusUpdate={(b) => { brainFreezeColdBonusRef.current = b; }}
-          onBrainFreezeToggle={(next) => {
-            setBrainFreezeEnabled(next);
-            localStorage.setItem("coldstreak-brain-freeze", String(next));
-            saveDisplayPrefs({ brainFreezeEnabled: next });
-          }}
+          onBrainFreezeToggle={setBrainFreezePreference}
         />
       )}
 
@@ -9434,6 +9451,48 @@ export default function Home() {
         challengeOpponentName={activeBfChallenge?.opponentName}
         challengeQuestions={activeBfChallenge?.questions}
       />
+
+      {showBrainFreezeOptIn && !showOnboarding && legalAgreed && auth.user && !isActive && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center px-5"
+          style={{ background: "rgba(5,12,30,0.84)", backdropFilter: "blur(8px)" }}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl bg-blue-950 border border-cyan-600/40 shadow-2xl overflow-hidden"
+            data-testid="modal-brain-freeze-opt-in"
+          >
+            <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500" />
+            <div className="px-6 pt-6 pb-5 text-center">
+              <img
+                src="/brain-freeze-icon.png"
+                alt=""
+                className="w-16 h-16 rounded-2xl object-cover mx-auto mb-4"
+                style={{ boxShadow: "0 0 20px rgba(96,165,250,0.35)" }}
+              />
+              <h2 className="text-white font-bold text-xl">Want trivia during your plunge?</h2>
+              <p className="text-blue-300 text-sm leading-relaxed mt-2">
+                Brain Freeze asks optional questions while your timer runs.
+              </p>
+              <div className="flex flex-col gap-2.5 mt-6">
+                <button
+                  data-testid="button-brain-freeze-turn-on"
+                  onClick={() => setBrainFreezePreference(true)}
+                  className="w-full py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-blue-950 font-bold text-sm transition-all active:scale-[0.98]"
+                >
+                  Turn it on
+                </button>
+                <button
+                  data-testid="button-brain-freeze-not-now"
+                  onClick={() => setBrainFreezePreference(false)}
+                  className="w-full py-3 rounded-2xl bg-blue-900/70 hover:bg-blue-800/80 border border-blue-700/60 text-blue-200 font-semibold text-sm transition-all active:scale-[0.98]"
+                >
+                  Not now
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showBenefitPicker && (
         <div

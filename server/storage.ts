@@ -597,7 +597,7 @@ export class DatabaseStorage implements IStorage {
   async createUser(
     email: string,
     passwordHash: string,
-    opts?: { username?: string; displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number },
+    opts?: { username?: string; displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number; displayPrefs?: string },
   ): Promise<User> {
     const [user] = await db
       .insert(users)
@@ -615,6 +615,7 @@ export class DatabaseStorage implements IStorage {
         ...(typeof opts?.bodyFat === "number" && opts.bodyFat > 0
           ? { bodyFat: Math.round(opts.bodyFat) }
           : {}),
+        ...(typeof opts?.displayPrefs === "string" ? { displayPrefs: opts.displayPrefs } : {}),
       })
       .returning();
     return user;

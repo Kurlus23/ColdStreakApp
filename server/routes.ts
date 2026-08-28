@@ -246,6 +246,7 @@ export async function registerRoutes(
         bodyWeight,
         bodyHeight,
         bodyFat,
+        displayPrefs: JSON.stringify({ brainFreezePromptPending: true }),
       });
       const token = signToken({ userId: user.id, email: user.email });
 
