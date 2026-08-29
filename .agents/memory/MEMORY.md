@@ -18,3 +18,4 @@
 - [Approved welcome email](welcome-email-convention.md) — treat the current welcome email as canonical and flag it for review when product messaging changes.
 - [Streak Freeze visibility](streak-freeze-visibility.md) — keep Freeze off the persistent Home UI; surface it contextually for a missed-day repair.
 - [Flow controller safety boundary](flow-controller-safety-boundary.md) — ESP32 owns shutdown locally; Bluetooth authorizes first, Wi-Fi only reports and alerts.
+- [Publish database endpoint failures](publish-database-endpoint-failures.md) — PostgreSQL 28000 “endpoint disabled” after image push is database availability, not a compile failure.
