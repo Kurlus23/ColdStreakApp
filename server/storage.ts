@@ -84,8 +84,8 @@ export interface IStorage {
   deleteLeaderboardEntry(id: number): Promise<void>;
   // Pro users
   getProUser(email: string): Promise<ProUser | null>;
-  getAllProUsers(): Promise<ProUser[]>;
-  getFreeUsers(): Promise<{ id: number; email: string; username: string | null; displayName: string | null; isDisabled: boolean; createdAt: Date }[]>;
+  getAllProUsers(): Promise<Array<ProUser & { primaryBenefit: string | null }>>;
+  getFreeUsers(): Promise<{ id: number; email: string; username: string | null; displayName: string | null; primaryBenefit: string | null; isDisabled: boolean; createdAt: Date }[]>;
   setUserDisabled(id: number, disabled: boolean): Promise<void>;
   getProUserCount(): Promise<number>;
   createProUser(email: string, stripeSessionId: string, opts?: { planType?: string; stripeSubscriptionId?: string; expiresAt?: Date }): Promise<ProUser>;
@@ -137,6 +137,7 @@ export interface IStorage {
     email: string;
     username: string | null;
     displayName: string | null;
+    primaryBenefit: string | null;
     emailVerified: boolean;
     isAdmin: boolean;
     isPro: boolean;
@@ -422,13 +423,36 @@ export class DatabaseStorage implements IStorage {
     return user ?? null;
   }
 
-  async getAllProUsers(): Promise<ProUser[]> {
-    return db.select().from(proUsers).orderBy(desc(proUsers.createdAt));
+  async getAllProUsers(): Promise<Array<ProUser & { primaryBenefit: string | null }>> {
+    return db
+      .select({
+        id: proUsers.id,
+        email: proUsers.email,
+        stripeSessionId: proUsers.stripeSessionId,
+        planType: proUsers.planType,
+        stripeSubscriptionId: proUsers.stripeSubscriptionId,
+        expiresAt: proUsers.expiresAt,
+        active: proUsers.active,
+        foundingPlunger: proUsers.foundingPlunger,
+        createdAt: proUsers.createdAt,
+        primaryBenefit: users.primaryBenefit,
+      })
+      .from(proUsers)
+      .leftJoin(users, sql`lower(${users.email}) = lower(${proUsers.email})`)
+      .orderBy(desc(proUsers.createdAt));
   }
 
-  async getFreeUsers(): Promise<{ id: number; email: string; username: string | null; displayName: string | null; isDisabled: boolean; createdAt: Date }[]> {
+  async getFreeUsers(): Promise<{ id: number; email: string; username: string | null; displayName: string | null; primaryBenefit: string | null; isDisabled: boolean; createdAt: Date }[]> {
     return db
-      .select({ id: users.id, email: users.email, username: users.username, displayName: users.displayName, isDisabled: users.isDisabled, createdAt: users.createdAt })
+      .select({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        displayName: users.displayName,
+        primaryBenefit: users.primaryBenefit,
+        isDisabled: users.isDisabled,
+        createdAt: users.createdAt,
+      })
       .from(users)
       .where(sql`lower(${users.email}) NOT IN (
         SELECT email FROM pro_users
@@ -2257,7 +2281,7 @@ export class DatabaseStorage implements IStorage {
         GROUP BY user_id
       )
       SELECT
-        u.id, u.email, u.username, u.display_name, u.email_verified, u.is_admin,
+        u.id, u.email, u.username, u.display_name, u.primary_benefit, u.email_verified, u.is_admin,
         u.timezone, u.country, u.region,
         u.created_at AS signed_up_at,
         (pu.email IS NOT NULL) AS is_pro,
@@ -2317,6 +2341,7 @@ export class DatabaseStorage implements IStorage {
         email: r.email,
         username: r.username ?? null,
         displayName: r.display_name ?? null,
+        primaryBenefit: r.primary_benefit ?? null,
         emailVerified: !!r.email_verified,
         isAdmin: !!r.is_admin,
         isPro: !!r.is_pro,

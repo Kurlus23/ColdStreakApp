@@ -120,6 +120,7 @@ interface FreeUser {
   email: string;
   username: string | null;
   displayName: string | null;
+  primaryBenefit: string | null;
   isDisabled: boolean;
   createdAt: string;
 }
@@ -134,6 +135,7 @@ interface ProUser {
   stripeSubscriptionId: string | null;
   expiresAt: string | null;
   createdAt: string;
+  primaryBenefit: string | null;
 }
 
 interface CommunityLocation {
@@ -252,6 +254,19 @@ function fmtDate(d: string) {
   return new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+const GOAL_LABELS: Record<string, string> = {
+  energy: "Energy",
+  mood: "Mood",
+  metabolism: "Metabolism",
+  recovery: "Recovery",
+};
+
+function formatGoal(goal: string | null | undefined): string | null {
+  const normalized = goal?.trim();
+  if (!normalized) return null;
+  return GOAL_LABELS[normalized] ?? normalized;
+}
+
 export default function Admin() {
   const { toast } = useToast();
   const auth = useAuth();
@@ -285,6 +300,7 @@ export default function Admin() {
 
   type UserActivity = {
     id: number; email: string; username: string | null; displayName: string | null;
+    primaryBenefit: string | null;
     emailVerified: boolean; isAdmin: boolean; isPro: boolean;
     signedUpAt: string;
     totalPlunges: number; uniqueDays: number; currentStreak: number; longestStreak: number;
@@ -890,6 +906,7 @@ export default function Admin() {
   const activityAccessors: Record<string, (u: NonNullable<typeof userActivity>[number]) => string | number | null> = {
     email: (u) => u.email.toLowerCase(),
     role: (u) => (u.isAdmin ? 2 : u.isPro ? 1 : 0),
+    goal: (u) => u.primaryBenefit,
     plunges: (u) => u.totalPlunges,
     days: (u) => u.uniqueDays,
     streak: (u) => u.currentStreak,
@@ -957,6 +974,7 @@ export default function Admin() {
                 <tr>
                   {activityTh("email", "Email")}
                   {activityTh("role", "Role")}
+                  {activityTh("goal", "Goal")}
                   {activityTh("plunges", "Plunges", { right: true })}
                   {activityTh("days", "Days", { right: true })}
                   {activityTh("streak", "Streak", { right: true })}
@@ -983,6 +1001,7 @@ export default function Admin() {
                     return m > 0 ? `${m}m ${s}s` : `${s}s`;
                   };
                   const role = u.isAdmin ? "admin" : u.isPro ? "pro" : "free";
+                  const goal = formatGoal(u.primaryBenefit);
                   const roleColor = u.isAdmin ? "bg-purple-900/40 text-purple-300 border-purple-700/50"
                     : u.isPro ? "bg-amber-900/40 text-amber-300 border-amber-700/50"
                     : "bg-slate-700/40 text-slate-300 border-slate-600/50";
@@ -1049,6 +1068,13 @@ export default function Admin() {
                       </td>
                       <td className="px-3 py-2">
                         <span className={`inline-block px-1.5 py-0.5 rounded border text-[10px] uppercase ${roleColor}`}>{role}</span>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {goal ? (
+                          <span className="text-cyan-300" data-testid={`text-goal-${u.id}`}>{goal}</span>
+                        ) : (
+                          <span className="text-slate-600">—</span>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums text-white font-semibold">{u.totalPlunges}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-slate-300">{u.uniqueDays}</td>
@@ -1176,6 +1202,11 @@ export default function Admin() {
                         {u.planType} {u.foundingPlunger && "· Founding Plunger"}
                         {u.expiresAt && ` · Expires ${new Date(u.expiresAt).toLocaleDateString()}`}
                       </p>
+                      {formatGoal(u.primaryBenefit) && (
+                        <p className="text-xs text-cyan-300 mt-0.5" data-testid={`text-pro-goal-${u.id}`}>
+                          Goal: {formatGoal(u.primaryBenefit)}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge data-testid={`badge-active-${u.id}`} className={u.active ? "bg-green-600 text-white" : "bg-red-600 text-white"}>
@@ -1264,6 +1295,11 @@ export default function Admin() {
                             {u.displayName && u.username ? ` · ${u.displayName}` : ""}
                             {" · "}Joined {new Date(u.createdAt).toLocaleDateString()}
                           </p>
+                          {formatGoal(u.primaryBenefit) && (
+                            <p className="text-xs text-cyan-300 mt-0.5" data-testid={`text-free-goal-${u.id}`}>
+                              Goal: {formatGoal(u.primaryBenefit)}
+                            </p>
+                          )}
                         </div>
                         <Badge className="bg-slate-600 text-slate-200 text-xs shrink-0">Free</Badge>
                       </div>

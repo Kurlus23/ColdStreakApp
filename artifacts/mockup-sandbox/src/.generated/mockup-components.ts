@@ -3,9 +3,9 @@ type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 export const modules: ModuleMap = {
   "./components/mockups/benefit-position/OptionA.tsx": () => import("../components/mockups/benefit-position/OptionA.tsx"),
   "./components/mockups/benefit-position/OptionB.tsx": () => import("../components/mockups/benefit-position/OptionB.tsx"),
+  "./components/mockups/biz-profile/VerifiedProfile.tsx": () => import("../components/mockups/biz-profile/VerifiedProfile.tsx"),
   "./components/mockups/bg-compare/FrostLake.tsx": () => import("../components/mockups/bg-compare/FrostLake.tsx"),
   "./components/mockups/bg-compare/IceCave.tsx": () => import("../components/mockups/bg-compare/IceCave.tsx"),
-  "./components/mockups/biz-profile/VerifiedProfile.tsx": () => import("../components/mockups/biz-profile/VerifiedProfile.tsx"),
   "./components/mockups/brain-freeze/Complete.tsx": () => import("../components/mockups/brain-freeze/Complete.tsx"),
   "./components/mockups/brain-freeze/Interlude.tsx": () => import("../components/mockups/brain-freeze/Interlude.tsx"),
   "./components/mockups/brain-freeze/InterludeA.tsx": () => import("../components/mockups/brain-freeze/InterludeA.tsx"),
