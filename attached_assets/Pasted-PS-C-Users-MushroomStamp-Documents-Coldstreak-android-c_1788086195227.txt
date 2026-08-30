@@ -1,0 +1,59 @@
+PS C:\Users\MushroomStamp\Documents\Coldstreak\android> cd android
+cd : Cannot find path 'C:\Users\MushroomStamp\Documents\Coldstreak\android\android' because it does not exist.
+At line:1 char:1
++ cd android
++ ~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\Users\Mushro...android\android:String) [Set-Location], ItemNotFoundException
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.SetLocationCommand
+ 
+PS C:\Users\MushroomStamp\Documents\Coldstreak\android> .\gradlew.bat -version
+ 
+ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH. 
+ 
+Please set the JAVA_HOME variable in your environment to match the 
+location of your Java installation. 
+PS C:\Users\MushroomStamp\Documents\Coldstreak\android> $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+PS C:\Users\MushroomStamp\Documents\Coldstreak\android> $env:Path = "$env:JAVA_HOME\bin;$env:Path"
+PS C:\Users\MushroomStamp\Documents\Coldstreak\android> java -version
+openjdk version "21.0.9" 2025-10-21
+OpenJDK Runtime Environment (build 21.0.9+-14787801-b1163.94)
+OpenJDK 64-Bit Server VM (build 21.0.9+-14787801-b1163.94, mixed mode)
+PS C:\Users\MushroomStamp\Documents\Coldstreak\android> .\gradlew.bat clean
+Downloading https://services.gradle.org/distributions/gradle-8.13-bin.zip
+.............10%.............20%.............30%.............40%.............50%.............60%.............70%.............80%.............90%.............100%
+
+Welcome to Gradle 8.13!
+
+Here are the highlights of this release:
+ - Daemon JVM auto-provisioning
+ - Enhancements for Scala plugin and JUnit testing
+ - Improvements for build authors and plugin developers
+
+For more details see https://docs.gradle.org/8.13/release-notes.html
+
+Starting a Gradle Daemon (subsequent builds will be faster)
+
+> Configure project :app
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :capacitor-cordova-android-plugins
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+The Kotlin Gradle plugin was loaded multiple times in different subprojects, which is not supported and may break the build. 
+This might happen in subprojects that apply the Kotlin plugins with the Gradle 'plugins { ... }' DSL if they specify explicit versions, even if the versions are equal.
+Please add the Kotlin plugin to the common parent project or the root project, then remove the versions in the subprojects.
+If the parent project does not need the plugin, add 'apply false' to the plugin line.
+See: https://docs.gradle.org/current/userguide/plugins.html#sec:subprojects_plugins_dsl
+The Kotlin plugin was loaded in the following projects: ':capacitor-community-bluetooth-le', ':revenuecat-purchases-capacitor'
+
+[Incubating] Problems report is available at: file:///C:/Users/MushroomStamp/Documents/Coldstreak/android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 44s
+14 actionable tasks: 14 executed
+PS C:\Users\MushroomStamp\Documents\Coldstreak\android> .\gradlew.bat bundleRelease
