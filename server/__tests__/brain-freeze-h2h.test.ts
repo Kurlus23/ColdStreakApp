@@ -305,6 +305,10 @@ describe("getBrainFreezeHeadToHead() — via real challenge completion", () => {
     // Record must be exactly the same — pending row must not be counted.
     const after = await getBrainFreezeHeadToHead(userAId, userBId);
     expect(after).toEqual(snapshot);
+
+    // This synthetic pending row would legitimately block the pair from
+    // creating another challenge later in the suite, so remove it now.
+    await db.delete(brainFreezeChallenges).where(eq(brainFreezeChallenges.id, pending.id));
   });
 
   it("does NOT count a challenger_done (in-progress) challenge", async () => {
@@ -327,6 +331,9 @@ describe("getBrainFreezeHeadToHead() — via real challenge completion", () => {
 
     const after = await getBrainFreezeHeadToHead(userAId, userBId);
     expect(after).toEqual(snapshot);
+
+    // Keep subsequent challenge-creation tests independent from this fixture.
+    await db.delete(brainFreezeChallenges).where(eq(brainFreezeChallenges.id, inProgress.id));
   });
 
   it("reflects a new win immediately after a fourth challenge completes", async () => {

@@ -2,7 +2,8 @@
  * coach.routing.test.ts
  *
  * Verifies that the coach routing tables send calorie-burn and Sweet Spot
- * questions to the "achievements" screen (Profile › Stats tab), not "history".
+ * questions to the "achievements:stats" screen context (Profile › Stats tab),
+ * not "history".
  *
  * These tests are intentionally offline — they validate the static configuration
  * (APP_KNOWLEDGE prompt and SCREEN_LABELS map) without calling the Gemini API.
@@ -42,16 +43,15 @@ function extractScreenLabels(source: string): Record<string, string> {
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
-describe("coach routing — Stats features → achievements screen", () => {
+describe("coach routing — Stats features → Profile Stats screen", () => {
   const bullets = extractNavigateBullets(src);
   const labels  = extractScreenLabels(src);
 
-  it('APP_KNOWLEDGE maps "achievements" to Stats tab features (calorie burn, sweet spot, etc.)', () => {
-    // The bullet for "achievements" must mention the Stats-tab features
-    expect(bullets).toMatch(/"achievements"/);
+  it('APP_KNOWLEDGE maps "achievements:stats" to Stats tab features (calorie burn, sweet spot, etc.)', () => {
+    expect(bullets).toMatch(/"achievements:stats"/);
     const achievementLine = bullets
       .split("\n")
-      .find((l) => l.includes('"achievements"'));
+      .find((l) => l.includes('"achievements:stats"'));
     expect(achievementLine).toBeTruthy();
     expect(achievementLine!.toLowerCase()).toContain("calorie");
     expect(achievementLine!.toLowerCase()).toContain("sweet spot");
@@ -69,10 +69,11 @@ describe("coach routing — Stats features → achievements screen", () => {
     }
   });
 
-  it("SCREEN_LABELS has exactly one achievements entry (no duplicate key)", () => {
-    // Count raw occurrences of 'achievements:' in the SCREEN_LABELS block
+  it("SCREEN_LABELS has exactly one unscoped achievements entry", () => {
+    // Scoped keys intentionally include achievements:account and
+    // achievements:stats; only the unquoted fallback key should occur once.
     const labelsBlock = src.match(/const SCREEN_LABELS[^=]*=\s*\{([\s\S]*?)\};/)?.[1] ?? "";
-    const occurrences = (labelsBlock.match(/\bachievements\s*:/g) ?? []).length;
+    const occurrences = (labelsBlock.match(/^\s*achievements\s*:/gm) ?? []).length;
     expect(occurrences).toBe(1);
   });
 
