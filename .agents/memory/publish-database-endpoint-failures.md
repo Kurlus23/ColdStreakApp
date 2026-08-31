@@ -7,4 +7,4 @@ When a publish builds and pushes its image successfully but promotion repeatedly
 
 **Why:** A paused or temporarily disabled production database endpoint prevents startup database work and causes the root health check to fail, even though compilation and bundling succeeded.
 
-**How to apply:** Confirm production database reachability, check for conflicting database configuration without exposing credentials, and retry publishing once the production database is unpaused. Do not modify runtime-managed database variables manually.
+**How to apply:** Confirm production database reachability, check for conflicting database configuration without exposing credentials, and retry publishing once the production database is unpaused. Do not modify runtime-managed database variables manually. Keep a `pg.Pool` error listener in the server so termination of an idle client during maintenance cannot become an unhandled Node process crash.
