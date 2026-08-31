@@ -19,6 +19,8 @@
 import { describe, it, expect } from "vitest";
 import {
   computeThresholds,
+  computeBenefitFills,
+  computeEarnedSegments,
   getMidSegmentIdx,
   getSecsToFinish,
   SEGMENTS,
@@ -26,21 +28,31 @@ import {
 
 // ── Reference scenario: 50 °F, default body metrics ──────────────────────────
 // getTempFactor(50) = 1.0 exactly.
-// getBmiFactor(150 lb, 175 cm): BMI = (150/2.205) / (1.75)^2 ≈ 22.22 → factor ≈ 1.010
-// Actual thresholds (verified): [61, 182, 303, 485]
+// Each benefit progresses independently from zero.
+// Actual thresholds: [60, 120, 120, 180]
 const TEMP_50F = 50;
-const T = computeThresholds(TEMP_50F); // [61, 182, 303, 485]
+const T = computeThresholds(TEMP_50F); // [60, 120, 120, 180]
 
 describe("computeThresholds at 50 °F / default metrics", () => {
-  it("returns 4 strictly ascending integer thresholds", () => {
+  it("returns 4 independent integer thresholds", () => {
     expect(T).toHaveLength(4);
-    for (let i = 1; i < T.length; i++) {
-      expect(T[i]).toBeGreaterThan(T[i - 1]);
-    }
+    T.forEach((threshold) => expect(Number.isInteger(threshold)).toBe(true));
   });
 
-  it("matches verified values [61, 182, 303, 485]", () => {
-    expect(T).toEqual([61, 182, 303, 485]);
+  it("matches the four per-benefit peak durations", () => {
+    expect(T).toEqual([60, 120, 120, 180]);
+  });
+
+  it("fills every benefit simultaneously from the beginning", () => {
+    const fills = computeBenefitFills(30, T);
+    expect(fills.slice(0, 3)).toEqual([50, 25, 25]);
+    expect(fills[3]).toBeCloseTo(16.67, 2);
+  });
+
+  it("earns benefits independently at their own thresholds", () => {
+    expect(computeEarnedSegments(60, TEMP_50F)).toEqual(["energy"]);
+    expect(computeEarnedSegments(120, TEMP_50F)).toEqual(["energy", "mood", "metabolism"]);
+    expect(computeEarnedSegments(180, TEMP_50F)).toEqual(["energy", "mood", "metabolism", "recovery"]);
   });
 });
 
@@ -51,26 +63,21 @@ describe("getMidSegmentIdx", () => {
 
   it("returns 0 (Energy) while inside the Energy segment", () => {
     expect(getMidSegmentIdx(30, T)).toBe(0);
-    expect(getMidSegmentIdx(60, T)).toBe(0); // 60 < 61
+    expect(getMidSegmentIdx(59, T)).toBe(0);
   });
 
-  it("returns 1 (Mood) right after the Energy threshold", () => {
-    expect(getMidSegmentIdx(61, T)).toBe(1);
+  it("returns 1 (Mood) after the Energy peak", () => {
+    expect(getMidSegmentIdx(60, T)).toBe(1);
     expect(getMidSegmentIdx(100, T)).toBe(1);
   });
 
-  it("returns 2 (Metabolism) right after the Mood threshold", () => {
-    expect(getMidSegmentIdx(182, T)).toBe(2);
-    expect(getMidSegmentIdx(250, T)).toBe(2);
-  });
-
-  it("returns 3 (Recovery) right after the Metabolism threshold", () => {
-    expect(getMidSegmentIdx(303, T)).toBe(3);
-    expect(getMidSegmentIdx(400, T)).toBe(3);
+  it("skips equal thresholds that were reached together", () => {
+    expect(getMidSegmentIdx(120, T)).toBe(3);
+    expect(getMidSegmentIdx(150, T)).toBe(3);
   });
 
   it("returns -1 (all done) at and beyond the Recovery threshold", () => {
-    expect(getMidSegmentIdx(485, T)).toBe(-1);
+    expect(getMidSegmentIdx(180, T)).toBe(-1);
     expect(getMidSegmentIdx(600, T)).toBe(-1);
   });
 
@@ -91,10 +98,10 @@ describe("getMidSegmentIdx", () => {
   });
 
   it("button switches to Metabolism (🔥) immediately after Mood threshold", () => {
-    const atMood = T[1]; // 182
+    const atMood = T[1]; // 120
     const idx = getMidSegmentIdx(atMood, T);
-    expect(idx).toBe(2);
-    expect(SEGMENTS[idx].emoji).toBe("🔥");
+    expect(idx).toBe(3);
+    expect(SEGMENTS[idx].emoji).toBe("💪");
   });
 });
 
@@ -102,26 +109,20 @@ describe("getSecsToFinish", () => {
   it("returns exact seconds to reach Energy threshold from 20 s", () => {
     const elapsed = 20;
     const midIdx = getMidSegmentIdx(elapsed, T); // 0
-    expect(getSecsToFinish(elapsed, T, midIdx)).toBe(T[0] - elapsed); // 41
+    expect(getSecsToFinish(elapsed, T, midIdx)).toBe(T[0] - elapsed); // 40
     expect(elapsed + getSecsToFinish(elapsed, T, midIdx)).toBe(T[0]);
   });
 
   it("returns exact seconds to reach Mood threshold from 90 s", () => {
     const elapsed = 90;
     const midIdx = getMidSegmentIdx(elapsed, T); // 1
-    expect(elapsed + getSecsToFinish(elapsed, T, midIdx)).toBe(T[1]); // 182
-  });
-
-  it("returns exact seconds to reach Metabolism threshold from 200 s", () => {
-    const elapsed = 200;
-    const midIdx = getMidSegmentIdx(elapsed, T); // 2
-    expect(elapsed + getSecsToFinish(elapsed, T, midIdx)).toBe(T[2]); // 303
+    expect(elapsed + getSecsToFinish(elapsed, T, midIdx)).toBe(T[1]); // 120
   });
 
   it("returns exact seconds to reach Recovery threshold from 400 s", () => {
-    const elapsed = 400;
+    const elapsed = 140;
     const midIdx = getMidSegmentIdx(elapsed, T); // 3
-    expect(elapsed + getSecsToFinish(elapsed, T, midIdx)).toBe(T[3]); // 485
+    expect(elapsed + getSecsToFinish(elapsed, T, midIdx)).toBe(T[3]); // 180
   });
 
   it("is always >= 1 (never 0) for every in-segment position", () => {
@@ -158,7 +159,7 @@ describe("getSecsToFinish", () => {
 describe("+Finish click handler argument (Home.tsx wiring)", () => {
   it("passes 60 when all segments are done (allDone === true)", () => {
     // Mirrors: handleAddTime(allDone ? 60 : secsToFinish)
-    const elapsed = 485; // all done
+    const elapsed = 180; // all done
     const midIdx = getMidSegmentIdx(elapsed, T);
     const allDone = midIdx === -1;
     const secsToFinish = allDone ? 0 : getSecsToFinish(elapsed, T, midIdx);
@@ -169,7 +170,7 @@ describe("+Finish click handler argument (Home.tsx wiring)", () => {
 
   it("passes secsToFinish when in-progress (allDone === false)", () => {
     const todayLogged = 0;
-    const sessionElapsed = 90; // inside Mood segment
+    const sessionElapsed = 90; // Mood and Metabolism are still building
     const totalElapsed = todayLogged + sessionElapsed;
     const midIdx = getMidSegmentIdx(totalElapsed, T);
     const allDone = midIdx === -1;
@@ -181,14 +182,14 @@ describe("+Finish click handler argument (Home.tsx wiring)", () => {
   });
 
   it("todayTotalSec offset is included: prior session + current elapsed reach threshold exactly", () => {
-    // User logged 61 s today (Energy done), now 10 s into next session
-    const todayLogged = T[0]; // 61 — Energy complete
+    // User logged 60 s in an interrupted session, then resumes.
+    const todayLogged = T[0]; // Energy maximized
     const sessionElapsed = 10;
-    const totalElapsed = todayLogged + sessionElapsed; // 71
+    const totalElapsed = todayLogged + sessionElapsed; // 70
     const midIdx = getMidSegmentIdx(totalElapsed, T); // 1 = Mood
     expect(midIdx).toBe(1);
     const secsToFinish = getSecsToFinish(totalElapsed, T, midIdx);
-    expect(totalElapsed + secsToFinish).toBe(T[1]); // 182
+    expect(totalElapsed + secsToFinish).toBe(T[1]); // 120
   });
 });
 

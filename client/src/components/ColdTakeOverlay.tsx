@@ -9,10 +9,10 @@ const MILESTONE_SHOW_MS  = 4_000;   // how long the milestone card stays visible
 const POST_RECOVERY_MS   = 60_000;  // cold-take cycle time once all milestones are done
 
 const MILESTONE_COPY: Record<string, string> = {
-  energy:     "Norepinephrine flowing. Sharp & activated.",
-  mood:       "Dopamine surging. You'll feel this for hours.",
-  metabolism: "Brown fat lit up. Burning harder.",
-  recovery:   "Inflammation cooling. Max benefit unlocked.",
+  energy:     "Energy window maximized. Sharp & activated.",
+  mood:       "Mood window maximized. You'll feel this for hours.",
+  metabolism: "Metabolism window maximized. Burning harder.",
+  recovery:   "Recovery window maximized. Keep adapting.",
 };
 
 export interface MilestoneEvent {

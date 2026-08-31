@@ -8,15 +8,15 @@
  *     goal (or cheering after it).
  */
 import { useEffect, useRef, useState } from "react";
-import { SEGMENTS, SegmentId, computeThresholds } from "@/lib/benefitSegments";
+import { SEGMENTS, SegmentId, computeBenefitFills, computeThresholds } from "@/lib/benefitSegments";
 
 // ─── Copy ─────────────────────────────────────────────────────────────────────
 
 const BENEFIT_COPY: Record<SegmentId, { achieved: string; keepGoing: string }> = {
-  energy:     { achieved: "Norepinephrine flowing. Sharp & activated.",    keepGoing: "Keep going — Mood is next 😊" },
-  mood:       { achieved: "Dopamine surging. You'll feel this for hours.", keepGoing: "Keep going — Metabolism is next 🔥" },
-  metabolism: { achieved: "Brown fat lit up. Burning harder.",             keepGoing: "One more stretch — Recovery is close 💪" },
-  recovery:   { achieved: "Inflammation cooling. Max benefit unlocked.",   keepGoing: "All benefits hit. You're a machine. 🏆" },
+  energy:     { achieved: "Your Energy window is maximized.",              keepGoing: "Keep going — more benefit windows are building." },
+  mood:       { achieved: "Your Mood window is maximized.",                keepGoing: "Keep going — more benefit windows are building." },
+  metabolism: { achieved: "Your Metabolism window is maximized.",          keepGoing: "Keep going — Recovery is still building 💪" },
+  recovery:   { achieved: "Your Recovery window is maximized.",            keepGoing: "All benefit windows are maximized. 🏆" },
 };
 
 // ─── CelebrationOverlay ───────────────────────────────────────────────────────
@@ -86,7 +86,7 @@ export function CelebrationOverlay({ segmentId, primaryBenefit, onDismiss }: Cel
               backgroundClip: "text",
             }}
           >
-            {isPrimary ? `${seg.label} Goal Achieved!` : `${seg.emoji} ${seg.label} Unlocked`}
+            {isPrimary ? `${seg.label} Goal Maximized!` : `${seg.emoji} ${seg.label} Maximized`}
           </h2>
         </div>
 
@@ -101,7 +101,7 @@ export function CelebrationOverlay({ segmentId, primaryBenefit, onDismiss }: Cel
             className="text-xs font-semibold"
             style={{ color: gold && !nextSeg ? "#fbbf24" : "#67e8f9" }}
           >
-            {nextSeg ? BENEFIT_COPY[segmentId].keepGoing : "You've hit every benefit. Legendary. 🏆"}
+            {nextSeg ? BENEFIT_COPY[segmentId].keepGoing : "Every benefit window is maximized. Legendary. 🏆"}
           </p>
         )}
       </div>
@@ -141,7 +141,8 @@ export function GoalNudge({
   const primaryIdx   = SEGMENTS.findIndex(s => s.id === primaryBenefit);
   const primarySeg   = SEGMENTS[primaryIdx];
   const primaryThreshold = thresholds[primaryIdx];
-  const nextSeg      = SEGMENTS[primaryIdx + 1] ?? null;
+  const nextIdx      = thresholds.findIndex((threshold) => totalElapsed < threshold);
+  const nextSeg      = nextIdx >= 0 ? SEGMENTS[nextIdx] : null;
 
   if (goalAchieved && allAchieved) {
     return (
@@ -154,7 +155,7 @@ export function GoalNudge({
   }
 
   if (goalAchieved && nextSeg) {
-    const nextThreshold = thresholds[primaryIdx + 1];
+    const nextThreshold = thresholds[nextIdx];
     const secsLeft = Math.max(0, nextThreshold - totalElapsed);
     const mins = Math.floor(secsLeft / 60);
     const secs = secsLeft % 60;
@@ -164,7 +165,7 @@ export function GoalNudge({
         style={{ background: "rgba(34,211,238,0.07)", border: "1px solid rgba(34,211,238,0.18)" }}>
         <span className="text-base shrink-0">{nextSeg.emoji}</span>
         <p className="text-cyan-300 text-xs font-semibold leading-tight">
-          {secsLeft > 0 ? `Keep going — ${nextSeg.label} in ${timeStr}` : `${nextSeg.label} threshold reached! 🎉`}
+          {secsLeft > 0 ? `Keep going — maximize ${nextSeg.label} in ${timeStr}` : `${nextSeg.label} window maximized! 🎉`}
         </p>
       </div>
     );
@@ -202,14 +203,12 @@ export function GoalNudge({
 // Shown below the countdown time picker when the set duration is shorter than
 // what the user's goal requires right now, accounting for benefit decay.
 //
-// Uses the same decay model as BenefitBar: each fully-earned segment fades over
-// its halfLifeHours. The recommended time = sum of (segDuration × undecayed%)
-// across all segments up to and including the primary goal.
+// Uses the same decay model as BenefitBar: the selected goal's independently
+// earned peak fades over its halfLifeHours.
 
 /**
- * Pure helper: returns how many seconds are still needed to reach 100% on every
- * segment up to and including `primaryBenefit`, accounting for benefit decay
- * from plunges already logged today.
+ * Pure helper: returns how many seconds are still needed to maximize the
+ * selected benefit, accounting for decay from plunges already logged today.
  *
  * Returns 0 when the goal is fully covered (hint should be hidden).
  * Pass `nowMs` explicitly so tests can pin the clock.
@@ -228,13 +227,7 @@ export function computeCountdownNeededSecs(
   const todayLoggedSecs = todayPlungesData.reduce((s, p) => s + p.duration, 0);
 
   // Raw fill per segment (0–100), no decay yet
-  const rawFills = SEGMENTS.map((_, i) => {
-    const lo = i === 0 ? 0 : thresholds[i - 1];
-    const hi = thresholds[i];
-    if (todayLoggedSecs <= lo) return 0;
-    if (todayLoggedSecs >= hi) return 100;
-    return ((todayLoggedSecs - lo) / (hi - lo)) * 100;
-  });
+  const rawFills = computeBenefitFills(todayLoggedSecs, thresholds);
 
   // When each segment was earned (timestamp)
   const segmentEarnedAt: (number | undefined)[] = SEGMENTS.map(() => undefined);
@@ -262,13 +255,9 @@ export function computeCountdownNeededSecs(
     return Math.max(0, 100 * (1 - msElapsed / (seg.halfLifeHours * 3600 * 1000)));
   });
 
-  // Sum the gap across all segments up to and including the primary goal
-  let neededSecs = 0;
-  for (let i = 0; i <= primaryIdx; i++) {
-    const segDuration = i === 0 ? thresholds[0] : thresholds[i] - thresholds[i - 1];
-    neededSecs += Math.ceil(segDuration * (1 - decayedFills[i] / 100));
-  }
-  return Math.max(0, neededSecs);
+  return Math.max(0, Math.ceil(
+    thresholds[primaryIdx] * (1 - decayedFills[primaryIdx] / 100),
+  ));
 }
 
 interface CountdownGoalHintProps {

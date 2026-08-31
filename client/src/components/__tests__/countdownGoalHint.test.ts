@@ -16,10 +16,10 @@ import { computeThresholds } from "@/lib/benefitSegments";
 
 // ── Reference scenario ────────────────────────────────────────────────────────
 // 50 °F, default body metrics (150 lb / 175 cm, no body-fat)
-// Thresholds verified: [61, 182, 303, 485]
-// primaryBenefit = "mood" (index 1) → full goal = 182 s
+// Independent thresholds: [60, 120, 120, 180]
+// primaryBenefit = "mood" → full goal = 120 s
 const TEMP = 50;
-const T = computeThresholds(TEMP); // [61, 182, 303, 485]
+const T = computeThresholds(TEMP); // [60, 120, 120, 180]
 
 // Fixed base timestamp so tests are deterministic and nowMs can be pinned to
 // the exact plunge-end (0 ms elapsed ⟹ no decay artefacts from Math.ceil).
@@ -41,12 +41,12 @@ function nowAtEnd(p: { endMs: number }) {
 }
 
 describe("computeCountdownNeededSecs — no plunges today", () => {
-  it("returns the full mood threshold (182 s) when nothing has been logged", () => {
+  it("returns the full mood threshold (120 s) when nothing has been logged", () => {
     const needed = computeCountdownNeededSecs("mood", TEMP, [], Date.now());
     expect(needed).toBe(T[1]); // 182
   });
 
-  it("returns the full energy threshold (61 s) for the energy goal", () => {
+  it("returns the full energy threshold (60 s) for the energy goal", () => {
     const needed = computeCountdownNeededSecs("energy", TEMP, [], Date.now());
     expect(needed).toBe(T[0]); // 61
   });
@@ -54,14 +54,13 @@ describe("computeCountdownNeededSecs — no plunges today", () => {
 
 describe("computeCountdownNeededSecs — goal already satisfied (hint must be hidden)", () => {
   it("returns 0 when today logged exactly equals the mood threshold", () => {
-    // Plunge covers exactly 182 s = full energy+mood goal
-    const p = buildPlunge(T[1]); // 182 s
+    const p = buildPlunge(T[1]);
     const needed = computeCountdownNeededSecs("mood", TEMP, [p], nowAtEnd(p));
     expect(needed).toBe(0);
   });
 
   it("returns 0 when today logged exceeds the mood threshold", () => {
-    // Two plunges totalling 240 s (well above 182).
+    // Two plunges totalling 240 s (well above 120).
     // Both plunges end at the same BASE_MS so every segmentEarnedAt = nowMs
     // (0 ms elapsed on every segment → no Math.ceil decay artefacts).
     const p1 = buildPlunge(120, 0);
@@ -71,13 +70,13 @@ describe("computeCountdownNeededSecs — goal already satisfied (hint must be hi
   });
 
   it("returns 0 for the energy goal when energy duration is covered", () => {
-    const p = buildPlunge(T[0]); // exactly 61 s
+    const p = buildPlunge(T[0]);
     const needed = computeCountdownNeededSecs("energy", TEMP, [p], nowAtEnd(p));
     expect(needed).toBe(0);
   });
 
   it("returns 0 when two separate plunges together cover the goal", () => {
-    // 90 s + 100 s = 190 s > 182 s mood threshold.
+    // 90 s + 100 s = 190 s > 120 s mood threshold.
     // Both plunges end at the same BASE_MS so every segmentEarnedAt = nowMs
     // (0 ms elapsed → no Math.ceil decay artefacts).
     const p1 = buildPlunge(90, 0);
@@ -88,15 +87,10 @@ describe("computeCountdownNeededSecs — goal already satisfied (hint must be hi
 });
 
 describe("computeCountdownNeededSecs — partial coverage (hint shows residual)", () => {
-  it("returns residual gap, not the full threshold, for 100 s logged toward 182 s mood goal", () => {
-    // With 100 s logged at 50 °F:
-    //   Energy segment (61 s): 100 >= 61 → rawFill = 100 %, decayed 0 ms → 0 s needed
-    //   Mood segment (121 s): rawFill = (100-61)/(182-61)*100 = 39/121*100
-    //     needed = Math.ceil(121 * (1 - 39/121)) = Math.ceil(121 * 82/121) = Math.ceil(82) = 82
-    //   Total: 82 s (not 182)
+  it("returns the selected goal's residual gap", () => {
     const p = buildPlunge(100);
     const needed = computeCountdownNeededSecs("mood", TEMP, [p], nowAtEnd(p));
-    expect(needed).toBe(82);
+    expect(needed).toBe(20);
     expect(needed).toBeLessThan(T[1]); // strictly less than full threshold
   });
 
@@ -108,39 +102,35 @@ describe("computeCountdownNeededSecs — partial coverage (hint shows residual)"
     expect(needed120).toBeLessThan(needed80);
   });
 
-  it("partial coverage inside the energy segment leaves both energy + mood gap", () => {
-    // Only 30 s logged → energy not even done yet
+  it("partial exposure advances mood immediately", () => {
     const p = buildPlunge(30);
     const needed = computeCountdownNeededSecs("mood", TEMP, [p], nowAtEnd(p));
-    // Energy gap = Math.ceil(61 * (1 - 30/61)) = Math.ceil(61 * 31/61) = Math.ceil(31) = 31
-    // Mood gap   = Math.ceil(121 * 1) = 121
-    // Total = 152
-    expect(needed).toBe(152);
+    expect(needed).toBe(90);
     expect(needed).toBeGreaterThan(0);
     expect(needed).toBeLessThan(T[1]); // residual, not the full 182
   });
 });
 
 describe("computeCountdownNeededSecs — 'Set it' decomposition", () => {
-  it("the 82-second residual decomposes to 1 min 22 sec", () => {
+  it("the 20-second residual decomposes correctly", () => {
     const p = buildPlunge(100);
     const needed = computeCountdownNeededSecs("mood", TEMP, [p], nowAtEnd(p));
-    expect(needed).toBe(82);
+    expect(needed).toBe(20);
     const recMins = Math.floor(needed / 60);
     const recSecs = needed % 60;
-    expect(recMins).toBe(1);
-    expect(recSecs).toBe(22);
+    expect(recMins).toBe(0);
+    expect(recSecs).toBe(20);
   });
 
-  it("full 182-second goal decomposes to 3 min 2 sec", () => {
+  it("full 120-second goal decomposes to 2 minutes", () => {
     const needed = computeCountdownNeededSecs("mood", TEMP, [], Date.now());
-    expect(needed).toBe(182);
-    expect(Math.floor(needed / 60)).toBe(3);
-    expect(needed % 60).toBe(2);
+    expect(needed).toBe(120);
+    expect(Math.floor(needed / 60)).toBe(2);
+    expect(needed % 60).toBe(0);
   });
 
   it("applied minutes + seconds always reconstruct the exact neededSecs", () => {
-    const cases = [0, 30, 61, 100, 150, 180, 182, 200];
+    const cases = [0, 30, 60, 100, 120, 180, 200];
     for (const logged of cases) {
       const p = logged > 0 ? buildPlunge(logged) : undefined;
       const plunges = p ? [p] : [];
@@ -165,11 +155,8 @@ describe("computeCountdownNeededSecs — benefit decay", () => {
     const nowMs = plungeEndMs + FOUR_HOURS_MS;
 
     const needed = computeCountdownNeededSecs("mood", TEMP, [p], nowMs);
-    // Energy fully decayed (4h > 3h halfLife) → full 61 s needed again
-    // Mood: decayedFill = max(0, 100*(1 - 4/5)) = 20 %
-    //   needed = Math.ceil(121 * 0.8) = Math.ceil(96.8) = 97
-    // Total: 61 + 97 = 158
-    expect(needed).toBe(158);
+    // Mood retains 20%, so 80% of its independent 120 s peak is needed.
+    expect(needed).toBe(96);
     expect(needed).toBeGreaterThan(0);
   });
 

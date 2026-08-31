@@ -100,12 +100,10 @@ function getTempFactor(tempF: number): number {
 
 function earnedSegments(durationSec: number, tempF: number): string[] {
   const tf = getTempFactor(tempF);
-  let t = 0;
   const earned: string[] = [];
   for (const seg of SEGMENTS) {
-    t += Math.round(seg.baseDuration * tf);
-    if (durationSec >= t) earned.push(seg.id);
-    else break;
+    const threshold = Math.round(seg.baseDuration * tf);
+    if (durationSec >= threshold) earned.push(seg.id);
   }
   return earned;
 }

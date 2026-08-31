@@ -3,7 +3,7 @@
 // (history display). Also mirrored server-side in server/reports.ts for email
 // report generation.
 //
-// baseDuration = seconds each segment takes to fully unlock at 50 °F, BMI 22.
+// baseDuration = seconds each benefit takes to reach its peak window at 50 °F.
 // halfLifeHours = how long the acute effect lasts before decaying to 0 (linear).
 
 export const SEGMENTS = [
@@ -121,8 +121,8 @@ export function getCompositionFactorForScore(
 // ─── Threshold & earned computation ──────────────────────────────────────────
 
 /**
- * Returns the cumulative second-thresholds at which each segment unlocks,
- * adjusted for temperature and body composition.
+ * Returns each benefit's independent peak-duration threshold, adjusted for
+ * temperature and body composition. Every benefit starts progressing at zero.
  */
 export function computeThresholds(
   tempF: number,
@@ -132,18 +132,24 @@ export function computeThresholds(
 ): number[] {
   const tf = getTempFactor(tempF);
   const bf = getCompositionFactor(bodyFatPct, weightLbs, heightCm);
-  let t = 0;
-  return SEGMENTS.map((seg) => {
-    t += Math.round(seg.baseDuration * tf * bf);
-    return t;
-  });
+  return SEGMENTS.map((seg) => Math.round(seg.baseDuration * tf * bf));
+}
+
+/** Percentage progress (0–100) toward each independent benefit peak. */
+export function computeBenefitFills(
+  totalElapsed: number,
+  thresholds: number[],
+): number[] {
+  return thresholds.map((threshold) =>
+    Math.min(100, Math.max(0, (totalElapsed / threshold) * 100)),
+  );
 }
 
 // ─── +Finish button helpers ───────────────────────────────────────────────────
 
 /**
- * Returns the index of the benefit segment that is currently in-progress
- * (started but not yet complete), or -1 if all segments are done.
+ * Returns the index of the next benefit peak that has not yet been reached,
+ * or -1 if every benefit is at its peak.
  *
  * Used by the "+Finish [emoji]" button in Home.tsx to identify which segment
  * the user is aiming for.
@@ -153,8 +159,7 @@ export function getMidSegmentIdx(
   thresholds: number[],
 ): number {
   for (let i = 0; i < thresholds.length; i++) {
-    const lo = i === 0 ? 0 : thresholds[i - 1];
-    if (totalElapsed >= lo && totalElapsed < thresholds[i]) return i;
+    if (totalElapsed < thresholds[i]) return i;
   }
   return -1; // all segments complete
 }

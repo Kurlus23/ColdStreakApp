@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { SEGMENTS, getTempFactor, getCompositionFactor, type SegmentId } from "@/lib/benefitSegments";
+import { SEGMENTS, computeBenefitFills, getTempFactor, getCompositionFactor, type SegmentId } from "@/lib/benefitSegments";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 interface BenefitBarProps {
@@ -62,13 +62,9 @@ export function BenefitBar({
     [bodyFatPct, bodyWeightLbs, bodyHeightCm],
   );
 
-  // Cumulative seconds at which each segment completes
-  const cumulative = useMemo(() => {
-    let total = 0;
-    return SEGMENTS.map((seg) => {
-      total += Math.round(seg.baseDuration * tempFactor * compFactor);
-      return total;
-    });
+  // Independent seconds at which each benefit reaches its peak window.
+  const thresholds = useMemo(() => {
+    return SEGMENTS.map((seg) => Math.round(seg.baseDuration * tempFactor * compFactor));
   }, [tempFactor, compFactor]);
 
   // Total cold exposure today: prior logged sessions + current live session
@@ -77,13 +73,11 @@ export function BenefitBar({
   // ── Milestone toasts ──────────────────────────────────────────────────────
   const announcedRef = useRef<Set<string> | null>(null);
   if (announcedRef.current === null) {
-    let t = 0;
-    const initCum = SEGMENTS.map((seg) => {
-      t += Math.round(seg.baseDuration * getTempFactor(tempF) * getCompositionFactor(bodyFatPct, bodyWeightLbs, bodyHeightCm));
-      return t;
-    });
+    const initialThresholds = SEGMENTS.map((seg) =>
+      Math.round(seg.baseDuration * getTempFactor(tempF) * getCompositionFactor(bodyFatPct, bodyWeightLbs, bodyHeightCm)),
+    );
     announcedRef.current = new Set(
-      SEGMENTS.filter((_, i) => todayLoggedSeconds >= initCum[i]).map((s) => s.id),
+      SEGMENTS.filter((_, i) => todayLoggedSeconds >= initialThresholds[i]).map((s) => s.id),
     );
   }
 
@@ -93,9 +87,9 @@ export function BenefitBar({
   useEffect(() => {
     if (!isActive || elapsedSeconds === 0) return;
     SEGMENTS.forEach((seg, i) => {
-      if (totalElapsed >= cumulative[i] && !announcedRef.current!.has(seg.id)) {
+      if (totalElapsed >= thresholds[i] && !announcedRef.current!.has(seg.id)) {
         announcedRef.current!.add(seg.id);
-        setMilestone(`${seg.emoji} ${seg.label} achieved`);
+        setMilestone(`${seg.emoji} ${seg.label} maximized`);
         if (milestoneTimerRef.current) clearTimeout(milestoneTimerRef.current);
         milestoneTimerRef.current = setTimeout(() => setMilestone(null), 2500);
         onMilestoneReached?.(seg.id);
@@ -107,11 +101,11 @@ export function BenefitBar({
   useEffect(() => {
     if (!announcedRef.current) return;
     SEGMENTS.forEach((seg, i) => {
-      if (todayLoggedSeconds >= cumulative[i]) {
+      if (todayLoggedSeconds >= thresholds[i]) {
         announcedRef.current!.add(seg.id);
       }
     });
-  }, [todayLoggedSeconds, cumulative]);
+  }, [todayLoggedSeconds, thresholds]);
 
   // ── Real-time clock for decay (ticks every 60s when resting) ─────────────
   const [now, setNow] = useState(() => Date.now());
@@ -139,20 +133,14 @@ export function BenefitBar({
       const plungeEnd = new Date(p.createdAt).getTime() + p.duration * 1000;
       SEGMENTS.forEach((_, i) => {
         if (earnedAt[i] !== undefined) return; // already recorded
-        if (running >= cumulative[i]) earnedAt[i] = plungeEnd;
+        if (running >= thresholds[i]) earnedAt[i] = plungeEnd;
       });
     }
     return earnedAt;
-  }, [todayPlungesData, cumulative, lastPlungeEndedAt]);
+  }, [todayPlungesData, thresholds, lastPlungeEndedAt]);
 
   // ── Raw fill (0–100) based on total cold exposure ─────────────────────────
-  const rawFills = SEGMENTS.map((_, i) => {
-    const start = i === 0 ? 0 : cumulative[i - 1];
-    const end = cumulative[i];
-    if (totalElapsed <= start) return 0;
-    if (totalElapsed >= end) return 100;
-    return ((totalElapsed - start) / (end - start)) * 100;
-  });
+  const rawFills = computeBenefitFills(totalElapsed, thresholds);
 
   // achievedToday[i] = segment was fully earned this calendar day
   const achievedToday = rawFills.map(f => f >= 100);
@@ -170,13 +158,6 @@ export function BenefitBar({
   });
 
   const goalSeg = primaryBenefit ? SEGMENTS.find(s => s.id === primaryBenefit) : null;
-
-  // Active segment countdown — first segment not yet fully earned
-  const activeSegIdx = isActive ? rawFills.findIndex(f => f < 100) : -1;
-  const activeSeg = activeSegIdx >= 0 ? SEGMENTS[activeSegIdx] : null;
-  const secsRemaining = activeSeg
-    ? Math.max(0, cumulative[activeSegIdx] - totalElapsed)
-    : 0;
   const fmtRemaining = (s: number) => {
     const m = Math.floor(s / 60);
     const ss = Math.floor(s % 60);
@@ -185,18 +166,8 @@ export function BenefitBar({
 
   return (
     <div className="px-0.5 space-y-0.5 mt-0.5 mb-0">
-      {/* Active countdown — shown while a session is running and goal not yet maxed */}
-      {isActive && activeSeg && !achievedToday.every(Boolean) ? (
-        <div className="w-full flex items-center justify-between mb-1 px-0.5">
-          <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: activeSeg.barColor }}>
-            {activeSeg.emoji} {activeSeg.label} — {fmtRemaining(secsRemaining)} remaining
-          </span>
-          {goalSeg && goalSeg.id !== activeSeg.id && (
-            <span className="text-[9px] text-slate-500">Goal: {goalSeg.label}</span>
-          )}
-        </div>
-      ) : goalSeg && (
-        /* Goal tap line — shown at rest when no countdown is active */
+      {!isActive && goalSeg && (
+        /* Goal tap line — shown at rest */
         <button
           onClick={() => { if (!isActive) onGoalTap?.(); }}
           disabled={isActive}
@@ -237,18 +208,18 @@ export function BenefitBar({
             const filling     = rawFill > 0 && rawFill < 100;
 
             return (
-              <div key={seg.id} className="flex-1 min-w-0 space-y-2">
+              <div key={seg.id} className="flex-1 min-w-0">
                 <div
-                  className="relative h-2 rounded-full"
+                  className="relative h-5 rounded-md overflow-hidden"
                   style={{
                     backgroundColor: achieved ? seg.barColor + "18" : seg.dimColor + "44",
                     boxShadow: achieved ? `0 0 0 1px ${seg.barColor}cc` : "none",
                     transition: "box-shadow 0.4s ease, background-color 0.4s ease",
                   }}
                 >
-                  <div className="absolute inset-0 rounded-full overflow-hidden">
+                  <div className="absolute inset-0 rounded-md overflow-hidden">
                     <div
-                      className="absolute inset-y-0 left-0 rounded-full"
+                      className="absolute inset-y-0 left-0 rounded-md"
                       style={{
                         width: `${decayedFill}%`,
                         backgroundColor: seg.barColor,
@@ -258,18 +229,24 @@ export function BenefitBar({
                       }}
                     />
                   </div>
+                  <span
+                    className="absolute inset-0 z-10 flex items-center justify-center px-0.5 text-[8px] font-bold leading-none whitespace-nowrap"
+                    style={{
+                      color: rawFill >= 48 ? "#04111f" : seg.barColor,
+                      textShadow: rawFill >= 48 ? "none" : "0 1px 2px rgba(0,0,0,0.8)",
+                    }}
+                  >
+                    {seg.emoji} {seg.label}
+                  </span>
                 </div>
-                <p
-                  className="text-center text-[9px] font-semibold leading-normal overflow-hidden whitespace-nowrap text-ellipsis"
-                  style={{
-                    color: achieved
-                      ? seg.barColor
-                      : filling ? seg.barColor + "bb" : "#1e3a5f",
-                    transition: "color 0.4s ease",
-                  }}
-                >
-                  {seg.emoji} {seg.label}
-                </p>
+                {isActive && (
+                  <p
+                    className="mt-1 text-center text-[9px] font-mono font-semibold tabular-nums"
+                    style={{ color: seg.barColor, opacity: achieved ? 0.75 : 1 }}
+                  >
+                    {achieved ? "MAX" : fmtRemaining(Math.max(0, thresholds[i] - totalElapsed))}
+                  </p>
+                )}
               </div>
             );
           })}
