@@ -4381,6 +4381,7 @@ export default function Home() {
           {/* Uses full today total — no 2-hour window; once earned, stays lit until midnight */}
           <div data-testid="benefit-bar" className="rounded-xl mt-2 px-2 pt-3 pb-1.5 bg-blue-950/90 backdrop-blur-sm border border-blue-800/50">
             <BenefitBar
+              displayMode="home"
               todayPlungesData={todayPlunges}
               elapsedSeconds={elapsedSeconds}
               tempF={temperature}
