@@ -539,7 +539,6 @@ export function PlungeOverlay({
 
         {/* Benefit bar — sits on its own line, no extra wrapper */}
         <BenefitBar
-          displayMode="live"
           elapsedSeconds={elapsedSeconds}
           tempF={temperature}
           isActive={isActive}

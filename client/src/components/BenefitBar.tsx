@@ -40,8 +40,6 @@ interface BenefitBarProps {
    * the decay timer on segments earned hours earlier.
    */
   todayPlungesData?: { duration: number; createdAt: string | Date }[];
-  /** Resting Home presentation uses a roomier 2×2 layout than the live bar. */
-  displayMode?: "live" | "home";
 }
 
 export function BenefitBar({
@@ -57,7 +55,6 @@ export function BenefitBar({
   onMilestoneReached,
   primaryBenefit,
   onGoalTap,
-  displayMode = "live",
 }: BenefitBarProps) {
   const tempFactor = useMemo(() => getTempFactor(tempF), [tempF]);
   const compFactor = useMemo(
@@ -161,7 +158,6 @@ export function BenefitBar({
   });
 
   const goalSeg = primaryBenefit ? SEGMENTS.find(s => s.id === primaryBenefit) : null;
-  const isHomeDisplay = displayMode === "home";
   const fmtRemaining = (s: number) => {
     const m = Math.floor(s / 60);
     const ss = Math.floor(s % 60);
@@ -187,122 +183,74 @@ export function BenefitBar({
         </button>
       )}
 
-      {isHomeDisplay ? (
-        <div className="grid grid-cols-4 gap-x-1.5 sm:gap-x-3 mt-1">
+      {/* Segmented bar → Adaptation Zone once all benefits are maxed during a plunge */}
+      {isActive && achievedToday.every(Boolean) ? (
+        <div className="space-y-1.5">
+          <div className="relative h-2 rounded-full overflow-hidden bg-cyan-400/15">
+            <div
+              className="absolute inset-0 rounded-full animate-pulse"
+              style={{ backgroundColor: "#67e8f9", opacity: 0.7 }}
+            />
+          </div>
+          <div className="flex items-center justify-center gap-1.5">
+            <p className="text-[9px] font-semibold tracking-wide text-cyan-300 uppercase">
+              Adaptation Zone
+            </p>
+            <span className="text-[9px] text-slate-500">· Score only</span>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-1.5">
           {SEGMENTS.map((seg, i) => {
-            const fill = decayedFills[i];
-            const achieved = achievedToday[i];
-            const hasProgress = rawFills[i] > 0;
+            const decayedFill = decayedFills[i];
+            const rawFill     = rawFills[i];
+            const achieved    = achievedToday[i];
+            const filling     = rawFill > 0 && rawFill < 100;
 
             return (
-              <div
-                key={seg.id}
-                className="min-w-0"
-                title={`${seg.label}: ${achieved ? "maximized" : `${Math.round(rawFills[i])}% complete`}`}
-              >
+              <div key={seg.id} className="flex-1 min-w-0">
                 <div
-                  className="mb-1 truncate text-center text-[9px] font-semibold leading-none tracking-tight sm:text-[10px]"
-                  style={{ color: achieved || hasProgress ? seg.barColor : "#94a3b8" }}
-                >
-                  {seg.emoji} {seg.label}
-                </div>
-                <div
-                  className="relative h-2.5 rounded-full overflow-hidden"
+                  className="relative h-5 rounded-md overflow-hidden"
                   style={{
-                    backgroundColor: seg.dimColor + "55",
-                    boxShadow: achieved ? `0 0 0 1px ${seg.barColor}88` : "none",
+                    backgroundColor: achieved ? seg.barColor + "18" : seg.dimColor + "44",
+                    boxShadow: achieved ? `0 0 0 1px ${seg.barColor}cc` : "none",
+                    transition: "box-shadow 0.4s ease, background-color 0.4s ease",
                   }}
                 >
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-full"
+                  <div className="absolute inset-0 rounded-md overflow-hidden">
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-md"
+                      style={{
+                        width: `${decayedFill}%`,
+                        backgroundColor: seg.barColor,
+                        opacity: decayedFill > 0 ? (filling ? 0.85 : 0.75) : 0,
+                        transition: "width 1s linear, opacity 0.6s ease",
+                        boxShadow: filling ? `0 0 6px 1px ${seg.barColor}66` : "none",
+                      }}
+                    />
+                  </div>
+                  <span
+                    className="absolute inset-0 z-10 flex items-center justify-center px-0.5 text-[8px] font-bold leading-none whitespace-nowrap"
                     style={{
-                      width: `${fill}%`,
-                      backgroundColor: seg.barColor,
-                      opacity: fill > 0 ? 0.8 : 0,
-                      transition: "width 1s linear, opacity 0.6s ease",
+                      color: rawFill >= 48 ? "#04111f" : seg.barColor,
+                      textShadow: rawFill >= 48 ? "none" : "0 1px 2px rgba(0,0,0,0.8)",
                     }}
-                  />
+                  >
+                    {seg.emoji} {seg.label}
+                  </span>
                 </div>
-                <div
-                  className="mt-1 truncate text-center text-[8px] font-mono font-semibold leading-none tabular-nums"
-                  style={{ color: achieved ? seg.barColor : "#64748b" }}
-                >
-                  {achieved ? "MAX" : hasProgress ? `${Math.round(rawFills[i])}%` : "—"}
-                </div>
+                {isActive && (
+                  <p
+                    className="mt-1 text-center text-[9px] font-mono font-semibold tabular-nums"
+                    style={{ color: seg.barColor, opacity: achieved ? 0.75 : 1 }}
+                  >
+                    {achieved ? "MAX" : fmtRemaining(Math.max(0, thresholds[i] - totalElapsed))}
+                  </p>
+                )}
               </div>
             );
           })}
         </div>
-      ) : (
-        /* Segmented bar → Adaptation Zone once all benefits are maxed during a plunge */
-        isActive && achievedToday.every(Boolean) ? (
-          <div className="space-y-1.5">
-            <div className="relative h-2 rounded-full overflow-hidden bg-cyan-400/15">
-              <div
-                className="absolute inset-0 rounded-full animate-pulse"
-                style={{ backgroundColor: "#67e8f9", opacity: 0.7 }}
-              />
-            </div>
-            <div className="flex items-center justify-center gap-1.5">
-              <p className="text-[9px] font-semibold tracking-wide text-cyan-300 uppercase">
-                Adaptation Zone
-              </p>
-              <span className="text-[9px] text-slate-500">· Score only</span>
-            </div>
-          </div>
-        ) : (
-          <div className="flex gap-1.5">
-            {SEGMENTS.map((seg, i) => {
-              const decayedFill = decayedFills[i];
-              const rawFill     = rawFills[i];
-              const achieved    = achievedToday[i];
-              const filling     = rawFill > 0 && rawFill < 100;
-
-              return (
-                <div key={seg.id} className="flex-1 min-w-0">
-                  <div
-                    className="relative h-5 rounded-md overflow-hidden"
-                    style={{
-                      backgroundColor: achieved ? seg.barColor + "18" : seg.dimColor + "44",
-                      boxShadow: achieved ? `0 0 0 1px ${seg.barColor}cc` : "none",
-                      transition: "box-shadow 0.4s ease, background-color 0.4s ease",
-                    }}
-                  >
-                    <div className="absolute inset-0 rounded-md overflow-hidden">
-                      <div
-                        className="absolute inset-y-0 left-0 rounded-md"
-                        style={{
-                          width: `${decayedFill}%`,
-                          backgroundColor: seg.barColor,
-                          opacity: decayedFill > 0 ? (filling ? 0.85 : 0.75) : 0,
-                          transition: "width 1s linear, opacity 0.6s ease",
-                          boxShadow: filling ? `0 0 6px 1px ${seg.barColor}66` : "none",
-                        }}
-                      />
-                    </div>
-                    <span
-                      className="absolute inset-0 z-10 flex items-center justify-center px-0.5 text-[8px] font-bold leading-none whitespace-nowrap"
-                      style={{
-                        color: rawFill >= 48 ? "#04111f" : seg.barColor,
-                        textShadow: rawFill >= 48 ? "none" : "0 1px 2px rgba(0,0,0,0.8)",
-                      }}
-                    >
-                      {seg.emoji} {seg.label}
-                    </span>
-                  </div>
-                  {isActive && (
-                    <p
-                      className="mt-1 text-center text-[9px] font-mono font-semibold tabular-nums"
-                      style={{ color: seg.barColor, opacity: achieved ? 0.75 : 1 }}
-                    >
-                      {achieved ? "MAX" : fmtRemaining(Math.max(0, thresholds[i] - totalElapsed))}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )
       )}
     </div>
   );
