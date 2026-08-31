@@ -189,7 +189,7 @@ const lastVisitWriteAt = new Map<string, number>();
 function pruneVisitCache() {
   if (lastVisitWriteAt.size <= 10_000) return;
   const cutoff = Date.now() - VISIT_THROTTLE_MS;
-  for (const [k, t] of lastVisitWriteAt) if (t < cutoff) lastVisitWriteAt.delete(k);
+  for (const [k, t] of Array.from(lastVisitWriteAt.entries())) if (t < cutoff) lastVisitWriteAt.delete(k);
 }
 
 // Must match the secret used by routes.ts to sign auth tokens, otherwise

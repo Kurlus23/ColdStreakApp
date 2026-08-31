@@ -572,7 +572,7 @@ export async function pickChallengeQuestions(
       inArray(brainFreezeAnswers.userId, [challengerId, challengeeId]),
       gte(brainFreezeAnswers.answeredAt, cutoff),
     ));
-  const seenIds = [...new Set(recent.map(r => r.questionId))];
+  const seenIds = Array.from(new Set(recent.map(r => r.questionId)));
 
   // Pull a random pool of fresh questions (2× the target size for category diversity)
   const wanted = CHALLENGE_Q_COUNT * 2;

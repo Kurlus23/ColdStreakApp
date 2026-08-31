@@ -49,7 +49,7 @@ export function CommunityLocations({ username }: { username: string }) {
   });
 
   const submitMutation = useMutation({
-    mutationFn: (data: { name: string; country: string; description: string; submittedBy?: string }) =>
+    mutationFn: (data: { name: string; country: string; description?: string; submittedBy?: string }) =>
       fetch("/api/community-locations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

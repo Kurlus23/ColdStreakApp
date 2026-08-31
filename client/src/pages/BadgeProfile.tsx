@@ -923,7 +923,7 @@ export default function BadgeProfile() {
                     onChange={async (e) => {
                       const q = e.target.value; setFriendSearch(q);
                       if (q.length < 2) { setFriendSearchResults([]); return; }
-                      await searchFriendsImpl(q, { authFetch, navigate, toast, setFriendsSearchLoading, setFriendSearchResults, clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token") });
+                      await searchFriendsImpl(q, { authFetch, navigate, toast, setFriendsSearchLoading, setFriendSearchResults: (results) => setFriendSearchResults(results.filter((result): result is UserResult => result.username !== null)), clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token") });
                     }}
                     className="w-full bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-2 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
                   />

@@ -25,7 +25,7 @@ const stripeSecretKey = TEST_MODE
   ? process.env.STRIPE_TEST_SECRET_KEY!
   : process.env.STRIPE_SECRET_KEY!;
 
-const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-02-24.acacia" });
+const stripe = new Stripe(stripeSecretKey, { apiVersion: "2026-02-25.clover" });
 
 if (TEST_MODE) console.log("[stripe] ⚠️  TEST MODE — using Stripe test keys");
 if (TEST_MODE) console.log("[stripe] TEST_PRICE_ID:", process.env.STRIPE_TEST_PRICE_ID);
@@ -120,6 +120,12 @@ function setProStatusCache(email: string, result: object) { setCachedSubscriptio
 function getProStatusCache(email: string) { return getCachedSubscription(email); }
 
 interface JwtPayload { userId: number; email: string; isAdmin?: boolean; }
+
+/** Stripe's current API exposes a billing period on each subscription item. */
+function getSubscriptionPeriodEnd(subscription: Stripe.Subscription): Date | null {
+  const periodEnd = subscription.items.data[0]?.current_period_end;
+  return typeof periodEnd === "number" ? new Date(periodEnd * 1000) : null;
+}
 
 function signToken(payload: JwtPayload): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "90d" });
@@ -400,7 +406,7 @@ export async function registerRoutes(
   app.delete("/api/auth/account", async (req, res) => {
     const payload = extractUser(req);
     if (!payload) return res.status(401).json({ message: "Unauthorized" });
-    const user = await storage.getUser(payload.userId);
+    const user = await storage.getUserById(payload.userId);
     if (user?.email) {
       await storage.deleteProUser(user.email).catch(() => {});
       customerIdCache.delete(user.email);
@@ -563,7 +569,7 @@ export async function registerRoutes(
           const me = await storage.getUserById(authUser.userId);
           const myName = me?.displayName || me?.username || "Someone";
 
-          let anyPushSent = false;
+          let primaryChallengeResultSent = false;
           for (const pending of allPending) {
             // Determine who is the opponent (the other side of the challenge)
             const opponentId = pending.fromUserId === authUser.userId ? pending.toUserId : pending.fromUserId;
@@ -596,7 +602,9 @@ export async function registerRoutes(
                     { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
                     payload
                   );
-                  anyPushSent = true;
+                  if (opponentId === plungeData.challengerUserId) {
+                    primaryChallengeResultSent = true;
+                  }
                 } catch (err: any) {
                   if (err.statusCode === 410 || err.statusCode === 404) {
                     await storage.deletePushSubscription(sub.endpoint);
@@ -614,10 +622,12 @@ export async function registerRoutes(
             challengeResults.push({ won: iWon, myScore, theirScore, opponentName: theirName, opponentId });
           }
 
-          // Always mark the plunge as resolved so discard never incorrectly
-          // restores individual pending-challenge rows from a batch resolution.
-          // (The batch consumed every pending row; partial restoration is unsafe.)
-          await storage.markChallengeResultSent(newPlunge.id);
+          // Only a delivered result makes restoration misleading. If no result
+          // push reached the original challenger, discarding this plunge may
+          // safely restore that challenge without replacing other pending rows.
+          if (primaryChallengeResultSent) {
+            await storage.markChallengeResultSent(newPlunge.id);
+          }
         }
       }
 
@@ -1182,7 +1192,12 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
           input.submittedBy = submitter.username ?? `user-${submitter.id}`;
         }
       }
-      const loc = await storage.createUserLocation(input);
+      // Zod retains optional properties with undefined values. Omit them before
+      // passing the request through Drizzle's exact insert contract.
+      const locationValues = Object.fromEntries(
+        Object.entries(input).filter(([, value]) => value !== undefined),
+      ) as import("@shared/schema").InsertUserLocation;
+      const loc = await storage.createUserLocation(locationValues);
       res.status(201).json(loc);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
@@ -1206,7 +1221,10 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
         return res.status(403).json({ message: "Not the owner of this location" });
       }
       const updates = locationInputSchema.partial().parse(req.body);
-      const updated = await storage.updateUserLocation(id, updates);
+      const locationUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([, value]) => value !== undefined),
+      ) as Partial<import("@shared/schema").InsertUserLocation>;
+      const updated = await storage.updateUserLocation(id, locationUpdates);
       res.json(updated);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
@@ -1258,7 +1276,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
       clickHits.set(key, { count: 1, resetAt: now + CLICK_WINDOW_MS });
       // Opportunistic sweep — 1% of requests scrub expired entries.
       if (Math.random() < 0.01) {
-        for (const [k, v] of clickHits) if (v.resetAt < now) clickHits.delete(k);
+        for (const [k, v] of Array.from(clickHits.entries())) if (v.resetAt < now) clickHits.delete(k);
       }
       return true;
     }
@@ -1623,10 +1641,11 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     const { category, message, deviceInfo, contactEmail } = req.body;
     if (!category || !message?.trim()) return res.status(400).json({ message: "Category and message are required" });
     const caller = extractUser(req);
+    const callerUser = caller ? await storage.getUserById(caller.userId) : null;
     const email = contactEmail || caller?.email || null;
     const msg = await storage.createSupportMessage({
       userId: caller?.userId ?? null,
-      username: caller?.username ?? null,
+      username: callerUser?.username ?? null,
       email,
       category,
       message: message.trim(),
@@ -1635,7 +1654,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     });
     sendSupportEmail({
       from: email ?? "anonymous",
-      username: caller?.username ?? null,
+      username: callerUser?.username ?? null,
       category,
       message: message.trim(),
       deviceInfo: deviceInfo ? JSON.stringify(deviceInfo, null, 2) : "N/A",
@@ -1953,7 +1972,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
         targetId: body.targetId,
         targetName: body.targetName ?? null,
         reporterEmail: caller?.email ?? null,
-        reporterUsername: caller?.username ?? null,
+      reporterUsername: caller ? (await storage.getUserById(caller.userId))?.username ?? null : null,
         reason: body.reason.trim(),
       });
       res.json({ success: true, id: row.id });
@@ -2072,7 +2091,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     shareRateBuckets.set(key, fresh);
     if (shareRateBuckets.size > 5000) {
       // prune ~half of stale entries when map gets big
-      for (const [k, ts] of shareRateBuckets) {
+      for (const [k, ts] of Array.from(shareRateBuckets.entries())) {
         if (!ts.length || now - ts[ts.length - 1] > SHARE_RATE_WINDOW_MS) shareRateBuckets.delete(k);
       }
     }
@@ -2250,7 +2269,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
             subscriptionId: sub.id,
             status: sub.status,
             planType: interval === "month" ? "monthly" : "annual",
-            currentPeriodEnd: new Date(sub.current_period_end * 1000).toISOString(),
+            currentPeriodEnd: getSubscriptionPeriodEnd(sub)?.toISOString() ?? null,
             customerId: customer.id,
             customerEmail: customer.email,
           });
@@ -2312,7 +2331,8 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
 
       const interval = sub.items?.data?.[0]?.plan?.interval;
       const planType = interval === "month" ? "monthly" : "annual";
-      const expiresAt = new Date(sub.current_period_end * 1000);
+      const expiresAt = getSubscriptionPeriodEnd(sub);
+      if (!expiresAt) return res.status(400).json({ message: "Subscription has no billing period" });
 
       const proUser = await storage.createProUser(email.toLowerCase(), subscriptionId, {
         planType,
@@ -2530,7 +2550,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
       if (isSubscription && session.subscription) {
         const sub = session.subscription as Stripe.Subscription;
         subscriptionId = sub.id;
-        expiresAt = new Date(sub.current_period_end * 1000);
+        expiresAt = getSubscriptionPeriodEnd(sub) ?? undefined;
         const interval = sub.items?.data?.[0]?.plan?.interval;
         planType = interval === "month" ? "monthly" : "annual";
       }
@@ -2643,7 +2663,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
 
       const sub = session.subscription as Stripe.Subscription | null;
       const subscriptionId = sub?.id;
-      const expiresAt = sub ? new Date(sub.current_period_end * 1000) : undefined;
+      const expiresAt = sub ? getSubscriptionPeriodEnd(sub) ?? undefined : undefined;
 
       await storage.createBusinessListing({ locationId, email, stripeSessionId: session_id, stripeSubscriptionId: subscriptionId, expiresAt });
       await storage.markLocationBusinessVerified(locationId, true);
@@ -2682,7 +2702,7 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
             const subId = typeof session.subscription === "string" ? session.subscription : session.subscription.id;
             subscriptionId = subId;
             const sub = await stripe.subscriptions.retrieve(subId);
-            expiresAt = new Date(sub.current_period_end * 1000);
+            expiresAt = getSubscriptionPeriodEnd(sub) ?? undefined;
             const interval = sub.items?.data?.[0]?.plan?.interval;
             planType = interval === "month" ? "monthly" : "annual";
           }
@@ -2711,7 +2731,8 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
 
     if (event.type === "invoice.payment_succeeded") {
       const invoice = event.data.object as Stripe.Invoice;
-      const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+      const subscription = invoice.parent?.subscription_details?.subscription;
+      const subscriptionId = typeof subscription === "string" ? subscription : subscription?.id;
       if (subscriptionId && invoice.lines?.data[0]?.period?.end) {
         const expiresAt = new Date(invoice.lines.data[0].period.end * 1000);
         // Try both Pro and Business listing — only the matching one will have a record
@@ -2863,7 +2884,8 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
           }
           const interval = sub.items?.data?.[0]?.plan?.interval;
           const planType = interval === "month" ? "monthly" : "annual";
-          const expiresAt = new Date(sub.current_period_end * 1000);
+          const expiresAt = getSubscriptionPeriodEnd(sub);
+          if (!expiresAt) continue;
           const proUser = await storage.createProUser(email, sub.id, { planType, stripeSubscriptionId: sub.id, expiresAt });
           const result = { email: proUser.email, isPro: true, foundingPlunger: proUser.foundingPlunger, planType: proUser.planType };
           setCachedSubscription(email, result);

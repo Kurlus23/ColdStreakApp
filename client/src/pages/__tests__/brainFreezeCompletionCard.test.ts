@@ -100,7 +100,8 @@ describe("shouldShowBrainFreezeRow", () => {
 });
 
 // ─── brainFreezeRowLabel ───────────────────────────────────────────────────────
-// Produces the visible label text inside the Brain Freeze row.
+// Produces the visible point total inside the Brain Freeze row. Scores include
+// bonuses, so they are not necessarily a count of correct answers.
 
 describe("brainFreezeRowLabel", () => {
   const makeData = (brainFreezeScore?: number): CompletionCardData => ({
@@ -111,16 +112,16 @@ describe("brainFreezeRowLabel", () => {
     brainFreezeScore,
   });
 
-  it("returns 'N correct' for a positive score", () => {
-    expect(brainFreezeRowLabel(makeData(3))).toBe("3 correct");
+  it("returns the point total for a positive score", () => {
+    expect(brainFreezeRowLabel(makeData(3))).toBe("3 pts");
   });
 
-  it("returns '1 correct' for a single correct answer", () => {
-    expect(brainFreezeRowLabel(makeData(1))).toBe("1 correct");
+  it("returns the point total for a single point", () => {
+    expect(brainFreezeRowLabel(makeData(1))).toBe("1 pts");
   });
 
   it("returns the exact count for a large score", () => {
-    expect(brainFreezeRowLabel(makeData(42))).toBe("42 correct");
+    expect(brainFreezeRowLabel(makeData(42))).toBe("42 pts");
   });
 
   it("returns null when score is 0", () => {
@@ -157,7 +158,7 @@ describe("full path: Brain Freeze score from ref to card row", () => {
   it("row is visible when enabled and user answered 3 questions", () => {
     const data = makeCompletionCardData(true, 3);
     expect(shouldShowBrainFreezeRow(data)).toBe(true);
-    expect(brainFreezeRowLabel(data)).toBe("3 correct");
+    expect(brainFreezeRowLabel(data)).toBe("3 pts");
   });
 
   it("row is absent when enabled but score is 0 (no questions answered)", () => {
@@ -179,6 +180,6 @@ describe("full path: Brain Freeze score from ref to card row", () => {
     // ref is reset after logging (e.g. user starts a new session)
     // brainFreezeRefAtLogTime variable is now "stale" but data already captured it
     expect(shouldShowBrainFreezeRow(data)).toBe(true);
-    expect(brainFreezeRowLabel(data)).toBe("4 correct");
+    expect(brainFreezeRowLabel(data)).toBe("4 pts");
   });
 });

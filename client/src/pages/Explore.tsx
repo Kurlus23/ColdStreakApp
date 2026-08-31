@@ -922,7 +922,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
 
   const joinEventMut = useMutation({
     mutationFn: (id: number) => apiRequest("POST", `/api/events/${id}/join`, {
-      username: auth.user?.displayName || auth.user?.email?.split("@")[0] || "Anon",
+      username: auth.user?.username || auth.user?.email.split("@")[0] || "Anon",
     }).then((r) => r.json()),
     onSuccess: (_data, id) => {
       setJoinedEventIds((prev) => new Set([...prev, id]));
@@ -1285,7 +1285,14 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
 
   // ── Submit community location ──
   const submitMutation = useMutation({
-    mutationFn: async (data: typeof form & { submittedBy: string; latitude?: number; longitude?: number }) =>
+    mutationFn: async (data: Omit<typeof form, "difficulty" | "isBusiness" | "websiteUrl"> & {
+      difficulty?: string;
+      isBusiness?: boolean;
+      websiteUrl?: string;
+      submittedBy: string;
+      latitude?: number;
+      longitude?: number;
+    }) =>
       apiRequest("POST", "/api/community-locations", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });

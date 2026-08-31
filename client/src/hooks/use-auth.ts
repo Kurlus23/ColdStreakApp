@@ -80,7 +80,7 @@ export function useAuth() {
   const register = useCallback(async (
     email: string,
     password: string,
-    opts?: { username?: string; displayName?: string; bodyWeight?: number },
+    opts?: { username?: string; displayName?: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number },
   ): Promise<{ ok: boolean; error?: string }> => {
     setLoading(true);
     setError(null);

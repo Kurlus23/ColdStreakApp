@@ -88,7 +88,7 @@ export default function EventPage() {
   const isJoined = evt?.participants.some((p) => p.userId === auth.user?.id) ?? false;
 
   const join = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/events/${evt!.id}/join`, { username: auth.user?.displayName || auth.user?.email?.split("@")[0] || "Anon" }).then((r) => r.json()),
+    mutationFn: () => apiRequest("POST", `/api/events/${evt!.id}/join`, { username: auth.user?.username || auth.user?.email.split("@")[0] || "Anon" }).then((r) => r.json()),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/events", code] }); toast({ title: "You're in! ❄️", description: `You've joined ${evt?.name}.` }); },
     onError: (e: Error) => toast({ title: "Couldn't join", description: e.message, variant: "destructive" }),
   });

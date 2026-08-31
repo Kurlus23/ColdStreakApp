@@ -27,6 +27,7 @@ export function identifyUser(id: string, properties?: Record<string, unknown>) {
 }
 
 export const Analytics = {
+  track: trackEvent,
   plungeLogged: (duration: number, temp: number, score: number) =>
     trackEvent("plunge_logged", { duration, temp, score }),
 

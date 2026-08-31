@@ -54,7 +54,7 @@ export async function nativeShare({
       const uri = await writeTempImage(photoBlob, photoFilename);
       if (uri) {
         // Copy caption to clipboard — always notify so user knows to paste it
-        await writeToClipboard(text);
+        await writeToClipboard(text ?? "");
         onCaptionCopied?.();
         // dialogTitle only used by Android share sheet, not included in message body
         await Share.share({ text, files: [uri], dialogTitle: title });

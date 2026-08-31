@@ -5,7 +5,7 @@
 export interface SendFriendChallengeDeps {
   authFetch: (url: string, opts?: RequestInit) => Promise<Response>;
   navigate: (path: string) => void;
-  toast: (opts: { title: string; description?: string; variant?: string }) => void;
+  toast: (opts: { title: string; description?: string; variant?: "default" | "destructive" | null }) => unknown;
   onSettled?: () => void;
   clearAuthToken: () => void;
 }

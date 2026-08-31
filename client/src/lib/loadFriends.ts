@@ -74,7 +74,7 @@ export function cacheFriends(userId: number | null | undefined, friends: FriendE
 export interface LoadFriendsDeps {
   authFetch: (url: string, opts?: RequestInit) => Promise<Response>;
   navigate: (path: string) => void;
-  toast: (opts: { title: string; description?: string; variant?: string }) => void;
+  toast: (opts: { title: string; description?: string; variant?: "default" | "destructive" | null }) => unknown;
   setFriendsLoading: (v: boolean) => void;
   setFriends: (v: FriendEntry[]) => void;
   setPendingRequests: (v: FriendRequest[]) => void;

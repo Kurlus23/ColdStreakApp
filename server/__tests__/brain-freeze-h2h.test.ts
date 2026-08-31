@@ -26,7 +26,7 @@ import {
 import { eq, inArray, and } from "drizzle-orm";
 import { registerRoutes } from "../routes";
 import { storage } from "../storage";
-import { getBrainFreezeHeadToHead, createBrainFreezeChallenge } from "../brain-freeze";
+import { getBrainFreezeHeadToHead, createBrainFreezeChallenge, getQuestion } from "../brain-freeze";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -127,6 +127,10 @@ beforeAll(async () => {
   tokenA = makeToken(userAId, USER_A_EMAIL);
   tokenB = makeToken(userBId, USER_B_EMAIL);
   tokenC = makeToken(userCId, USER_C_EMAIL);
+
+  // Ensure the lazy production seeder has populated the question bank. Tests
+  // must not depend on another suite having called the question endpoint first.
+  await getQuestion(userAId);
 
   // Any real question row works for FK references.
   const [q] = await db

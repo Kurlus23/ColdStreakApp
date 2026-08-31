@@ -13,7 +13,7 @@ export interface UserResult {
 export interface SearchFriendsDeps {
   authFetch: (url: string, opts?: RequestInit) => Promise<Response>;
   navigate: (path: string) => void;
-  toast: (opts: { title: string; description?: string; variant?: string }) => void;
+  toast: (opts: { title: string; description?: string; variant?: "default" | "destructive" | null }) => unknown;
   setFriendsSearchLoading: (v: boolean) => void;
   setFriendSearchResults: (v: UserResult[]) => void;
   clearAuthToken: () => void;

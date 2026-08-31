@@ -681,6 +681,14 @@ export default function Home() {
   const [myBf, setMyBf] = useState<{ thisPlunge: number | null; today: number; allTime: number }>({ thisPlunge: null, today: 0, allTime: 0 });
   // Array of all users who have challenged the current user (pending challenges).
   const [pendingChallengers, setPendingChallengers] = useState<Array<{userId: number; name: string}>>([]);
+  const setActiveChallengerUserId = useCallback((userId: number) => {
+    setPendingChallengers((current) =>
+      current.some((challenger) => challenger.userId === userId)
+        ? current
+        : [...current, { userId, name: "A friend" }],
+    );
+    setPendingChallengeModalDismissed(false);
+  }, []);
   // Tracks whether the user tapped "Later" — hides the modal but keeps the
   // challenger context alive so the timer overlay still shows their scores.
   const [pendingChallengeModalDismissed, setPendingChallengeModalDismissed] = useState(false);
@@ -7402,31 +7410,31 @@ export default function Home() {
                           {/* Avg summary row */}
                           <div className={`grid gap-3 pb-4 border-b border-blue-800/40 ${_fatigueResponded > 0 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
                             <div className="text-center">
-                              <p className="text-cyan-300 text-xl font-bold">{_avgMood != null ? _avgMood.toFixed(1) : "—"}</p>
+                              <p className="text-cyan-300 text-xl font-bold">{_avgMood?.toFixed(1) ?? "—"}</p>
                               <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Avg Mood</p>
                               <p className="text-blue-500 text-[9px]">out of 5</p>
                             </div>
                             <div className="text-center">
-                              <p className="text-amber-300 text-xl font-bold">{_avgEnergy != null ? _avgEnergy.toFixed(1) : "—"}</p>
+                              <p className="text-amber-300 text-xl font-bold">{_avgEnergy?.toFixed(1) ?? "—"}</p>
                               <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Avg Energy</p>
                               <p className="text-blue-500 text-[9px]">out of 3</p>
                             </div>
                             {_fatigueResponded > 0 ? (
                               <>
                                 <div className="text-center">
-                                  <p className="text-orange-300 text-xl font-bold">{_avgFatigue != null ? _avgFatigue.toFixed(1) : "—"}</p>
+                                  <p className="text-orange-300 text-xl font-bold">{_avgFatigue?.toFixed(1) ?? "—"}</p>
                                   <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Avg Fatigue</p>
                                   <p className="text-blue-500 text-[9px]">out of 3</p>
                                 </div>
                                 <div className="text-center">
-                                  <p className="text-emerald-300 text-xl font-bold">{_avgRecovery != null ? _avgRecovery.toFixed(1) : "—"}</p>
+                                  <p className="text-emerald-300 text-xl font-bold">{_avgRecovery?.toFixed(1) ?? "—"}</p>
                                   <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Avg Recovery</p>
                                   <p className="text-blue-500 text-[9px]">out of 3</p>
                                 </div>
                               </>
                             ) : (
                               <div className="text-center">
-                                <p className="text-violet-300 text-xl font-bold">{_avgFocus != null ? _avgFocus.toFixed(1) : "—"}</p>
+                                  <p className="text-violet-300 text-xl font-bold">{_avgFocus?.toFixed(1) ?? "—"}</p>
                                 <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Avg Focus</p>
                                 <p className="text-blue-500 text-[9px]">out of 3</p>
                               </div>
@@ -7481,21 +7489,21 @@ export default function Home() {
                   )}
 
                   {/* ── Morning Advantage ── */}
-                  {_hasMorning && _insight && (
+                  {_insight && _insight!.morningBest != null && (
                     <div className="space-y-2">
                       <_InsightSectionHeader emoji="🌅" title="Morning Advantage" />
                       <div className="bg-blue-900/40 border border-blue-800/50 rounded-2xl p-4">
-                        {_insight.morningBest ? (
+                        {_insight!.morningBest ? (
                           <>
                             <p className="text-white text-xs font-semibold mb-3">Your pre-10 AM plunges score higher</p>
                             <div className="grid grid-cols-2 gap-2 mb-3">
                               <div className="bg-amber-900/20 border border-amber-500/30 rounded-xl p-2.5 text-center">
-                                <p className="text-amber-300 text-xl font-bold">{_insight.morningAvg?.toFixed(1)}</p>
+                                <p className="text-amber-300 text-xl font-bold">{_insight!.morningAvg?.toFixed(1)}</p>
                                 <p className="text-blue-400 text-[10px] mt-1">Morning avg mood</p>
                                 <p className="text-blue-500 text-[9px]">before 10 AM</p>
                               </div>
                               <div className="bg-blue-900/30 border border-blue-700/40 rounded-xl p-2.5 text-center">
-                                <p className="text-blue-300 text-xl font-bold">{_insight.otherAvg?.toFixed(1)}</p>
+                                <p className="text-blue-300 text-xl font-bold">{_insight!.otherAvg?.toFixed(1)}</p>
                                 <p className="text-blue-400 text-[10px] mt-1">Other times avg</p>
                                 <p className="text-blue-500 text-[9px]">10 AM or later</p>
                               </div>
@@ -7517,33 +7525,33 @@ export default function Home() {
                         title="Cold Adaptation Trend"
                         subtitle={_hasAdaptation ? "How your check-in ratings have shifted over time" : undefined}
                       />
-                      {_hasAdaptation && _adaptation ? (
+                      {_adaptation ? (
                         <div className="bg-blue-900/40 border border-blue-800/50 rounded-2xl p-4">
                           <div className="grid grid-cols-2 gap-2 mb-4">
                             <div className="bg-blue-950/60 border border-blue-800/40 rounded-xl p-2.5 text-center">
-                              <p className="text-blue-300 text-xl font-bold">{Math.round(_adaptation.earlyAvg * 100)}%</p>
+                              <p className="text-blue-300 text-xl font-bold">{Math.round(_adaptation!.earlyAvg * 100)}%</p>
                               <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">First 10 check-ins</p>
                               <p className="text-blue-500 text-[9px]">composite score</p>
                             </div>
-                            <div className={`border rounded-xl p-2.5 text-center ${_adaptation.delta >= 0 ? "bg-emerald-900/20 border-emerald-500/30" : "bg-red-900/20 border-red-500/30"}`}>
-                              <p className={`text-xl font-bold ${_adaptation.delta >= 0 ? "text-emerald-300" : "text-red-300"}`}>
-                                {Math.round(_adaptation.recentAvg * 100)}%
+                            <div className={`border rounded-xl p-2.5 text-center ${_adaptation!.delta >= 0 ? "bg-emerald-900/20 border-emerald-500/30" : "bg-red-900/20 border-red-500/30"}`}>
+                              <p className={`text-xl font-bold ${_adaptation!.delta >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+                                {Math.round(_adaptation!.recentAvg * 100)}%
                               </p>
                               <p className="text-blue-400 text-[10px] mt-1 uppercase tracking-wide">Recent 10 check-ins</p>
-                              <p className={`text-xs font-bold mt-1 ${_adaptation.delta >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                                {_adaptation.deltaStr} composite
+                              <p className={`text-xs font-bold mt-1 ${_adaptation!.delta >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                {_adaptation!.deltaStr} composite
                               </p>
                             </div>
                           </div>
-                          <div className={`flex items-start gap-2.5 rounded-xl px-3 py-2.5 ${_adaptation.delta >= 0.05 ? "bg-emerald-900/20 border border-emerald-500/25" : "bg-blue-900/20 border border-blue-700/30"}`}>
-                            <span className="text-base mt-0.5">{_adaptation.delta >= 0.05 ? "📈" : _adaptation.delta <= -0.05 ? "📉" : "→"}</span>
+                          <div className={`flex items-start gap-2.5 rounded-xl px-3 py-2.5 ${_adaptation!.delta >= 0.05 ? "bg-emerald-900/20 border border-emerald-500/25" : "bg-blue-900/20 border border-blue-700/30"}`}>
+                            <span className="text-base mt-0.5">{_adaptation!.delta >= 0.05 ? "📈" : _adaptation!.delta <= -0.05 ? "📉" : "→"}</span>
                             <div>
-                              {_adaptation.delta >= 0.05 ? (
+                              {_adaptation!.delta >= 0.05 ? (
                                 <>
                                   <p className="text-emerald-300 text-xs font-semibold">Adaptation trend detected</p>
-                                  <p className="text-slate-400 text-[11px] leading-relaxed mt-1">Your <span className="text-emerald-300">{_adaptation.metrics.join(" & ")}</span> responses after plunging are <em>associated with</em> higher ratings vs. your first 10 check-ins.</p>
+                                  <p className="text-slate-400 text-[11px] leading-relaxed mt-1">Your <span className="text-emerald-300">{_adaptation!.metrics.join(" & ")}</span> responses after plunging are <em>associated with</em> higher ratings vs. your first 10 check-ins.</p>
                                 </>
-                              ) : _adaptation.delta <= -0.05 ? (
+                              ) : _adaptation!.delta <= -0.05 ? (
                                 <>
                                   <p className="text-blue-300 text-xs font-semibold">Recent scores are lower</p>
                                   <p className="text-slate-400 text-[11px] leading-relaxed mt-1">Your recent check-ins score a little lower. This can reflect harder sessions, life stress, or natural variance.</p>
@@ -9034,7 +9042,7 @@ export default function Home() {
                             streak,
                             locationName: finalLocationName,
                             locationId: finalLocationId,
-                            score: promptPlungeRef.current.score ?? undefined,
+                            score: promptPlungeRef.current.score ? parseFloat(promptPlungeRef.current.score) : undefined,
                           });
                           await savePhoto(photoPromptId, composited).catch(() => {});
                           // Save composited photo (with stats overlay) to device camera roll

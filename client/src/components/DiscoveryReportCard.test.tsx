@@ -6,7 +6,7 @@
  *  - DiscoveryReportCard rendering for all data-quantity edge cases
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { DiscoveryReportCard } from "./DiscoveryReportCard";
 import { analysePatterns, computeStats, type ReportRow } from "@shared/reportAnalysis";

@@ -1865,7 +1865,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // ── Friendships ─────────────────────────────────────────────────────────────
-  async sendFriendRequest(requesterId: number, addresseeId: number): Promise<{ ok: boolean; error?: string }> {
+  async sendFriendRequest(requesterId: number, addresseeId: number): Promise<{ ok: boolean; error?: string; friendshipId?: number }> {
     if (requesterId === addresseeId) return { ok: false, error: "Cannot add yourself" };
     // Check for existing relationship in either direction
     const existing = await this.getFriendship(requesterId, addresseeId);

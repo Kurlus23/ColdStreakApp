@@ -41,19 +41,25 @@ describe("consumePendingChallenge — conditional SQL delete", () => {
     expect(row).toBeUndefined();
   });
 
-  it("does NOT delete when fromUserId differs (B has replaced A in the slot)", async () => {
-    // B overwrites A in the slot
+  it("deletes only A when B is also pending for the same recipient", async () => {
+    // Multiple challengers may now be pending for one recipient.
     await storage.upsertPendingChallenge(FROM_A, TO);
     await storage.upsertPendingChallenge(FROM_B, TO);
 
-    // User verified A before the plunge was posted; try to consume A's slot
+    // User resolves A; B must remain pending.
     const consumed = await storage.consumePendingChallenge(TO, FROM_A);
-    expect(consumed).toBe(false);
+    expect(consumed).toBe(true);
 
-    // B must still be present and intact
-    const [row] = await db.select().from(pendingChallenges).where(eq(pendingChallenges.toUserId, TO));
-    expect(row).toBeDefined();
-    expect(row.fromUserId).toBe(FROM_B);
+    const [a] = await db.select().from(pendingChallenges).where(and(
+      eq(pendingChallenges.toUserId, TO),
+      eq(pendingChallenges.fromUserId, FROM_A),
+    ));
+    const [b] = await db.select().from(pendingChallenges).where(and(
+      eq(pendingChallenges.toUserId, TO),
+      eq(pendingChallenges.fromUserId, FROM_B),
+    ));
+    expect(a).toBeUndefined();
+    expect(b).toBeDefined();
   });
 
   it("returns false when no pending challenge exists for this recipient", async () => {
@@ -73,24 +79,23 @@ describe("insertPendingChallengeIfNone — ON CONFLICT DO NOTHING", () => {
     expect(row.fromUserId).toBe(FROM_A);
   });
 
-  it("does NOT overwrite a newer challenge B with stale restored A", async () => {
-    // B is already in the slot (arrived after A was consumed)
+  it("restores A without replacing an independently pending challenge B", async () => {
+    // B arrived after A was consumed.
     await storage.upsertPendingChallenge(FROM_B, TO);
 
     // Attempt to restore A
     await storage.insertPendingChallengeIfNone(FROM_A, TO);
 
-    // B must remain
-    const [row] = await db.select().from(pendingChallenges).where(eq(pendingChallenges.toUserId, TO));
-    expect(row).toBeDefined();
-    expect(row.fromUserId).toBe(FROM_B);
+    // Both pair-specific challenges must be present.
+    const rows = await db.select().from(pendingChallenges).where(eq(pendingChallenges.toUserId, TO));
+    expect(rows.map((row) => row.fromUserId).sort()).toEqual([FROM_A, FROM_B]);
   });
 });
 
 // ── Full A→B race scenario ────────────────────────────────────────────────────
 
 describe("A→B race scenario — full DB flow", () => {
-  it("preserves B when the user discards a plunge that consumed A", async () => {
+  it("restores A while preserving B when the user discards a plunge that consumed A", async () => {
     // 1. A sends a challenge
     await storage.upsertPendingChallenge(FROM_A, TO);
     const afterA = await storage.getPendingChallenge(TO);
@@ -107,9 +112,9 @@ describe("A→B race scenario — full DB flow", () => {
     // 4. User taps Discard — attempt to restore A
     await storage.insertPendingChallengeIfNone(FROM_A, TO);
 
-    // 5. B must remain; A is NOT restored
-    const current = await storage.getPendingChallenge(TO);
-    expect(current?.fromUserId).toBe(FROM_B);
+    // 5. Both independent pending challenges must remain available.
+    const rows = await db.select().from(pendingChallenges).where(eq(pendingChallenges.toUserId, TO));
+    expect(rows.map((row) => row.fromUserId).sort()).toEqual([FROM_A, FROM_B]);
   });
 
   it("restores A when no newer challenge arrived before discard", async () => {

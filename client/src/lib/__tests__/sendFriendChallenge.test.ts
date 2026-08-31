@@ -46,14 +46,17 @@ describe("sendFriendChallenge", () => {
     expect(deps.clearAuthToken).not.toHaveBeenCalled();
   });
 
-  it("shows a 'could not send' toast when sent is false", async () => {
+  it("confirms the challenge was recorded when notification delivery is deferred", async () => {
     const authFetch = vi.fn().mockResolvedValueOnce(makeResponse(200, { sent: false }));
     const deps = makeDeps(authFetch);
 
     await sendFriendChallenge(42, "Alice", deps);
 
     expect(deps.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Could not send", variant: "destructive" }),
+      expect.objectContaining({
+        title: "❄️ Challenge sent!",
+        description: "Alice will see it next time they open the app.",
+      }),
     );
     expect(deps.onSettled).toHaveBeenCalled();
   });

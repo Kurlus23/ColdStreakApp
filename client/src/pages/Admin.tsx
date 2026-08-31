@@ -112,6 +112,7 @@ interface SupportMessage {
   message: string;
   deviceInfo: string | null;
   status: string;
+  adminReply: string | null;
   createdAt: string;
 }
 
