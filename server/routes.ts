@@ -219,8 +219,10 @@ export async function registerRoutes(
     res.json(links);
   });
 
-  await seedPromoCodes();
-  await seedAdminAccount();
+  // These seeds are best-effort maintenance, not a prerequisite for serving
+  // requests. Starting them without awaiting keeps a temporarily unavailable
+  // database from preventing the HTTP server from opening its port.
+  void Promise.all([seedPromoCodes(), seedAdminAccount()]);
 
   // ── Auth ──────────────────────────────────────────────────────────────
 

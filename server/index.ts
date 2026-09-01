@@ -61,6 +61,33 @@ async function ensureRuntimeTables() {
   }
 }
 
+function startBestEffortBootTasks() {
+  // None of these maintenance jobs is required to serve the static app or
+  // answer a health check. Keep them off the critical startup path so a
+  // paused/restarting database cannot take the entire deployment offline.
+  void storage.clearAdminDisplayNames().catch((err) => {
+    console.error("[boot] admin display-name cleanup failed:", err);
+  });
+
+  void (async () => {
+    try {
+      const verified = await storage.getAllVerifiedListings();
+      let backfilled = 0;
+      for (const loc of verified) {
+        if (!loc.slug) {
+          await storage.ensureLocationSlug(loc.id);
+          backfilled++;
+        }
+      }
+      if (backfilled > 0) console.log(`[boot] backfilled ${backfilled} listing slug(s)`);
+    } catch (err) {
+      console.error("[boot] slug backfill failed:", err);
+    }
+  })();
+
+  void ensureRuntimeTables();
+}
+
 // Weekly (Monday) and monthly (1st) plunge-insight report emailer.
 // Imported lazily so a syntax error here can never block server boot.
 async function startReportScheduler() {
@@ -302,27 +329,6 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
 
-  // Seed restore promo code on every boot (no-op if already exists)
-  await storage.seedPromoCode("TESTINGPRO", 30, 20);
-
-  // Clear display_name from admin accounts so they never collide with real user profiles
-  await storage.clearAdminDisplayNames();
-
-  // Backfill slugs for any verified business listings missing one (idempotent).
-  try {
-    const verified = await storage.getAllVerifiedListings();
-    let backfilled = 0;
-    for (const loc of verified) {
-      if (!loc.slug) {
-        await storage.ensureLocationSlug(loc.id);
-        backfilled++;
-      }
-    }
-    if (backfilled > 0) console.log(`[boot] backfilled ${backfilled} listing slug(s)`);
-  } catch (err) {
-    console.error("[boot] slug backfill failed:", err);
-  }
-
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -350,10 +356,6 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  // Run schema migrations synchronously before accepting any traffic so that
-  // newly-added columns exist before the first request can reference them.
-  await ensureRuntimeTables();
-
   const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
     {
@@ -363,6 +365,7 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
+      startBestEffortBootTasks();
       void startChurnSurveyScheduler();
       void startReportScheduler();
     },
