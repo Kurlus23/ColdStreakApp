@@ -13,14 +13,6 @@ export function InlineSelectedChip() {
   return (
     <main className="inline-selected-chip">
       <section className="inline-selected-chip__panel" aria-label="ColdStreak benefits">
-        <button
-          className="inline-selected-chip__action"
-          type="button"
-          aria-label="Tap to set goal. Recovery is currently selected."
-        >
-          Tap to Set Goal
-        </button>
-
         <div className="inline-selected-chip__grid" role="list" aria-label="Benefit progress">
           {segments.map((segment) => {
             const isSelected = segment.id === "recovery";

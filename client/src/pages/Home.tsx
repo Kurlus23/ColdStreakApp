@@ -4378,7 +4378,7 @@ export default function Home() {
           </div>
 
           {/* ── Benefit bar (home screen) ── */}
-          {/* Uses full today total — no 2-hour window; once earned, stays lit until midnight */}
+          {/* Uses today's total for progress; each earned benefit fades independently after its own window. */}
           <div data-testid="benefit-bar" className="mt-2">
             <BenefitBar
               todayPlungesData={todayPlunges}
@@ -6755,6 +6755,45 @@ export default function Home() {
                   </div>
 
                   {profileTab === 'account' && (<>
+                  {/* Benefit goal */}
+                  <div className="rounded-2xl bg-cyan-950/30 border border-cyan-700/40 px-3.5 py-3 space-y-2">
+                    <div>
+                      <p className="text-cyan-200 text-xs font-semibold">Primary benefit goal</p>
+                      <p className="text-cyan-500 text-[11px] mt-0.5">Choose which benefit to prioritise during your plunge.</p>
+                    </div>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {SEGMENTS.map((seg) => {
+                        const active = primaryBenefit === seg.id;
+                        return (
+                          <button
+                            key={seg.id}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() => {
+                              setPrimaryBenefit(seg.id);
+                              localStorage.setItem("coldstreak-primary-benefit", seg.id);
+                              const tok = localStorage.getItem("coldstreak-auth-token");
+                              if (tok) {
+                                fetch("/api/auth/profile", {
+                                  method: "PATCH",
+                                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
+                                  body: JSON.stringify({ primaryBenefit: seg.id }),
+                                }).catch(() => {});
+                              }
+                            }}
+                            className="rounded-lg px-1 py-2 text-[10px] font-semibold transition-colors"
+                            style={{
+                              color: active ? "#071b28" : seg.barColor,
+                              background: active ? seg.barColor : "rgba(10, 27, 35, 0.72)",
+                              border: `1px solid ${active ? seg.barColor : `${seg.barColor}66`}`,
+                            }}
+                          >
+                            {seg.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                   {/* Email */}
                   <div>
                     <label className="text-blue-400 text-xs uppercase tracking-wide mb-1 block">Email</label>

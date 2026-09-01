@@ -74,7 +74,7 @@ const FIRST_OPEN_STEPS: Step[] = [
   {
     icon: "💪",
     title: "Benefits bar",
-    body: "Fills as you plunge through Energy, Mood, Metabolism, and Recovery. Thresholds are personalised — colder water and leaner body composition unlock each benefit faster. Tap the goal label at the top of the bar to set or change your target benefit.",
+    body: "Fills as you plunge through Energy, Mood, Metabolism, and Recovery. Thresholds are personalised — colder water and leaner body composition unlock each benefit faster. Tap a benefit pane, such as Recovery, to set or change your target benefit, or manage it from Profile → Account.",
     highlight: '[data-testid="benefit-bar"]',
     hint: "↓ below",
   },

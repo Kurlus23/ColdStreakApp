@@ -11,9 +11,9 @@ interface BenefitBarProps {
   isActive: boolean;
   /** Called once per segment when it crosses its threshold during an active session. */
   onMilestoneReached?: (segmentId: SegmentId) => void;
-  /** Current goal segment — shows a small tappable label at the top of the bar. */
+  /** Current goal segment — shown as a small inline chip on the selected pane. */
   primaryBenefit?: SegmentId;
-  /** Called when the user taps the goal label (disabled while a session is active). */
+  /** Called when the user taps a benefit pane (disabled while a session is active). */
   onGoalTap?: () => void;
   /**
    * Sum of durations (seconds) of all plunges already logged today.
@@ -157,7 +157,6 @@ export function BenefitBar({
     return Math.max(0, 100 * (1 - msElapsed / (seg.halfLifeHours * 3600 * 1000)));
   });
 
-  const goalSeg = primaryBenefit ? SEGMENTS.find(s => s.id === primaryBenefit) : null;
   const fmtRemaining = (s: number) => {
     const m = Math.floor(s / 60);
     const ss = Math.floor(s % 60);
@@ -200,30 +199,13 @@ export function BenefitBar({
         </div>
       ) : (
         <section
-          className="rounded-[14px] border px-[14px] pb-[9px] pt-[15px]"
+          className="rounded-2xl border border-blue-800/50 bg-blue-950/90 px-[14px] pb-[9px] pt-[8px] backdrop-blur-sm"
           style={{
-            borderColor: "rgba(140, 210, 215, 0.2)",
-            background: "rgba(10, 27, 35, 0.68)",
-            boxShadow: "inset 0 1px rgba(220, 255, 255, 0.06), 0 20px 45px rgba(0, 0, 0, 0.25)",
+            boxShadow: "0 8px 20px rgba(3, 12, 35, 0.16)",
           }}
           aria-label="Benefit progress"
         >
-          <div className="relative flex min-h-[12px] items-center justify-center text-[8px] font-mono uppercase leading-3 tracking-[0.08em] text-[#71949a]">
-            <button
-              type="button"
-              onClick={() => onGoalTap?.()}
-              disabled={isActive || !goalSeg}
-              aria-label="Change goal"
-              className="justify-self-center whitespace-nowrap border-0 bg-transparent p-0 font-inherit uppercase leading-3 tracking-[inherit] text-transparent transition-colors hover:text-[#d8f8f8] disabled:cursor-default disabled:opacity-0"
-              style={{
-                WebkitTextStroke: "0.35px rgba(185, 222, 221, 0.78)",
-              }}
-            >
-              {goalSeg && !isActive ? "Tap to Set Goal" : ""}
-            </button>
-          </div>
-
-          <div className="mt-[13px] grid grid-cols-4 gap-3" role="list">
+          <div className="mt-0 grid grid-cols-4 gap-3" role="list">
           {SEGMENTS.map((seg, i) => {
             const decayedFill = decayedFills[i];
             const rawFill     = rawFills[i];
@@ -241,60 +223,68 @@ export function BenefitBar({
                 role="listitem"
                 aria-label={isGoal ? `${seg.label}, current goal` : seg.label}
               >
-                <div
-                  className={`box-border flex h-[17px] items-center justify-center text-center text-[10px] leading-none whitespace-nowrap ${
-                    isGoal
-                      ? "mx-auto w-fit rounded-[4px] border px-[3px] py-0"
-                      : ""
-                  }`}
-                  style={{
-                    color: seg.barColor,
-                    borderColor: isGoal ? `${seg.barColor}b3` : undefined,
-                    textShadow: isGoal ? `0 0 10px ${seg.barColor}88` : undefined,
-                  }}
-                >
-                  <strong className="overflow-hidden text-ellipsis font-semibold">
-                    {seg.label}
-                  </strong>
-                </div>
-
-                <div
-                  className="relative mt-[10px] h-[3px] rounded-full bg-[rgba(157,203,207,0.14)]"
-                  aria-label={`${seg.label}: ${achieved ? "complete" : `${fmtRemaining(Math.max(0, thresholds[i] - totalElapsed))} remaining`}`}
+                <button
+                  type="button"
+                  onClick={() => onGoalTap?.()}
+                  disabled={isActive || !onGoalTap}
+                  aria-label={`Tap to set goal to ${seg.label}`}
+                  className="block w-full min-w-0 border-0 bg-transparent p-0 text-inherit disabled:cursor-default"
                 >
                   <div
-                    className="h-full rounded-full"
+                    className={`box-border flex h-[17px] items-center justify-center text-center text-[10px] leading-none whitespace-nowrap ${
+                      isGoal
+                        ? "mx-auto w-fit rounded-[4px] border px-[3px] py-0"
+                        : ""
+                    }`}
                     style={{
-                      width: `${decayedFill}%`,
-                      backgroundColor: seg.barColor,
-                      opacity: decayedFill > 0 ? (filling ? 0.85 : 0.75) : 0,
-                      transition: "width 1s linear, opacity 0.6s ease",
-                      boxShadow: filling ? `0 0 10px 1px ${seg.barColor}66` : `0 0 10px ${seg.barColor}55`,
+                      color: seg.barColor,
+                      borderColor: isGoal ? `${seg.barColor}b3` : undefined,
+                      textShadow: isGoal ? `0 0 10px ${seg.barColor}88` : undefined,
                     }}
-                  />
-                  <span
-                    className="absolute top-1/2 h-[6px] w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full border"
-                    style={{
-                      left: `${decayedFill}%`,
-                      borderColor: "#08131b",
-                      backgroundColor: seg.barColor,
-                      boxShadow: `0 0 0 1px ${seg.barColor}, 0 0 8px ${seg.barColor}88`,
-                    }}
-                    aria-hidden="true"
-                  />
-                </div>
-                {(isActive || (expirySeconds[i] !== null && expirySeconds[i] > 0)) && (
-                  <p
-                    className="mt-[7px] text-[10px] text-left font-mono font-semibold leading-none tracking-[0.04em] tabular-nums"
-                    style={{ color: seg.barColor, opacity: achieved ? 0.75 : 1 }}
                   >
-                    {isActive
-                      ? achieved
-                        ? "MAX"
-                        : fmtRemaining(Math.max(0, thresholds[i] - totalElapsed))
-                      : fmtExpiryRemaining(expirySeconds[i]!)}
-                  </p>
-                )}
+                    <strong className="overflow-hidden text-ellipsis font-semibold">
+                      {seg.label}
+                    </strong>
+                  </div>
+
+                  <div
+                    className="relative mt-[10px] h-[3px] rounded-full bg-[rgba(157,203,207,0.14)]"
+                    aria-label={`${seg.label}: ${achieved ? "complete" : `${fmtRemaining(Math.max(0, thresholds[i] - totalElapsed))} remaining`}`}
+                  >
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${decayedFill}%`,
+                        backgroundColor: seg.barColor,
+                        opacity: decayedFill > 0 ? (filling ? 0.85 : 0.75) : 0,
+                        transition: "width 1s linear, opacity 0.6s ease",
+                        boxShadow: filling ? `0 0 10px 1px ${seg.barColor}66` : `0 0 10px ${seg.barColor}55`,
+                      }}
+                    />
+                    <span
+                      className="absolute top-1/2 h-[6px] w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full border"
+                      style={{
+                        left: `${decayedFill}%`,
+                        borderColor: "#08131b",
+                        backgroundColor: seg.barColor,
+                        boxShadow: `0 0 0 1px ${seg.barColor}, 0 0 8px ${seg.barColor}88`,
+                      }}
+                      aria-hidden="true"
+                    />
+                  </div>
+                  {(isActive || (expirySeconds[i] !== null && expirySeconds[i] > 0)) && (
+                    <p
+                      className="mt-[7px] text-center text-[10px] font-mono font-semibold leading-none tracking-[0.04em] tabular-nums"
+                      style={{ color: seg.barColor, opacity: achieved ? 0.75 : 1 }}
+                    >
+                      {isActive
+                        ? achieved
+                          ? "MAX"
+                          : fmtRemaining(Math.max(0, thresholds[i] - totalElapsed))
+                        : fmtExpiryRemaining(expirySeconds[i]!)}
+                    </p>
+                  )}
+                </button>
               </div>
             );
           })}

@@ -13,50 +13,20 @@
 .inline-selected-chip__panel {
   width: min(390px, 100%);
   min-height: 0;
-  padding: 9px 12px;
-  border: 1px solid rgba(155, 220, 218, .26);
+  padding: 7px 12px 9px;
+  border: 1px solid rgba(30, 64, 175, .5);
   border-radius: 15px;
-  background: #173d49;
+  background: rgba(23, 37, 84, .9);
   box-shadow:
-    inset 0 1px rgba(232, 255, 251, .1),
-    0 18px 38px rgba(1, 15, 23, .3);
-}
-
-.inline-selected-chip__action {
-  display: block;
-  margin: 0 auto;
-  padding: 1px 5px 2px;
-  border: 0;
-  color: rgba(185, 222, 221, .88);
-  background: transparent;
-  font-family: "Space Mono", monospace;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: .065em;
-  line-height: 1.1;
-  text-transform: uppercase;
-  white-space: nowrap;
-  cursor: pointer;
-  -webkit-text-stroke: .35px rgba(185, 222, 221, .64);
-  transition: color 160ms ease, text-shadow 160ms ease;
-}
-
-.inline-selected-chip__action:hover,
-.inline-selected-chip__action:focus-visible {
-  color: #effffb;
-  outline: none;
-  text-shadow: 0 0 8px rgba(112, 223, 189, .34);
-}
-
-.inline-selected-chip__action:focus-visible {
-  box-shadow: 0 0 0 3px rgba(65, 215, 234, .16);
+    inset 0 1px rgba(147, 197, 253, .06),
+    0 18px 38px rgba(3, 12, 35, .24);
 }
 
 .inline-selected-chip__grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
-  margin-top: 13px;
+  margin-top: 0;
 }
 
 .inline-selected-chip__rail {
@@ -102,14 +72,14 @@
   margin-top: 8px;
   overflow: visible;
   border-radius: 99px;
-  background: rgba(184, 224, 221, .16);
+  background: rgba(96, 165, 250, .18);
 }
 
 .inline-selected-chip__track::after {
   position: absolute;
   inset: -3px 0;
-  border-right: 1px solid rgba(202, 239, 235, .2);
-  border-left: 1px solid rgba(202, 239, 235, .2);
+  border-right: 1px solid rgba(147, 197, 253, .18);
+  border-left: 1px solid rgba(147, 197, 253, .18);
   content: "";
 }
 
@@ -128,7 +98,7 @@
   left: var(--rail-progress);
   width: 7px;
   height: 7px;
-  border: 1px solid #173d49;
+  border: 1px solid #172554;
   border-radius: 50%;
   background: var(--rail-color);
   box-shadow: 0 0 0 1px var(--rail-color), 0 0 7px var(--rail-glow);

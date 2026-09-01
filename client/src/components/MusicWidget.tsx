@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Music, Play, Pause, SkipBack, SkipForward, Square, Settings, X, ExternalLink, Check, Link2, Unlink, Loader2, Zap, ZapOff, VolumeX, Star, Trash2 } from "lucide-react";
+import { Music, Play, Pause, SkipBack, SkipForward, Square, Settings, X, ExternalLink, Check, Link2, Unlink, Loader2, Zap, ZapOff, VolumeX, Star, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SiSpotify, SiApplemusic } from "react-icons/si";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ interface MusicConfig {
 }
 
 const STORAGE_KEY = "coldstreak-music-config";
+const COLLAPSED_KEY = "coldstreak-music-collapsed";
 const CUSTOM_VALUE = "__custom__";
 const CLEAR_VALUE = "__clear__";
 const CONNECT_VALUE = "__connect_spotify__";
@@ -90,6 +91,10 @@ function loadConfig(): MusicConfig {
 
 function saveConfig(cfg: MusicConfig) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)); } catch {}
+}
+
+function loadCollapsed(): boolean {
+  try { return localStorage.getItem(COLLAPSED_KEY) === "1"; } catch { return false; }
 }
 
 function detectService(url: string): MusicService {
@@ -349,6 +354,7 @@ interface MusicWidgetProps {
 
 export function MusicWidget({ className = "" }: MusicWidgetProps) {
   const [config, setConfig] = useState<MusicConfig>(() => loadConfig());
+  const [collapsed, setCollapsed] = useState(() => loadCollapsed());
   const [showSettings, setShowSettings] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [labelInput, setLabelInput] = useState("");
@@ -696,6 +702,14 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
     setConfig((prev) => ({ ...prev, autoPlay: !prev.autoPlay }));
   };
 
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(COLLAPSED_KEY, next ? "1" : "0"); } catch {}
+      return next;
+    });
+  };
+
   const setFeatureEnabled = (enabled: boolean) => {
     setConfig((prev) => ({ ...prev, featureEnabled: enabled }));
   };
@@ -812,87 +826,107 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
             <ServiceIcon className="w-3.5 h-3.5" />
           </button>
 
-          {/* Native dropdown — takes most of the width */}
-          <div className="flex-1 min-w-0 relative">
-            <select
-              data-testid="select-music-playlist"
-              value={selectValue}
-              onChange={handleSelectChange}
-              className="w-full appearance-none bg-blue-950/40 border border-blue-700/40 rounded-lg pl-2.5 pr-7 py-1.5 text-xs font-semibold text-white focus:outline-none focus:border-cyan-400 cursor-pointer truncate"
-              aria-label="Choose playlist"
-            >
-              {selectValue === "" && <option value="">🎵 Choose a playlist…</option>}
-              {isCustomSaved && <option value={config.url}>🎶 {config.label || "Custom playlist"}</option>}
-              {isLoggedIn && isSpotifyConnected && userPlaylists.length > 0 && (
-                <optgroup label={`Your Spotify${meQuery.data?.displayName ? ` — ${meQuery.data.displayName}` : ""}`}>
-                  {userPlaylists.map((p) => (
-                    <option key={p.id} value={p.url}>
-                      🎵 {p.name}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              {appleAuthorized && applePlaylists.length > 0 && (
-                <optgroup label="Your Apple Music">
-                  {applePlaylists.map((p) => (
-                    <option key={p.id} value={p.url}>
-                      🍎 {p.name}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              {pins.length > 0 && (
-                <optgroup label="My quick picks">
-                  {pins.map((p) => (
-                    <option key={p.url} value={p.url}>
-                      ⭐ {p.label}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              {isLoggedIn && !isSpotifyConnected && (
-                <option value={CONNECT_VALUE}>🔗 Connect Spotify to see your playlists…</option>
-              )}
-              {appleAvailable === true && !appleAuthorized && (
-                <option value={CONNECT_APPLE_VALUE}>🍎 Connect Apple Music to see your playlists…</option>
-              )}
-              <option value={CUSTOM_VALUE}>＋ Paste custom Spotify / Apple Music URL…</option>
-              {config.service !== "none" && <option value={CLEAR_VALUE}>✕ Clear current playlist</option>}
-            </select>
-            {/* Custom caret */}
-            <svg
-              className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-blue-300"
-              viewBox="0 0 20 20" fill="currentColor"
-            >
-              <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-            </svg>
-          </div>
+          {collapsed ? (
+            <div className="flex-1 min-w-0 px-1">
+              <span className="block truncate text-xs font-semibold text-blue-100">
+                {config.label || "Music"}
+              </span>
+            </div>
+          ) : (
+            <>
+              {/* Native dropdown — takes most of the width */}
+              <div className="flex-1 min-w-0 relative">
+                <select
+                  data-testid="select-music-playlist"
+                  value={selectValue}
+                  onChange={handleSelectChange}
+                  className="w-full appearance-none bg-blue-950/40 border border-blue-700/40 rounded-lg pl-2.5 pr-7 py-1.5 text-xs font-semibold text-white focus:outline-none focus:border-cyan-400 cursor-pointer truncate"
+                  aria-label="Choose playlist"
+                >
+                  {selectValue === "" && <option value="">🎵 Choose a playlist…</option>}
+                  {isCustomSaved && <option value={config.url}>🎶 {config.label || "Custom playlist"}</option>}
+                  {isLoggedIn && isSpotifyConnected && userPlaylists.length > 0 && (
+                    <optgroup label={`Your Spotify${meQuery.data?.displayName ? ` — ${meQuery.data.displayName}` : ""}`}>
+                      {userPlaylists.map((p) => (
+                        <option key={p.id} value={p.url}>
+                          🎵 {p.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {appleAuthorized && applePlaylists.length > 0 && (
+                    <optgroup label="Your Apple Music">
+                      {applePlaylists.map((p) => (
+                        <option key={p.id} value={p.url}>
+                          🍎 {p.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {pins.length > 0 && (
+                    <optgroup label="My quick picks">
+                      {pins.map((p) => (
+                        <option key={p.url} value={p.url}>
+                          ⭐ {p.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {isLoggedIn && !isSpotifyConnected && (
+                    <option value={CONNECT_VALUE}>🔗 Connect Spotify to see your playlists…</option>
+                  )}
+                  {appleAvailable === true && !appleAuthorized && (
+                    <option value={CONNECT_APPLE_VALUE}>🍎 Connect Apple Music to see your playlists…</option>
+                  )}
+                  <option value={CUSTOM_VALUE}>＋ Paste custom Spotify / Apple Music URL…</option>
+                  {config.service !== "none" && <option value={CLEAR_VALUE}>✕ Clear current playlist</option>}
+                </select>
+                {/* Custom caret */}
+                <svg
+                  className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-blue-300"
+                  viewBox="0 0 20 20" fill="currentColor"
+                >
+                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+              </div>
 
+              <button
+                data-testid="button-music-autoplay-toggle"
+                onClick={toggleAutoPlay}
+                className={`shrink-0 w-8 h-8 rounded-full active:scale-95 transition-all flex items-center justify-center ${
+                  config.autoPlay
+                    ? "bg-cyan-950/70 text-cyan-300 hover:text-cyan-200 border border-cyan-500/40"
+                    : "bg-blue-950/40 text-blue-400 hover:text-blue-200 border border-blue-800/40"
+                }`}
+                aria-label={config.autoPlay ? "Auto-launch with timer is ON — tap to turn off" : "Auto-launch with timer is OFF — tap to turn on"}
+                title={config.autoPlay ? "Auto-launch with timer: ON" : "Auto-launch with timer: OFF"}
+              >
+                {config.autoPlay ? <Zap className="w-3.5 h-3.5" /> : <ZapOff className="w-3.5 h-3.5" />}
+              </button>
+              <button
+                data-testid="button-music-settings"
+                onClick={() => setShowSettings(true)}
+                className="shrink-0 w-8 h-8 rounded-full bg-blue-800/60 hover:bg-blue-700/60 active:scale-95 transition-all text-blue-200 flex items-center justify-center"
+                aria-label="Music settings"
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
           <button
-            data-testid="button-music-autoplay-toggle"
-            onClick={toggleAutoPlay}
-            className={`shrink-0 w-8 h-8 rounded-full active:scale-95 transition-all flex items-center justify-center ${
-              config.autoPlay
-                ? "bg-cyan-950/70 text-cyan-300 hover:text-cyan-200 border border-cyan-500/40"
-                : "bg-blue-950/40 text-blue-400 hover:text-blue-200 border border-blue-800/40"
-            }`}
-            aria-label={config.autoPlay ? "Auto-launch with timer is ON — tap to turn off" : "Auto-launch with timer is OFF — tap to turn on"}
-            title={config.autoPlay ? "Auto-launch with timer: ON" : "Auto-launch with timer: OFF"}
+            data-testid="button-music-collapse"
+            onClick={toggleCollapsed}
+            className="shrink-0 w-8 h-8 rounded-full bg-blue-800/60 hover:bg-blue-700/60 active:scale-95 transition-all text-blue-200 hover:text-white flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+            aria-label={collapsed ? "Expand music bar" : "Collapse music bar"}
+            aria-expanded={!collapsed}
+            title={collapsed ? "Expand music bar" : "Collapse music bar"}
           >
-            {config.autoPlay ? <Zap className="w-3.5 h-3.5" /> : <ZapOff className="w-3.5 h-3.5" />}
-          </button>
-          <button
-            data-testid="button-music-settings"
-            onClick={() => setShowSettings(true)}
-            className="shrink-0 w-8 h-8 rounded-full bg-blue-800/60 hover:bg-blue-700/60 active:scale-95 transition-all text-blue-200 flex items-center justify-center"
-            aria-label="Music settings"
-          >
-            <Settings className="w-3.5 h-3.5" />
+            {collapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
           </button>
         </div>
 
         {/* Now-playing strip — shown for Spotify when a track is detected */}
-        {nowPlaying && config.service === "spotify" && (
+        {!collapsed && nowPlaying && config.service === "spotify" && (
           <div className="px-3 pb-1 flex items-center gap-1.5 min-w-0">
             <span className="text-green-400 text-[9px] font-bold uppercase tracking-wide shrink-0">Now playing</span>
             <span className="text-white text-[10px] font-semibold truncate">{nowPlaying.trackName}</span>
@@ -906,7 +940,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
             the user pause / resume / skip / stop the music without leaving
             ColdStreak. Routes to native Apple Music plugin or Spotify Web
             API depending on which service is active. */}
-        {config.service !== "none" && config.url && (
+        {!collapsed && config.service !== "none" && config.url && (
           <div className="flex items-center justify-center gap-1.5 px-2 pb-1.5 pt-0.5 border-t border-blue-800/30">
             <button
               data-testid="button-music-skip-previous"
