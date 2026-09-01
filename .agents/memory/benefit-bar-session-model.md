@@ -8,10 +8,14 @@ BenefitBar carries over prior session time only if the most recent completed plu
 
 Energy, Mood, Metabolism, and Recovery all progress from the start of a plunge toward independent peak-duration thresholds. A threshold means the benefit window is **maximized**, not that the benefit first begins. Keep the active UI compact: labels belong inside the bars and small color-matched time-to-peak values belong beneath them.
 
+During an active plunge, a completed threshold may read **MAX**. Once the plunge ends and the benefit begins fading, replace MAX with the time remaining until that benefit fully fades. Bar color represents current benefit freshness and fades on physiological expiry, not at midnight. Daily rewards and completion history remain recorded independently of the bar color.
+
 ## Why
 Each separate plunge triggers its own independent acute response (norepinephrine spike, vasoconstriction, mood lift). Benefits build concurrently rather than appearing as a sequential checklist. Benefits from a 6am session have largely dissipated by the afternoon — stacking all of today's plunges onto one bar would imply a continuous physiological cascade that doesn't exist.
 
 The 2-hour window captures the legitimate "interrupted session" case (got too cold, took a short break) where the thermal dose really is still in progress. Three separate daily plunges (morning / afternoon / evening) each get their own independent bar.
+
+Separating freshness from achievement prevents a late-night plunge from appearing to lose its benefit at midnight and prevents a faded rail from erasing a reward the user already earned.
 
 ## How to apply
 - `benefitCarryOver` is computed from `todayPlunges` in Home.tsx right after `todayTotalSec`.

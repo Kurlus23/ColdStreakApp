@@ -107,13 +107,13 @@ export function BenefitBar({
     });
   }, [todayLoggedSeconds, thresholds]);
 
-  // ── Real-time clock for decay (ticks every 60s when resting) ─────────────
+  // ── Real-time clock for decay (ticks every second when resting) ──────────
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    if (isActive || !lastPlungeEndedAt) return;
-    const id = setInterval(() => setNow(Date.now()), 60_000);
+    if (isActive || (!lastPlungeEndedAt && !todayPlungesData?.length)) return;
+    const id = setInterval(() => setNow(Date.now()), 1_000);
     return () => clearInterval(id);
-  }, [isActive, lastPlungeEndedAt]);
+  }, [isActive, lastPlungeEndedAt, todayPlungesData]);
 
   // ── Per-segment earned-at timestamps ─────────────────────────────────────
   // Each segment decays from when IT was first earned today, not from whenever
@@ -163,6 +163,22 @@ export function BenefitBar({
     const ss = Math.floor(s % 60);
     return `${m}:${String(ss).padStart(2, "0")}`;
   };
+  const fmtExpiryRemaining = (s: number) => {
+    const totalMinutes = Math.max(0, Math.ceil(s / 60));
+    const hours = Math.floor(totalMinutes / 60);
+    return hours > 0
+      ? `${hours}h${String(totalMinutes % 60).padStart(2, "0")}`
+      : `${totalMinutes}m`;
+  };
+  const expirySeconds = SEGMENTS.map((seg, i) => {
+    if (rawFills[i] < 100 || !segmentEarnedAt[i]) return null;
+    return Math.max(
+      0,
+      Math.ceil(
+        (segmentEarnedAt[i]! + seg.halfLifeHours * 3600 * 1000 - now) / 1000,
+      ),
+    );
+  });
 
   return (
     <div className="px-0.5 space-y-0.5 mt-0.5 mb-0">
@@ -184,7 +200,7 @@ export function BenefitBar({
         </div>
       ) : (
         <section
-          className="rounded-[14px] border px-[14px] pb-[14px] pt-[15px]"
+          className="rounded-[14px] border px-[14px] pb-[9px] pt-[15px]"
           style={{
             borderColor: "rgba(140, 210, 215, 0.2)",
             background: "rgba(10, 27, 35, 0.68)",
@@ -193,13 +209,15 @@ export function BenefitBar({
           aria-label="Benefit progress"
         >
           <div className="relative flex min-h-[12px] items-center justify-center text-[8px] font-mono uppercase leading-3 tracking-[0.08em] text-[#71949a]">
-            <span className="absolute left-0">BENEFITS BAR</span>
             <button
               type="button"
               onClick={() => onGoalTap?.()}
               disabled={isActive || !goalSeg}
               aria-label="Change goal"
-              className="justify-self-center whitespace-nowrap border-0 bg-transparent p-0 font-inherit uppercase leading-3 tracking-[inherit] text-[#8ebfc3] transition-colors hover:text-[#d8f8f8] disabled:cursor-default disabled:opacity-0"
+              className="justify-self-center whitespace-nowrap border-0 bg-transparent p-0 font-inherit uppercase leading-3 tracking-[inherit] text-transparent transition-colors hover:text-[#d8f8f8] disabled:cursor-default disabled:opacity-0"
+              style={{
+                WebkitTextStroke: "0.35px rgba(185, 222, 221, 0.78)",
+              }}
             >
               {goalSeg && !isActive ? "Tap to Set Goal" : ""}
             </button>
@@ -216,36 +234,22 @@ export function BenefitBar({
             return (
               <div
                 key={seg.id}
-                className="relative min-w-0 rounded-lg px-1 py-1 transition-all"
+                className="relative min-w-0 transition-all"
                 style={{
-                  background: isGoal
-                    ? `linear-gradient(180deg, ${seg.barColor}18, transparent 85%)`
-                    : "transparent",
-                  boxShadow: isGoal
-                    ? `inset 0 0 0 1px ${seg.barColor}40, 0 0 14px ${seg.barColor}12`
-                    : "none",
+                  background: "transparent",
                 }}
                 role="listitem"
                 aria-label={isGoal ? `${seg.label}, current goal` : seg.label}
               >
-                {isGoal && (
-                  <span
-                    className="absolute -right-0.5 -top-2 flex h-4 w-4 items-center justify-center rounded-full border text-[9px] leading-none shadow-lg"
-                    style={{
-                      borderColor: `${seg.barColor}99`,
-                      backgroundColor: "#0a1b23",
-                      boxShadow: `0 0 8px ${seg.barColor}66`,
-                    }}
-                    aria-label="Current goal"
-                    title="Current goal"
-                  >
-                    🧊
-                  </span>
-                )}
                 <div
-                  className="flex items-center justify-center text-center text-[10px] leading-none whitespace-nowrap"
+                  className={`box-border flex h-[17px] items-center justify-center text-center text-[10px] leading-none whitespace-nowrap ${
+                    isGoal
+                      ? "mx-auto w-fit rounded-[4px] border px-[3px] py-0"
+                      : ""
+                  }`}
                   style={{
                     color: seg.barColor,
+                    borderColor: isGoal ? `${seg.barColor}b3` : undefined,
                     textShadow: isGoal ? `0 0 10px ${seg.barColor}88` : undefined,
                   }}
                 >
@@ -279,12 +283,16 @@ export function BenefitBar({
                     aria-hidden="true"
                   />
                 </div>
-                {isActive && (
+                {(isActive || (expirySeconds[i] !== null && expirySeconds[i] > 0)) && (
                   <p
-                    className="mt-[7px] text-[10px] text-left font-mono font-semibold leading-none tabular-nums"
+                    className="mt-[7px] text-[10px] text-left font-mono font-semibold leading-none tracking-[0.04em] tabular-nums"
                     style={{ color: seg.barColor, opacity: achieved ? 0.75 : 1 }}
                   >
-                    {achieved ? "MAX" : fmtRemaining(Math.max(0, thresholds[i] - totalElapsed))}
+                    {isActive
+                      ? achieved
+                        ? "MAX"
+                        : fmtRemaining(Math.max(0, thresholds[i] - totalElapsed))
+                      : fmtExpiryRemaining(expirySeconds[i]!)}
                   </p>
                 )}
               </div>

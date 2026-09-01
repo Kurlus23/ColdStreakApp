@@ -9,6 +9,7 @@
 - [Mockup sandbox gotchas](mockup-sandbox-gotchas.md) — only import packages in the sandbox package.json (react-icons breaks React); cache-bust repeat screenshots.
 - [iOS bounce/scroll + home-indicator fix](ios-bounce-scroll-fix.md) — correct fix needs contentInset:"never" + #root clamped by env(); all CSS-only approaches fail with contentInset:"automatic".
 - [BenefitBar session model](benefit-bar-session-model.md) — 2-hour carry-over window for interrupted sessions; 3x/day plungers get independent bars (science-backed).
+- [Benefit Bar visual direction](benefit-bar-visual-direction.md) — use clean rails with a label-hugging selected-goal chip and an unlined, outlined goal action.
 - [Plunge overlay challenge design](plunge-overlay-challenge-design.md) — ring only in challenge mode; solo uses floating timer + benefit bar countdown; score boxes + rivalry cold takes gate on challengerName.
 - [GitHub push authorization](github-push-authorization.md) — fetch can work while pushes fail; reauthorize the installed GitHub OAuth connection before retrying.
 - [Admin browser-test setup](admin-browser-test-setup.md) — seeded admin passwords can be preserved; use an isolated registered user promoted in the dev DB for repeatable authenticated UI checks.
