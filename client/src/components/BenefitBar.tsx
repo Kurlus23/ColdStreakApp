@@ -166,24 +166,7 @@ export function BenefitBar({
 
   return (
     <div className="px-0.5 space-y-0.5 mt-0.5 mb-0">
-      {!isActive && goalSeg && (
-        /* Goal tap line — shown at rest */
-        <button
-          onClick={() => { if (!isActive) onGoalTap?.(); }}
-          disabled={isActive}
-          className="w-full flex items-center justify-center gap-1 mb-1 transition-opacity"
-          style={{ opacity: isActive ? 0.4 : 1 }}
-        >
-          <span className="text-[9px]" style={{ color: goalSeg.barColor }}>
-            {goalSeg.emoji} {goalSeg.label} goal
-          </span>
-          {!isActive && (
-            <span className="text-[9px] text-slate-500">· tap to change</span>
-          )}
-        </button>
-      )}
-
-      {/* Segmented bar → Adaptation Zone once all benefits are maxed during a plunge */}
+      {/* Rail readout → Adaptation Zone once all benefits are maxed during a plunge */}
       {isActive && achievedToday.every(Boolean) ? (
         <div className="space-y-1.5">
           <div className="relative h-2 rounded-full overflow-hidden bg-cyan-400/15">
@@ -200,7 +183,39 @@ export function BenefitBar({
           </div>
         </div>
       ) : (
-        <div className="flex gap-1.5">
+        <section
+          className="rounded-[14px] border px-[14px] pb-[14px] pt-[15px]"
+          style={{
+            borderColor: "rgba(140, 210, 215, 0.2)",
+            background: "rgba(10, 27, 35, 0.68)",
+            boxShadow: "inset 0 1px rgba(220, 255, 255, 0.06), 0 20px 45px rgba(0, 0, 0, 0.25)",
+          }}
+          aria-label="Benefit progress"
+        >
+          <div className="grid min-h-[12px] grid-cols-3 items-center gap-2 text-[8px] font-mono uppercase leading-3 tracking-[0.08em] text-[#71949a]">
+            <span className="justify-self-start">BENEFITS</span>
+            <button
+              type="button"
+              onClick={() => onGoalTap?.()}
+              disabled={isActive || !goalSeg}
+              aria-label="Change goal"
+              className="justify-self-center whitespace-nowrap border-0 bg-transparent p-0 font-inherit uppercase leading-3 tracking-[inherit] text-[#8ebfc3] transition-colors hover:text-[#d8f8f8] disabled:cursor-default disabled:opacity-0"
+            >
+              {goalSeg && !isActive ? "Tap to Change Goal" : ""}
+            </button>
+            <span className="flex items-center justify-end gap-1 whitespace-nowrap text-[#6e9197]">
+              {goalSeg && (
+                <>
+                  <span>Goal:</span>
+                  <strong className="font-semibold" style={{ color: goalSeg.barColor }}>
+                    {goalSeg.label}
+                  </strong>
+                </>
+              )}
+            </span>
+          </div>
+
+          <div className="mt-[13px] grid grid-cols-4 gap-3" role="list">
           {SEGMENTS.map((seg, i) => {
             const decayedFill = decayedFills[i];
             const rawFill     = rawFills[i];
@@ -208,40 +223,46 @@ export function BenefitBar({
             const filling     = rawFill > 0 && rawFill < 100;
 
             return (
-              <div key={seg.id} className="flex-1 min-w-0">
+              <div key={seg.id} className="min-w-0" role="listitem">
                 <div
-                  className="relative h-5 rounded-md overflow-hidden"
+                  className="flex items-center justify-center text-center text-[10px] leading-none whitespace-nowrap"
                   style={{
-                    backgroundColor: achieved ? seg.barColor + "18" : seg.dimColor + "44",
-                    boxShadow: achieved ? `0 0 0 1px ${seg.barColor}cc` : "none",
-                    transition: "box-shadow 0.4s ease, background-color 0.4s ease",
+                    color: seg.barColor,
                   }}
                 >
-                  <div className="absolute inset-0 rounded-md overflow-hidden">
-                    <div
-                      className="absolute inset-y-0 left-0 rounded-md"
-                      style={{
-                        width: `${decayedFill}%`,
-                        backgroundColor: seg.barColor,
-                        opacity: decayedFill > 0 ? (filling ? 0.85 : 0.75) : 0,
-                        transition: "width 1s linear, opacity 0.6s ease",
-                        boxShadow: filling ? `0 0 6px 1px ${seg.barColor}66` : "none",
-                      }}
-                    />
-                  </div>
-                  <span
-                    className="absolute inset-0 z-10 flex items-center justify-center px-0.5 text-[8px] font-bold leading-none whitespace-nowrap"
+                  <strong className="overflow-hidden text-ellipsis font-semibold">
+                    {seg.label}
+                  </strong>
+                </div>
+
+                <div
+                  className="relative mt-[10px] h-[3px] rounded-full bg-[rgba(157,203,207,0.14)]"
+                  aria-label={`${seg.label}: ${achieved ? "complete" : `${fmtRemaining(Math.max(0, thresholds[i] - totalElapsed))} remaining`}`}
+                >
+                  <div
+                    className="h-full rounded-full"
                     style={{
-                        color: seg.barColor,
-                        textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+                      width: `${decayedFill}%`,
+                      backgroundColor: seg.barColor,
+                      opacity: decayedFill > 0 ? (filling ? 0.85 : 0.75) : 0,
+                      transition: "width 1s linear, opacity 0.6s ease",
+                      boxShadow: filling ? `0 0 10px 1px ${seg.barColor}66` : `0 0 10px ${seg.barColor}55`,
                     }}
-                  >
-                    {seg.emoji} {seg.label}
-                  </span>
+                  />
+                  <span
+                    className="absolute top-1/2 h-[6px] w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full border"
+                    style={{
+                      left: `${decayedFill}%`,
+                      borderColor: "#08131b",
+                      backgroundColor: seg.barColor,
+                      boxShadow: `0 0 0 1px ${seg.barColor}, 0 0 8px ${seg.barColor}88`,
+                    }}
+                    aria-hidden="true"
+                  />
                 </div>
                 {isActive && (
                   <p
-                    className="mt-1 text-center text-[9px] font-mono font-semibold tabular-nums"
+                    className="mt-[7px] text-[10px] text-left font-mono font-semibold leading-none tabular-nums"
                     style={{ color: seg.barColor, opacity: achieved ? 0.75 : 1 }}
                   >
                     {achieved ? "MAX" : fmtRemaining(Math.max(0, thresholds[i] - totalElapsed))}
@@ -250,7 +271,8 @@ export function BenefitBar({
               </div>
             );
           })}
-        </div>
+          </div>
+        </section>
       )}
     </div>
   );

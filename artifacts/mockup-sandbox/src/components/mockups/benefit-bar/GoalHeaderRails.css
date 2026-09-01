@@ -1,0 +1,17 @@
+.goal-header-rails{min-height:100vh;display:grid;place-items:center;background:radial-gradient(circle at 50% -25%,rgba(28,101,120,.3),transparent 58%),#08131b;color:#c9e6e8;font-family:"DM Sans",sans-serif}
+.goal-header-rails__panel{width:min(100%,390px);padding:13px 14px 14px;border:1px solid rgba(140,210,215,.2);border-radius:14px;background:rgba(10,27,35,.68);box-shadow:inset 0 1px rgba(220,255,255,.06),0 20px 45px rgba(0,0,0,.25)}
+.goal-header-rails__header{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;min-height:12px;gap:8px;color:#71949a;font:8px "Space Mono",monospace;letter-spacing:.08em;line-height:12px;text-transform:uppercase}
+.goal-header-rails__caption{justify-self:start;line-height:12px}
+.goal-header-rails__change{justify-self:center;padding:0;border:0;background:transparent;color:#8ebfc3;font:inherit;letter-spacing:inherit;line-height:12px;text-transform:inherit;white-space:nowrap;cursor:pointer}
+.goal-header-rails__change:hover{color:#d8f8f8}
+.goal-header-rails__goal{display:flex;justify-content:flex-end;align-items:center;gap:4px;color:#6e9197;font:inherit;line-height:12px;white-space:nowrap}
+.goal-header-rails__goal strong{font-weight:600}
+.goal-header-rails__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:13px}
+.goal-header-rail{min-width:0}
+.goal-header-rail__name{display:flex;align-items:center;justify-content:center;color:var(--rail-color);font-size:10px;text-align:center;white-space:nowrap}
+.goal-header-rail__name strong{overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.goal-header-rail__track{position:relative;height:3px;margin-top:10px;border-radius:99px;background:rgba(157,203,207,.14)}
+.goal-header-rail__track:after{position:absolute;inset:-3px 0;border-left:1px solid rgba(190,230,230,.18);border-right:1px solid rgba(190,230,230,.18);content:""}
+.goal-header-rail__track i{display:block;width:var(--rail-progress);height:100%;border-radius:inherit;background:var(--rail-color);box-shadow:0 0 10px var(--rail-glow)}
+.goal-header-rail__track b{position:absolute;top:50%;left:var(--rail-progress);width:6px;height:6px;border:1px solid #08131b;border-radius:50%;background:var(--rail-color);box-shadow:0 0 0 1px var(--rail-color),0 0 8px var(--rail-glow);transform:translate(-50%,-50%)}
+.goal-header-rail__value{margin-top:7px;color:var(--rail-color);font:700 10px "Space Mono",monospace;letter-spacing:-.04em}

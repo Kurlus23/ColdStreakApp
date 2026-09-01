@@ -1,0 +1,19 @@
+.goal-focus{min-height:100vh;display:grid;place-items:center;background:radial-gradient(circle at 60% 0,rgba(20,87,106,.28),transparent 56%),#08131a;color:#c9e5e7;font-family:"DM Sans",sans-serif}
+.goal-focus__panel{width:min(100%,390px);padding:14px;border:1px solid rgba(139,205,210,.2);border-radius:13px;background:rgba(9,26,34,.72);box-shadow:inset 0 1px rgba(220,255,255,.05),0 18px 40px rgba(0,0,0,.25)}
+.goal-focus__header{display:flex;align-items:end;justify-content:space-between;margin-bottom:13px}
+.goal-focus__header div{display:grid;gap:4px}
+.goal-focus__kicker{color:#63858c;font:8px "Space Mono",monospace;letter-spacing:.15em;text-transform:uppercase}
+.goal-focus__header strong{color:#b9f4e2;font:600 13px "Outfit",sans-serif;letter-spacing:.03em}
+.goal-focus__temperature{color:#6c8b91;font:8px "Space Mono",monospace}
+.goal-focus__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
+.goal-cell{min-width:0;padding:8px 7px 7px;border:1px solid rgba(159,203,205,.1);border-radius:8px;background:rgba(255,255,255,.025)}
+.goal-cell--focus{border-color:rgba(112,223,189,.42);background:rgba(112,223,189,.065);box-shadow:0 0 20px rgba(112,223,189,.08)}
+.goal-cell__top{display:flex;align-items:center;gap:4px;color:var(--goal-color);font:600 9px "Outfit",sans-serif;white-space:nowrap}
+.goal-cell__top>span:last-child{overflow:hidden;text-overflow:ellipsis}
+.goal-cell__mark{display:grid;place-items:center;width:13px;height:13px;border:1px solid var(--goal-color);border-radius:50%;font:7px "Space Mono",monospace}
+.goal-cell__rail{position:relative;height:3px;margin-top:12px;border-radius:99px;background:rgba(160,204,207,.14)}
+.goal-cell__rail i{display:block;width:var(--goal-progress);height:100%;border-radius:inherit;background:var(--goal-color);box-shadow:0 0 9px var(--goal-glow)}
+.goal-cell__rail b{position:absolute;top:50%;left:var(--goal-progress);width:6px;height:6px;border:1px solid #08131a;border-radius:50%;background:var(--goal-color);box-shadow:0 0 0 1px var(--goal-color);transform:translate(-50%,-50%)}
+.goal-cell__bottom{display:flex;align-items:baseline;justify-content:space-between;gap:3px;margin-top:8px;white-space:nowrap}
+.goal-cell__bottom strong{color:var(--goal-color);font:700 9px "Space Mono",monospace}
+.goal-cell__bottom span{color:#58747b;font:7px "Space Mono",monospace;letter-spacing:.08em}
