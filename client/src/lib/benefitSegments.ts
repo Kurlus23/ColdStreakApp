@@ -9,8 +9,8 @@
 export const SEGMENTS = [
   { id: "energy",     emoji: "⚡", label: "Energy",     baseDuration: 60,  barColor: "#22d3ee", dimColor: "#164e63", halfLifeHours: 3 },
   { id: "mood",       emoji: "😊", label: "Mood",       baseDuration: 120, barColor: "#fbbf24", dimColor: "#78350f", halfLifeHours: 5 },
-  { id: "metabolism", emoji: "🔥", label: "Metabolism", baseDuration: 120, barColor: "#f97316", dimColor: "#7c2d12", halfLifeHours: 6 },
-  { id: "recovery",   emoji: "💪", label: "Recovery",   baseDuration: 180, barColor: "#34d399", dimColor: "#064e3b", halfLifeHours: 8 },
+  { id: "metabolism", emoji: "🔥", label: "Metabolism", baseDuration: 180, barColor: "#f97316", dimColor: "#7c2d12", halfLifeHours: 6 },
+  { id: "recovery",   emoji: "💪", label: "Recovery",   baseDuration: 300, barColor: "#34d399", dimColor: "#064e3b", halfLifeHours: 8 },
 ] as const;
 
 export type SegmentId = (typeof SEGMENTS)[number]["id"];
@@ -90,9 +90,8 @@ export function getBmiFactorForScore(weightLbs: number, heightCm: number): numbe
 /**
  * Composition factor for the BENEFIT BAR (thresholds).
  * Higher body fat → higher factor → longer unlock thresholds (more insulation).
- * When body fat % is not set, returns 1.0 (neutral) — height/weight BMI is not
- * a reliable proxy for insulation and would unfairly penalise heavier users who
- * may have the same body fat % as lighter ones.
+ * When body fat % is not set, falls back to the individual's BMI from height and
+ * weight so the default peak durations are not treated as universal.
  */
 export function getCompositionFactor(
   bodyFatPct: number | null | undefined,
@@ -100,7 +99,7 @@ export function getCompositionFactor(
   heightCm: number,
 ): number {
   if (bodyFatPct != null && bodyFatPct > 0) return getBodyFatFactor(bodyFatPct);
-  return 1.0; // neutral baseline when body fat is unknown
+  return getBmiFactor(weightLbs, heightCm);
 }
 
 /**

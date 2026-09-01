@@ -78,8 +78,8 @@ export interface PeriodStats {
 const SEGMENTS = [
   { id: "energy",     baseDuration: 60  },
   { id: "mood",       baseDuration: 120 },
-  { id: "metabolism", baseDuration: 120 },
-  { id: "recovery",   baseDuration: 180 },
+  { id: "metabolism", baseDuration: 180 },
+  { id: "recovery",   baseDuration: 300 },
 ] as const;
 
 const TEMP_POINTS: [number, number][] = [

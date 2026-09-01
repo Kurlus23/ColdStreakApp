@@ -16,10 +16,10 @@ import { computeThresholds } from "@/lib/benefitSegments";
 
 // ── Reference scenario ────────────────────────────────────────────────────────
 // 50 °F, default body metrics (150 lb / 175 cm, no body-fat)
-// Independent thresholds: [60, 120, 120, 180]
-// primaryBenefit = "mood" → full goal = 120 s
+// Independent thresholds for the default 150 lb / 175 cm BMI profile:
+// [61, 121, 182, 303]. primaryBenefit = "mood" → full goal = 121 s.
 const TEMP = 50;
-const T = computeThresholds(TEMP); // [60, 120, 120, 180]
+const T = computeThresholds(TEMP); // [61, 121, 182, 303]
 
 // Fixed base timestamp so tests are deterministic and nowMs can be pinned to
 // the exact plunge-end (0 ms elapsed ⟹ no decay artefacts from Math.ceil).
@@ -41,9 +41,9 @@ function nowAtEnd(p: { endMs: number }) {
 }
 
 describe("computeCountdownNeededSecs — no plunges today", () => {
-  it("returns the full mood threshold (120 s) when nothing has been logged", () => {
+  it("returns the full BMI-adjusted mood threshold when nothing has been logged", () => {
     const needed = computeCountdownNeededSecs("mood", TEMP, [], Date.now());
-    expect(needed).toBe(T[1]); // 182
+    expect(needed).toBe(T[1]); // 121
   });
 
   it("returns the full energy threshold (60 s) for the energy goal", () => {
@@ -76,7 +76,7 @@ describe("computeCountdownNeededSecs — goal already satisfied (hint must be hi
   });
 
   it("returns 0 when two separate plunges together cover the goal", () => {
-    // 90 s + 100 s = 190 s > 120 s mood threshold.
+    // 90 s + 100 s = 190 s > the 121 s BMI-adjusted mood threshold.
     // Both plunges end at the same BASE_MS so every segmentEarnedAt = nowMs
     // (0 ms elapsed → no Math.ceil decay artefacts).
     const p1 = buildPlunge(90, 0);
@@ -90,7 +90,7 @@ describe("computeCountdownNeededSecs — partial coverage (hint shows residual)"
   it("returns the selected goal's residual gap", () => {
     const p = buildPlunge(100);
     const needed = computeCountdownNeededSecs("mood", TEMP, [p], nowAtEnd(p));
-    expect(needed).toBe(20);
+    expect(needed).toBe(21);
     expect(needed).toBeLessThan(T[1]); // strictly less than full threshold
   });
 
@@ -105,28 +105,28 @@ describe("computeCountdownNeededSecs — partial coverage (hint shows residual)"
   it("partial exposure advances mood immediately", () => {
     const p = buildPlunge(30);
     const needed = computeCountdownNeededSecs("mood", TEMP, [p], nowAtEnd(p));
-    expect(needed).toBe(90);
+    expect(needed).toBe(91);
     expect(needed).toBeGreaterThan(0);
-    expect(needed).toBeLessThan(T[1]); // residual, not the full 182
+    expect(needed).toBeLessThan(T[1]); // residual, not the full 121
   });
 });
 
 describe("computeCountdownNeededSecs — 'Set it' decomposition", () => {
-  it("the 20-second residual decomposes correctly", () => {
+  it("the 21-second residual decomposes correctly", () => {
     const p = buildPlunge(100);
     const needed = computeCountdownNeededSecs("mood", TEMP, [p], nowAtEnd(p));
-    expect(needed).toBe(20);
+    expect(needed).toBe(21);
     const recMins = Math.floor(needed / 60);
     const recSecs = needed % 60;
     expect(recMins).toBe(0);
-    expect(recSecs).toBe(20);
+    expect(recSecs).toBe(21);
   });
 
-  it("full 120-second goal decomposes to 2 minutes", () => {
+  it("full BMI-adjusted goal decomposes to 2 minutes and 1 second", () => {
     const needed = computeCountdownNeededSecs("mood", TEMP, [], Date.now());
-    expect(needed).toBe(120);
+    expect(needed).toBe(121);
     expect(Math.floor(needed / 60)).toBe(2);
-    expect(needed % 60).toBe(0);
+    expect(needed % 60).toBe(1);
   });
 
   it("applied minutes + seconds always reconstruct the exact neededSecs", () => {
@@ -155,8 +155,8 @@ describe("computeCountdownNeededSecs — benefit decay", () => {
     const nowMs = plungeEndMs + FOUR_HOURS_MS;
 
     const needed = computeCountdownNeededSecs("mood", TEMP, [p], nowMs);
-    // Mood retains 20%, so 80% of its independent 120 s peak is needed.
-    expect(needed).toBe(96);
+    // Mood retains 20%, so 80% of its independent 121 s peak is needed.
+    expect(needed).toBe(97);
     expect(needed).toBeGreaterThan(0);
   });
 
