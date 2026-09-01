@@ -192,8 +192,8 @@ export function BenefitBar({
           }}
           aria-label="Benefit progress"
         >
-          <div className="grid min-h-[12px] grid-cols-3 items-center gap-2 text-[8px] font-mono uppercase leading-3 tracking-[0.08em] text-[#71949a]">
-            <span className="justify-self-start">BENEFITS</span>
+          <div className="relative flex min-h-[12px] items-center justify-center text-[8px] font-mono uppercase leading-3 tracking-[0.08em] text-[#71949a]">
+            <span className="absolute left-0">BENEFITS BAR</span>
             <button
               type="button"
               onClick={() => onGoalTap?.()}
@@ -201,18 +201,8 @@ export function BenefitBar({
               aria-label="Change goal"
               className="justify-self-center whitespace-nowrap border-0 bg-transparent p-0 font-inherit uppercase leading-3 tracking-[inherit] text-[#8ebfc3] transition-colors hover:text-[#d8f8f8] disabled:cursor-default disabled:opacity-0"
             >
-              {goalSeg && !isActive ? "Tap to Change Goal" : ""}
+              {goalSeg && !isActive ? "Tap to Set Goal" : ""}
             </button>
-            <span className="flex items-center justify-end gap-1 whitespace-nowrap text-[#6e9197]">
-              {goalSeg && (
-                <>
-                  <span>Goal:</span>
-                  <strong className="font-semibold" style={{ color: goalSeg.barColor }}>
-                    {goalSeg.label}
-                  </strong>
-                </>
-              )}
-            </span>
           </div>
 
           <div className="mt-[13px] grid grid-cols-4 gap-3" role="list">
@@ -221,13 +211,42 @@ export function BenefitBar({
             const rawFill     = rawFills[i];
             const achieved    = achievedToday[i];
             const filling     = rawFill > 0 && rawFill < 100;
+            const isGoal      = primaryBenefit === seg.id;
 
             return (
-              <div key={seg.id} className="min-w-0" role="listitem">
+              <div
+                key={seg.id}
+                className="relative min-w-0 rounded-lg px-1 py-1 transition-all"
+                style={{
+                  background: isGoal
+                    ? `linear-gradient(180deg, ${seg.barColor}18, transparent 85%)`
+                    : "transparent",
+                  boxShadow: isGoal
+                    ? `inset 0 0 0 1px ${seg.barColor}40, 0 0 14px ${seg.barColor}12`
+                    : "none",
+                }}
+                role="listitem"
+                aria-label={isGoal ? `${seg.label}, current goal` : seg.label}
+              >
+                {isGoal && (
+                  <span
+                    className="absolute -right-0.5 -top-2 flex h-4 w-4 items-center justify-center rounded-full border text-[9px] leading-none shadow-lg"
+                    style={{
+                      borderColor: `${seg.barColor}99`,
+                      backgroundColor: "#0a1b23",
+                      boxShadow: `0 0 8px ${seg.barColor}66`,
+                    }}
+                    aria-label="Current goal"
+                    title="Current goal"
+                  >
+                    🧊
+                  </span>
+                )}
                 <div
                   className="flex items-center justify-center text-center text-[10px] leading-none whitespace-nowrap"
                   style={{
                     color: seg.barColor,
+                    textShadow: isGoal ? `0 0 10px ${seg.barColor}88` : undefined,
                   }}
                 >
                   <strong className="overflow-hidden text-ellipsis font-semibold">
