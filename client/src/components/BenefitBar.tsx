@@ -232,8 +232,8 @@ export function BenefitBar({
                   <span
                     className="absolute inset-0 z-10 flex items-center justify-center px-0.5 text-[8px] font-bold leading-none whitespace-nowrap"
                     style={{
-                      color: rawFill >= 48 ? "#04111f" : seg.barColor,
-                      textShadow: rawFill >= 48 ? "none" : "0 1px 2px rgba(0,0,0,0.8)",
+                        color: seg.barColor,
+                        textShadow: "0 1px 2px rgba(0,0,0,0.8)",
                     }}
                   >
                     {seg.emoji} {seg.label}
