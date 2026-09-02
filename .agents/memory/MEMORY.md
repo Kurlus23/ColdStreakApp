@@ -23,4 +23,5 @@
 - [Publish database endpoint failures](publish-database-endpoint-failures.md) — PostgreSQL 28000 “endpoint disabled” after image push is database availability, not a compile failure.
 - [Analytics instrumentation](analytics-instrumentation.md) — forward privacy-safe product events to both PostHog and Replit-hosted analytics.
 - [Coach request timeouts](coach-timeouts.md) — bound provider and client requests so AI chat cannot spin indefinitely.
+- [Coach response normalization](coach-response-normalization.md) — AI output can be fenced, truncated, or nested; unwrap it before display and persistence.
 - [Benefit timing source of truth](benefit-timing-source-of-truth.md) — exact personalized durations come from the Benefit Bar; coach advice must not override them.

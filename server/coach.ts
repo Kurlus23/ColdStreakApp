@@ -11,6 +11,7 @@
 
 import { db } from "./db";
 import { plunges, users } from "@shared/schema";
+import { normalizeCoachReply } from "@shared/coach";
 import { eq, desc, count } from "drizzle-orm";
 import { computeThresholds, SEGMENTS } from "../client/src/lib/benefitSegments";
 
@@ -18,7 +19,7 @@ import { computeThresholds, SEGMENTS } from "../client/src/lib/benefitSegments";
 
 const APP_KNOWLEDGE = `
 You are ColdStreak Coach — a warm, encouraging, science-informed guide for the ColdStreak cold plunge tracking app.
-Be helpful and complete: explain features fully so the user actually understands them. Aim for 3–6 sentences for feature questions, shorter for simple yes/no questions. Use a friendly, direct tone. Never be preachy. Always finish your thought — never cut off mid-explanation.
+Be helpful and complete: explain features fully so the user actually understands them. For feature or how-to questions, write about 45–90 words in 3–5 complete sentences: explain what it does, how to use it, and one useful detail. Use a friendly, direct tone. Never be preachy. Do not answer with a fragment or just repeat a list. Always finish your thought and close the JSON object — never cut off mid-explanation.
 
 APP FEATURES:
 • Timer (home screen): Start/stop plunge in Stopwatch or Countdown mode. Tap the mode label below the timer display to switch modes. In Countdown mode, tap the displayed time when the timer is idle to jump to the time-setter in Settings. You can also set the countdown duration directly in Settings → Timer section (choose minutes and seconds). While a countdown is running, two extra buttons appear: "+0:30" adds 30 seconds, and "+Finish [benefit]" adds exactly the seconds needed to complete the benefit segment you're currently in (e.g. "+Finish 😊" to finish Mood). Once all benefit segments are done those buttons switch to "+0:30" and "+1:00".
@@ -199,7 +200,7 @@ CURRENT USER:
       ...geminiHistory,
       { role: "user", parts: [{ text: message }] },
     ],
-    generationConfig: { maxOutputTokens: 600, temperature: 0.7 },
+    generationConfig: { maxOutputTokens: 800, temperature: 0.6 },
   };
 
   const MODEL_TIMEOUT_MS = 8_000;
@@ -262,16 +263,5 @@ CURRENT USER:
   const data = await res.json() as { candidates?: { content?: { parts?: { text: string }[] } }[] };
   const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
-  // Gemini returns JSON — strip any markdown code fences it may have added, then parse
-  const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
-  try {
-    const parsed = JSON.parse(cleaned) as { reply?: string; navigate?: string | null };
-    return {
-      reply: parsed.reply || "Sorry, I couldn't generate a response — please try again.",
-      navigate: parsed.navigate ?? null,
-    };
-  } catch {
-    // Fallback: treat raw text as reply with no navigation
-    return { reply: raw || "Sorry, I couldn't generate a response — please try again." };
-  }
+  return normalizeCoachReply(raw);
 }

@@ -17,6 +17,7 @@ import {
   markAllAnnouncementsSeen,
   type Announcement,
 } from "@/lib/coachAnnouncements";
+import { normalizeCoachReply } from "@shared/coach";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -66,7 +67,13 @@ function loadHistory(token: string | null): ChatMessage[] {
     const raw = localStorage.getItem(getStorageKey(token));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed as ChatMessage[];
+    if (Array.isArray(parsed)) {
+      return (parsed as ChatMessage[]).map((message) =>
+        message.role === "assistant"
+          ? { ...message, content: normalizeCoachReply(message.content).reply }
+          : message,
+      );
+    }
   } catch {
     // ignore parse errors
   }
@@ -130,7 +137,8 @@ async function sendMessage(
     });
     if (res.status === 504) throw new Error("COACH_TIMEOUT");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json() as Promise<{ reply: string; navigate?: string | null }>;
+    const response: unknown = await res.json();
+    return normalizeCoachReply(response);
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error("COACH_TIMEOUT");
@@ -554,6 +562,9 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
               {messages.map((msg, i) => {
                 // A user message is retryable when the very next message is an error
                 const isRetryable = msg.role === "user" && messages[i + 1]?.isError === true;
+                const displayContent = msg.role === "assistant"
+                  ? normalizeCoachReply(msg.content).reply
+                  : msg.content;
                 return (
                   <div
                     key={i}
@@ -573,7 +584,7 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
                         }`}
                         dangerouslySetInnerHTML={{
                           // Convert **bold** markdown to <strong> tags safely
-                          __html: msg.content
+                           __html: displayContent
                             .replace(/&/g, "&amp;")
                             .replace(/</g, "&lt;")
                             .replace(/>/g, "&gt;")
