@@ -12,6 +12,7 @@
 import { db } from "./db";
 import { plunges, users } from "@shared/schema";
 import { eq, desc, count } from "drizzle-orm";
+import { computeThresholds, SEGMENTS } from "../client/src/lib/benefitSegments";
 
 // ── App knowledge injected into every conversation ────────────────────────────
 
@@ -23,6 +24,7 @@ APP FEATURES:
 • Timer (home screen): Start/stop plunge in Stopwatch or Countdown mode. Tap the mode label below the timer display to switch modes. In Countdown mode, tap the displayed time when the timer is idle to jump to the time-setter in Settings. You can also set the countdown duration directly in Settings → Timer section (choose minutes and seconds). While a countdown is running, two extra buttons appear: "+0:30" adds 30 seconds, and "+Finish [benefit]" adds exactly the seconds needed to complete the benefit segment you're currently in (e.g. "+Finish 😊" to finish Mood). Once all benefit segments are done those buttons switch to "+0:30" and "+1:00".
 • Water Temperature: Enter manually or connect a Bluetooth sensor for a live reading. Accuracy powers personalised insights.
 • Benefits Bar: 4 segments — Energy (~60s), Mood (~2 min), Metabolism (~3 min), Recovery (~5 min+). Fill during the session, decay slowly after. Achievement border stays all day once earned. To set or change the target, say “tap to set goal” on a benefit pane such as Recovery when the goal picker is available, or open Profile → Account and use the goal controls there.
+• Benefit timing: The Benefits Bar is the source of truth for exact goal timing. At a fresh session, its thresholds are independently calculated as Energy 60s, Mood 120s, Metabolism 180s, and Recovery 300s at 50°F, adjusted by the entered water temperature and body composition. All four progress concurrently; they are not added together or completed sequentially. A longer duration such as 8½ minutes may be an optional progression suggestion, but must never be presented as the exact Recovery goal unless the personalized threshold actually calculates to that value.
 • History tab: Full log of past plunges with score, temp, duration, and mood ratings. This is ONLY the plunge log — Sweet Spot and Cold Adaptation are NOT here.
 • Mood check-in: After a plunge, rate Energy (1–3), Focus (1–3), and Overall Mood (1–5). Powers Sweet Spot and Adaptation (both found in Profile → Stats tab, not History).
 • Profile screen (Badges & Account): Has two tabs — Account and Stats. The Stats tab is where all personal analytics live: Calorie Burn estimates, Sweet Spot, Cold Adaptation trend, Discovery Report, "Try This Next" card, and a link to the full Insights Dashboard.
@@ -144,6 +146,18 @@ export async function coachChat(
   const primaryBenefitLine = user?.primaryBenefit && benefitLabels[user.primaryBenefit]
     ? `• Primary benefit goal: ${benefitLabels[user.primaryBenefit]}`
     : null;
+  const bodyFatPct = user?.bodyFat && user.bodyFat > 0 ? user.bodyFat / 10 : null;
+  const bodyWeightLbs = user?.bodyWeight && user.bodyWeight > 0 ? user.bodyWeight : 150;
+  const bodyHeightCm = user?.bodyHeight && user.bodyHeight > 0 ? user.bodyHeight : 175;
+  const recentBenefitTargets = avgTemp != null
+    ? computeThresholds(avgTemp, bodyWeightLbs, bodyHeightCm, bodyFatPct)
+    : null;
+  const recentGoalTarget = recentBenefitTargets && user?.primaryBenefit
+    ? recentBenefitTargets[SEGMENTS.findIndex((segment) => segment.id === user.primaryBenefit)]
+    : null;
+  const benefitTimingLine = recentGoalTarget != null && avgTemp != null
+    ? `• Benefit Bar reference: ${user?.primaryBenefit ?? "goal"} goal is ${Math.floor(recentGoalTarget / 60)}m ${String(recentGoalTarget % 60).padStart(2, "0")}s at ${avgTemp}°F using the saved body metrics; this is a milestone, not a medical prescription`
+    : null;
 
   const userContext = `
 CURRENT USER:
@@ -152,7 +166,8 @@ CURRENT USER:
 • Recent avg temp (last 5): ${avgTemp != null ? `${avgTemp}°F` : "no plunges yet"}
 • Rated plunges (last 5): ${ratedCount} / ${recentPlunges.length}
 • Height: ${user?.bodyHeight ? `${user.bodyHeight} cm` : "not set"}
-• Weight: ${user?.bodyWeight ? `${user.bodyWeight} lbs` : "not set"}${primaryBenefitLine ? `\n${primaryBenefitLine}` : ""}${screenLine ? `\n${screenLine}` : ""}
+• Weight: ${user?.bodyWeight ? `${user.bodyWeight} lbs` : "not set"}
+• Body fat: ${bodyFatPct != null ? `${bodyFatPct}%` : "not set"}${primaryBenefitLine ? `\n${primaryBenefitLine}` : ""}${benefitTimingLine ? `\n${benefitTimingLine}` : ""}${screenLine ? `\n${screenLine}` : ""}
 `.trim();
 
   // ── Call Gemini via v1beta REST ───────────────────────────────────────────
