@@ -12,7 +12,7 @@ export function hasCompletedOnboarding() {
 
 interface OnboardingProps {
   onComplete: (skipped: boolean) => void;
-  onRegister: (args: { email: string; password: string; username: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number }) => Promise<{ ok: boolean; error?: string }>;
+  onRegister: (args: { email: string; password: string; username: string; bodyWeight?: number; bodyHeight?: number }) => Promise<{ ok: boolean; error?: string }>;
   onImportWeight: () => Promise<{ lbs: number | null; message?: string }>;
   healthKitAvailable: boolean;
 }
@@ -93,7 +93,6 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
   const [weight, setWeight] = useState("");
   const [heightFt, setHeightFt] = useState("");
   const [heightIn, setHeightIn] = useState("");
-  const [bodyFat, setBodyFat] = useState("");
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
   const [usernameMsg, setUsernameMsg] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
@@ -206,16 +205,9 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
     }
     const h = hasHeight ? Math.round((ftVal * 12 + inVal) * 2.54) : undefined;
 
-    // Body fat %: stored as tenths (19.9 → 199) so the server keeps it as integer
-    const bfRaw = bodyFat.trim() ? Number(bodyFat) : undefined;
-    if (bfRaw !== undefined && (isNaN(bfRaw) || bfRaw < 3 || bfRaw > 60)) {
-      setFormError("Enter a body fat % between 3 and 60."); return;
-    }
-    const bf = bfRaw !== undefined ? Math.round(bfRaw * 10) : undefined;
-
     setSubmitting(true);
     try {
-      const result = await onRegister({ email: e, password, username: parsed.data, bodyWeight: w, bodyHeight: h, bodyFat: bf });
+      const result = await onRegister({ email: e, password, username: parsed.data, bodyWeight: w, bodyHeight: h });
       if (result.ok) {
         // If the user picked a benefit, push it to the server immediately.
         // The token is stored in localStorage by auth.register before returning.
@@ -422,23 +414,30 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
               {importMsg && <p className="text-blue-300 text-xs mt-1 px-1">{importMsg}</p>}
             </div>
 
-            {/* Body fat % — optional, overrides BMI */}
-            <div>
-              <input
-                data-testid="input-onboarding-bodyfat"
-                type="number"
-                inputMode="decimal"
-                placeholder="Body fat % (optional — overrides BMI)"
-                value={bodyFat}
-                onChange={(e) => setBodyFat(e.target.value)}
-                className="w-full bg-blue-900/70 border border-blue-700 rounded-xl px-3 py-3 text-white text-sm placeholder:text-blue-500 focus:outline-none focus:border-cyan-400"
-              />
+            {/* BMI is derived from the height and weight above. */}
+            <div className="bg-blue-900/50 border border-blue-700/40 rounded-xl px-3 py-2.5">
+              {(() => {
+                const weightLbs = Number(weight);
+                const feet = Number(heightFt);
+                const inches = Number(heightIn);
+                const heightCm = (feet * 12 + inches) * 2.54;
+                const bmi = weightLbs > 0 && heightCm > 0
+                  ? (weightLbs / 2.205) / ((heightCm / 100) ** 2)
+                  : null;
+                return (
+                  <p className="text-blue-200 text-xs leading-relaxed">
+                    <span className="font-semibold text-white">BMI:</span>{" "}
+                    {bmi != null && Number.isFinite(bmi) ? bmi.toFixed(1) : "Set your height and weight to calculate it"}.
+                    {" "}Benefit Bar targets use your calculated BMI and the water temperature. Body-fat percentage is not required.
+                  </p>
+                );
+              })()}
             </div>
 
             {/* Why we ask */}
             <div className="bg-blue-900/50 border border-blue-700/40 rounded-xl px-3 py-2.5">
               <p className="text-blue-200 text-xs leading-relaxed">
-                These personalise your <span className="font-semibold text-white">Cold Score</span> and <span className="font-semibold text-white">Benefit Bar</span> timing. Body fat % is most accurate — check your smart scale. Height + weight are used as a fallback. All optional, editable anytime in Settings.
+                Height and weight personalise your <span className="font-semibold text-white">Cold Score</span> and <span className="font-semibold text-white">Benefit Bar</span> timing. Both are optional and editable anytime in Settings.
               </p>
             </div>
 

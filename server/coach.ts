@@ -24,7 +24,7 @@ APP FEATURES:
 • Timer (home screen): Start/stop plunge in Stopwatch or Countdown mode. Tap the mode label below the timer display to switch modes. In Countdown mode, tap the displayed time when the timer is idle to jump to the time-setter in Settings. You can also set the countdown duration directly in Settings → Timer section (choose minutes and seconds). While a countdown is running, two extra buttons appear: "+0:30" adds 30 seconds, and "+Finish [benefit]" adds exactly the seconds needed to complete the benefit segment you're currently in (e.g. "+Finish 😊" to finish Mood). Once all benefit segments are done those buttons switch to "+0:30" and "+1:00".
 • Water Temperature: Enter manually or connect a Bluetooth sensor for a live reading. Accuracy powers personalised insights.
 • Benefits Bar: 4 segments — Energy (~60s), Mood (~2 min), Metabolism (~3 min), Recovery (~5 min+). Fill during the session, decay slowly after. Achievement border stays all day once earned. To set or change the target, say “tap to set goal” on a benefit pane such as Recovery when the goal picker is available, or open Profile → Account and use the goal controls there.
-• Benefit timing: The Benefits Bar is the source of truth for exact goal timing. At a fresh session, its thresholds are independently calculated as Energy 60s, Mood 120s, Metabolism 180s, and Recovery 300s at 50°F, adjusted by the entered water temperature and body composition. All four progress concurrently; they are not added together or completed sequentially. A longer duration such as 8½ minutes may be an optional progression suggestion, but must never be presented as the exact Recovery goal unless the personalized threshold actually calculates to that value.
+• Benefit timing: The Benefits Bar is the source of truth for exact goal timing. At a fresh session, its thresholds are independently calculated as Energy 60s, Mood 120s, Metabolism 180s, and Recovery 300s at 50°F, adjusted by the entered water temperature and BMI calculated from height and weight. All four progress concurrently; they are not added together or completed sequentially. A longer duration such as 8½ minutes may be an optional progression suggestion, but must never be presented as the exact Recovery goal unless the personalized threshold actually calculates to that value.
 • History tab: Full log of past plunges with score, temp, duration, and mood ratings. This is ONLY the plunge log — Sweet Spot and Cold Adaptation are NOT here.
 • Mood check-in: After a plunge, rate Energy (1–3), Focus (1–3), and Overall Mood (1–5). Powers Sweet Spot and Adaptation (both found in Profile → Stats tab, not History).
 • Profile screen (Badges & Account): Has two tabs — Account and Stats. The Stats tab is where all personal analytics live: Calorie Burn estimates, Sweet Spot, Cold Adaptation trend, Discovery Report, "Try This Next" card, and a link to the full Insights Dashboard.
@@ -65,7 +65,7 @@ RESPONSE FORMAT — always return valid JSON, no markdown, no code fences:
 Set "navigate" to the screen name (string) when your answer is specifically about a feature the user can see on that screen — so they can follow along:
 • "timer"                — benefits bar, Cold Score, streak, temperature, countdown, start/stop
 • "history"              — past plunges log, mood check-in
-• "achievements:account" — Profile screen, Account tab. Use ONLY for questions about body metrics entry: weight, height, body fat %, BMI, body composition inputs. This is where users enter those values — NOT in Settings.
+• "achievements:account" — Profile screen, Account tab. Use ONLY for questions about body metrics entry: weight, height, and calculated BMI. This is where users enter those values — NOT in Settings.
 • "achievements:stats"   — Profile screen, Stats tab. Use for calorie burn, sweet spot, cold adaptation, try this next, discovery report, insights dashboard.
 • "explore"              — finding spots, community locations, nearby plunge spots
 • "gear"                 — equipment, devices, Bluetooth sensors, smart scales
@@ -85,7 +85,7 @@ const SCREEN_LABELS: Record<string, string> = {
   timer:                 "Timer (home screen — start/stop plunge)",
   history:               "History tab (past plunges log, mood check-in)",
   achievements:          "Profile screen — Badges, Account tab, and Stats tab (calorie burn, sweet spot, cold adaptation, try this next, discovery report, insights)",
-  "achievements:account": "Profile screen, Account tab (body metrics: weight, height, body fat %)",
+  "achievements:account": "Profile screen, Account tab (body metrics: weight, height, calculated BMI)",
   "achievements:stats":   "Profile screen, Stats tab (calorie burn, sweet spot, cold adaptation, try this next, discovery report, insights)",
   friends:               "Friends tab (friend streaks, challenges, pending requests)",
   explore:               "Explore tab (nearby cold plunge spots)",
@@ -146,9 +146,11 @@ export async function coachChat(
   const primaryBenefitLine = user?.primaryBenefit && benefitLabels[user.primaryBenefit]
     ? `• Primary benefit goal: ${benefitLabels[user.primaryBenefit]}`
     : null;
-  const bodyFatPct = user?.bodyFat && user.bodyFat > 0 ? user.bodyFat / 10 : null;
   const bodyWeightLbs = user?.bodyWeight && user.bodyWeight > 0 ? user.bodyWeight : 150;
   const bodyHeightCm = user?.bodyHeight && user.bodyHeight > 0 ? user.bodyHeight : 175;
+  const bmi = bodyWeightLbs > 0 && bodyHeightCm > 0
+    ? (bodyWeightLbs / 2.205) / ((bodyHeightCm / 100) ** 2)
+    : null;
   const recentBenefitTargets = avgTemp != null
     ? computeThresholds(avgTemp, bodyWeightLbs, bodyHeightCm)
     : null;
@@ -167,7 +169,7 @@ CURRENT USER:
 • Rated plunges (last 5): ${ratedCount} / ${recentPlunges.length}
 • Height: ${user?.bodyHeight ? `${user.bodyHeight} cm` : "not set"}
 • Weight: ${user?.bodyWeight ? `${user.bodyWeight} lbs` : "not set"}
-• Body fat: ${bodyFatPct != null ? `${bodyFatPct}%` : "not set"}${primaryBenefitLine ? `\n${primaryBenefitLine}` : ""}${benefitTimingLine ? `\n${benefitTimingLine}` : ""}${screenLine ? `\n${screenLine}` : ""}
+• BMI: ${bmi != null && Number.isFinite(bmi) ? bmi.toFixed(1) : "not available"}${primaryBenefitLine ? `\n${primaryBenefitLine}` : ""}${benefitTimingLine ? `\n${benefitTimingLine}` : ""}${screenLine ? `\n${screenLine}` : ""}
 `.trim();
 
   // ── Call Gemini via v1beta REST ───────────────────────────────────────────

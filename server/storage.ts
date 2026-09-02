@@ -2391,15 +2391,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   // ── Admin: recalculate every plunge's calories + score from current user metrics ──
-  // Score formula: leaner body fat → higher factor (inverted ratio).
-  // Fallback chain: body fat % → BMI from height/weight → 1.0 neutral.
-  // BMI neutral = 22; body fat neutral = 20%. Factor clamped to [0.75, 1.35].
+  // Score formula: lower BMI → higher factor (inverted ratio).
+  // BMI is calculated from height/weight, with a 1.0 neutral fallback.
+  // BMI neutral = 22. Factor is clamped to [0.75, 1.35].
   //
   // After updating plunges, the leaderboard_entries table is also resynced so
   // that each (location, username) row reflects the new best score from plunges.
   // Without this second step the leaderboard would remain stale because addLeaderboardEntry
   // uses GREATEST() which only ratchets up — it would never correct a recalculated score
-  // downward (e.g. user with high BMI and no body-fat% gets a lower factor than neutral).
+  // downward (e.g. a user with high BMI gets a lower factor than neutral).
   async recalculatePlungeStats(): Promise<number> {
     const result = await db.execute(sql`
       UPDATE plunges p
@@ -2407,13 +2407,7 @@ export class DatabaseStorage implements IStorage {
         calories = GREATEST(0, ROUND(
           (p.duration / 60.0)
           * GREATEST(0.0, 37.0 - (p.temperature - 32.0) * 5.0 / 9.0)
-          * (
-              CASE
-                WHEN u.body_fat IS NOT NULL AND u.body_fat > 0
-                THEN COALESCE(u.body_weight, 150.0) * (1.0 - (u.body_fat / 10.0) / 100.0) / 2.205
-                ELSE COALESCE(u.body_weight, 150.0) / 2.205
-              END
-            )
+           * (COALESCE(u.body_weight, 150.0) / 2.205)
           * 0.0077
         )::integer),
         score = ROUND(
@@ -2426,10 +2420,8 @@ export class DatabaseStorage implements IStorage {
               ELSE 1.0
             END
           * GREATEST(0.75, LEAST(1.35,
-              CASE
-                WHEN u.body_fat IS NOT NULL AND u.body_fat > 0
-                  THEN 20.0 / (u.body_fat / 10.0)
-                WHEN u.body_weight IS NOT NULL AND u.body_weight > 0
+               CASE
+                 WHEN u.body_weight IS NOT NULL AND u.body_weight > 0
                  AND u.body_height IS NOT NULL AND u.body_height > 0
                   THEN 22.0 / ((u.body_weight / 2.205) / POWER(u.body_height / 100.0, 2))
                 ELSE 1.0
@@ -2442,8 +2434,8 @@ export class DatabaseStorage implements IStorage {
     const plungeCount = (result as any).rowCount ?? (result as any).count ?? 0;
 
     // Resync leaderboard_entries with the new best score per (location, username).
-    // This replaces whatever was stored before, so scores that decreased after
-    // recalculation (high-BMI users without body-fat%) are also corrected.
+    // This replaces whatever was stored before, so scores that changed after
+    // recalculation are also corrected.
     await db.execute(sql`
       UPDATE leaderboard_entries le
       SET score = sub.best_score

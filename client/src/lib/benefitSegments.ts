@@ -54,8 +54,7 @@ export function getBodyFatFactor(bodyFatPct: number): number {
 
 /**
  * Score factor: INVERTED direction vs benefit bar.
- * Leaner = more thermogenically demanding = should score higher per minute.
- * Higher body fat = more insulation = less physiological work = lower score.
+ * Leaner BMI = more thermogenically demanding = should score higher per minute.
  */
 export function getBodyFatFactorForScore(bodyFatPct: number): number {
   if (bodyFatPct <= 0) return 1.0;
@@ -75,9 +74,8 @@ export function getBmiFactor(weightLbs: number, heightCm: number): number {
 }
 
 /**
- * Score fallback: INVERTED direction vs benefit bar.
- * Lower BMI (lighter, less thermal mass) = higher thermogenic efficiency = higher score.
- * Consistent with getBodyFatFactorForScore.
+ * Lower BMI (lighter, less thermal mass) = higher thermogenic efficiency = higher
+ * score. The bodyFatPct argument is retained for compatibility but ignored.
  */
 export function getBmiFactorForScore(weightLbs: number, heightCm: number): number {
   if (heightCm <= 0 || weightLbs <= 0) return 1.0;
@@ -104,17 +102,15 @@ export function getCompositionFactor(
 
 /**
  * Composition factor for SCORING.
- * Lower body fat → higher multiplier (leaner = more thermogenic work per minute).
- * When body fat % is not set, returns 1.0 (neutral) — same reasoning as above.
+ * Lower BMI → higher multiplier (lower thermal mass = more thermogenic work per
+ * minute). BMI from height and weight is the only body-composition input used.
  */
 export function getCompositionFactorForScore(
-  bodyFatPct: number | null | undefined,
+  _bodyFatPct: number | null | undefined,
   weightLbs: number,
   heightCm: number,
 ): number {
-  if (bodyFatPct != null && bodyFatPct > 0) return getBodyFatFactorForScore(bodyFatPct);
-  if (weightLbs > 0 && heightCm > 0) return getBmiFactorForScore(weightLbs, heightCm);
-  return 1.0; // neutral baseline when nothing is known
+  return getBmiFactorForScore(weightLbs, heightCm);
 }
 
 // ─── Threshold & earned computation ──────────────────────────────────────────

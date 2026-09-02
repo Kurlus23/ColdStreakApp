@@ -23,6 +23,7 @@ import {
   computeEarnedSegments,
   getMidSegmentIdx,
   getSecsToFinish,
+  getCompositionFactorForScore,
   SEGMENTS,
 } from "@/lib/benefitSegments";
 
@@ -57,6 +58,13 @@ describe("computeThresholds at 50 °F / default metrics", () => {
     const withBodyFat = computeThresholds(44, 150, 175, 10);
 
     expect(withBodyFat).toEqual(withoutBodyFat);
+  });
+
+  it("uses BMI rather than body fat for scoring personalization", () => {
+    const withoutBodyFat = getCompositionFactorForScore(null, 150, 175);
+    const withBodyFat = getCompositionFactorForScore(10, 150, 175);
+
+    expect(withBodyFat).toBe(withoutBodyFat);
   });
 
   it("fills every benefit simultaneously from the beginning", () => {

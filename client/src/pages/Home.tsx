@@ -190,24 +190,19 @@ function plungeScore(
 }
 
 /**
- * Estimates kcal burned during a cold plunge.
- * Uses lean body mass when body fat % is known — fat tissue contributes
- * far less to cold thermogenesis than lean mass does.
- * Falls back to total body weight when body fat is unavailable.
+ * Estimates kcal burned during a cold plunge using total body weight and
+ * temperature. Body-fat percentage is not an input to the app's user model.
  */
 function estimateCalories(
   durationSeconds: number,
   tempF: number,
   weightLbs: number,
-  bodyFatPct?: number | null,
+  _bodyFatPct?: number | null,
 ): number {
   const durationMin = durationSeconds / 60;
   const tempC = (tempF - 32) * 5 / 9;
   const deltaT = Math.max(0, 37 - tempC);
-  const effectiveLbs = (bodyFatPct != null && bodyFatPct > 0)
-    ? weightLbs * (1 - bodyFatPct / 100)
-    : weightLbs;
-  const effectiveKg = effectiveLbs / 2.205;
+  const effectiveKg = weightLbs / 2.205;
   return Math.max(0, durationMin * deltaT * effectiveKg * 0.0077);
 }
 
@@ -1497,7 +1492,8 @@ export default function Home() {
   const [bodyHeightCm, setBodyHeightCm] = useState<number>(() =>
     Number(localStorage.getItem("coldstreak-body-height") || 175)
   );
-  // Body fat % — null when not set; takes priority over height+weight BMI when present
+  // Legacy body-fat value retained for existing profiles and non-timing data.
+  // Benefit Bar timing uses BMI calculated from height and weight.
   const [bodyFatPct, setBodyFatPct] = useState<number | null>(() => {
     const v = localStorage.getItem("coldstreak-body-fat");
     return v ? Number(v) : null;
@@ -2136,13 +2132,12 @@ export default function Home() {
   };
 
   // Onboarding account creation — registers, stores handle/name/weight, then syncs.
-  const handleOnboardingRegister = async (args: { email: string; password: string; username: string; bodyWeight?: number; bodyHeight?: number; bodyFat?: number }) => {
+  const handleOnboardingRegister = async (args: { email: string; password: string; username: string; bodyWeight?: number; bodyHeight?: number }) => {
     const result = await auth.register(args.email, args.password, {
       username: args.username,
       displayName: args.username,
       bodyWeight: args.bodyWeight,
       bodyHeight: args.bodyHeight,
-      bodyFat:    args.bodyFat,
     });
     if (!result.ok) return { ok: false, error: result.error };
     setAccountUsername(args.username);
@@ -2158,11 +2153,6 @@ export default function Home() {
       const cm = Math.round(args.bodyHeight);
       setBodyHeightCm(cm);
       localStorage.setItem("coldstreak-body-height", String(cm));
-    }
-    if (args.bodyFat && args.bodyFat > 0) {
-      const pct = args.bodyFat / 10; // convert tenths back to pct for local state
-      setBodyFatPct(pct);
-      localStorage.setItem("coldstreak-body-fat", String(pct));
     }
     verifyProForEmail(args.email);
     backgroundSync();
@@ -6954,91 +6944,28 @@ export default function Home() {
                     })()}
                   </div>
 
-                  {/* Body fat % — overrides BMI, with accuracy callout */}
+                  {/* BMI is calculated from the height and weight above. */}
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-blue-400 text-xs uppercase tracking-wide">Body Fat %</label>
-                      {bodyFatPct !== null && (
-                        <button
-                          onClick={() => {
-                            setBodyFatPct(null);
-                            setBodyFatRecordedAt(null);
-                            localStorage.removeItem("coldstreak-body-fat");
-                            localStorage.removeItem("coldstreak-body-fat-recorded-at");
-                            const tok = localStorage.getItem("coldstreak-auth-token");
-                            if (tok) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bodyFat: 0 }) }).catch(() => {});
-                          }}
-                          className="text-[10px] text-slate-500 hover:text-red-400 transition-colors"
-                        >
-                          Clear
-                        </button>
-                      )}
-                    </div>
-
-                    {/* BMI accuracy note */}
-                    <div className="bg-blue-950/60 border border-blue-800/50 rounded-xl px-3 py-2.5 text-xs text-blue-300 leading-relaxed">
-                      ⚠️ Height + weight gives a <span className="text-white font-semibold">rough BMI estimate</span> — it can't account for muscle mass. If you know your body fat %, entering it here makes your Cold Score and Benefit Bar more accurate.{" "}
-                      <button
-                        onClick={() => { setScreen("gear"); setGearCategory("devices"); }}
-                        className="text-cyan-400 underline underline-offset-2"
-                      >
-                        A smart scale can measure it.
-                      </button>
-                    </div>
-
-
-                    {/* Scroll-wheel picker — same pattern as temperature selector */}
+                    <label className="text-blue-400 text-xs uppercase tracking-wide block">BMI (calculated)</label>
                     {(() => {
-                      const saveFat = (val: number | null) => {
-                        if (val === null) {
-                          setBodyFatPct(null);
-                          setBodyFatRecordedAt(null);
-                          localStorage.removeItem("coldstreak-body-fat");
-                          localStorage.removeItem("coldstreak-body-fat-recorded-at");
-                          const tok = localStorage.getItem("coldstreak-auth-token");
-                          if (tok) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bodyFat: 0 }) }).catch(() => {});
-                        } else {
-                          const clamped = Math.round(Math.min(60, Math.max(3, val)) * 10) / 10;
-                          setBodyFatPct(clamped);
-                          setBodyFatRecordedAt(null);
-                          localStorage.setItem("coldstreak-body-fat", String(clamped));
-                          localStorage.removeItem("coldstreak-body-fat-recorded-at");
-                          const tok = localStorage.getItem("coldstreak-auth-token");
-                          // stored as tenths server-side (19.9 → 199)
-                          if (tok) fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bodyFat: Math.round(clamped * 10) }) }).catch(() => {});
-                        }
-                      };
-                      // Steps: 3.0, 3.5, 4.0 … 60.0 in 0.5% increments
-                      const steps = Array.from({ length: (60 - 3) / 0.5 + 1 }, (_, i) => Math.round((3 + i * 0.5) * 10) / 10);
+                      const heightM = bodyHeightCm / 100;
+                      const bmi = bodyWeightLbs > 0 && heightM > 0
+                        ? (bodyWeightLbs / 2.205) / (heightM * heightM)
+                        : null;
                       return (
                         <div className="flex items-center gap-3">
-                          <div className="relative">
-                            <select
-                              value={bodyFatPct ?? ""}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                saveFat(v === "" ? null : Number(v));
-                              }}
-                              className="appearance-none bg-blue-800/80 border border-blue-600 rounded-xl px-3 py-1.5 text-white text-sm font-bold text-center focus:outline-none focus:border-cyan-400 cursor-pointer pr-7"
-                              style={{ minWidth: "90px" }}
-                            >
-                              <option value="">Not set</option>
-                              {steps.map((v) => (
-                                <option key={v} value={v}>{v.toFixed(1)}%</option>
-                              ))}
-                            </select>
-                            <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
+                          <div className="w-20 bg-blue-800/80 border border-blue-600 rounded-xl px-2 py-1.5 text-white text-sm font-bold text-center">
+                            {bmi != null && Number.isFinite(bmi) ? bmi.toFixed(1) : "—"}
                           </div>
-                          {bodyFatPct !== null ? (
-                            <span className="text-cyan-400 text-xs font-semibold">✓ Active — overrides BMI</span>
-                          ) : (
-                            <span className="text-blue-500 text-xs">Not set — using BMI</span>
-                          )}
+                          <span className="text-blue-500 text-xs">
+                            Calculated from height + weight
+                          </span>
                         </div>
                       );
                     })()}
+                    <p className="bg-blue-950/60 border border-blue-800/50 rounded-xl px-3 py-2.5 text-xs text-blue-300 leading-relaxed">
+                      Benefit Bar target times use this BMI and the water temperature. Body-fat percentage is not required.
+                    </p>
                   </div>
 
                   {/* Sync */}

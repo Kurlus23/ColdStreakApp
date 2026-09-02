@@ -356,7 +356,7 @@ export const GEAR_ITEMS: GearItem[] = [
   {
     id: "wyze-scale-ultra",
     name: "Wyze Scale Ultra BodyScan",
-    description: "Full-body composition scale with a hand-held electrode bar — measures body fat %, muscle mass, bone density, BMI, and more across 12 metrics. Syncs to the Wyze app and Apple Health. Enter your body fat % in ColdStreak Settings to personalise your Cold Score and Benefit Bar.",
+    description: "Full-body composition scale with a hand-held electrode bar — measures body fat %, muscle mass, bone density, BMI, and more across 12 metrics. Syncs to the Wyze app and Apple Health. ColdStreak uses BMI calculated from your height and weight to personalise your Cold Score and Benefit Bar.",
     image: "/gear-wyze-scale-ultra.png",
     link: "https://www.amazon.com/Scale-Ultra-BodyScan-Smart-Handle/dp/B0FS764RQ4?linkCode=ll2&tag=coldstreak-20&linkId=789d88d1f2dc4f9801c3c67c6cadaab9&language=en_US&ref_=as_li_ss_tl",
     linkLabel: "View on Amazon",
