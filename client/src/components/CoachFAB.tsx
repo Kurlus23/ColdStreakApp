@@ -41,9 +41,10 @@ interface Props {
   onNavigate?: (screen: string) => void;
 }
 
-// ── Chat history persistence ──────────────────────────────────────────────────
+// ── Temporary chat history ─────────────────────────────────────────────────────
 
 const MAX_HISTORY = 20;
+export const COACH_HISTORY_TTL_MS = 60 * 60 * 1000;
 
 /** Derive a stable per-user localStorage key from the JWT token.
  *  Decodes the payload to extract the user ID; falls back to a hash of the
@@ -62,18 +63,28 @@ function getStorageKey(token: string | null): string {
   return `coach-chat-history:${token.slice(0, 16)}`;
 }
 
+export function isCoachHistoryExpired(savedAt: number, now = Date.now()): boolean {
+  return !Number.isFinite(savedAt) || now - savedAt >= COACH_HISTORY_TTL_MS;
+}
+
 function loadHistory(token: string | null): ChatMessage[] {
   try {
     const raw = localStorage.getItem(getStorageKey(token));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return (parsed as ChatMessage[]).map((message) =>
+    const storedMessages = Array.isArray(parsed)
+      ? parsed
+      : parsed && Array.isArray(parsed.messages)
+        ? (isCoachHistoryExpired(Number(parsed.savedAt)) ? [] : parsed.messages)
+        : [];
+    if (storedMessages.length > 0) {
+      return (storedMessages as ChatMessage[]).map((message) =>
         message.role === "assistant"
           ? { ...message, content: normalizeCoachReply(message.content).reply }
           : message,
       );
     }
+    if (!Array.isArray(parsed) && parsed?.messages) clearHistory(token);
   } catch {
     // ignore parse errors
   }
@@ -84,7 +95,10 @@ function saveHistory(token: string | null, messages: ChatMessage[]): void {
   try {
     const persistent = messages.filter((m) => !m.isError);
     const trimmed = persistent.slice(-MAX_HISTORY);
-    localStorage.setItem(getStorageKey(token), JSON.stringify(trimmed));
+    localStorage.setItem(
+      getStorageKey(token),
+      JSON.stringify({ savedAt: Date.now(), messages: trimmed }),
+    );
   } catch {
     // ignore storage errors (private mode, quota exceeded, etc.)
   }
@@ -297,6 +311,48 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
     if (loadedForToken !== authToken) return;
     saveHistory(authToken, messages);
   }, [authToken, loadedForToken, messages]);
+
+  // Chat responses are intentionally temporary. Clear them when the document
+  // is torn down and when a native app moves out of the active state. The
+  // expiry in loadHistory is the fallback for platforms that do not emit a
+  // reliable lifecycle event.
+  useEffect(() => {
+    const clearForLifecycle = () => {
+      clearHistory(authToken);
+      setMessages([]);
+    };
+
+    window.addEventListener("pagehide", clearForLifecycle);
+    window.addEventListener("beforeunload", clearForLifecycle);
+
+    let disposed = false;
+    let removeNativeListener: (() => void) | undefined;
+    if ((window as any).Capacitor?.isNativePlatform?.()) {
+      import("@capacitor/app")
+        .then(({ App }) =>
+          App.addListener("appStateChange", ({ isActive }) => {
+            if (!isActive) clearForLifecycle();
+          }),
+        )
+        .then((handle) => {
+          if (disposed) {
+            handle.remove();
+          } else {
+            removeNativeListener = () => { void handle.remove(); };
+          }
+        })
+        .catch(() => {
+          // The browser lifecycle handlers and TTL still cover this platform.
+        });
+    }
+
+    return () => {
+      disposed = true;
+      window.removeEventListener("pagehide", clearForLifecycle);
+      window.removeEventListener("beforeunload", clearForLifecycle);
+      removeNativeListener?.();
+    };
+  }, [authToken]);
 
   // Scroll to latest message
   useEffect(() => {
