@@ -9,10 +9,10 @@ const MILESTONE_SHOW_MS  = 4_000;   // how long the milestone card stays visible
 const POST_RECOVERY_MS   = 60_000;  // cold-take cycle time once all milestones are done
 
 const MILESTONE_COPY: Record<string, string> = {
-  energy:     "Energy window maximized. Sharp & activated.",
-  mood:       "Mood window maximized. You'll feel this for hours.",
-  metabolism: "Metabolism window maximized. Burning harder.",
-  recovery:   "Recovery window maximized. Keep adapting.",
+  energy:     "Energy milestone reached. Notice any post-plunge alertness.",
+  mood:       "Mood milestone reached. Notice how you feel.",
+  metabolism: "Metabolism milestone reached. Thermogenesis is part of the cold response.",
+  recovery:   "Recovery milestone reached. Keep listening to your body.",
 };
 
 export interface MilestoneEvent {
@@ -120,7 +120,7 @@ export function ColdTakeOverlay({
   // ── Milestone reveal card ───────────────────────────────────────────────────
   if (phase === "milestone-reveal" && activeMilestone) {
     const copy  = MILESTONE_COPY[activeMilestone.segId] ?? "";
-    const label = `${activeMilestone.emoji} ${activeMilestone.label} Achieved`;
+    const label = `${activeMilestone.emoji} ${activeMilestone.label} Milestone Reached`;
     return (
       <div
         className="w-full max-w-md mx-auto px-5 py-3 rounded-2xl bg-blue-950/70 backdrop-blur-sm border border-emerald-400/30 shadow-lg shadow-black/30 text-center transition-opacity duration-500 opacity-100"

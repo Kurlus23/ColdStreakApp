@@ -433,57 +433,57 @@ export const CHALLENGE: string[] = [
 
 // ── Milestone-specific takes ──────────────────────────────────────────────────
 // Served as the cold take AFTER each benefit milestone notification clears.
-// Tone: irreverent and themed to the benefit window that was just maximized.
+// Tone: irreverent and themed to the product milestone that was just reached.
 
 export const ENERGY_MILESTONE: string[] = [
-  "Energy maximized: that feeling when norepinephrine hits and suddenly everyone in your life is the problem.",
-  "Your norepinephrine just clocked in. Finally, a coworker that pulls their weight.",
-  "Energy maximized. Your to-do list just got nervous.",
-  "Focus sharpened. You'll be insufferable in meetings for the next four hours. You're welcome.",
-  "Norepinephrine: imagine if espresso could see the future and was furious about it.",
+  "Energy milestone reached: that post-plunge alertness has entered the chat.",
+  "Your nervous system got the memo. Finally, a coworker that pulls its weight.",
+  "Energy milestone reached. Your to-do list just got nervous.",
+  "A focus-forward moment. You'll be insufferable in meetings for at least the next four minutes.",
+  "Cold exposure: imagine if espresso could see the future and was furious about it.",
   "Your brain just got promoted. Your body didn't get the memo and is still shivering.",
-  "Energy maximized. The annoying productive version of you has entered the chat.",
-  "Norepinephrine online. You now have strong opinions about things that haven't happened yet.",
+  "Energy milestone reached. The annoying productive version of you has entered the chat.",
+  "Your nervous system is online. You now have strong opinions about things that haven't happened yet.",
   "Your sympathetic nervous system just sent everyone a calendar invite. No one is happy.",
-  "Energy maximized: the kind where you reply to emails with full sentences and zero resentment.",
+  "Energy milestone reached: the kind where you reply to emails with full sentences and zero resentment.",
 ];
 
 export const MOOD_MILESTONE: string[] = [
-  "Mood enhanced: that feeling when dopamine hits and you forgive people you had fully written off.",
-  "Dopamine spike: like wearing your partner's hoodie without asking. Warm. Slightly illegal. Worth it.",
-  "Mood maximized. You're now the version of yourself people tolerate at family dinners.",
-  "Mood enhanced: that feeling you get in your wife's underwear without her knowing. Bold. Unexplained. You look great.",
-  "Your dopamine is doing backflips. Your toes are still filing complaints.",
-  "Mood maximized: like realizing you remembered everyone's birthday this year. You didn't. But you feel like you did.",
-  "Serotonin and dopamine just walked into a bar. They left with your anxiety's car keys.",
-  "Mood enhanced. You're going to text someone you love. Possibly the wrong person. The cold has bad aim.",
-  "Dopamine hit: the sneaky kind. The one that makes you reply 'sounds good!' and mean it.",
-  "Mood maximized: that post-plunge glow where you think 'maybe things will be fine.' They might be.",
+  "Mood milestone reached: a post-plunge glow has entered the chat.",
+  "A little less frosty, emotionally. Results may vary.",
+  "Mood milestone reached. You're now the version of yourself people tolerate at family dinners.",
+  "Mood milestone reached: bold, unexplained, and you look great.",
+  "Your mood is doing backflips. Your toes are still filing complaints.",
+  "Mood milestone reached: like realizing you remembered everyone's birthday this year. You didn't. But you feel like you did.",
+  "The mood section entered a group chat with your anxiety. It left you on read.",
+  "Mood milestone reached. You're going to text someone you love. The cold has bad aim.",
+  "A mood lift may be loading. The cold has not provided a delivery estimate.",
+  "Mood milestone reached: maybe things will be fine. They might be.",
 ];
 
 export const METABOLISM_MILESTONE: string[] = [
-  "Metabolism maximized: your body fat is receiving a formal eviction notice.",
-  "Brown fat activated. Your body is now billing your love handles by the minute.",
-  "Thermogenesis maximized. Your internal furnace lit up. Side effects include smug salad avoidance.",
-  "Metabolism online. Your body is eating its own fat like a company going through layoffs.",
-  "Brown fat: the kind of calorie burn that makes the pizza you're about to eat technically free.",
+  "Metabolism milestone reached: your internal furnace is working harder for now.",
+  "Cold-induced thermogenesis is in the chat. Your body is still billing you for the ice.",
+  "Thermogenesis milestone reached. Internal furnace: politely online.",
+  "Metabolism milestone reached. Your cells are handling the cold-response paperwork.",
+  "Cold response logged. The pizza you eat later is still not technically free.",
   "Your metabolic rate just filed for overtime. Without HR's approval.",
-  "Thermogenesis: your cells started a campfire using your own body fat. Environmentally confusing.",
-  "Brown fat lit. The part of you that stores winter weight is now paying rent.",
-  "Metabolism maximized: your body is auditioning for a documentary about calorie combustion. It got the part.",
+  "Thermogenesis: your cells started a campfire. Environmentally confusing.",
+  "Your cold-response furnace is lit. Winter weight remains undefeated.",
+  "Metabolism milestone reached: your body is auditioning for a documentary about heat production. It got the part.",
   "Your mitochondria punched in. Overtime. No union rep. No choice.",
 ];
 
 export const RECOVERY_MILESTONE: string[] = [
-  "Recovery maximized: inflammation packed its bags and is looking for a new host.",
-  "Recovery window maximized. Your body is filing an insurance claim on every bad decision you've ever made.",
-  "Recovery: your muscles are doing HR onboarding. Paperwork filed. Repairs underway.",
-  "Inflammation? She left. Your joints got the memo. Eventually.",
-  "All four benefit windows maximized. You're medically impressive and statistically unwell.",
-  "Recovery maximized: your body's IT department finally ran diagnostics. The problem was you. Fixed now.",
-  "Max benefit: you've been in cold water long enough for your body to fix itself and send a Yelp review.",
-  "Inflammation reduced. Your knees texted back. It was brief, but they're open to talking.",
-  "Recovery maximized: your parasympathetic nervous system finally got a word in. It had notes.",
+  "Recovery milestone reached: your post-plunge reset is underway.",
+  "Recovery milestone reached. Your body is filing an insurance claim on every bad decision you've ever made.",
+  "Recovery mode: paperwork filed. Repairs are on the agenda.",
+  "Recovery check-in: notice how your body feels over the next few hours.",
+  "All four product milestones reached. You're impressive and statistically unwell.",
+  "Recovery milestone reached: your body's IT department finally ran diagnostics. The problem was you. Maybe fixed now.",
+  "Milestone reached: you've logged a recovery-oriented session. The body is keeping the receipt.",
+  "Recovery check-in: your knees have been notified. Response pending.",
+  "Recovery milestone reached: your rest-and-reset system finally got a word in. It had notes.",
   "Your body is now a compression sleeve from the inside. You earned this.",
 ];
 

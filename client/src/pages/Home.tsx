@@ -6964,7 +6964,7 @@ export default function Home() {
                       );
                     })()}
                     <p className="bg-blue-950/60 border border-blue-800/50 rounded-xl px-3 py-2.5 text-xs text-blue-300 leading-relaxed">
-                      Benefit Bar target times use this BMI and the water temperature. Body-fat percentage is not required.
+                      Benefit Bar milestones use this BMI and the water temperature. These are research-informed product estimates, not medical targets.
                     </p>
                   </div>
 

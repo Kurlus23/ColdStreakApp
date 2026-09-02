@@ -68,11 +68,11 @@ export function ProgressionCoachCard({
     if (shortfall <= 15) return null; // already hitting goal
 
     const suggestion = shortfall <= 60
-      ? `Try pushing to ${fmtSecs(goalSecs)} today.`
-      : `Try adding 30 seconds today.`;
+      ? `Try aiming for ${fmtSecs(goalSecs)} today, if comfortable.`
+      : `Try adding 30 seconds today, if comfortable.`;
     const detail = shortfall <= 60
-      ? `${fmtSecs(Math.round(shortfall))} short of ${seg.emoji} ${seg.label}`
-      : `Averaging ${fmtSecs(Math.round(avgDur))} · ${seg.emoji} ${seg.label} needs ${fmtSecs(goalSecs)}`;
+       ? `${fmtSecs(Math.round(shortfall))} short of the ${seg.emoji} ${seg.label} milestone`
+       : `Averaging ${fmtSecs(Math.round(avgDur))} · ${seg.emoji} ${seg.label} milestone: ${fmtSecs(goalSecs)}`;
 
     return { seg, headline: shortfall <= 60 ? "You're close!" : "Level up", suggestion, detail };
   // eslint-disable-next-line react-hooks/exhaustive-deps

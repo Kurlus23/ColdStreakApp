@@ -213,7 +213,7 @@ export function GoalSuccessCard({ plunges, primaryBenefit, weightLbs = 150, heig
 
       {/* Disclaimer */}
       <p className="text-slate-500 text-[9px] leading-relaxed mt-3">
-        Goal thresholds are adjusted for your temperature and body metrics. Increase duration or lower temp to hit harder goals.
+         Milestone times are adjusted for your water temperature and BMI. They are research-informed product estimates, not medical targets.
       </p>
     </div>
   );

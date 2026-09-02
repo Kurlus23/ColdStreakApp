@@ -65,7 +65,7 @@ export function BenefitBar({
     [bodyFatPct, bodyWeightLbs, bodyHeightCm],
   );
 
-  // Independent seconds at which each benefit reaches its peak window.
+  // Independent seconds at which each benefit reaches its product milestone.
   const thresholds = useMemo(() => {
     return SEGMENTS.map((seg) => Math.round(seg.baseDuration * tempFactor * compFactor));
   }, [tempFactor, compFactor]);
@@ -92,7 +92,7 @@ export function BenefitBar({
     SEGMENTS.forEach((seg, i) => {
       if (totalElapsed >= thresholds[i] && !announcedRef.current!.has(seg.id)) {
         announcedRef.current!.add(seg.id);
-        setMilestone(`${seg.emoji} ${seg.label} maximized`);
+        setMilestone(`${seg.emoji} ${seg.label} milestone reached`);
         if (milestoneTimerRef.current) clearTimeout(milestoneTimerRef.current);
         milestoneTimerRef.current = setTimeout(() => setMilestone(null), 2500);
         onMilestoneReached?.(seg.id);
@@ -190,7 +190,7 @@ export function BenefitBar({
       }}
       aria-label="Benefit progress"
     >
-      {/* Rail readout → Adaptation Zone once all benefits are maxed during a plunge */}
+      {/* Rail readout → Adaptation Zone once all milestones are reached */}
       {isActive && achievedToday.every(Boolean) ? (
         <div className="space-y-1.5">
           <div className="relative h-2 rounded-full overflow-hidden bg-cyan-400/15">
@@ -252,7 +252,7 @@ export function BenefitBar({
 
                   <div
                     className="relative mt-[10px] h-[3px] rounded-full bg-[rgba(157,203,207,0.14)]"
-                    aria-label={`${seg.label}: ${achieved ? "complete" : `${fmtRemaining(Math.max(0, thresholds[i] - totalElapsed))} remaining`}`}
+                    aria-label={`${seg.label}: ${achieved ? "milestone reached" : `${fmtRemaining(Math.max(0, thresholds[i] - totalElapsed))} remaining`}`}
                   >
                     <div
                       className="h-full rounded-full"
@@ -282,7 +282,7 @@ export function BenefitBar({
                     >
                       {isActive
                         ? achieved
-                          ? "MAX"
+                          ? "DONE"
                           : fmtRemaining(Math.max(0, thresholds[i] - totalElapsed))
                         : fmtExpiryRemaining(expirySeconds[i]!)}
                     </p>
@@ -294,6 +294,9 @@ export function BenefitBar({
           </div>
         </div>
       )}
+      <p className="mt-[7px] text-center text-[9px] leading-tight text-slate-500">
+        Research-informed milestones · personalized by water temperature + BMI · not medical targets
+      </p>
     </div>
   );
 }

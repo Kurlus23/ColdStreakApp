@@ -3,8 +3,9 @@
 // (history display). Also mirrored server-side in server/reports.ts for email
 // report generation.
 //
-// baseDuration = seconds each benefit takes to reach its peak window at 50 °F.
-// halfLifeHours = how long the acute effect lasts before decaying to 0 (linear).
+// baseDuration = seconds for a research-informed product milestone at 50 °F.
+// halfLifeHours = the product's modeled window for the milestone to decay.
+// These values are not medically validated biological switch points.
 
 export const SEGMENTS = [
   { id: "energy",     emoji: "⚡", label: "Energy",     baseDuration: 60,  barColor: "#22d3ee", dimColor: "#164e63", halfLifeHours: 3 },
@@ -33,7 +34,7 @@ export function getTempFactor(tempF: number): number {
 }
 
 // ─── Body-composition factor ──────────────────────────────────────────────────
-// Benefit timing uses BMI derived from height and weight.  Body-fat data may
+// Benefit timing uses BMI derived from height and weight. Body-fat data may
 // still be collected for other product features, but it must not change the
 // independent Benefit Bar thresholds.
 //
@@ -43,27 +44,21 @@ export function getTempFactor(tempF: number): number {
 const NEUTRAL_BODY_FAT = 20; // %
 const NEUTRAL_BMI      = 22;
 
-/**
- * Benefit-bar factor: higher body fat → higher factor → longer unlock thresholds.
- * More insulation means you need more time to reach each benefit.
- */
+/** Legacy body-fat factor retained for compatibility; not used for Benefit Bar timing. */
 export function getBodyFatFactor(bodyFatPct: number): number {
   if (bodyFatPct <= 0) return 1.0;
   return Math.min(1.35, Math.max(0.75, bodyFatPct / NEUTRAL_BODY_FAT));
 }
 
-/**
- * Score factor: INVERTED direction vs benefit bar.
- * Leaner BMI = more thermogenically demanding = should score higher per minute.
- */
+/** Legacy score factor retained for compatibility; current scoring uses BMI. */
 export function getBodyFatFactorForScore(bodyFatPct: number): number {
   if (bodyFatPct <= 0) return 1.0;
   return Math.min(1.35, Math.max(0.75, NEUTRAL_BODY_FAT / bodyFatPct));
 }
 
 /**
- * Benefit-bar fallback: higher BMI → higher factor → longer unlock thresholds.
- * More body mass means more thermal load, so more time is needed to unlock benefits.
+ * Product personalization heuristic for Benefit Bar timing:
+ * BMI above the reference lengthens milestones; BMI below it shortens them.
  */
 export function getBmiFactor(weightLbs: number, heightCm: number): number {
   if (heightCm <= 0 || weightLbs <= 0) return 1.0;
@@ -74,8 +69,8 @@ export function getBmiFactor(weightLbs: number, heightCm: number): number {
 }
 
 /**
- * Lower BMI (lighter, less thermal mass) = higher thermogenic efficiency = higher
- * score. The bodyFatPct argument is retained for compatibility but ignored.
+ * BMI-based score personalization. The bodyFatPct argument is retained for
+ * compatibility but ignored.
  */
 export function getBmiFactorForScore(weightLbs: number, heightCm: number): number {
   if (heightCm <= 0 || weightLbs <= 0) return 1.0;
@@ -116,8 +111,9 @@ export function getCompositionFactorForScore(
 // ─── Threshold & earned computation ──────────────────────────────────────────
 
 /**
- * Returns each benefit's independent peak-duration threshold, adjusted for
- * temperature and body composition. Every benefit starts progressing at zero.
+ * Returns each benefit's independent product milestone, adjusted for water
+ * temperature and BMI. Every benefit starts progressing at zero. The result is
+ * a research-informed product estimate, not a medical exposure prescription.
  */
 export function computeThresholds(
   tempF: number,

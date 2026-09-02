@@ -13,10 +13,10 @@ import { SEGMENTS, SegmentId, computeBenefitFills, computeThresholds } from "@/l
 // ─── Copy ─────────────────────────────────────────────────────────────────────
 
 const BENEFIT_COPY: Record<SegmentId, { achieved: string; keepGoing: string }> = {
-  energy:     { achieved: "Your Energy window is maximized.",              keepGoing: "Keep going — more benefit windows are building." },
-  mood:       { achieved: "Your Mood window is maximized.",                keepGoing: "Keep going — more benefit windows are building." },
-  metabolism: { achieved: "Your Metabolism window is maximized.",          keepGoing: "Keep going — Recovery is still building 💪" },
-  recovery:   { achieved: "Your Recovery window is maximized.",            keepGoing: "All benefit windows are maximized. 🏆" },
+  energy:     { achieved: "Your Energy milestone is reached.",              keepGoing: "Keep going — more benefit milestones are building." },
+  mood:       { achieved: "Your Mood milestone is reached.",                keepGoing: "Keep going — more benefit milestones are building." },
+  metabolism: { achieved: "Your Metabolism milestone is reached.",          keepGoing: "Keep going — the Recovery milestone is still building 💪" },
+  recovery:   { achieved: "Your Recovery milestone is reached.",            keepGoing: "All benefit milestones are reached. 🏆" },
 };
 
 // ─── CelebrationOverlay ───────────────────────────────────────────────────────
@@ -86,7 +86,7 @@ export function CelebrationOverlay({ segmentId, primaryBenefit, onDismiss }: Cel
               backgroundClip: "text",
             }}
           >
-            {isPrimary ? `${seg.label} Goal Maximized!` : `${seg.emoji} ${seg.label} Maximized`}
+            {isPrimary ? `${seg.label} Goal Reached!` : `${seg.emoji} ${seg.label} Milestone Reached`}
           </h2>
         </div>
 
@@ -101,7 +101,7 @@ export function CelebrationOverlay({ segmentId, primaryBenefit, onDismiss }: Cel
             className="text-xs font-semibold"
             style={{ color: gold && !nextSeg ? "#fbbf24" : "#67e8f9" }}
           >
-            {nextSeg ? BENEFIT_COPY[segmentId].keepGoing : "Every benefit window is maximized. Legendary. 🏆"}
+            {nextSeg ? BENEFIT_COPY[segmentId].keepGoing : "Every benefit milestone is reached. Legendary. 🏆"}
           </p>
         )}
       </div>
@@ -149,7 +149,7 @@ export function GoalNudge({
       <div className="mt-2 rounded-xl px-3 py-2 flex items-center gap-2"
         style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)" }}>
         <span className="text-base shrink-0">🏆</span>
-        <p className="text-yellow-300 text-xs font-semibold leading-tight">All benefits achieved. Legendary session.</p>
+        <p className="text-yellow-300 text-xs font-semibold leading-tight">All benefit milestones reached. Legendary session.</p>
       </div>
     );
   }
@@ -165,7 +165,7 @@ export function GoalNudge({
         style={{ background: "rgba(34,211,238,0.07)", border: "1px solid rgba(34,211,238,0.18)" }}>
         <span className="text-base shrink-0">{nextSeg.emoji}</span>
         <p className="text-cyan-300 text-xs font-semibold leading-tight">
-          {secsLeft > 0 ? `Keep going — maximize ${nextSeg.label} in ${timeStr}` : `${nextSeg.label} window maximized! 🎉`}
+          {secsLeft > 0 ? `Keep going — reach the ${nextSeg.label} milestone in ${timeStr}` : `${nextSeg.label} milestone reached! 🎉`}
         </p>
       </div>
     );
@@ -207,8 +207,8 @@ export function GoalNudge({
 // earned peak fades over its halfLifeHours.
 
 /**
- * Pure helper: returns how many seconds are still needed to maximize the
- * selected benefit, accounting for decay from plunges already logged today.
+ * Pure helper: returns how many seconds are still needed to reach the selected
+ * product milestone, accounting for decay from plunges already logged today.
  *
  * Returns 0 when the goal is fully covered (hint should be hidden).
  * Pass `nowMs` explicitly so tests can pin the clock.
