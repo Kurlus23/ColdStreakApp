@@ -9357,14 +9357,14 @@ export default function Home() {
           onDismissChallenger={() => setPendingChallengers([])}
           plungeStartTime={startTimeRef.current}
           brainFreezeEnabled={brainFreezeEnabled}
-          targetDurationSeconds={
-            countdownMode
-              ? countdownTotalRef.current
-              : primaryBenefit === "recovery"   ? 480  // 8 min
-              : primaryBenefit === "metabolism" ? 360  // 6 min
-              : primaryBenefit === "mood"       ? 300  // 5 min
-              : 240                                    // energy / default: 4 min
-          }
+           // Brain Freeze guidance must follow the same personalized benefit
+           // threshold as the Recovery/benefit ring, rather than the legacy
+           // fixed 4/5/6/8-minute goal durations.
+           targetDurationSeconds={
+             countdownMode
+               ? countdownTotalRef.current
+               : benefitThresholds[SEGMENTS.findIndex((segment) => segment.id === primaryBenefit)] ?? 0
+           }
           targetQuestions={
             primaryBenefit === "recovery"   ? 10 :
             primaryBenefit === "metabolism" ?  8 :

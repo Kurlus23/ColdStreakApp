@@ -289,8 +289,8 @@ export function PlungeOverlay({
     : 0;
   const goalTargetLabel = primarySeg
     ? (goalSecsRemaining > 0
-        ? `${primarySeg.emoji} ${fmtSecs(goalSecsRemaining)}`
-        : `${primarySeg.emoji} Done!`)
+        ? `${primarySeg.emoji} ${primarySeg.label} ${fmtSecs(goalSecsRemaining)}`
+        : `${primarySeg.emoji} ${primarySeg.label} Done!`)
     : (personalBest > 0 ? `PB ${personalBest.toFixed(1)}` : null);
   // ── Multi-challenger ring marks & race status ─────────────────────────────────
   const inChallenge = challengers.length > 0;
@@ -546,6 +546,7 @@ export function PlungeOverlay({
           bodyWeightLbs={bodyWeightLbs}
           bodyHeightCm={bodyHeightCm}
           bodyFatPct={bodyFatPct}
+          primaryBenefit={primaryBenefit ?? undefined}
         />
 
         {/* Brain Freeze toggle */}
