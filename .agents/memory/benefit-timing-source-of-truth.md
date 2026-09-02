@@ -9,3 +9,10 @@ The personalized Benefit Bar threshold is the authoritative exact target for Ene
 **Why:** Free-form coach guidance previously produced a longer Recovery duration than the on-screen bar for the same temperature and body composition, creating conflicting instructions.
 
 **How to apply:** When coach guidance discusses exact timing, use the same temperature/body-composition-adjusted threshold model as the Benefit Bar and clearly distinguish a milestone from optional progression advice.
+
+## Evidence boundary
+The often-repeated “11 minutes per week” figure is a research-informed practical starting protocol, not a proven maximum, plateau, or universal medical prescription. ColdStreak’s temperature and BMI multipliers are product heuristics and do not change what the underlying studies established.
+
+**Why:** The source research observed experienced winter swimmers using brief, repeated exposure and did not establish a randomized dose-response curve across temperatures, body types, or benefit categories.
+
+**How to apply:** Describe 11 minutes as an optional research-informed reference point only when useful; never equate it with “maximum benefit.” Keep the app’s personalized milestones labeled as product milestones, not medically validated exposure requirements.
