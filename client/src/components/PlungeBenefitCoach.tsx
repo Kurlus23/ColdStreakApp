@@ -2,112 +2,11 @@
  * PlungeBenefitCoach
  *
  * Two parts:
- *  1. CelebrationOverlay – compact toast that scale-fades in and auto-dismisses
- *     after 2.5 s. Non-blocking; timer stays visible beneath it.
- *  2. GoalNudge – persistent bar below the BenefitBar counting down to the
- *     goal (or cheering after it).
+ *  1. GoalNudge – persistent bar below the BenefitBar counting down to the
+ *     selected goal during an active plunge.
+ *  2. CountdownGoalHint – guidance shown when setting a timer duration.
  */
-import { useEffect, useRef, useState } from "react";
 import { SEGMENTS, SegmentId, computeBenefitFills, computeThresholds } from "@/lib/benefitSegments";
-
-// ─── Copy ─────────────────────────────────────────────────────────────────────
-
-const BENEFIT_COPY: Record<SegmentId, { achieved: string; keepGoing: string }> = {
-  energy:     { achieved: "Your Energy milestone is reached.",              keepGoing: "Keep going — more benefit milestones are building." },
-  mood:       { achieved: "Your Mood milestone is reached.",                keepGoing: "Keep going — more benefit milestones are building." },
-  metabolism: { achieved: "Your Metabolism milestone is reached.",          keepGoing: "Keep going — the Recovery milestone is still building 💪" },
-  recovery:   { achieved: "Your Recovery milestone is reached.",            keepGoing: "All benefit milestones are reached. 🏆" },
-};
-
-// ─── CelebrationOverlay ───────────────────────────────────────────────────────
-
-interface CelebrationProps {
-  segmentId: SegmentId;
-  primaryBenefit: SegmentId;
-  onDismiss: () => void;
-}
-
-export function CelebrationOverlay({ segmentId, primaryBenefit, onDismiss }: CelebrationProps) {
-  const seg       = SEGMENTS.find(s => s.id === segmentId)!;
-  const isPrimary = segmentId === primaryBenefit;
-  const primaryIdx = SEGMENTS.findIndex(s => s.id === primaryBenefit);
-  const nextSeg   = isPrimary ? SEGMENTS[primaryIdx + 1] ?? null : null;
-  const gold      = isPrimary;
-
-  // Mount animation
-  const [show, setShow] = useState(false);
-  useEffect(() => { requestAnimationFrame(() => setShow(true)); }, []);
-
-  // Auto-dismiss
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    timerRef.current = setTimeout(onDismiss, 2500);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <div
-      className="fixed inset-x-4 z-[60] flex justify-center pointer-events-none"
-      style={{ top: "18%", bottom: "auto" }}
-    >
-      <div
-        className="w-full max-w-xs rounded-2xl px-5 py-4 pointer-events-auto"
-        style={{
-          background: gold
-            ? "linear-gradient(135deg, #78350f 0%, #0d1f3c 80%)"
-            : "linear-gradient(135deg, #0e3a4a 0%, #0d1f3c 80%)",
-          border: `1px solid ${gold ? "rgba(251,191,36,0.4)" : "rgba(34,211,238,0.3)"}`,
-          boxShadow: gold
-            ? "0 0 40px rgba(251,191,36,0.25), 0 8px 32px rgba(0,0,0,0.6)"
-            : "0 0 40px rgba(34,211,238,0.2), 0 8px 32px rgba(0,0,0,0.6)",
-          opacity: show ? 1 : 0,
-          transform: show ? "scale(1) translateY(0)" : "scale(0.88) translateY(-8px)",
-          transition: "opacity 0.22s ease, transform 0.22s ease",
-        }}
-        onClick={onDismiss}
-      >
-        {/* Top row: emoji + headline */}
-        <div className="flex items-center gap-3 mb-1">
-          <span
-            className="text-3xl shrink-0"
-            style={{ filter: gold ? "drop-shadow(0 0 10px rgba(251,191,36,0.8))" : "drop-shadow(0 0 10px rgba(34,211,238,0.7))" }}
-          >
-            {isPrimary ? "🎉" : seg.emoji}
-          </span>
-          <h2
-            className="font-black text-base tracking-tight leading-tight"
-            style={{
-              background: gold
-                ? "linear-gradient(to right, #fde68a, #f59e0b)"
-                : "linear-gradient(to right, #ffffff, #67e8f9)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
-            {isPrimary ? `${seg.label} Goal Reached!` : `${seg.emoji} ${seg.label} Milestone Reached`}
-          </h2>
-        </div>
-
-        {/* Body */}
-        <p className="text-slate-300 text-xs leading-relaxed mb-2">
-          {BENEFIT_COPY[segmentId].achieved}
-        </p>
-
-        {/* Keep-going line */}
-        {(isPrimary ? (nextSeg || true) : false) && (
-          <p
-            className="text-xs font-semibold"
-            style={{ color: gold && !nextSeg ? "#fbbf24" : "#67e8f9" }}
-          >
-            {nextSeg ? BENEFIT_COPY[segmentId].keepGoing : "Every benefit milestone is reached. Legendary. 🏆"}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ─── GoalNudge ────────────────────────────────────────────────────────────────
 
@@ -141,35 +40,10 @@ export function GoalNudge({
   const primaryIdx   = SEGMENTS.findIndex(s => s.id === primaryBenefit);
   const primarySeg   = SEGMENTS[primaryIdx];
   const primaryThreshold = thresholds[primaryIdx];
-  const nextIdx      = thresholds.findIndex((threshold) => totalElapsed < threshold);
-  const nextSeg      = nextIdx >= 0 ? SEGMENTS[nextIdx] : null;
 
-  if (goalAchieved && allAchieved) {
-    return (
-      <div className="mt-2 rounded-xl px-3 py-2 flex items-center gap-2"
-        style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)" }}>
-        <span className="text-base shrink-0">🏆</span>
-        <p className="text-yellow-300 text-xs font-semibold leading-tight">All benefit milestones reached. Legendary session.</p>
-      </div>
-    );
-  }
-
-  if (goalAchieved && nextSeg) {
-    const nextThreshold = thresholds[nextIdx];
-    const secsLeft = Math.max(0, nextThreshold - totalElapsed);
-    const mins = Math.floor(secsLeft / 60);
-    const secs = secsLeft % 60;
-    const timeStr = secsLeft > 0 ? (mins > 0 ? `${mins}m ${secs}s` : `${secs}s`) : "now";
-    return (
-      <div className="mt-2 rounded-xl px-3 py-2 flex items-center gap-2"
-        style={{ background: "rgba(34,211,238,0.07)", border: "1px solid rgba(34,211,238,0.18)" }}>
-        <span className="text-base shrink-0">{nextSeg.emoji}</span>
-        <p className="text-cyan-300 text-xs font-semibold leading-tight">
-          {secsLeft > 0 ? `Keep going — reach the ${nextSeg.label} milestone in ${timeStr}` : `${nextSeg.label} milestone reached! 🎉`}
-        </p>
-      </div>
-    );
-  }
+  // Once the selected goal has been covered, leave the display quiet rather
+  // than turning the next modeled threshold into a promise or announcement.
+  if (goalAchieved || allAchieved) return null;
 
   // Pre-goal: count down
   const secsLeft = Math.max(0, primaryThreshold - totalElapsed);
@@ -203,12 +77,12 @@ export function GoalNudge({
 // Shown below the countdown time picker when the set duration is shorter than
 // what the user's goal requires right now, accounting for benefit decay.
 //
-// Uses the same decay model as BenefitBar: the selected goal's independently
-// earned peak fades over its halfLifeHours.
+// Uses the same modeled fade as BenefitBar: the selected goal's independently
+// earned progress fades over its estimated product window.
 
 /**
  * Pure helper: returns how many seconds are still needed to reach the selected
- * product milestone, accounting for decay from plunges already logged today.
+ * product estimate, accounting for decay from plunges already logged today.
  *
  * Returns 0 when the goal is fully covered (hint should be hidden).
  * Pass `nowMs` explicitly so tests can pin the clock.

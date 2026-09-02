@@ -169,7 +169,7 @@ type Screen = "timer" | "history" | "explore" | "gear" | "settings" | "legal" | 
 
 
 import { getCompositionFactor, getCompositionFactorForScore, SEGMENTS, type SegmentId, computeThresholds, getMidSegmentIdx, getSecsToFinish } from "@/lib/benefitSegments";
-import { CelebrationOverlay, GoalNudge, CountdownGoalHint } from "@/components/PlungeBenefitCoach";
+import { GoalNudge, CountdownGoalHint } from "@/components/PlungeBenefitCoach";
 import { ProgressionCoachCard } from "@/components/ProgressionCoachCard";
 import { BrainFreezeModal } from "@/components/BrainFreezeModal";
 
@@ -666,7 +666,7 @@ export default function Home() {
   const [toolsWindowExpanded, setToolsWindowExpanded] = useState(() => {
     try { return localStorage.getItem("coldstreak-tools-window-expanded") === "true"; } catch { return false; }
   });
-  const [celebrationFor, setCelebrationFor] = useState<SegmentId | null>(null);
+  const [milestoneEvent, setMilestoneEvent] = useState<{ segId: string; emoji: string; label: string; count: number } | null>(null);
   // Goal suggestion: { segId, hitCount, sampleSize } when the user consistently
   // completes a benefit segment they haven't set as their goal.
   const [goalSuggestion, setGoalSuggestion] = useState<{ segId: SegmentId; hitCount: number; sampleSize: number } | null>(null);
@@ -3913,17 +3913,13 @@ export default function Home() {
   useEffect(() => {
     if (isActive && !prevIsActiveRef.current) {
       setPlungeAchieved(new Set());
-      setCelebrationFor(null);
     }
     prevIsActiveRef.current = isActive;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
 
-  const [milestoneEvent, setMilestoneEvent] = useState<{ segId: string; emoji: string; label: string; count: number } | null>(null);
-
   const handleBenefitMilestone = useCallback((segId: SegmentId) => {
     setPlungeAchieved(prev => new Set(prev).add(segId));
-    // Route the milestone into the cold-take overlay (replaces CelebrationOverlay during a plunge)
     const seg = SEGMENTS.find(s => s.id === segId);
     if (seg) {
       const segIdx = SEGMENTS.findIndex((candidate) => candidate.id === segId);
@@ -9286,7 +9282,9 @@ export default function Home() {
           brainFreezeEnabled={brainFreezeEnabled}
            // Brain Freeze guidance must follow the same personalized benefit
            // threshold as the Recovery/benefit ring, rather than the legacy
-           // fixed 4/5/6/8-minute goal durations.
+           // legacy fixed goal-duration values are retained only for the
+           // Brain Freeze question schedule; benefit timing comes from the
+           // personalized thresholds above.
            targetDurationSeconds={
              countdownMode
                ? countdownTotalRef.current
@@ -9354,15 +9352,6 @@ export default function Home() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* ─── BENEFIT CELEBRATION OVERLAY ─── */}
-      {celebrationFor && (
-        <CelebrationOverlay
-          segmentId={celebrationFor}
-          primaryBenefit={primaryBenefit}
-          onDismiss={() => setCelebrationFor(null)}
-        />
       )}
 
       {/* ─── BENEFIT GOAL PICKER ─── */}

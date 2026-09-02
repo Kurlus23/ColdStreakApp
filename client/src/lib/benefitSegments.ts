@@ -4,7 +4,7 @@
 // report generation.
 //
 // baseDuration = seconds for a research-informed product milestone at 50 °F.
-// halfLifeHours = the product's modeled window for the milestone to decay.
+// halfLifeHours = the product's modeled visual fade window after a session.
 // These values are not medically validated biological switch points.
 
 export const SEGMENTS = [
@@ -126,7 +126,7 @@ export function computeThresholds(
   return SEGMENTS.map((seg) => Math.round(seg.baseDuration * tf * bf));
 }
 
-/** Percentage progress (0–100) toward each independent benefit peak. */
+/** Percentage progress (0–100) toward each independent product milestone. */
 export function computeBenefitFills(
   totalElapsed: number,
   thresholds: number[],
