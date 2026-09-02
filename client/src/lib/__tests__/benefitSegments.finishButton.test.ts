@@ -52,6 +52,13 @@ describe("computeThresholds at 50 °F / default metrics", () => {
     expect(higherBmi[3]).toBeGreaterThan(T[3]);
   });
 
+  it("uses BMI rather than body fat for Benefit Bar timing", () => {
+    const withoutBodyFat = computeThresholds(44, 150, 175);
+    const withBodyFat = computeThresholds(44, 150, 175, 10);
+
+    expect(withBodyFat).toEqual(withoutBodyFat);
+  });
+
   it("fills every benefit simultaneously from the beginning", () => {
     const fills = computeBenefitFills(30, T);
     expect(fills[0]).toBeCloseTo(49.18, 2);

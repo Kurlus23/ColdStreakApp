@@ -33,12 +33,12 @@ export function getTempFactor(tempF: number): number {
 }
 
 // ─── Body-composition factor ──────────────────────────────────────────────────
-// Body fat % is the preferred input: it directly measures insulation/thermal
-// mass without the muscle-mass distortion that makes BMI inaccurate for lean,
-// muscular users.  Falls back to BMI derived from height+weight when not set.
+// Benefit timing uses BMI derived from height and weight.  Body-fat data may
+// still be collected for other product features, but it must not change the
+// independent Benefit Bar thresholds.
 //
-// Neutral reference: 20 % body fat (average fit adult).
-// Factor range clamped to [0.75, 1.35] in both paths.
+// Neutral reference: BMI 22.
+// Factor range clamped to [0.75, 1.35].
 
 const NEUTRAL_BODY_FAT = 20; // %
 const NEUTRAL_BMI      = 22;
@@ -89,16 +89,16 @@ export function getBmiFactorForScore(weightLbs: number, heightCm: number): numbe
 
 /**
  * Composition factor for the BENEFIT BAR (thresholds).
- * Higher body fat → higher factor → longer unlock thresholds (more insulation).
- * When body fat % is not set, falls back to the individual's BMI from height and
- * weight so the default peak durations are not treated as universal.
+ *
+ * BMI from height and weight is the authoritative body-composition input for
+ * timing.  The bodyFatPct argument remains in the signature for compatibility
+ * with existing callers and persisted profiles, but is intentionally ignored.
  */
 export function getCompositionFactor(
-  bodyFatPct: number | null | undefined,
+  _bodyFatPct: number | null | undefined,
   weightLbs: number,
   heightCm: number,
 ): number {
-  if (bodyFatPct != null && bodyFatPct > 0) return getBodyFatFactor(bodyFatPct);
   return getBmiFactor(weightLbs, heightCm);
 }
 

@@ -25,7 +25,10 @@ interface BenefitBarProps {
   bodyWeightLbs?: number;
   /** User's height in cm. Defaults to 175 (≈ 5 ft 9 in). */
   bodyHeightCm?: number;
-  /** Body fat percentage (e.g. 19.9). When set, takes priority over height+weight BMI. */
+  /**
+   * Legacy compatibility prop. Benefit Bar timing uses BMI from height+weight;
+   * this value does not change the thresholds.
+   */
   bodyFatPct?: number | null;
   /**
    * Unix ms timestamp of when the last cold session ended.

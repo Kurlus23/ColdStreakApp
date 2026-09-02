@@ -150,13 +150,13 @@ export async function coachChat(
   const bodyWeightLbs = user?.bodyWeight && user.bodyWeight > 0 ? user.bodyWeight : 150;
   const bodyHeightCm = user?.bodyHeight && user.bodyHeight > 0 ? user.bodyHeight : 175;
   const recentBenefitTargets = avgTemp != null
-    ? computeThresholds(avgTemp, bodyWeightLbs, bodyHeightCm, bodyFatPct)
+    ? computeThresholds(avgTemp, bodyWeightLbs, bodyHeightCm)
     : null;
   const recentGoalTarget = recentBenefitTargets && user?.primaryBenefit
     ? recentBenefitTargets[SEGMENTS.findIndex((segment) => segment.id === user.primaryBenefit)]
     : null;
   const benefitTimingLine = recentGoalTarget != null && avgTemp != null
-    ? `• Benefit Bar reference: ${user?.primaryBenefit ?? "goal"} goal is ${Math.floor(recentGoalTarget / 60)}m ${String(recentGoalTarget % 60).padStart(2, "0")}s at ${avgTemp}°F using the saved body metrics; this is a milestone, not a medical prescription`
+    ? `• Benefit Bar reference: ${user?.primaryBenefit ?? "goal"} goal is ${Math.floor(recentGoalTarget / 60)}m ${String(recentGoalTarget % 60).padStart(2, "0")}s at ${avgTemp}°F using BMI from height and weight; this is a milestone, not a medical prescription`
     : null;
 
   const userContext = `
