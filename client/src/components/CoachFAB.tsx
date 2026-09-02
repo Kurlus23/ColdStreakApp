@@ -99,10 +99,12 @@ const QUICK_QUESTIONS = [
   "How do I build a streak?",
   "What temperature should I aim for?",
   "How does the Sweet Spot work?",
-  "What does the plunge score measure?",
+  "What does the Cold Score measure?",
 ];
 
 // ── API helper ────────────────────────────────────────────────────────────────
+
+const COACH_CLIENT_TIMEOUT_MS = 30_000;
 
 async function sendMessage(
   token: string,
@@ -110,20 +112,33 @@ async function sendMessage(
   history: ChatMessage[],
   screen?: string,
 ): Promise<{ reply: string; navigate?: string | null }> {
-  const res = await fetch("/api/coach/chat", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      message,
-      history,
-      ...(screen ? { context: { screen } } : {}),
-    }),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json() as Promise<{ reply: string; navigate?: string | null }>;
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), COACH_CLIENT_TIMEOUT_MS);
+  try {
+    const res = await fetch("/api/coach/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        message,
+        history,
+        ...(screen ? { context: { screen } } : {}),
+      }),
+      signal: controller.signal,
+    });
+    if (res.status === 504) throw new Error("COACH_TIMEOUT");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json() as Promise<{ reply: string; navigate?: string | null }>;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("COACH_TIMEOUT");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 }
 
 const NAV_LABELS: Record<string, string> = {
@@ -328,12 +343,14 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
         // the previous stale question instead of the new one.
         const { reply, navigate } = await sendMessage(authToken, trimmed, messages, screen);
         setMessages((prev) => [...prev, { role: "assistant", content: reply, navigate }]);
-      } catch {
+      } catch (error) {
         setMessages((prev) => [
           ...prev,
           {
             role: "assistant",
-            content: "Sorry, I couldn't reach the server right now. Tap your message to try again.",
+            content: error instanceof Error && error.message === "COACH_TIMEOUT"
+              ? "The coach is taking too long to respond. Check your connection and tap your message to try again."
+              : "Sorry, I couldn't reach the server right now. Tap your message to try again.",
             isError: true,
           },
         ]);
@@ -354,14 +371,16 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
       setMessages([...historyBefore, userMsg]);
       setLoading(true);
       try {
-        const { reply, navigate } = await sendMessage(authToken, text, historyBefore.concat(userMsg), screen);
+         const { reply, navigate } = await sendMessage(authToken, text, historyBefore, screen);
         setMessages((prev) => [...prev, { role: "assistant", content: reply, navigate }]);
-      } catch {
+      } catch (error) {
         setMessages((prev) => [
           ...prev,
           {
             role: "assistant",
-            content: "Sorry, I couldn't reach the server right now. Tap your message to try again.",
+            content: error instanceof Error && error.message === "COACH_TIMEOUT"
+              ? "The coach is taking too long to respond. Check your connection and tap your message to try again."
+              : "Sorry, I couldn't reach the server right now. Tap your message to try again.",
             isError: true,
           },
         ]);

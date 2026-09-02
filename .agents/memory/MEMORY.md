@@ -22,3 +22,4 @@
 - [Flow controller safety boundary](flow-controller-safety-boundary.md) — ESP32 owns shutdown locally; Bluetooth authorizes first, Wi-Fi only reports and alerts.
 - [Publish database endpoint failures](publish-database-endpoint-failures.md) — PostgreSQL 28000 “endpoint disabled” after image push is database availability, not a compile failure.
 - [Analytics instrumentation](analytics-instrumentation.md) — forward privacy-safe product events to both PostHog and Replit-hosted analytics.
+- [Coach request timeouts](coach-timeouts.md) — bound provider and client requests so AI chat cannot spin indefinitely.

@@ -2950,7 +2950,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                       ))}
                     </div>
                     {!hasScores && (
-                      <p className="text-blue-600 text-[11px] text-center">Plunge scores will appear here once the event starts.</p>
+                      <p className="text-blue-600 text-[11px] text-center">Cold Scores will appear here once the event starts.</p>
                     )}
                   </div>
                 );

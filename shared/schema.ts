@@ -55,7 +55,7 @@ export const plunges = pgTable("plunges", {
   userId: integer("user_id"), // linked account user (nullable)
   duration: integer("duration").notNull(), // in seconds
   temperature: integer("temperature").notNull(), // in fahrenheit
-  score: numeric("score", { precision: 10, scale: 2 }).notNull(), // plunge score
+  score: numeric("score", { precision: 10, scale: 2 }).notNull(), // Cold Score
   hrAvg: integer("hr_avg"), // average heart rate bpm (nullable)
   spo2Avg: integer("spo2_avg"), // average blood oxygen % (nullable)
   photoData: text("photo_data"), // base64 data URL of photo (nullable)

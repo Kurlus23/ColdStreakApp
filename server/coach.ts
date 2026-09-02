@@ -61,7 +61,7 @@ RESPONSE FORMAT — always return valid JSON, no markdown, no code fences:
 }
 
 Set "navigate" to the screen name (string) when your answer is specifically about a feature the user can see on that screen — so they can follow along:
-• "timer"                — benefits bar, plunge score, streak, temperature, countdown, start/stop
+• "timer"                — benefits bar, Cold Score, streak, temperature, countdown, start/stop
 • "history"              — past plunges log, mood check-in
 • "achievements:account" — Profile screen, Account tab. Use ONLY for questions about body metrics entry: weight, height, body fat %, BMI, body composition inputs. This is where users enter those values — NOT in Settings.
 • "achievements:stats"   — Profile screen, Stats tab. Use for calorie burn, sweet spot, cold adaptation, try this next, discovery report, insights dashboard.
@@ -185,20 +185,56 @@ CURRENT USER:
     generationConfig: { maxOutputTokens: 600, temperature: 0.7 },
   };
 
-  async function callGemini(model: string) {
-    return fetch(baseUrl(model), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+  const MODEL_TIMEOUT_MS = 8_000;
+  const TOTAL_MODEL_TIMEOUT_MS = 25_000;
+  const fallbackStatuses = new Set([503, 429, 404]);
+  const startedAt = Date.now();
+
+  async function callGemini(model: string, timeoutMs: number) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(baseUrl(model), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
-  let res = await callGemini(GEMINI_MODELS[0]);
+  let res: Response | null = null;
+  let lastError: unknown = null;
 
-  // On overload/quota/deprecation, try each fallback model in turn before giving up
-  for (let i = 1; i < GEMINI_MODELS.length && (res.status === 503 || res.status === 429 || res.status === 404); i++) {
-    console.warn(`[coach] ${GEMINI_MODELS[i-1]} returned ${res.status}, trying ${GEMINI_MODELS[i]}`);
-    res = await callGemini(GEMINI_MODELS[i]);
+  // Bound each provider request and the whole fallback chain so a network
+  // failure can never leave the client waiting indefinitely.
+  for (let i = 0; i < GEMINI_MODELS.length; i++) {
+    const remainingMs = TOTAL_MODEL_TIMEOUT_MS - (Date.now() - startedAt);
+    if (remainingMs <= 0) break;
+
+    try {
+      res = await callGemini(GEMINI_MODELS[i], Math.min(MODEL_TIMEOUT_MS, remainingMs));
+    } catch (error) {
+      lastError = error;
+      const reason = error instanceof Error && error.name === "AbortError" ? "timed out" : "failed";
+      console.warn(`[coach] ${GEMINI_MODELS[i]} request ${reason}`);
+      continue;
+    }
+
+    if (!fallbackStatuses.has(res.status)) break;
+    if (i < GEMINI_MODELS.length - 1) {
+      console.warn(`[coach] ${GEMINI_MODELS[i]} returned ${res.status}, trying ${GEMINI_MODELS[i + 1]}`);
+    }
+  }
+
+  if (!res) {
+    throw new Error(
+      lastError instanceof Error && lastError.name === "AbortError"
+        ? "Coach request timed out"
+        : "Coach provider unavailable",
+    );
   }
 
   if (!res.ok) {

@@ -4474,11 +4474,22 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
     }
     try {
       const { coachChat } = await import("./coach");
-      const result = await coachChat(payload.userId, message, history, context?.screen);
+      const timeout = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Coach chat timed out")), 30_000);
+      });
+      const result = await Promise.race([
+        coachChat(payload.userId, message, history, context?.screen),
+        timeout,
+      ]);
       res.json(result);
     } catch (err) {
       console.error("Coach chat error:", err);
-      res.status(500).json({ message: "Coach unavailable right now — please try again." });
+      const timedOut = err instanceof Error && err.message.includes("timed out");
+      res.status(timedOut ? 504 : 500).json({
+        message: timedOut
+          ? "Coach response timed out — please try again."
+          : "Coach unavailable right now — please try again.",
+      });
     }
   });
 

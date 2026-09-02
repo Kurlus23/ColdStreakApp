@@ -1,20 +1,19 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import { useLocation } from "wouter";
-import { Camera as CapCamera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
 import { BleClient, type ScanResult } from "@capacitor-community/bluetooth-le";
 import { savePhoto } from "@/lib/photoStore";
-import { tagAndSaveToRoll, readPlungeMetaFromPhoto, type PlungePhotoMeta } from "@/lib/cameraRoll";
+import { tagAndSaveToRoll } from "@/lib/cameraRoll";
 import icebergBg from "@assets/image_1775083022624.png";
 import {
   Play, Pause, RotateCcw, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2, VolumeX, FileText,
   Camera, MapPin, Lock, ShieldAlert, Trophy, User, Users, ChevronDown, ChevronUp,
-  Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff, Heart, X, Droplets, Thermometer,
-  Image as ImageIcon, MessageCircle, Send, Eye, EyeOff
+  Sparkles, Crown, CheckCircle2, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff, Heart, X, Droplets, Thermometer,
+  MessageCircle, Send, Eye, EyeOff
 } from "lucide-react";
 
 import confetti from "canvas-confetti";
@@ -1448,7 +1447,6 @@ export default function Home() {
   const [scoreView, setScoreView] = useState<"today" | "best">("today");
   const [scoreInfoOpen, setScoreInfoOpen] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
-  const [restoreFromPhotoMeta, setRestoreFromPhotoMeta] = useState<PlungePhotoMeta | null>(null);
   const todayDateStr = new Date().toISOString().slice(0, 10);
   const nowTimeStr = new Date().toTimeString().slice(0, 5);
   const [manualDate, setManualDate] = useState(todayDateStr);
@@ -1635,29 +1633,6 @@ export default function Home() {
   const promptPlungeRef = useRef<{ score: string; duration: number; temperature: number; timerUsed: boolean; tempMin?: number; tempMax?: number; brainFreezeScore?: number; brainFreezeCorrect?: number; brainFreezeTotal?: number; brainFreezeColdBonus?: number } | null>(null);
 
   const { toast } = useToast();
-
-  // Restore-from-photos: open photo picker, read EXIF tag, offer to re-import
-  const handleRestoreFromPhotos = useCallback(async () => {
-    try {
-      const photo = await CapCamera.getPhoto({
-        resultType: CameraResultType.DataUrl,
-        source: CameraSource.Photos,
-        quality: 100,
-      });
-      if (!photo.dataUrl) return;
-      const meta = readPlungeMetaFromPhoto(photo.dataUrl);
-      if (!meta) {
-        toast({ title: "No plunge data found", description: "This photo doesn't have a ColdStreak session embedded. Only photos taken inside the app are tagged.", variant: "destructive" });
-        return;
-      }
-      setRestoreFromPhotoMeta(meta);
-    } catch (err: any) {
-      const msg = String(err ?? "");
-      if (!msg.includes("cancel") && !msg.includes("dismiss") && !msg.includes("User cancelled")) {
-        toast({ title: "Photo error", description: msg || "Could not read photo", variant: "destructive" });
-      }
-    }
-  }, [toast]);
 
   const { data: plunges = [], isLoading } = usePlunges();
 
@@ -2301,40 +2276,6 @@ export default function Home() {
     setAccountUsername("");
     setBodyWeightLbs(154);
     queryClient.removeQueries({ queryKey: ["/api/plunges"] });
-  };
-
-  const exportCSV = () => {
-    const headers = ["Date", "Time", "Duration", "Duration (sec)", "Temp (°F)", "Temp (°C)", "Cold Score", "Calories (kcal est.)", "Location"];
-    const rows = plunges.map((p) => {
-      const d = new Date(p.createdAt);
-      const calories = p.calories ?? Math.round(estimateCalories(p.duration, p.temperature, bodyWeightLbs, bodyFatPct));
-      const tempC = Math.round(((p.temperature - 32) * 5) / 9 * 10) / 10;
-      const mins = Math.floor(p.duration / 60);
-      const secs = p.duration % 60;
-      return [
-        d.toLocaleDateString(),
-        d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        `${mins}m ${secs}s`,
-        p.duration,
-        p.temperature,
-        tempC,
-        Number(p.score).toFixed(1),
-        calories,
-        p.locationName || "",
-      ];
-    });
-    const csv = [headers, ...rows].map((r) => r.map((v) => `"${v}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `coldstreak-plunges-${new Date().toISOString().slice(0, 10)}.csv`;
-    // Must be in DOM for Android tablets / WebView to trigger the download
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    Analytics.track("csv_exported", { plunge_count: plunges.length });
   };
 
   // ── Inkbird IBS-TH2 Plus thermometer ─────────────────────────────────────
@@ -4686,27 +4627,6 @@ export default function Home() {
             </div>
             {/* Action buttons row — wraps on narrow screens */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
-              {plunges.length > 0 && (
-                <button
-                  data-testid="button-export-csv"
-                  onClick={exportCSV}
-                  title="Export plunge history as CSV"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all active:scale-95 bg-blue-700/50 border-blue-600/50 text-blue-200 hover:bg-blue-600/60"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Export CSV
-                </button>
-              )}
-              {Capacitor.isNativePlatform() && (
-                <button
-                  data-testid="button-restore-from-photos"
-                  onClick={handleRestoreFromPhotos}
-                  title="Recover a plunge from a tagged photo"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-700/50 border border-blue-600/50 text-blue-200 text-xs font-semibold hover:bg-blue-600/60 transition-all active:scale-95"
-                >
-                  <ImageIcon className="w-3.5 h-3.5" /> Restore from Photo
-                </button>
-              )}
               <button
                 data-testid="button-manual-plunge"
                 onClick={() => {
@@ -5027,93 +4947,6 @@ export default function Home() {
                   {createPlunge.isPending ? "Saving…" : "Save Plunge"}
                 </button>
               </div>
-              );
-            })()}
-
-            {/* Restore from photo confirmation modal */}
-            {restoreFromPhotoMeta && (() => {
-              const m = restoreFromPhotoMeta;
-              const mins = Math.floor(m.duration / 60);
-              const secs = m.duration % 60;
-              const dateStr = new Date(m.date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-              return (
-                <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm pb-6 px-4">
-                  <div className="w-full max-w-md bg-blue-950 border border-blue-700/60 rounded-3xl p-6 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-white font-bold text-base flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4 text-cyan-400" /> Restore Plunge?
-                      </h3>
-                      <button onClick={() => setRestoreFromPhotoMeta(null)} className="text-blue-400 hover:text-white text-lg leading-none">✕</button>
-                    </div>
-                    <p className="text-blue-300 text-sm">This photo contains the following session data:</p>
-                    <div className="bg-blue-900/60 rounded-2xl px-4 py-3 space-y-1.5 border border-blue-700/40">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-blue-400">Date</span>
-                        <span className="text-white font-semibold">{dateStr}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-blue-400">Duration</span>
-                        <span className="text-white font-semibold">{mins}m {secs}s</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-blue-400">Temperature</span>
-                        <span className="text-white font-semibold">{m.temp}°F</span>
-                      </div>
-                      {m.score !== undefined && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-blue-400">Cold Score</span>
-                          <span className="text-cyan-300 font-bold">{Math.round(m.score)}</span>
-                        </div>
-                      )}
-                      {m.locationName && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-blue-400">Location</span>
-                          <span className="text-white font-semibold truncate ml-4">{m.locationName}</span>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-blue-400 text-xs">This will add a new entry to your history. It won't duplicate if the session was already synced from another device.</p>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => setRestoreFromPhotoMeta(null)}
-                        className="flex-1 py-2.5 rounded-2xl border border-blue-700/60 text-blue-300 text-sm font-semibold hover:border-blue-500 transition-all active:scale-95"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        data-testid="button-confirm-restore-from-photo"
-                        onClick={() => {
-                          createPlunge.mutate(
-                            {
-                              duration: m.duration,
-                              temperature: m.temp,
-                              score: m.score !== undefined ? String(Math.round(m.score)) : "0",
-                              hrAvg: null,
-                              spo2Avg: null,
-                              createdAt: m.date,
-                              locationId: m.locationId ?? undefined,
-                              locationName: m.locationName ?? undefined,
-                              calories: Math.round(estimateCalories(m.duration, m.temp, Number(localStorage.getItem("coldstreak-body-weight") || 150), Number(localStorage.getItem("coldstreak-body-fat") || 0) || null)),
-                            },
-                            {
-                              onSuccess: () => {
-                                setRestoreFromPhotoMeta(null);
-                                toast({ title: "Plunge restored! ❄️", description: `Session from ${dateStr} added to your history.` });
-                              },
-                              onError: () => {
-                                toast({ title: "Restore failed", description: "Could not save the plunge. Please try again.", variant: "destructive" });
-                              },
-                            }
-                          );
-                        }}
-                        disabled={createPlunge.isPending}
-                        className="flex-1 py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white text-sm font-bold transition-all active:scale-95"
-                      >
-                        {createPlunge.isPending ? "Saving…" : "Restore Plunge"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
               );
             })()}
 

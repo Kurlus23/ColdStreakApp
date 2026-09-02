@@ -667,19 +667,19 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
             <div className="text-xs text-slate-400 mt-0.5">
               {format(new Date(plunge.createdAt), "MMM d, yyyy 'at' h:mm a")}
             </div>
-            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <span className="text-sm font-semibold text-white">
+            <div className="flex min-w-0 items-center gap-1 mt-1.5 flex-nowrap overflow-hidden whitespace-nowrap">
+              <span className="shrink-0 text-xs font-semibold text-white">
                 {useCelsius ? Math.round((plunge.temperature - 32) * 5 / 9) : plunge.temperature}
                 <span className="text-cyan-400 text-xs">{useCelsius ? "°C" : "°F"}</span>
               </span>
-              <span className="text-slate-600">·</span>
-              <span className="text-xs text-cyan-300 font-semibold">Score {Number(plunge.score).toFixed(1)}</span>
-              <span className="text-slate-600">·</span>
+              <span className="shrink-0 text-slate-600">·</span>
+              <span className="shrink-0 text-[11px] text-cyan-300 font-semibold">Score {Number(plunge.score).toFixed(1)}</span>
+              <span className="shrink-0 text-slate-600">·</span>
               <span
                 title="Estimated thermogenic calorie burn. Varies by individual physiology — not a precise measurement."
-                className="flex items-center gap-0.5 text-xs text-orange-400/80 cursor-help"
+                className="flex min-w-0 items-center gap-0.5 truncate text-[11px] text-orange-400/80 cursor-help"
               >
-                <Flame className="w-3 h-3" />~{calories} kcal est.
+                <Flame className="w-3 h-3 shrink-0" /><span className="truncate">~{calories} kcal est.</span>
               </span>
             </div>
           </div>
@@ -763,24 +763,24 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
 
               {/* Check-in badges: Mood · Energy · [Muscle fatigue · Recovery] or [Focus] */}
               {hasCheckin && (
-                <div className="flex items-center gap-1 flex-wrap">
+                <div className="flex items-center gap-0.5 flex-nowrap overflow-hidden whitespace-nowrap">
                   {mood && (
                     <span
-                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50"
+                      className="inline-flex shrink-0 items-center gap-0.5 px-1 py-0.5 rounded-full text-[9px] font-semibold border border-slate-600/60 bg-slate-800/50"
                       style={{ color: mood.color }}
                     >
                       {mood.emoji} {mood.label}
                     </span>
                   )}
                   {energy && (
-                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-blue-300">
+                    <span className="inline-flex shrink-0 items-center gap-0.5 px-1 py-0.5 rounded-full text-[9px] font-semibold border border-slate-600/60 bg-slate-800/50 text-blue-300">
                       {energy.emoji} {energy.label}
                     </span>
                   )}
                   {fatigue && (
                     <span
                       data-testid={`badge-fatigue-${plunge.id}`}
-                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-orange-300"
+                      className="inline-flex shrink-0 items-center gap-0.5 px-1 py-0.5 rounded-full text-[9px] font-semibold border border-slate-600/60 bg-slate-800/50 text-orange-300"
                     >
                       {fatigue.emoji} {fatigue.label}
                     </span>
@@ -788,7 +788,7 @@ export function PlungeCard({ plunge, bodyWeightLbs = 154, bodyHeightCm = 175, bo
                   {focus && (
                     <span
                       data-testid={`badge-recovery-${plunge.id}`}
-                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-slate-600/60 bg-slate-800/50 text-purple-300"
+                      className="inline-flex shrink-0 items-center gap-0.5 px-1 py-0.5 rounded-full text-[9px] font-semibold border border-slate-600/60 bg-slate-800/50 text-purple-300"
                     >
                       {focus.emoji} {focus.label}
                     </span>

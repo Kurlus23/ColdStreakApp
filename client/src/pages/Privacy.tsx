@@ -36,7 +36,7 @@ export default function Privacy() {
                 <span className="font-semibold text-slate-800">Email address</span> — collected only if you create an account or purchase ColdStreak Pro. Used to verify your purchase, restore access across devices, and for account-related communications. Never used for marketing without explicit consent.
               </li>
               <li>
-                <span className="font-semibold text-slate-800">Leaderboard entries</span> — if you choose to submit a score to a public leaderboard, your chosen display name and plunge score are stored on our servers and visible to all users.
+                <span className="font-semibold text-slate-800">Leaderboard entries</span> — if you choose to submit a score to a public leaderboard, your chosen display name and Cold Score are stored on our servers and visible to all users.
               </li>
               <li>
                 <span className="font-semibold text-slate-800">Community location submissions</span> — if you submit a community spot, the location name, coordinates, and any details you provide are stored on our servers and visible to all users of the App. Your contact email is recorded for ownership purposes only and is never displayed publicly.
