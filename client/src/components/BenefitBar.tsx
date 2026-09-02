@@ -270,7 +270,7 @@ export function BenefitBar({
         </div>
       )}
       <p className="mt-[7px] text-center text-[9px] leading-tight text-slate-500">
-        Modeled product estimate · personalized by water temperature + BMI · not medical targets
+        Estimates vary with session conditions and profile settings · not medical guidance
       </p>
     </div>
   );
