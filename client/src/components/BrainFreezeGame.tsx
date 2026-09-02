@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { Analytics } from "@/lib/analytics";
 
 interface Question {
   id: number;
@@ -102,6 +103,8 @@ export function BrainFreezeGame({
   const rawElapsedSecondsRef = useRef(elapsedSeconds);
   const brainFreezeElapsedRef = useRef(elapsedSeconds);
   const hiddenAtElapsedRef = useRef<number | null>(null);
+  const startedTrackedRef = useRef(false);
+  const completedTrackedRef = useRef(false);
   const [pausedElapsedSeconds, setPausedElapsedSeconds] = useState(0);
 
   // Refs for fast-changing props so callbacks don't need them as deps
@@ -210,12 +213,32 @@ export function BrainFreezeGame({
       setLastTempF(null);
       setTimeLeft(QUESTION_TIMEOUT);
       setPhase("showing");
+      if (!startedTrackedRef.current) {
+        startedTrackedRef.current = true;
+        Analytics.brainFreezeStarted({ in_plunge: true });
+      }
     } catch {
       setPhase("idle");
     } finally {
       fetchingRef.current = false;
     }
   }, []);
+
+  const trackCompletion = useCallback(() => {
+    if (!startedTrackedRef.current || completedTrackedRef.current) return;
+    completedTrackedRef.current = true;
+    const total = totalAnsweredRef.current;
+    Analytics.brainFreezeCompleted({
+      questions_answered: total,
+      correct_answers: correctCountRef.current,
+      accuracy: total > 0 ? Math.round((correctCountRef.current / total) * 100) : 0,
+      in_plunge: true,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isActive || !enabled) trackCompletion();
+  }, [enabled, isActive, trackCompletion]);
 
   // Trigger questions based on elapsed time.
   // Uses fixed offsets from the Brain Freeze clock (Q1 = FIRST_QUESTION_AT,
@@ -309,6 +332,11 @@ export function BrainFreezeGame({
     }
     if (correct) correctCountRef.current += 1;
     totalAnsweredRef.current += 1;
+    Analytics.brainFreezeQuestionAnswered({
+      question_number: questionCountRef.current,
+      answer_correct: correct,
+      in_plunge: true,
+    });
     onBrainFreezeStats?.(correctCountRef.current, totalAnsweredRef.current);
     // No auto-dismiss — user taps "Next →"
   }, [question, onBrainFreezeStats]);
@@ -322,11 +350,12 @@ export function BrainFreezeGame({
 
   // Stop game — dismisses overlay and turns off Brain Freeze
   const handleStopGame = useCallback(() => {
+    trackCompletion();
     dismissedAtRef.current = brainFreezeElapsedRef.current;
     setPhase("idle");
     setQuestion(null);
     onStopGame?.();
-  }, [onStopGame]);
+  }, [onStopGame, trackCompletion]);
 
   // Question countdown — auto-submit when time runs out
   useEffect(() => {

@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { PASSPORT_LOCATIONS, usePassportBadges, distanceMiles, DIFFICULTY_META, type Difficulty, TEMP_TIERS, DAYS_TIERS, STATE_EMOJI } from "@/lib/passport";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { shareContent } from "@/lib/share";
+import { Analytics } from "@/lib/analytics";
 import {
   isIOSNative,
   VERIFIED_BUSINESS_TIERS,
@@ -45,7 +46,12 @@ function trackBizClick(locationId: number, kind: "website" | "booking" | "direct
   } catch { /* never block navigation */ }
 }
 
-function openDirections(lat: number | string, lng: number | string) {
+function openDirections(
+  lat: number | string,
+  lng: number | string,
+  properties: { location_type: string; location_id?: number } = { location_type: "unknown" },
+) {
+  Analytics.locationDirectionsClicked(properties);
   const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
   if (Capacitor.isNativePlatform()) {
     window.open(url, "_system");
@@ -1401,6 +1407,7 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
   // Track location views when a business profile detail is opened
   useEffect(() => {
     if (businessProfileId !== null) {
+      Analytics.locationViewed({ location_type: "business", location_id: businessProfileId });
       fetch(`/api/community-locations/${businessProfileId}/view`, { method: "POST" }).catch(() => {});
     }
   }, [businessProfileId]);
@@ -3727,7 +3734,10 @@ export function Explore({ username, onClose, onUpgrade, onViewLeaderboard }: {
                   {lat !== null && lng !== null && (
                     <button
                       data-testid="button-biz-directions"
-                      onClick={() => { trackBizClick(biz.id, "directions"); openDirections(lat, lng); }}
+                      onClick={() => {
+                        trackBizClick(biz.id, "directions");
+                        openDirections(lat, lng, { location_type: "business", location_id: biz.id });
+                      }}
                       className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-sm font-semibold hover:bg-cyan-500/20 transition-all active:scale-[0.98]"
                     >
                       <Navigation className="w-4 h-4 shrink-0" /> Get Directions

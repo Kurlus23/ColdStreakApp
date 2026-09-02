@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { Analytics } from "@/lib/analytics";
 
 interface Question {
   id: number;
@@ -78,6 +79,8 @@ export function BrainFreezeModal({
   const onCompleteRef    = useRef(onComplete);
   const challengeIdRef   = useRef(challengeId);
   const challengeQRef    = useRef(challengeQuestions);
+  const startedTrackedRef = useRef(false);
+  const completedTrackedRef = useRef(false);
 
   useEffect(() => { phaseRef.current      = phase; },             [phase]);
   useEffect(() => { onCompleteRef.current  = onComplete; },        [onComplete]);
@@ -109,6 +112,10 @@ export function BrainFreezeModal({
       setSelected(null);
       setTimeLeft(QUESTION_TIMEOUT);
       setPhase("showing");
+       if (!startedTrackedRef.current) {
+         startedTrackedRef.current = true;
+         Analytics.brainFreezeStarted({ in_plunge: false });
+       }
       return;
     }
 
@@ -133,13 +140,32 @@ export function BrainFreezeModal({
       setAnswers(all);
       setTimeLeft(QUESTION_TIMEOUT);
       setPhase("showing");
+       if (!startedTrackedRef.current) {
+         startedTrackedRef.current = true;
+         Analytics.brainFreezeStarted({ in_plunge: false });
+       }
     } catch {}
   }, []);
 
+  const trackCompletion = useCallback(() => {
+    if (!startedTrackedRef.current || completedTrackedRef.current) return;
+    completedTrackedRef.current = true;
+    const total = sessionTotal;
+    Analytics.brainFreezeCompleted({
+      questions_answered: total,
+      correct_answers: correctCountRef.current,
+      accuracy: total > 0 ? Math.round((correctCountRef.current / total) * 100) : 0,
+      in_plunge: false,
+    });
+  }, [sessionTotal]);
+
   // Fire onComplete once when session finishes
   useEffect(() => {
-    if (phase === "done") onCompleteRef.current?.();
-  }, [phase]);
+    if (phase === "done") {
+      trackCompletion();
+      onCompleteRef.current?.();
+    }
+  }, [phase, trackCompletion]);
 
   // Fetch first question when modal opens
   useEffect(() => {
@@ -152,6 +178,8 @@ export function BrainFreezeModal({
     questionNumRef.current   = 0;
     correctCountRef.current  = 0;
     sessionPointsRef.current = 0;
+    startedTrackedRef.current = false;
+    completedTrackedRef.current = false;
     fetchQuestion();
   }, [isOpen, fetchQuestion]);
 
@@ -186,6 +214,11 @@ export function BrainFreezeModal({
     setPhase("answered");
     setSessionTotal((t) => t + 1);
     if (correct) setSessionCorrect((c) => c + 1);
+    Analytics.brainFreezeQuestionAnswered({
+      question_number: questionNumRef.current,
+      answer_correct: correct,
+      in_plunge: false,
+    });
 
     const token = getToken();
     if (token) {

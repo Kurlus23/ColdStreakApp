@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MapPin, Plus, ThumbsUp, Globe, ChevronDown, X, Flame } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Analytics } from "@/lib/analytics";
 import type { UserLocation } from "@shared/schema";
 
 const NOMINATION_THRESHOLD = 25;
@@ -55,7 +56,8 @@ export function CommunityLocations({ username }: { username: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       }).then((r) => r.json()),
-    onSuccess: () => {
+    onSuccess: (saved: UserLocation) => {
+      Analytics.locationSaved({ location_type: "community", location_id: saved?.id });
       queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
       setShowForm(false);
       setForm({ name: "", country: "United States", description: "" });

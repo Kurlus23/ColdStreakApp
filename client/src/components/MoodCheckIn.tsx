@@ -206,7 +206,7 @@ export function MoodCheckIn({
   useEffect(() => {
     if (!visible || !target || updatePlunge.isPending || shownTargetIdRef.current === target.id) return;
     shownTargetIdRef.current = target.id;
-    Analytics.moodCheckInShown(checkInSource, qset, Math.max(0, ageHours));
+    Analytics.moodCheckInStarted(checkInSource, qset, Math.max(0, ageHours));
   }, [ageHours, checkInSource, qset, target, updatePlunge.isPending, visible]);
 
   if (!visible) return null;
@@ -247,7 +247,12 @@ export function MoodCheckIn({
     updatePlunge.mutate(
       { id: target.id, patch },
       { onSuccess: () => {
-          Analytics.moodCheckInSaved(checkInSource, qset);
+          Analytics.moodCheckInSaved(checkInSource, qset, {
+            mood: mood ?? undefined,
+            plunge_id: target.id,
+            duration_seconds: target.duration,
+            water_temp_f: target.temperature,
+          });
           setSaved(true);
           setNotifPlungeId(null);
         } },

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { identifyUser, resetAnalyticsUser } from "@/lib/analytics";
 
 const TOKEN_KEY = "coldstreak-auth-token";
 const USER_KEY = "coldstreak-auth-user";
@@ -32,6 +33,7 @@ export function useAuth() {
 
   useEffect(() => {
     const handler = () => {
+      resetAnalyticsUser();
       setUser(null);
       queryClient.clear();
     };
@@ -61,6 +63,12 @@ export function useAuth() {
       })
       .catch(() => { /* network offline — keep existing state */ });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Identify only with ColdStreak's internal user ID. Never send email,
+  // names, health data, or credentials to PostHog.
+  useEffect(() => {
+    if (user) identifyUser(String(user.id));
+  }, [user]);
 
   const persist = (token: string, u: AuthUser) => {
     localStorage.setItem(TOKEN_KEY, token);
@@ -116,6 +124,7 @@ export function useAuth() {
   }, []);
 
   const logout = useCallback(() => {
+    resetAnalyticsUser();
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem("coldstreak-is-pro");

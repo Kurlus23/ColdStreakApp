@@ -258,7 +258,12 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
 
-function openDirections(lat: number | string, lng: number | string) {
+function openDirections(
+  lat: number | string,
+  lng: number | string,
+  properties: { location_type: string; location_id?: number } = { location_type: "unknown" },
+) {
+  Analytics.locationDirectionsClicked(properties);
   const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
   if (Capacitor.isNativePlatform()) {
     window.open(url, "_system");
@@ -1475,6 +1480,7 @@ export default function Home() {
       return res.json() as Promise<UserLocation>;
     },
     onSuccess: (newLoc) => {
+      Analytics.locationSaved({ location_type: "community", location_id: newLoc.id });
       queryClient.invalidateQueries({ queryKey: ["/api/community-locations"] });
       setManualLocSel(`community-${newLoc.id}`);
       setManualNewName(""); setManualNewCountry("USA"); setManualNewState(""); setManualNewCity("");
@@ -1784,7 +1790,12 @@ export default function Home() {
       setHrScanDevices([]);
     }
     if (next !== "settings") setSettingsTab('support');
-    if (next !== screen) Analytics.tabChanged(next, screen);
+    if (next !== screen) {
+      if (next === "achievements") Analytics.profileViewed();
+      if (next === "friends") Analytics.friendsViewed();
+      if (next === "history") Analytics.historyViewed();
+      if (next === "explore") Analytics.exploreViewed();
+    }
     setScreen(next);
     localStorage.setItem("defaultScreen", next);
   };
@@ -1793,7 +1804,6 @@ export default function Home() {
     setToolsWindowExpanded((previous) => {
       const next = !previous;
       try { localStorage.setItem("coldstreak-tools-window-expanded", String(next)); } catch {}
-      Analytics.utilityWindowToggled(next);
       return next;
     });
   };
@@ -3317,8 +3327,14 @@ export default function Home() {
   const brainFreezeCorrectRef   = useRef(0);
   const brainFreezeTotalRef     = useRef(0);
   const brainFreezeColdBonusRef = useRef(0);
+  const plungeStartTrackedRef   = useRef(false);
 
-  const doLogPlunge = useCallback(async (durationSec: number, startedAtOverride?: Date, challenger?: { userId: number; score: number }) => {
+  const doLogPlunge = useCallback(async (
+    durationSec: number,
+    startedAtOverride?: Date,
+    challenger?: { userId: number; score: number },
+    targetDurationSeconds?: number,
+  ) => {
     // Use the average of all temperature samples collected during this session.
     // Falls back to the current display value when no samples were collected
     // (e.g. manual-entry plunges with no BLE thermometer connected).
@@ -3348,8 +3364,11 @@ export default function Home() {
         ...buildBrainFreezeField(brainFreezeEnabled, brainFreezeScoreRef.current, brainFreezeCorrectRef.current, brainFreezeTotalRef.current, brainFreezeColdBonusRef.current),
         ...(challenger ? { challengerUserId: challenger.userId, challengerScore: challenger.score } : {}),
       },
-      {
-        onSuccess: (newPlunge) => {
+       {
+         onError: () => {
+           plungeStartTrackedRef.current = false;
+         },
+         onSuccess: (newPlunge) => {
           // Link any in-plunge Brain Freeze answers to this plunge record (fire-and-forget).
           if (brainFreezeEnabled) {
             apiRequest("POST", "/api/brain-freeze/link-plunge", {
@@ -3357,7 +3376,27 @@ export default function Home() {
               since: sessionStartedAt.toISOString(),
             }).catch((err) => console.warn("[brain-freeze] link-plunge failed:", err));
           }
-          Analytics.plungeLogged(durationSec, avgTemp, score);
+          const goalIdx = SEGMENTS.findIndex((segment) => segment.id === primaryBenefit);
+          const goalThreshold = goalIdx >= 0
+            ? computeThresholds(avgTemp, bodyWeightLbs, bodyHeightCm, bodyFatPct)[goalIdx]
+            : 0;
+          Analytics.plungeCompleted({
+            duration_seconds: durationSec,
+            water_temp_f: avgTemp,
+            ...(targetDurationSeconds != null ? { target_duration_seconds: targetDurationSeconds } : {}),
+            goal_type: primaryBenefit,
+            goal_met: todayTotalSec + durationSec >= goalThreshold,
+            calories_burned: caloriesAtLogTime,
+            device_source: btConnected ? "ble" : "manual",
+          });
+          if (plunges.length === 0) {
+            Analytics.firstPlungeCompleted({
+              duration_seconds: durationSec,
+              water_temp_f: avgTemp,
+              goal_type: primaryBenefit,
+            });
+          }
+          plungeStartTrackedRef.current = false;
           const results = (newPlunge as any).challengeResults as ChallengeResult[] | null | undefined;
           if (results && results.length > 0) {
             // Gold confetti for at least one win, ice-blue if all losses
@@ -3493,7 +3532,7 @@ export default function Home() {
     if (countdownRunning && countdown === 0) {
       setCountdownRunning(false);
       const targetDuration = minutesInput * 60 + secondsInput;
-      doLogPlunge(targetDuration);
+      doLogPlunge(targetDuration, undefined, undefined, countdownTotalRef.current || targetDuration);
       alarmRef.current = playAlarm(alarmUrl, alarmLabel, alarmIsCustom, alarmIsCustom ? CUSTOM_ALARM_DURATION_MS : undefined);
       localStorage.removeItem(ACTIVE_SESSION_KEY);
     }
@@ -3616,13 +3655,23 @@ export default function Home() {
 
 
   const handleStart = () => {
-    Analytics.timerStarted();
     // Validate countdown duration FIRST (so we don't open music for a bailed-out countdown),
     // then launch music BEFORE starting the timer so the music app has a head start while the
     // user is still on screen. Timer kicks off immediately after.
     if (countdownMode) {
       const total = minutesInput * 60 + secondsInput;
       if (total <= 0) { toast({ title: "Set a duration first", variant: "destructive" }); return; }
+      if (plungeStartTrackedRef.current) return;
+      plungeStartTrackedRef.current = true;
+      Analytics.plungeStarted({
+        water_temp_f: temperature,
+        target_duration_seconds: total,
+        goal_type: primaryBenefit,
+        device_source: btConnected ? "ble" : "manual",
+      });
+      if (plunges.length === 0) {
+        Analytics.firstPlungeStarted({ water_temp_f: temperature, goal_type: primaryBenefit });
+      }
       if (shouldAutoPlay()) { try { openMusic(); } catch {} }
       const now = Date.now();
       countdownTotalRef.current = total;
@@ -3637,6 +3686,16 @@ export default function Home() {
       setCountdownRunning(true);
       localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({ mode: "countdown", startTime: now, countdownTotal: total, minutesInput, secondsInput, entryTemp: temperature, challengers: pendingChallengers }));
     } else {
+      if (plungeStartTrackedRef.current) return;
+      plungeStartTrackedRef.current = true;
+      Analytics.plungeStarted({
+        water_temp_f: temperature,
+        goal_type: primaryBenefit,
+        device_source: btConnected ? "ble" : "manual",
+      });
+      if (plunges.length === 0) {
+        Analytics.firstPlungeStarted({ water_temp_f: temperature, goal_type: primaryBenefit });
+      }
       if (shouldAutoPlay()) { try { openMusic(); } catch {} }
       const now = Date.now();
       startTimeRef.current = now;
@@ -3697,15 +3756,16 @@ export default function Home() {
     if (countdownMode) {
       if (countdownRunning) {
         setCountdownRunning(false);
-        const totalDuration = minutesInput * 60 + secondsInput;
+        const totalDuration = countdownTotalRef.current || minutesInput * 60 + secondsInput;
         const elapsed = totalDuration - countdown;
         if (elapsed > 0) {
           const startedAt = countdownStartRef.current ? new Date(countdownStartRef.current) : new Date(Date.now() - elapsed * 1000);
-          doLogPlunge(elapsed, startedAt, challengerOpts);
+          doLogPlunge(elapsed, startedAt, challengerOpts, totalDuration);
           maybeEncourage(elapsed);
           setCountdown(0);
         } else {
           resetCountdown();
+          plungeStartTrackedRef.current = false;
         }
         countdownStartRef.current = null;
         localStorage.removeItem(ACTIVE_SESSION_KEY);
@@ -3727,14 +3787,39 @@ export default function Home() {
       } else {
         setIsRunning(false);
         startTimeRef.current = null;
+        plungeStartTrackedRef.current = false;
       }
       localStorage.removeItem(ACTIVE_SESSION_KEY);
     }
   };
 
   const handleReset = () => {
-    if (countdownMode) { resetCountdown(); }
-    else { setSeconds(0); setIsRunning(false); startTimeRef.current = null; }
+    if (countdownMode) {
+      if (countdownRunning && countdown < (countdownTotalRef.current || minutesInput * 60 + secondsInput)) {
+        Analytics.plungeAbandoned({
+          duration_seconds: Math.max(0, (countdownTotalRef.current || minutesInput * 60 + secondsInput) - countdown),
+          water_temp_f: temperature,
+          target_duration_seconds: countdownTotalRef.current || minutesInput * 60 + secondsInput,
+          goal_type: primaryBenefit,
+          reason: "reset",
+        });
+      }
+      resetCountdown();
+    } else {
+      const elapsed = isRunning
+        ? (startTimeRef.current ? Math.floor((Date.now() - startTimeRef.current) / 1000) : seconds)
+        : 0;
+      if (isRunning && elapsed > 0) {
+        Analytics.plungeAbandoned({
+          duration_seconds: elapsed,
+          water_temp_f: temperature,
+          goal_type: primaryBenefit,
+          reason: "reset",
+        });
+      }
+      setSeconds(0); setIsRunning(false); startTimeRef.current = null;
+    }
+    plungeStartTrackedRef.current = false;
     hrReadingsRef.current  = [];
     tempSamplesRef.current = [];
     setHrPeak(null);
@@ -3910,9 +3995,27 @@ export default function Home() {
     // Route the milestone into the cold-take overlay (replaces CelebrationOverlay during a plunge)
     const seg = SEGMENTS.find(s => s.id === segId);
     if (seg) {
+      const segIdx = SEGMENTS.findIndex((candidate) => candidate.id === segId);
+      const requiredDuration = segIdx >= 0
+        ? computeThresholds(temperature, bodyWeightLbs, bodyHeightCm, bodyFatPct)[segIdx]
+        : seg.baseDuration;
+      Analytics.benefitCompleted({
+        benefit_type: segId,
+        required_duration_seconds: requiredDuration,
+        actual_duration_seconds: elapsedSeconds,
+        water_temp_f: temperature,
+      });
+      if (segId === primaryBenefit) {
+        Analytics.goalCompleted({
+          goal_type: primaryBenefit,
+          target_duration_seconds: requiredDuration,
+          actual_duration_seconds: elapsedSeconds,
+          water_temp_f: temperature,
+        });
+      }
       setMilestoneEvent(prev => ({ segId, emoji: seg.emoji, label: seg.label, count: (prev?.count ?? 0) + 1 }));
     }
-  }, []);
+  }, [bodyFatPct, bodyHeightCm, bodyWeightLbs, countdownElapsed, primaryBenefit, seconds, temperature]);
 
   // ms timestamp when the last plunge of the day ended — used for benefit decay.
   // createdAt is the session start; end = start + duration.
@@ -3998,37 +4101,35 @@ export default function Home() {
 
       {/* Header */}
       <header className="absolute z-10 inset-x-0 top-0 flex items-center justify-end px-3 pt-5 pb-2">
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
-          <button
-            data-testid="button-toggle-utility-window"
-            onClick={toggleToolsWindow}
-            className="inline-flex items-center gap-1 rounded-xl border border-blue-700/50 bg-blue-950/75 px-2.5 py-2 text-blue-100 shadow-lg shadow-black/20 backdrop-blur-md transition-all hover:bg-blue-900/80 hover:text-white active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-            aria-expanded={toolsWindowExpanded}
-            aria-controls="coldstreak-utility-window"
-            aria-label={toolsWindowExpanded ? "Collapse Music and Brain Freeze tools" : "Expand Music and Brain Freeze tools"}
-            title={toolsWindowExpanded ? "Hide Music and Brain Freeze" : "Show Music and Brain Freeze"}
-          >
-            <span className="text-[11px] font-bold tracking-wide">Music</span>
-            {toolsWindowExpanded
-              ? <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
-              : <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />}
-          </button>
-          <h1
-            className="text-2xl font-black tracking-widest pointer-events-none select-none"
-            style={{
-              background: "linear-gradient(to bottom, #ffffff 0%, #67e8f9 60%, #0891b2 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-              textShadow: "none",
-              filter: "drop-shadow(0 1px 6px rgba(0,0,0,0.7))",
-              letterSpacing: "0.12em",
-            }}
-            data-testid="header-title"
-          >
-            COLDSTREAK
-          </h1>
-        </div>
+        <h1
+          className="absolute left-1/2 -translate-x-1/2 text-xl min-[420px]:text-2xl font-black tracking-widest pointer-events-none select-none"
+          style={{
+            background: "linear-gradient(to bottom, #ffffff 0%, #67e8f9 60%, #0891b2 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            textShadow: "none",
+            filter: "drop-shadow(0 1px 6px rgba(0,0,0,0.7))",
+            letterSpacing: "0.12em",
+          }}
+          data-testid="header-title"
+        >
+          COLDSTREAK
+        </h1>
+        <button
+          data-testid="button-toggle-utility-window"
+          onClick={toggleToolsWindow}
+          className="absolute left-[calc(50%+100px)] min-[420px]:left-[calc(50%+122px)] inline-flex items-center gap-1 rounded-xl border border-blue-700/50 bg-blue-950/75 px-2.5 py-2 text-blue-100 shadow-lg shadow-black/20 backdrop-blur-md transition-all hover:bg-blue-900/80 hover:text-white active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+          aria-expanded={toolsWindowExpanded}
+          aria-controls="coldstreak-utility-window"
+          aria-label={toolsWindowExpanded ? "Collapse Music and Brain Freeze tools" : "Expand Music and Brain Freeze tools"}
+          title={toolsWindowExpanded ? "Hide Music and Brain Freeze" : "Show Music and Brain Freeze"}
+        >
+          <span className="text-[11px] font-bold tracking-wide">Tools</span>
+          {toolsWindowExpanded
+            ? <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+            : <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />}
+        </button>
         <div className="w-24 flex justify-end items-center gap-2">
           {!auth.user && (
             <button
@@ -4432,7 +4533,14 @@ export default function Home() {
               lastPlungeEndedAt={lastPlungeEndedAt}
               onMilestoneReached={handleBenefitMilestone}
               primaryBenefit={primaryBenefit}
-              onGoalTap={() => setShowBenefitPicker(true)}
+              onGoalTap={(segmentId) => {
+                Analytics.benefitViewed(segmentId, {
+                  required_duration_seconds: benefitThresholds[SEGMENTS.findIndex((segment) => segment.id === segmentId)],
+                  water_temp_f: temperature,
+                });
+                Analytics.goalViewed();
+                setShowBenefitPicker(true);
+              }}
             />
           </div>
 
@@ -4890,6 +4998,21 @@ export default function Home() {
                       { duration: durationSec, temperature: manualTempF, score: String(score), hrAvg: null, spo2Avg: null, createdAt: isoDate, locationId: finalLocId, locationName: finalLocName, calories: Math.round(estimateCalories(durationSec, manualTempF, Number(localStorage.getItem("coldstreak-body-weight") || 150), Number(localStorage.getItem("coldstreak-body-fat") || 0) || null)) },
                       {
                         onSuccess: () => {
+                          Analytics.plungeCompleted({
+                            duration_seconds: durationSec,
+                            water_temp_f: manualTempF,
+                            goal_type: primaryBenefit,
+                            goal_met: todayTotalSec + durationSec >= computeThresholds(manualTempF, bodyWeightLbs, bodyHeightCm, bodyFatPct)[SEGMENTS.findIndex((segment) => segment.id === primaryBenefit)],
+                            calories_burned: Math.round(estimateCalories(durationSec, manualTempF, bodyWeightLbs, bodyFatPct)),
+                            device_source: "manual_entry",
+                          });
+                          if (plunges.length === 0) {
+                            Analytics.firstPlungeCompleted({
+                              duration_seconds: durationSec,
+                              water_temp_f: manualTempF,
+                              goal_type: primaryBenefit,
+                            });
+                          }
                           setShowManualEntry(false);
                           setManualLocSel("home"); setManualLocCustom(""); setManualLocGeo(null);
                           const locPart = finalLocName ? ` at ${finalLocName}` : "";
@@ -5063,6 +5186,9 @@ export default function Home() {
             onClose={() => navTo("timer")}
             onUpgrade={() => setShowUpgradeModal(true)}
             onViewLeaderboard={(locationId, name) => {
+              Analytics.leaderboardViewed({
+                location_type: locationId.startsWith("community-") ? "community" : "passport",
+              });
               setLeaderboardLocationId(locationId);
               setLeaderboardLocName(name);
             }}
@@ -6793,7 +6919,11 @@ export default function Home() {
                       className={`flex-1 py-2 text-xs font-semibold transition-colors ${profileTab === 'account' ? 'bg-blue-800/80 text-white' : 'text-blue-400 hover:text-blue-200'}`}
                     >Account</button>
                     <button
-                      onClick={() => { setProfileTab('stats'); localStorage.setItem('coldstreak-profile-tab', 'stats'); }}
+                      onClick={() => {
+                        Analytics.statsViewed();
+                        setProfileTab('stats');
+                        localStorage.setItem('coldstreak-profile-tab', 'stats');
+                      }}
                       className={`flex-1 py-2 text-xs font-semibold transition-colors ${profileTab === 'stats' ? 'bg-blue-800/80 text-white' : 'text-blue-400 hover:text-blue-200'}`}
                     >Insights</button>
                   </div>
@@ -7109,7 +7239,11 @@ export default function Home() {
                   {/* Stats teaser — taps into Stats tab */}
                   {allTimeCalories > 0 && (
                     <button
-                      onClick={() => { setProfileTab('stats'); localStorage.setItem('coldstreak-profile-tab', 'stats'); }}
+                      onClick={() => {
+                        Analytics.statsViewed();
+                        setProfileTab('stats');
+                        localStorage.setItem('coldstreak-profile-tab', 'stats');
+                      }}
                       className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-orange-950/30 border border-orange-800/40 hover:border-orange-600/50 transition-all active:scale-[0.98]"
                     >
                       <div className="flex items-center gap-2">
@@ -9501,6 +9635,11 @@ export default function Home() {
                 <button
                   onClick={() => {
                     setPrimaryBenefit(goalSuggestion.segId);
+                    const suggestedIdx = SEGMENTS.findIndex((segment) => segment.id === goalSuggestion.segId);
+                    Analytics.goalSet(goalSuggestion.segId, {
+                      recommended_duration_seconds: suggestedIdx >= 0 ? benefitThresholds[suggestedIdx] : undefined,
+                      water_temp_f: temperature,
+                    });
                     localStorage.setItem("coldstreak-primary-benefit", goalSuggestion.segId);
                     sessionStorage.setItem("coldstreak-goal-suggestion-shown", "1");
                     setGoalSuggestion(null);
@@ -9613,6 +9752,11 @@ export default function Home() {
                   key={seg.id}
                   onClick={() => {
                     setPrimaryBenefit(seg.id);
+                    const selectedIdx = SEGMENTS.findIndex((segment) => segment.id === seg.id);
+                    Analytics.goalSet(seg.id, {
+                      recommended_duration_seconds: selectedIdx >= 0 ? benefitThresholds[selectedIdx] : undefined,
+                      water_temp_f: temperature,
+                    });
                     localStorage.setItem("coldstreak-primary-benefit", seg.id);
                     setShowBenefitPicker(false);
                     // Sync to server so the goal persists across devices

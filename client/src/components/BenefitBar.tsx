@@ -14,7 +14,7 @@ interface BenefitBarProps {
   /** Current goal segment — shown as a small inline chip on the selected pane. */
   primaryBenefit?: SegmentId;
   /** Called when the user taps a benefit pane (disabled while a session is active). */
-  onGoalTap?: () => void;
+  onGoalTap?: (segmentId: SegmentId) => void;
   /**
    * Sum of durations (seconds) of all plunges already logged today.
    * Carried over so a second session resumes from where the first stopped.
@@ -225,7 +225,7 @@ export function BenefitBar({
               >
                 <button
                   type="button"
-                  onClick={() => onGoalTap?.()}
+                   onClick={() => onGoalTap?.(seg.id)}
                   disabled={isActive || !onGoalTap}
                   aria-label={`Tap to set goal to ${seg.label}`}
                   className="block w-full min-w-0 border-0 bg-transparent p-0 text-inherit disabled:cursor-default"

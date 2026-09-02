@@ -1,0 +1,324 @@
+Replit prompt — ColdStreak PostHog Analytics
+
+I want to significantly improve our PostHog analytics for ColdStreak.
+
+Do not remove or disable PostHog autocapture. Keep autocapture enabled because it is useful for debugging. However, add intentional custom events that represent meaningful ColdStreak user behavior rather than relying on generic events such as "clicked button with text..."
+
+First, inspect the existing ColdStreak codebase and identify where each of these actions currently occurs. Reuse our existing architecture and PostHog implementation rather than creating a second analytics system.
+
+1. User identification
+
+Make sure authenticated ColdStreak users are properly identified in PostHog using their existing ColdStreak user ID.
+
+Do NOT send passwords, email addresses, names, health information, or other unnecessary PII to PostHog.
+
+Set useful non-sensitive person properties where available:
+
+platform
+app_version
+subscription_status
+has_apple_watch
+has_thermometer
+
+Do not invent values. Only send properties that actually exist.
+
+2. Core plunge events
+
+Add these custom events:
+
+plunge_started
+
+Fire when the user actually starts a plunge/timer.
+
+Properties:
+
+water_temp_f
+target_duration_seconds
+goal_type
+device_source
+plunge_completed
+
+Fire when a plunge is successfully saved/completed.
+
+Properties:
+
+duration_seconds
+water_temp_f
+target_duration_seconds
+goal_type
+goal_met
+calories_burned
+device_source
+plunge_abandoned
+
+Fire when appropriate if the user starts a plunge but exits before completing/saving it.
+
+Properties:
+
+duration_seconds
+water_temp_f
+target_duration_seconds
+goal_type
+
+Do not fire this simply because the app goes into the background. Only use it when we can reasonably determine the user abandoned the plunge.
+
+3. Goal / Benefits Bar analytics
+
+This is especially important because the Benefits Bar is a major ColdStreak feature.
+
+Track:
+
+goal_set
+
+Properties:
+
+goal_type
+target_duration_seconds
+recommended_duration_seconds
+water_temp_f
+goal_viewed
+
+Properties:
+
+goal_type
+target_duration_seconds
+goal_completed
+
+Fire when the user's plunge reaches their selected goal.
+
+Properties:
+
+goal_type
+target_duration_seconds
+actual_duration_seconds
+water_temp_f
+benefit_viewed
+
+Properties:
+
+benefit_type
+required_duration_seconds
+water_temp_f
+benefit_completed
+
+Properties:
+
+benefit_type
+required_duration_seconds
+actual_duration_seconds
+water_temp_f
+
+Use the actual benefit names/types already implemented in ColdStreak. Do not create fake categories.
+
+4. Mood tracking
+
+Track:
+
+mood_checkin_started
+mood_checkin_saved
+
+Properties for the saved event:
+
+mood
+plunge_id if available
+duration_seconds if available
+water_temp_f if available
+
+Do not send free-form journal text or other sensitive information.
+
+5. BrainFreeze
+
+Track:
+
+brain_freeze_started
+
+Properties:
+
+plunge_id if available
+brain_freeze_question_answered
+
+Properties:
+
+question_number
+answer_correct
+benefit_stage
+brain_freeze_completed
+
+Properties:
+
+questions_answered
+correct_answers
+accuracy
+
+Do NOT send the actual question text or any user-generated content.
+
+6. Discovery / locations
+
+Track:
+
+location_viewed
+
+Properties:
+
+location_type
+location_id if available
+location_saved
+
+Properties:
+
+location_id
+location_type
+location_directions_clicked
+
+Properties:
+
+location_id
+
+Do not send the user's precise location as an analytics property.
+
+7. Engagement
+
+Track:
+
+stats_viewed
+streak_viewed
+badges_viewed
+leaderboard_viewed
+friends_viewed
+profile_viewed
+
+These events don't need extensive properties unless useful data already exists.
+
+8. Onboarding funnel
+
+Track:
+
+onboarding_started
+onboarding_completed
+goal_set
+first_plunge_started
+first_plunge_completed
+
+Make sure first_plunge_started and first_plunge_completed only fire for the user's first-ever plunge, not every plunge.
+
+9. Important properties
+
+Where appropriate, include these event properties if they already exist:
+
+water_temp_f
+duration_seconds
+target_duration_seconds
+goal_type
+goal_met
+calories_burned
+current_streak
+plunge_number
+device_source
+app_version
+platform
+
+Do not duplicate properties unnecessarily.
+
+10. Avoid analytics noise
+
+Do NOT create events for every UI interaction.
+
+We don't need custom events for:
+
+opening/closing menus
+clicking arbitrary buttons
+scrolling
+changing tabs
+opening modals
+decorative UI
+
+Unless an interaction represents meaningful product behavior.
+
+Continue using PostHog autocapture for those interactions.
+
+11. Reliability
+
+Analytics must NEVER interfere with the app.
+
+If a PostHog call fails:
+
+the plunge must still save
+the timer must still work
+the UI must still work
+no user-facing error should occur
+
+Use the existing PostHog client/utility if one exists. If there is already an analytics abstraction, add these events to it rather than calling PostHog directly throughout the application.
+
+12. Prevent duplicate events
+
+Be careful that React re-renders, page transitions, state changes, or component mounting don't cause duplicate analytics events.
+
+Events such as plunge_completed, goal_completed, mood_checkin_saved, and brain_freeze_completed should fire exactly once for the corresponding user action.
+
+13. Create a central event definition
+
+If practical, create a centralized analytics/event helper such as:
+
+analytics.ts
+
+or use the existing analytics module.
+
+Keep event names and property names consistent throughout the application.
+
+For example:
+
+analytics.track("plunge_completed", {...})
+
+rather than scattering raw PostHog calls everywhere.
+
+14. After implementation
+
+Give me a report containing:
+
+Every new event added
+Where in the code each event fires
+Every property attached to each event
+Any events you could not implement because the necessary data does not currently exist
+Any existing PostHog events that overlap with the new events
+Confirmation that autocapture remains enabled
+Confirmation that analytics failures cannot break ColdStreak
+
+Do not make unrelated UI or functional changes.
+
+Before making changes, inspect the existing code so the implementation matches the current ColdStreak architecture.
+
+One change I'd make from my previous answer
+
+I wouldn't have Replit track plunge_number, current_streak, etc. on every event unless they're already trivial to obtain. We don't want to make the analytics implementation unnecessarily complicated.
+
+The most important thing is getting the behavioral events right.
+
+Once this is installed, your PostHog dashboard can become something much more useful than the screenshot you're looking at.
+
+For ColdStreak, I'd ultimately want dashboards like:
+
+🔥 Activation
+
+Sign-up → Goal Set → First Plunge → First Completed Plunge
+
+🥶 Retention
+
+Plunge #1 → #2 → #3 → 7-day streak → 21-day streak
+
+🎯 Benefits Bar
+
+Goal selected → goal reached → repeat usage
+
+🧠 BrainFreeze
+
+Started → questions answered → completed
+
+😊 Mood
+
+Mood tracking adoption → repeat usage
+
+And probably the most interesting one:
+
+Do users who set a specific plunge goal retain better than users who just use the timer?
+
+That's the kind of question PostHog can answer for you once the events are clean.

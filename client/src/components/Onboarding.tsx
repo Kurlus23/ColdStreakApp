@@ -101,9 +101,17 @@ export default function Onboarding({ onComplete, onRegister, onImportWeight, hea
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const checkSeqRef = useRef(0);
+  const onboardingStartedRef = useRef(false);
+
+  useEffect(() => {
+    if (onboardingStartedRef.current) return;
+    onboardingStartedRef.current = true;
+    Analytics.onboardingStarted();
+  }, []);
 
   function pickBenefit(id: BenefitId) {
     setSelectedBenefit(id);
+    Analytics.goalSet(id);
     // Persist to localStorage immediately so the post-login profile sync picks it
     // up even if the user skips account creation.
     localStorage.setItem(PRIMARY_BENEFIT_KEY, id);
