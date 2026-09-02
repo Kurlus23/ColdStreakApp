@@ -1,3 +1,5 @@
+import { Analytics } from "@/lib/analytics";
+
 /** Standalone, dependency-injected implementation of the send-challenge logic.
  *  Kept here so it can be imported and unit-tested without mounting Home.tsx.
  */
@@ -8,6 +10,7 @@ export interface SendFriendChallengeDeps {
   toast: (opts: { title: string; description?: string; variant?: "default" | "destructive" | null }) => unknown;
   onSettled?: () => void;
   clearAuthToken: () => void;
+  source?: string;
 }
 
 export async function sendFriendChallenge(
@@ -15,7 +18,7 @@ export async function sendFriendChallenge(
   displayName: string,
   deps: SendFriendChallengeDeps,
 ): Promise<void> {
-  const { authFetch, navigate, toast, onSettled = () => {}, clearAuthToken } = deps;
+  const { authFetch, navigate, toast, onSettled = () => {}, clearAuthToken, source = "unknown" } = deps;
 
   try {
     const res = await authFetch(`/api/friends/challenge/${friendUserId}`, {
@@ -40,6 +43,7 @@ export async function sendFriendChallenge(
     }
 
     const r = await res.json();
+    Analytics.friendChallengeSent(source, Boolean(r.sent));
     toast({
       title: "❄️ Challenge sent!",
       description: r.sent

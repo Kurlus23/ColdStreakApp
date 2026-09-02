@@ -29,6 +29,7 @@ export const CHALLENGE_TIP_KEY = "coach-tip-challenge-v1";
 
 interface Step {
   icon: string;
+  imageSrc?: string;
   title: string;
   body: string;
   /** CSS selector of the element to highlight. Skipped gracefully if not found. */
@@ -70,6 +71,14 @@ const FIRST_OPEN_STEPS: Step[] = [
     body: "The small bar under your score tracks how many unique days you've plunged, counting down to your next days badge. Each new day you plunge — no matter how many times — moves it forward.",
     highlight: '[data-testid="card-badge-progress"]',
     hint: "↓ below",
+  },
+  {
+    icon: "🎵",
+    imageSrc: "/brain-freeze-icon.png",
+    title: "Music + Brain Freeze",
+    body: "Tap Music › at the top-left to open the optional tools window. Choose a playlist for your plunge, or tap the Brain Freeze icon to try optional trivia while the timer runs. You can hide the window again whenever you want.",
+    highlight: '[data-testid="button-toggle-utility-window"]',
+    hint: "↑ top-left",
   },
   {
     icon: "💪",
@@ -213,6 +222,7 @@ function clearHighlight() {
 interface Props {
   tourType: "first-open" | "post-plunge" | "profile-tip" | "friends-tip" | "challenge-tip";
   onComplete: () => void;
+  onStepChange?: (step: number) => void;
 }
 
 const STEPS_BY_TYPE = {
@@ -234,7 +244,7 @@ const KEY_BY_TYPE = {
   "challenge-tip": CHALLENGE_TIP_KEY,
 };
 
-export function CoachWalkthrough({ tourType, onComplete }: Props) {
+export function CoachWalkthrough({ tourType, onComplete, onStepChange }: Props) {
   const steps = STEPS_BY_TYPE[tourType];
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(false);
@@ -248,8 +258,9 @@ export function CoachWalkthrough({ tourType, onComplete }: Props) {
   // Apply / clear highlight ring whenever step changes
   useEffect(() => {
     applyHighlight(steps[step]?.highlight);
+    onStepChange?.(step);
     return () => clearHighlight();
-  }, [step, steps]);
+  }, [onStepChange, step, steps]);
 
   // Clean up on unmount
   useEffect(() => () => clearHighlight(), []);
@@ -318,7 +329,9 @@ export function CoachWalkthrough({ tourType, onComplete }: Props) {
           {/* Header row */}
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-1.5">
-              <span className="text-base leading-none">{current.icon}</span>
+              {current.imageSrc
+                ? <img src={current.imageSrc} alt="" className="h-5 w-5 rounded-md object-cover" />
+                : <span className="text-base leading-none">{current.icon}</span>}
               <p className="text-white text-sm font-bold leading-tight">{current.title}</p>
             </div>
             <button

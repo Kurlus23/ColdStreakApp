@@ -180,7 +180,13 @@ export function BenefitBar({
   });
 
   return (
-    <div className="px-0.5 space-y-0.5 mt-0.5 mb-0">
+    <div
+      className="mt-0.5 mb-0 rounded-2xl border border-blue-800/60 bg-blue-950/90 px-[14px] pb-[9px] pt-[8px] backdrop-blur-md"
+      style={{
+        boxShadow: "0 8px 20px rgba(3, 12, 35, 0.16)",
+      }}
+      aria-label="Benefit progress"
+    >
       {/* Rail readout → Adaptation Zone once all benefits are maxed during a plunge */}
       {isActive && achievedToday.every(Boolean) ? (
         <div className="space-y-1.5">
@@ -198,13 +204,7 @@ export function BenefitBar({
           </div>
         </div>
       ) : (
-        <section
-          className="rounded-2xl border border-blue-800/50 bg-blue-950/90 px-[14px] pb-[9px] pt-[8px] backdrop-blur-sm"
-          style={{
-            boxShadow: "0 8px 20px rgba(3, 12, 35, 0.16)",
-          }}
-          aria-label="Benefit progress"
-        >
+        <div>
           <div className="mt-0 grid grid-cols-4 gap-3" role="list">
           {SEGMENTS.map((seg, i) => {
             const decayedFill = decayedFills[i];
@@ -289,7 +289,7 @@ export function BenefitBar({
             );
           })}
           </div>
-        </section>
+        </div>
       )}
     </div>
   );

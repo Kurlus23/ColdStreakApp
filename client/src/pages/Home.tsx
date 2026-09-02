@@ -12,7 +12,7 @@ import {
   Play, Pause, RotateCcw, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2, VolumeX, FileText,
-  Camera, MapPin, Lock, ShieldAlert, Trophy, User, Users, ChevronDown,
+  Camera, MapPin, Lock, ShieldAlert, Trophy, User, Users, ChevronDown, ChevronLeft, ChevronRight,
   Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff, Heart, X, Droplets, Thermometer,
   Image as ImageIcon, MessageCircle, Send, Eye, EyeOff
 } from "lucide-react";
@@ -662,6 +662,11 @@ export default function Home() {
   );
   const [showBenefitPicker, setShowBenefitPicker] = useState(false);
   const [showBrainFreezeModal, setShowBrainFreezeModal] = useState(false);
+  // The utility window is intentionally quiet for first-time users. Once a
+  // user opens it, remember their preference across sessions.
+  const [toolsWindowExpanded, setToolsWindowExpanded] = useState(() => {
+    try { return localStorage.getItem("coldstreak-tools-window-expanded") === "true"; } catch { return false; }
+  });
   const [celebrationFor, setCelebrationFor] = useState<SegmentId | null>(null);
   // Goal suggestion: { segId, hitCount, sampleSize } when the user consistently
   // completes a benefit segment they haven't set as their goal.
@@ -1779,8 +1784,18 @@ export default function Home() {
       setHrScanDevices([]);
     }
     if (next !== "settings") setSettingsTab('support');
+    if (next !== screen) Analytics.tabChanged(next, screen);
     setScreen(next);
     localStorage.setItem("defaultScreen", next);
+  };
+
+  const toggleToolsWindow = () => {
+    setToolsWindowExpanded((previous) => {
+      const next = !previous;
+      try { localStorage.setItem("coldstreak-tools-window-expanded", String(next)); } catch {}
+      Analytics.utilityWindowToggled(next);
+      return next;
+    });
   };
 
   const handleForgotPassword = async () => {
@@ -3982,8 +3997,23 @@ export default function Home() {
       <div className="absolute inset-0 bg-gradient-to-b from-blue-950/60 via-blue-900/20 to-blue-950/80" />
 
       {/* Header */}
-      <header className="absolute z-10 inset-x-0 top-0 flex items-center justify-between px-5 pt-6 pb-2">
-        <div className="w-20" />
+      <header className="absolute z-10 inset-x-0 top-0 flex items-center justify-between px-3 pt-5 pb-2">
+        <div className="w-24 flex items-center">
+          <button
+            data-testid="button-toggle-utility-window"
+            onClick={toggleToolsWindow}
+            className="inline-flex items-center gap-1 rounded-xl border border-blue-700/50 bg-blue-950/75 px-2.5 py-2 text-blue-100 shadow-lg shadow-black/20 backdrop-blur-md transition-all hover:bg-blue-900/80 hover:text-white active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+            aria-expanded={toolsWindowExpanded}
+            aria-controls="coldstreak-utility-window"
+            aria-label={toolsWindowExpanded ? "Collapse Music and Brain Freeze tools" : "Expand Music and Brain Freeze tools"}
+            title={toolsWindowExpanded ? "Hide Music and Brain Freeze" : "Show Music and Brain Freeze"}
+          >
+            <span className="text-[11px] font-bold tracking-wide">Music</span>
+            {toolsWindowExpanded
+              ? <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              : <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />}
+          </button>
+        </div>
         <h1
           className="text-2xl font-black tracking-widest pointer-events-none select-none"
           style={{
@@ -3999,22 +4029,7 @@ export default function Home() {
         >
           COLDSTREAK
         </h1>
-        <div className="w-20 flex justify-end items-center gap-2">
-          {auth.user && brainFreezeEnabled && (
-            <button
-              data-testid="button-header-brain-freeze"
-              onClick={() => setShowBrainFreezeModal(true)}
-              className="relative w-9 h-9 rounded-xl overflow-hidden active:scale-90 transition-transform"
-              style={{ boxShadow: "0 0 10px rgba(96,165,250,0.35), 0 0 4px rgba(147,197,253,0.2)" }}
-              aria-label="Brain Freeze"
-            >
-              <img
-                src="/brain-freeze-icon.png"
-                alt="Brain Freeze"
-                className="w-full h-full object-cover"
-              />
-            </button>
-          )}
+        <div className="w-24 flex justify-end items-center gap-2">
           {!auth.user && (
             <button
               data-testid="button-header-signin"
@@ -4078,14 +4093,39 @@ export default function Home() {
         </div>
       )}
 
-      {/* Music bar — slim full-width strip at top of timer screen with playlist dropdown */}
-      {screen === "timer" && (
+      {/* Music + Brain Freeze utility window — minimized by default so new users
+          can focus on the plunge timer, with both optional tools in one place. */}
+      {screen === "timer" && toolsWindowExpanded && (
         <div
-          className={`absolute z-10 left-3 right-3 transition-all ${
+          id="coldstreak-utility-window"
+          data-testid="window-coldstreak-utilities"
+          className={`absolute z-20 left-3 right-3 transition-all ${
             auth.user && !auth.user.emailVerified && !verifyBannerDismissed ? "top-32" : "top-16"
           }`}
         >
-          <MusicWidget />
+          <div className="rounded-2xl border border-blue-700/50 bg-blue-950/95 p-2 shadow-2xl shadow-black/30 backdrop-blur-md">
+            {auth.user && (
+              <div className="mb-2 flex items-center gap-2 rounded-xl border border-blue-800/50 bg-blue-900/45 px-2.5 py-2">
+                <button
+                  data-testid="button-utility-brain-freeze"
+                  onClick={() => brainFreezeEnabled ? setShowBrainFreezeModal(true) : setShowBrainFreezeOptIn(true)}
+                  className={`relative h-9 w-9 shrink-0 overflow-hidden rounded-xl transition-all active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${brainFreezeEnabled ? "" : "opacity-60 grayscale-[0.25]"}`}
+                  style={{ boxShadow: "0 0 10px rgba(96,165,250,0.35), 0 0 4px rgba(147,197,253,0.2)" }}
+                  aria-label={brainFreezeEnabled ? "Open Brain Freeze" : "Brain Freeze is off — tap to enable"}
+                  title={brainFreezeEnabled ? "Open Brain Freeze" : "Turn on Brain Freeze"}
+                >
+                  <img src="/brain-freeze-icon.png" alt="Brain Freeze" className="h-full w-full object-cover" />
+                </button>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-white">Brain Freeze</p>
+                  <p className="truncate text-[10px] text-blue-300">
+                    {brainFreezeEnabled ? "Optional trivia during your plunge" : "Tap the icon to turn trivia on"}
+                  </p>
+                </div>
+              </div>
+            )}
+            <MusicWidget className="!border-0 !bg-transparent !shadow-none !backdrop-blur-none" />
+          </div>
         </div>
       )}
 
@@ -4998,6 +5038,7 @@ export default function Home() {
                         onChallengeFriend={async (userId, displayName) => {
                           await sendFriendChallengeImpl(userId, displayName, {
                             authFetch, navigate, toast,
+                            source: "history_card",
                             clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
                           });
                         }}
@@ -6210,6 +6251,7 @@ export default function Home() {
                                     setChallengingId(f.userId);
                                     await sendFriendChallengeImpl(f.userId, f.displayName || f.username || "Friend", {
                                       authFetch, navigate, toast,
+                                      source: "friends_list",
                                       clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
                                     });
                                     setChallengingId(null);
@@ -6241,6 +6283,7 @@ export default function Home() {
                                       });
                                       if (res.ok) {
                                         const data = await res.json();
+                                        Analytics.brainFreezeChallengeSent();
                                         setSentBfChallengeIds(prev => new Set(prev).add(f.userId));
                                         setActiveBfChallenge({
                                           challengeId:  data.challengeId,
@@ -6408,6 +6451,7 @@ export default function Home() {
                         setChallengingId(selectedFriend.userId);
                         await sendFriendChallengeImpl(selectedFriend.userId, selectedFriend.displayName || selectedFriend.username || "Friend", {
                           authFetch, navigate, toast,
+                          source: "friend_profile",
                           clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
                         });
                         setChallengingId(null);
@@ -9606,6 +9650,7 @@ export default function Home() {
             const friend = currentFriends.find((f) => f.userId === userId);
             await sendFriendChallengeImpl(userId, friend?.displayName || friend?.username || "Friend", {
               authFetch, navigate, toast,
+              source: "challenge_result",
               clearAuthToken: () => localStorage.removeItem("coldstreak-auth-token"),
             });
           }}
@@ -10355,7 +10400,18 @@ export default function Home() {
           {showFirstOpenWalkthrough && (
             <CoachWalkthrough
               tourType="first-open"
-              onComplete={() => setShowFirstOpenWalkthrough(false)}
+              onComplete={() => {
+                setShowFirstOpenWalkthrough(false);
+                setToolsWindowExpanded(false);
+                try { localStorage.setItem("coldstreak-tools-window-expanded", "false"); } catch {}
+              }}
+              onStepChange={(step) => {
+                // Step 6 is the utility-window introduction in the first-open tour.
+                if (step === 6 && !toolsWindowExpanded) {
+                  setToolsWindowExpanded(true);
+                  try { localStorage.setItem("coldstreak-tools-window-expanded", "true"); } catch {}
+                }
+              }}
             />
           )}
           {showPostPlungeWalkthrough && (

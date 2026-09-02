@@ -15,8 +15,10 @@
 - [Admin browser-test setup](admin-browser-test-setup.md) — seeded admin passwords can be preserved; use an isolated registered user promoted in the dev DB for repeatable authenticated UI checks.
 - [Brain Freeze background scheduling](brain-freeze-background-scheduling.md) — pause the game clock in background; never queue missed questions for a rapid catch-up.
 - [Brain Freeze opt-in](brain-freeze-opt-in.md) — new accounts must explicitly choose trivia on or off; existing users keep their current preference.
+- [Music and Brain Freeze utility window](tools-window-visibility.md) — minimize the shared tools by default; keep the Brain Freeze icon visible without enabling trivia.
 - [Insights consolidation](insights-consolidation.md) — keep one report and one monthly trend; show personal Brain Freeze results early while reserving thresholds for conclusions.
 - [Approved welcome email](welcome-email-convention.md) — treat the current welcome email as canonical and flag it for review when product messaging changes.
 - [Streak Freeze visibility](streak-freeze-visibility.md) — keep Freeze off the persistent Home UI; surface it contextually for a missed-day repair.
 - [Flow controller safety boundary](flow-controller-safety-boundary.md) — ESP32 owns shutdown locally; Bluetooth authorizes first, Wi-Fi only reports and alerts.
 - [Publish database endpoint failures](publish-database-endpoint-failures.md) — PostgreSQL 28000 “endpoint disabled” after image push is database availability, not a compile failure.
+- [Analytics instrumentation](analytics-instrumentation.md) — forward privacy-safe product events to both PostHog and Replit-hosted analytics.

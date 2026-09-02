@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useUpdatePlunge } from "@/hooks/use-plunges";
 import { type Plunge } from "@shared/schema";
 import { type SegmentId } from "@/lib/benefitSegments";
+import { Analytics } from "@/lib/analytics";
 
 // ── Scale definitions ──────────────────────────────────────────────────────────
 
@@ -133,6 +134,7 @@ export function MoodCheckIn({
   const [notifPlungeId, setNotifPlungeId] = useState<number | null>(null);
   const [saved, setSaved] = useState(false);
   const [dismissTick, setDismissTick] = useState(0);
+  const shownTargetIdRef = useRef<number | null>(null);
 
   const [mood,        setMood]        = useState<number | null>(null);
   const [moodEnergy,  setMoodEnergy]  = useState<number | null>(null);
@@ -196,6 +198,17 @@ export function MoodCheckIn({
     }
   }, [saved]);
 
+  const isNotif = notifPlunge != null;
+  const ageHours = target ? Math.round((now - new Date(target.createdAt).getTime()) / 3600000) : 0;
+  const qset = target ? getQuestionSet(primaryBenefit, target.duration) : "default";
+  const checkInSource = isNotif ? "notification" : "catch_up_prompt";
+
+  useEffect(() => {
+    if (!visible || !target || updatePlunge.isPending || shownTargetIdRef.current === target.id) return;
+    shownTargetIdRef.current = target.id;
+    Analytics.moodCheckInShown(checkInSource, qset, Math.max(0, ageHours));
+  }, [ageHours, checkInSource, qset, target, updatePlunge.isPending, visible]);
+
   if (!visible) return null;
 
   if (saved) {
@@ -213,9 +226,6 @@ export function MoodCheckIn({
 
   if (!target || updatePlunge.isPending) return null;
 
-  const isNotif = notifPlunge != null;
-  const ageHours = Math.round((now - new Date(target.createdAt).getTime()) / 3600000);
-  const qset = getQuestionSet(primaryBenefit, target.duration);
   const headerText = getHeaderText(qset, isNotif, ageHours);
 
   // Per-question-set "all answered" guard
@@ -236,11 +246,16 @@ export function MoodCheckIn({
     }
     updatePlunge.mutate(
       { id: target.id, patch },
-      { onSuccess: () => { setSaved(true); setNotifPlungeId(null); } },
+      { onSuccess: () => {
+          Analytics.moodCheckInSaved(checkInSource, qset);
+          setSaved(true);
+          setNotifPlungeId(null);
+        } },
     );
   };
 
   const dismiss = () => {
+    Analytics.moodCheckInSkipped(checkInSource, qset);
     localStorage.setItem(DISMISS_KEY(target.id), "1");
     setNotifPlungeId(null);
     setDismissTick((t) => t + 1);

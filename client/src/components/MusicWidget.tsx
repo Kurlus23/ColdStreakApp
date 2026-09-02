@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Music, Play, Pause, SkipBack, SkipForward, Square, Settings, X, ExternalLink, Check, Link2, Unlink, Loader2, Zap, ZapOff, VolumeX, Star, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Music, Play, Pause, Settings, X, ExternalLink, Check, Link2, Unlink, Loader2, Zap, ZapOff, VolumeX, Star, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SiSpotify, SiApplemusic } from "react-icons/si";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { Analytics } from "@/lib/analytics";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getAuthToken } from "@/hooks/use-auth";
 import * as appleMusic from "@/lib/appleMusic";
@@ -22,7 +23,6 @@ interface MusicConfig {
 }
 
 const STORAGE_KEY = "coldstreak-music-config";
-const COLLAPSED_KEY = "coldstreak-music-collapsed";
 const CUSTOM_VALUE = "__custom__";
 const CLEAR_VALUE = "__clear__";
 const CONNECT_VALUE = "__connect_spotify__";
@@ -93,10 +93,6 @@ function saveConfig(cfg: MusicConfig) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)); } catch {}
 }
 
-function loadCollapsed(): boolean {
-  try { return localStorage.getItem(COLLAPSED_KEY) === "1"; } catch { return false; }
-}
-
 function detectService(url: string): MusicService {
   const u = url.trim().toLowerCase();
   if (!u) return "none";
@@ -132,6 +128,7 @@ export function openMusic(): boolean {
   const cfg = loadConfig();
   if (!cfg.featureEnabled) return false;
   if (cfg.service === "none" || !cfg.url) return false;
+  Analytics.musicOpened(cfg.service);
 
   // Apple Music — use native plugin in Capacitor for immediate playback;
   // fall back to URL open on failure.
@@ -217,14 +214,14 @@ function useSpotifyNowPlaying(enabled: boolean): NowPlaying | null {
 }
 
 // ── Mini transport for the full-screen plunge timer overlay ────────────────
-// Compact prev / play-pause / next pill that reuses the same control paths as
-// the main widget: native Apple Music plugin or /api/spotify/control proxy.
+// Compact play/pause pill that reuses the same control paths as the main
+// widget: native Apple Music plugin or /api/spotify/control proxy.
 // Renders nothing when no playlist is configured or the feature is off.
 export function MusicTransportMini({ className = "" }: { className?: string }) {
   const { toast } = useToast();
   const [config] = useState<MusicConfig>(() => loadConfig());
   const [isPlaying, setIsPlaying] = useState<boolean>(() => shouldAutoPlay());
-  const [busy, setBusy] = useState<"prev" | "toggle" | "next" | null>(null);
+  const [busy, setBusy] = useState(false);
   const nowPlaying = useSpotifyNowPlaying(config.service === "spotify" && !!getAuthToken());
 
   const spotifyControl = useCallback(async (action: "play" | "pause" | "next" | "previous", silent = false): Promise<boolean> => {
@@ -248,7 +245,7 @@ export function MusicTransportMini({ className = "" }: { className?: string }) {
 
   const toggle = async () => {
     if (busy) return;
-    setBusy("toggle");
+    setBusy(true);
     if (isPlaying) {
       setIsPlaying(false);
       let ok = false;
@@ -271,15 +268,7 @@ export function MusicTransportMini({ className = "" }: { className?: string }) {
       }
       if (!ok) setIsPlaying(false);
     }
-    setBusy(null);
-  };
-
-  const skip = async (dir: "prev" | "next") => {
-    if (busy) return;
-    setBusy(dir);
-    if (config.service === "apple") await (dir === "next" ? appleMusic.skipNext() : appleMusic.skipPrevious());
-    else if (config.service === "spotify") await spotifyControl(dir === "next" ? "next" : "previous");
-    setBusy(null);
+    setBusy(false);
   };
 
   return (
@@ -302,33 +291,15 @@ export function MusicTransportMini({ className = "" }: { className?: string }) {
         )}
       </div>
       <button
-        data-testid="button-timer-music-prev"
-        onClick={() => skip("prev")}
-        disabled={busy !== null}
-        aria-label="Previous track"
-        className="w-9 h-9 rounded-full flex items-center justify-center text-blue-200 hover:text-white hover:bg-blue-800/60 active:scale-95 transition-all disabled:opacity-50"
-      >
-        {busy === "prev" ? <Loader2 className="w-4 h-4 animate-spin" /> : <SkipBack className="w-4 h-4 fill-current" />}
-      </button>
-      <button
         data-testid="button-timer-music-toggle"
         onClick={toggle}
-        disabled={busy !== null}
+        disabled={busy}
         aria-label={isPlaying ? "Pause" : "Play"}
         className="w-9 h-9 rounded-full bg-cyan-500/90 hover:bg-cyan-400 flex items-center justify-center text-blue-950 active:scale-95 transition-all disabled:opacity-50"
       >
-        {busy === "toggle"
+        {busy
           ? <Loader2 className="w-4 h-4 animate-spin" />
           : isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
-      </button>
-      <button
-        data-testid="button-timer-music-next"
-        onClick={() => skip("next")}
-        disabled={busy !== null}
-        aria-label="Next track"
-        className="w-9 h-9 rounded-full flex items-center justify-center text-blue-200 hover:text-white hover:bg-blue-800/60 active:scale-95 transition-all disabled:opacity-50"
-      >
-        {busy === "next" ? <Loader2 className="w-4 h-4 animate-spin" /> : <SkipForward className="w-4 h-4 fill-current" />}
       </button>
     </div>
   );
@@ -354,7 +325,6 @@ interface MusicWidgetProps {
 
 export function MusicWidget({ className = "" }: MusicWidgetProps) {
   const [config, setConfig] = useState<MusicConfig>(() => loadConfig());
-  const [collapsed, setCollapsed] = useState(() => loadCollapsed());
   const [showSettings, setShowSettings] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [labelInput, setLabelInput] = useState("");
@@ -367,7 +337,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
   // flip locally when the user presses a button. The play button auto-
   // becomes a pause button after Play, and vice versa.
   const [isPlaying, setIsPlaying] = useState(false);
-  const [controlBusy, setControlBusy] = useState<null | "play" | "pause" | "prev" | "next" | "stop">(null);
+  const [controlBusy, setControlBusy] = useState<null | "play" | "pause">(null);
   const { toast } = useToast();
   const lastConfig = useRef(config);
   const lastPins = useRef(pins);
@@ -459,6 +429,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
   }, []);
 
   const handleAppleConnect = useCallback(async () => {
+    Analytics.musicConnectionStarted("apple");
     setAppleError(null);
     setAppleConnecting(true);
     try {
@@ -469,6 +440,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
         return;
       }
       setAppleAuthorized(true);
+      Analytics.musicConnected("apple");
       try {
         const pls = await appleMusic.fetchLibraryPlaylists();
         setApplePlaylists(pls);
@@ -498,6 +470,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
       if (data && typeof data === "object" && (data.type === "spotify:connected" || data.type === "spotify:error")) {
         setConnecting(false);
         if (data.type === "spotify:connected") {
+          Analytics.musicConnected("spotify");
           queryClient.invalidateQueries({ queryKey: ["/api/spotify/me"] });
           queryClient.invalidateQueries({ queryKey: ["/api/spotify/playlists"] });
         }
@@ -528,6 +501,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
 
   const handleConnect = useCallback(async () => {
     if (!isLoggedIn) return;
+    Analytics.musicConnectionStarted("spotify");
     // In Capacitor (TestFlight/Play), popups don't work — `window.open` opens
     // an isolated WebView with no `window.opener`, so the auth result can't be
     // postMessaged back. Use a full-page redirect within the same WebView
@@ -641,6 +615,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
       ok = await runSpotifyControl("pause");
     }
     if (!ok) setIsPlaying(true);
+    Analytics.musicControlUsed(config.service, "pause");
     setControlBusy(null);
   }, [config.service, controlBusy, runSpotifyControl]);
 
@@ -666,48 +641,17 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
       }
     }
     if (!ok) setIsPlaying(false);
+    Analytics.musicControlUsed(config.service, "play");
     setControlBusy(null);
   }, [config.service, config.url, controlBusy, runSpotifyControl]);
 
-  const handleSkipNext = useCallback(async () => {
-    if (controlBusy) return;
-    setControlBusy("next");
-    if (config.service === "apple") await appleMusic.skipNext();
-    else if (config.service === "spotify") await runSpotifyControl("next");
-    setControlBusy(null);
-  }, [config.service, controlBusy, runSpotifyControl]);
-
-  const handleSkipPrevious = useCallback(async () => {
-    if (controlBusy) return;
-    setControlBusy("prev");
-    if (config.service === "apple") await appleMusic.skipPrevious();
-    else if (config.service === "spotify") await runSpotifyControl("previous");
-    setControlBusy(null);
-  }, [config.service, controlBusy, runSpotifyControl]);
-
-  const handleStop = useCallback(async () => {
-    if (controlBusy) return;
-    setControlBusy("stop");
-    setIsPlaying(false);
-    if (config.service === "apple") await appleMusic.stop();
-    else if (config.service === "spotify") await runSpotifyControl("pause");
-    setControlBusy(null);
-  }, [config.service, controlBusy, runSpotifyControl]);
-
-  const applyChoice = (service: MusicService, url: string, label: string) => {
+  const applyChoice = (service: MusicService, url: string, label: string, source = "unknown") => {
     setConfig((prev) => ({ ...prev, service, url, label }));
+    Analytics.musicPlaylistSelected(service, source);
   };
 
   const toggleAutoPlay = () => {
     setConfig((prev) => ({ ...prev, autoPlay: !prev.autoPlay }));
-  };
-
-  const toggleCollapsed = () => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      try { localStorage.setItem(COLLAPSED_KEY, next ? "1" : "0"); } catch {}
-      return next;
-    });
   };
 
   const setFeatureEnabled = (enabled: boolean) => {
@@ -719,7 +663,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
   };
 
   const handlePickPin = (pick: PinnedPick) => {
-    applyChoice(pick.service, pick.url, pick.label);
+    applyChoice(pick.service, pick.url, pick.label, "quick_pick");
     setShowSettings(false);
   };
 
@@ -729,7 +673,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
     const svc = detectService(u);
     if (svc === "none") return;
     const label = labelInput.trim() || deriveLabel(u);
-    applyChoice(svc, u, label);
+    applyChoice(svc, u, label, "custom_url");
     if (pinAfterSave && !isPinned(u)) {
       togglePin({ service: svc, url: u, label });
     }
@@ -750,12 +694,12 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
     // Match against user playlists first (Spotify or Apple), then pins.
     const userPick = userPlaylists.find((p) => p.url === val);
     if (userPick) {
-      applyChoice("spotify", userPick.url, userPick.name);
+      applyChoice("spotify", userPick.url, userPick.name, "spotify_playlist");
       return;
     }
     const applePick = applePlaylists.find((p) => p.url === val);
     if (applePick) {
-      applyChoice("apple", applePick.url, applePick.name);
+      applyChoice("apple", applePick.url, applePick.name, "apple_playlist");
       return;
     }
     const pin = pins.find((p) => p.url === val);
@@ -809,6 +753,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
                 null;
               const target = config.url || fallback;
               if (!target) { setShowSettings(true); return; }
+              Analytics.musicOpened(config.service);
               try { window.open(target, "_blank", "noopener,noreferrer"); } catch {}
             }}
             className={`shrink-0 w-7 h-7 rounded-full bg-blue-950/60 hover:bg-blue-900/70 active:scale-95 transition-all flex items-center justify-center ${serviceColor} focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400`}
@@ -826,14 +771,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
             <ServiceIcon className="w-3.5 h-3.5" />
           </button>
 
-          {collapsed ? (
-            <div className="flex-1 min-w-0 px-1">
-              <span className="block truncate text-xs font-semibold text-blue-100">
-                {config.label || "Music"}
-              </span>
-            </div>
-          ) : (
-            <>
+          <>
               {/* Native dropdown — takes most of the width */}
               <div className="flex-1 min-w-0 relative">
                 <select
@@ -911,22 +849,11 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
               >
                 <Settings className="w-3.5 h-3.5" />
               </button>
-            </>
-          )}
-          <button
-            data-testid="button-music-collapse"
-            onClick={toggleCollapsed}
-            className="shrink-0 w-8 h-8 rounded-full bg-blue-800/60 hover:bg-blue-700/60 active:scale-95 transition-all text-blue-200 hover:text-white flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-            aria-label={collapsed ? "Expand music bar" : "Collapse music bar"}
-            aria-expanded={!collapsed}
-            title={collapsed ? "Expand music bar" : "Collapse music bar"}
-          >
-            {collapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-          </button>
+          </>
         </div>
 
         {/* Now-playing strip — shown for Spotify when a track is detected */}
-        {!collapsed && nowPlaying && config.service === "spotify" && (
+        {nowPlaying && config.service === "spotify" && (
           <div className="px-3 pb-1 flex items-center gap-1.5 min-w-0">
             <span className="text-green-400 text-[9px] font-bold uppercase tracking-wide shrink-0">Now playing</span>
             <span className="text-white text-[10px] font-semibold truncate">{nowPlaying.trackName}</span>
@@ -936,22 +863,11 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
           </div>
         )}
 
-        {/* Transport controls — only shown when a playlist is selected. Lets
-            the user pause / resume / skip / stop the music without leaving
-            ColdStreak. Routes to native Apple Music plugin or Spotify Web
-            API depending on which service is active. */}
-        {!collapsed && config.service !== "none" && config.url && (
+        {/* Playback control — playlist selection and play/pause stay available.
+            Skip and stop are intentionally omitted because they are unreliable
+            across Spotify and Apple Music. */}
+        {config.service !== "none" && config.url && (
           <div className="flex items-center justify-center gap-1.5 px-2 pb-1.5 pt-0.5 border-t border-blue-800/30">
-            <button
-              data-testid="button-music-skip-previous"
-              onClick={handleSkipPrevious}
-              disabled={controlBusy !== null}
-              className="w-9 h-9 rounded-full bg-blue-950/60 hover:bg-blue-900/70 active:scale-95 transition-all text-blue-100 hover:text-white disabled:opacity-40 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-              aria-label="Previous track"
-              title="Previous"
-            >
-              {controlBusy === "prev" ? <Loader2 className="w-4 h-4 animate-spin" /> : <SkipBack className="w-4 h-4 fill-current" />}
-            </button>
             {isPlaying ? (
               <button
                 data-testid="button-music-pause"
@@ -975,26 +891,6 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
                 {controlBusy === "play" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-white ml-0.5" />}
               </button>
             )}
-            <button
-              data-testid="button-music-skip-next"
-              onClick={handleSkipNext}
-              disabled={controlBusy !== null}
-              className="w-9 h-9 rounded-full bg-blue-950/60 hover:bg-blue-900/70 active:scale-95 transition-all text-blue-100 hover:text-white disabled:opacity-40 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-              aria-label="Next track"
-              title="Next"
-            >
-              {controlBusy === "next" ? <Loader2 className="w-4 h-4 animate-spin" /> : <SkipForward className="w-4 h-4 fill-current" />}
-            </button>
-            <button
-              data-testid="button-music-stop"
-              onClick={handleStop}
-              disabled={controlBusy !== null}
-              className="w-9 h-9 rounded-full bg-blue-950/60 hover:bg-blue-900/70 active:scale-95 transition-all text-blue-100 hover:text-white disabled:opacity-40 flex items-center justify-center ml-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-              aria-label="Stop"
-              title="Stop"
-            >
-              {controlBusy === "stop" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Square className="w-3.5 h-3.5 fill-current" />}
-            </button>
           </div>
         )}
       </div>
@@ -1189,7 +1085,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
                       >
                         <button
                           data-testid={`button-apple-playlist-${p.id}`}
-                          onClick={() => { applyChoice("apple", p.url, p.name); setShowSettings(false); }}
+                          onClick={() => { applyChoice("apple", p.url, p.name, "apple_playlist"); setShowSettings(false); }}
                           className="flex-1 min-w-0 text-left flex items-center gap-2"
                         >
                           {p.imageUrl ? (
@@ -1245,7 +1141,7 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
                       >
                         <button
                           data-testid={`button-spotify-playlist-${p.id}`}
-                          onClick={() => { applyChoice("spotify", p.url, p.name); setShowSettings(false); }}
+                          onClick={() => { applyChoice("spotify", p.url, p.name, "spotify_playlist"); setShowSettings(false); }}
                           className="flex-1 min-w-0 text-left flex items-center gap-2 active:scale-[0.99]"
                         >
                           {p.imageUrl ? (
