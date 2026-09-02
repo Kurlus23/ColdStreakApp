@@ -224,7 +224,7 @@ export function MusicTransportMini({ className = "" }: { className?: string }) {
   const [busy, setBusy] = useState(false);
   const nowPlaying = useSpotifyNowPlaying(config.service === "spotify" && !!getAuthToken());
 
-  const spotifyControl = useCallback(async (action: "play" | "pause" | "next" | "previous", silent = false): Promise<boolean> => {
+  const spotifyControl = useCallback(async (action: "play" | "pause", silent = false): Promise<boolean> => {
     try {
       const res = await apiRequest("POST", "/api/spotify/control", { action });
       if (!res.ok) {
@@ -572,11 +572,11 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
     } catch { /* ignore */ }
   }, []);
 
-  // ── Transport controls (pause/resume/skip/stop) ──────────────────────────
+  // ── Playback controls (pause/resume) ─────────────────────────────────────
   // Routes to the native Apple Music plugin (if installed) or Spotify Web
   // API via our /api/spotify/control proxy. Failures are surfaced via toast
   // and the optimistic isPlaying flag is rolled back.
-  const runSpotifyControl = useCallback(async (action: "play" | "pause" | "next" | "previous", silent = false): Promise<boolean> => {
+  const runSpotifyControl = useCallback(async (action: "play" | "pause", silent = false): Promise<boolean> => {
     try {
       const res = await apiRequest("POST", "/api/spotify/control", { action });
       const data = await res.json().catch(() => ({}));
@@ -849,6 +849,22 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
               >
                 <Settings className="w-3.5 h-3.5" />
               </button>
+              {config.service !== "none" && config.url && (
+                <button
+                  data-testid={isPlaying ? "button-music-pause" : "button-music-resume"}
+                  onClick={isPlaying ? handlePause : handleResume}
+                  disabled={controlBusy !== null}
+                  className="shrink-0 w-7 h-7 rounded-full bg-cyan-500/90 hover:bg-cyan-400 active:scale-95 transition-all text-blue-950 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 disabled:opacity-60"
+                  aria-label={isPlaying ? "Pause" : "Play"}
+                  title={isPlaying ? "Pause" : "Play"}
+                >
+                  {controlBusy
+                    ? <Loader2 className="w-3 h-3 animate-spin" />
+                    : isPlaying
+                      ? <Pause className="w-3 h-3 fill-current" />
+                      : <Play className="w-3 h-3 fill-current ml-0.5" />}
+                </button>
+              )}
           </>
         </div>
 
@@ -863,36 +879,6 @@ export function MusicWidget({ className = "" }: MusicWidgetProps) {
           </div>
         )}
 
-        {/* Playback control — playlist selection and play/pause stay available.
-            Skip and stop are intentionally omitted because they are unreliable
-            across Spotify and Apple Music. */}
-        {config.service !== "none" && config.url && (
-          <div className="flex items-center justify-center gap-1.5 px-2 pb-1.5 pt-0.5 border-t border-blue-800/30">
-            {isPlaying ? (
-              <button
-                data-testid="button-music-pause"
-                onClick={handlePause}
-                disabled={controlBusy !== null}
-                className="w-10 h-10 rounded-full bg-cyan-500 hover:bg-cyan-400 active:scale-95 transition-all text-white shadow-md shadow-cyan-500/30 disabled:opacity-60 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-                aria-label="Pause"
-                title="Pause"
-              >
-                {controlBusy === "pause" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pause className="w-4 h-4 fill-white" />}
-              </button>
-            ) : (
-              <button
-                data-testid="button-music-resume"
-                onClick={handleResume}
-                disabled={controlBusy !== null}
-                className="w-10 h-10 rounded-full bg-cyan-500 hover:bg-cyan-400 active:scale-95 transition-all text-white shadow-md shadow-cyan-500/30 disabled:opacity-60 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-                aria-label="Play"
-                title="Play"
-              >
-                {controlBusy === "play" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-white ml-0.5" />}
-              </button>
-            )}
-          </div>
-        )}
       </div>
       )}
 

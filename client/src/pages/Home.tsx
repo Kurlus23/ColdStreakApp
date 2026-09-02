@@ -12,7 +12,7 @@ import {
   Play, Pause, RotateCcw, Snowflake, History,
   Activity, AlarmClock, Flame, Target, Zap,
   Settings, Bell, Upload, Volume2, VolumeX, FileText,
-  Camera, MapPin, Lock, ShieldAlert, Trophy, User, Users, ChevronDown, ChevronLeft, ChevronRight,
+  Camera, MapPin, Lock, ShieldAlert, Trophy, User, Users, ChevronDown, ChevronUp,
   Sparkles, Crown, CheckCircle2, RotateCcw as RestoreIcon, Compass, Info, Plus, Calendar, Trash2, Share2, AlertCircle, Download, ShoppingCart, Navigation, Building2, Bluetooth, BluetoothOff, Heart, X, Droplets, Thermometer,
   Image as ImageIcon, MessageCircle, Send, Eye, EyeOff
 } from "lucide-react";
@@ -3997,8 +3997,8 @@ export default function Home() {
       <div className="absolute inset-0 bg-gradient-to-b from-blue-950/60 via-blue-900/20 to-blue-950/80" />
 
       {/* Header */}
-      <header className="absolute z-10 inset-x-0 top-0 flex items-center justify-between px-3 pt-5 pb-2">
-        <div className="w-24 flex items-center">
+      <header className="absolute z-10 inset-x-0 top-0 flex items-center justify-end px-3 pt-5 pb-2">
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
           <button
             data-testid="button-toggle-utility-window"
             onClick={toggleToolsWindow}
@@ -4010,25 +4010,25 @@ export default function Home() {
           >
             <span className="text-[11px] font-bold tracking-wide">Music</span>
             {toolsWindowExpanded
-              ? <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
-              : <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />}
+              ? <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+              : <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />}
           </button>
+          <h1
+            className="text-2xl font-black tracking-widest pointer-events-none select-none"
+            style={{
+              background: "linear-gradient(to bottom, #ffffff 0%, #67e8f9 60%, #0891b2 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              textShadow: "none",
+              filter: "drop-shadow(0 1px 6px rgba(0,0,0,0.7))",
+              letterSpacing: "0.12em",
+            }}
+            data-testid="header-title"
+          >
+            COLDSTREAK
+          </h1>
         </div>
-        <h1
-          className="text-2xl font-black tracking-widest pointer-events-none select-none"
-          style={{
-            background: "linear-gradient(to bottom, #ffffff 0%, #67e8f9 60%, #0891b2 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            textShadow: "none",
-            filter: "drop-shadow(0 1px 6px rgba(0,0,0,0.7))",
-            letterSpacing: "0.12em",
-          }}
-          data-testid="header-title"
-        >
-          COLDSTREAK
-        </h1>
         <div className="w-24 flex justify-end items-center gap-2">
           {!auth.user && (
             <button
@@ -4105,21 +4105,21 @@ export default function Home() {
         >
           <div className="rounded-2xl border border-blue-700/50 bg-blue-950/95 p-2 shadow-2xl shadow-black/30 backdrop-blur-md">
             {auth.user && (
-              <div className="mb-2 flex items-center gap-2 rounded-xl border border-blue-800/50 bg-blue-900/45 px-2.5 py-2">
+              <div className="mb-2 flex items-center gap-2 rounded-xl border border-blue-800/50 bg-blue-900/45 px-2 py-1.5">
                 <button
                   data-testid="button-utility-brain-freeze"
-                  onClick={() => brainFreezeEnabled ? setShowBrainFreezeModal(true) : setShowBrainFreezeOptIn(true)}
-                  className={`relative h-9 w-9 shrink-0 overflow-hidden rounded-xl transition-all active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${brainFreezeEnabled ? "" : "opacity-60 grayscale-[0.25]"}`}
+                  onClick={() => setShowBrainFreezeModal(true)}
+                  className={`relative h-7 w-7 shrink-0 overflow-hidden rounded-lg transition-all active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${brainFreezeEnabled ? "" : "opacity-60 grayscale-[0.25]"}`}
                   style={{ boxShadow: "0 0 10px rgba(96,165,250,0.35), 0 0 4px rgba(147,197,253,0.2)" }}
-                  aria-label={brainFreezeEnabled ? "Open Brain Freeze" : "Brain Freeze is off — tap to enable"}
-                  title={brainFreezeEnabled ? "Open Brain Freeze" : "Turn on Brain Freeze"}
+                  aria-label="Start Brain Freeze trivia"
+                  title="Start Brain Freeze trivia"
                 >
                   <img src="/brain-freeze-icon.png" alt="Brain Freeze" className="h-full w-full object-cover" />
                 </button>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-white">Brain Freeze</p>
+                  <p className="text-[11px] font-bold text-white">Brain Freeze</p>
                   <p className="truncate text-[10px] text-blue-300">
-                    {brainFreezeEnabled ? "Optional trivia during your plunge" : "Tap the icon to turn trivia on"}
+                    Tap to start trivia
                   </p>
                 </div>
               </div>
