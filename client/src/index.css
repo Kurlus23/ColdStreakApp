@@ -36,12 +36,17 @@ html, body {
   overflow: hidden;
 }
 
-/* Keep one 5rem navigation pane anchored to the physical bottom. Its
-   safe-area padding lives inside that pane instead of making the pane itself
-   taller; otherwise the home screen gets a second-looking bottom band. */
+/* Keep one 5rem navigation pane anchored to the physical bottom. The pane
+   owns the full visual background; only its control row is reduced for the
+   home-indicator inset so labels cannot be clipped into a second band. */
 .capacitor-native .native-bottom-nav {
   height: 5rem;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: 0;
+}
+
+.capacitor-native .native-bottom-nav > div {
+  height: calc(5rem - env(safe-area-inset-bottom, 0px));
+  min-height: 0;
 }
 
 /* The content stack ends at the same y-coordinate as the nav's top edge. */
