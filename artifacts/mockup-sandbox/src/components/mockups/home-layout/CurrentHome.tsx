@@ -1,165 +1,76 @@
-// Accurate representation of the current ColdStreak home / timer screen layout
+import {
+  ChevronDown,
+  Compass,
+  History,
+  Settings,
+  ShoppingCart,
+  User,
+  Users,
+} from "lucide-react";
+import "./_group.css";
+
+// Static idle-state extraction of the current ColdStreak home / timer screen.
 export function CurrentHome() {
   return (
-    <div className="relative w-full h-screen overflow-hidden select-none"
-         style={{ background: "linear-gradient(180deg, #050d1a 0%, #091425 40%, #0d1c35 100%)" }}>
+    <div className="coldstreak-home relative h-screen w-full overflow-hidden bg-blue-950 select-none">
+      <img src="/__mockup/bg_frostlake.png" alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: "center center" }} />
+      <div className="absolute inset-0 bg-gradient-to-b from-blue-950/60 via-blue-900/20 to-blue-950/80" />
 
-      {/* ── Iceberg background image (simulate) ── */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ top: '15%' }}>
-        <svg viewBox="0 0 300 400" className="w-72 opacity-[0.07]" fill="white">
-          <ellipse cx="150" cy="120" rx="120" ry="90" />
-          <polygon points="60,150 240,150 280,350 20,350" />
-          <polygon points="80,200 220,200 200,350 100,350" fill="#ffffff22" />
-        </svg>
-      </div>
-      {/* readability gradient at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-64 pointer-events-none"
-           style={{ background: "linear-gradient(to top, #050d1aee 0%, transparent 100%)" }} />
-
-      {/* ── Header ── */}
-      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 pt-12 pb-3">
-        <div className="flex flex-col">
-          <span className="text-[10px] text-blue-300/40 tracking-[0.2em] uppercase">Cold Exposure</span>
-          <span className="text-xl font-black text-white tracking-wide"
-                style={{ textShadow: '0 0 20px rgba(96,165,250,0.5)' }}>
-            COLDSTREAK
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* streak badge */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/20 border border-orange-500/30">
-            <span className="text-sm">🔥</span>
-            <span className="text-orange-300 text-xs font-bold">14</span>
-          </div>
-          {/* music icon */}
-          <div className="w-8 h-8 rounded-full bg-white/10 border border-white/10 flex items-center justify-center">
-            <span className="text-sm">🎵</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Timer screen main content ── */}
-      <div className="absolute bottom-20 left-0 right-0 px-3 flex flex-col gap-2">
-
-        {/* Goal nudge / coaching chip  */}
-        <div className="flex justify-center">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-900/40 border border-blue-500/20 backdrop-blur-sm">
-            <span className="text-xs">🏋️</span>
-            <span className="text-[11px] text-blue-200/80">Today's goal: <strong>3:00 Strength</strong></span>
-          </div>
-        </div>
-
-        {/* ── Stat panel ── */}
-        <div className="rounded-2xl border border-white/10 overflow-hidden"
-             style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)' }}>
-
-          {/* Top row: Water / Timer / Score */}
-          <div className="grid grid-cols-3 divide-x divide-white/10">
-            {/* Water */}
-            <div className="flex flex-col items-center py-3 gap-0.5">
-              <span className="text-[10px] text-blue-300/50 uppercase tracking-widest">Water</span>
-              <span className="text-3xl font-black text-blue-200" style={{ textShadow: '0 0 12px rgba(96,165,250,0.4)' }}>52°</span>
-              <span className="text-[10px] text-blue-300/30">°F</span>
-            </div>
-            {/* Timer */}
-            <div className="flex flex-col items-center py-3 gap-0.5">
-              <span className="text-[10px] text-white/40 uppercase tracking-widest">Timer</span>
-              <span className="text-3xl font-black text-white">0:00</span>
-              <div className="flex gap-1.5 mt-1">
-                <button className="px-3 py-0.5 rounded-full text-[10px] font-semibold text-white/60 bg-white/10 border border-white/10">Start</button>
-              </div>
-            </div>
-            {/* Score */}
-            <div className="flex flex-col items-center py-3 gap-0.5">
-              <span className="text-[10px] text-blue-300/50 uppercase tracking-widest">Score</span>
-              <span className="text-3xl font-black text-blue-200" style={{ textShadow: '0 0 12px rgba(96,165,250,0.4)' }}>—</span>
-              <span className="text-[10px] text-blue-300/30">pts</span>
-            </div>
-          </div>
-
-          {/* Bottom strip: Under Water / Goal toggle / Badge */}
-          <div className="grid grid-cols-3 divide-x divide-white/10 border-t border-white/10">
-            <div className="py-2 flex flex-col items-center gap-1">
-              <span className="text-[9px] text-blue-300/40 uppercase tracking-wider">Under Water</span>
-              <div className="flex gap-0.5">
-                {[0,0,0,0,0,0,0].map((_,i) => (
-                  <div key={i} className="w-2 h-2 rounded-full bg-white/10" />
-                ))}
-              </div>
-            </div>
-            <div className="py-2 flex flex-col items-center gap-1">
-              <span className="text-[9px] text-white/30">Strength</span>
-              <div className="w-16 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                <div className="h-full w-0 bg-blue-400 rounded-full" />
-              </div>
-            </div>
-            <div className="py-2 flex flex-col items-center gap-1">
-              <span className="text-[9px] text-blue-300/40">Badge</span>
-              <div className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
-                <span className="text-[10px]">❄️</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Benefit bar ── */}
-        <div className="rounded-2xl border border-blue-500/20 px-3.5 py-2.5"
-             style={{ background: 'rgba(23,37,84,0.35)', backdropFilter: 'blur(8px)' }}>
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-blue-200/80 font-semibold">Strength Benefit</span>
-            </div>
-            <span className="text-[10px] text-blue-300/50">Goal: 3:00</span>
-          </div>
-          <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-            <div className="h-full w-0 rounded-full" style={{ background: 'linear-gradient(to right, #2563eb, #60a5fa)' }} />
-          </div>
-          <div className="flex justify-between mt-1">
-            <span className="text-[9px] text-blue-300/30">0:00</span>
-            <span className="text-[9px] text-blue-300/30">3:00</span>
-          </div>
-        </div>
-
-        {/* ── Brain Freeze quick-launch card ── */}
-        <button className="w-full flex items-center gap-3 rounded-2xl border border-violet-600/30 px-3.5 py-3 backdrop-blur-sm transition-all"
-                style={{ background: "linear-gradient(to right, rgba(46,16,101,0.6), rgba(23,37,84,0.6))" }}>
-          <div className="w-10 h-10 rounded-xl bg-violet-900/60 border border-violet-500/30 flex items-center justify-center shrink-0">
-            <span className="text-xl leading-none">🧠</span>
-          </div>
-          <div className="flex-1 min-w-0 text-left">
-            <p className="text-white text-sm font-bold leading-tight">Brain Freeze</p>
-            <p className="text-violet-300/60 text-[11px] mt-0.5">Trivia questions during your plunge</p>
-          </div>
-          <svg className="w-4 h-4 text-violet-400/50 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
+      <header className="absolute z-10 inset-x-0 top-0 flex items-center justify-end px-3 pt-5 pb-2">
+        <h1 className="absolute left-1/2 -translate-x-1/2 text-xl min-[420px]:text-2xl font-black tracking-widest pointer-events-none select-none" style={{ background: "linear-gradient(to bottom, #ffffff 0%, #67e8f9 60%, #0891b2 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", filter: "drop-shadow(0 1px 6px rgba(0,0,0,0.7))", letterSpacing: "0.12em" }}>COLDSTREAK</h1>
+        <button className="absolute left-[calc(50%+100px)] min-[420px]:left-[calc(50%+122px)] inline-flex items-center gap-1 rounded-xl border border-blue-700/50 bg-blue-950/75 px-2.5 py-2 text-blue-100 shadow-lg shadow-black/20 backdrop-blur-md">
+          <span className="text-[11px] font-bold tracking-wide">Tools</span><ChevronDown className="h-3.5 w-3.5" />
         </button>
+        <div className="w-24" aria-hidden="true" />
+      </header>
 
-        {/* Height nudge (shows when no height set) */}
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-yellow-500/20 bg-yellow-500/5">
-          <span className="text-sm">📏</span>
-          <span className="text-[11px] text-yellow-200/70 flex-1">Add your height to calibrate under-water detection</span>
-          <button className="text-[10px] text-yellow-400/80 font-semibold px-2 py-0.5 rounded-full border border-yellow-500/30 bg-yellow-500/10">Set</button>
-        </div>
-      </div>
-
-      {/* ── Bottom nav ── */}
-      <div className="absolute bottom-0 left-0 right-0 h-20 border-t border-white/10 flex items-center justify-around px-2"
-           style={{ background: 'rgba(5,13,26,0.85)', backdropFilter: 'blur(16px)' }}>
-        {[
-          { icon: '⏱', label: 'Timer', active: true },
-          { icon: '🗺', label: 'Explore', active: false },
-          { icon: '⚙️', label: 'Devices', active: false },
-          { icon: '👤', label: 'Profile', active: false },
-          { icon: '👥', label: 'Friends', active: false },
-          { icon: '≡', label: 'More', active: false },
-        ].map(({ icon, label, active }) => (
-          <div key={label} className={`flex flex-col items-center gap-1 ${active ? 'opacity-100' : 'opacity-35'}`}>
-            <span className="text-xl">{icon}</span>
-            <span className={`text-[9px] ${active ? 'text-blue-300 font-semibold' : 'text-white/50'}`}>{label}</span>
+      <main className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overscroll-contain px-3">
+        <div className="flex min-h-full flex-col justify-center pb-2">
+          <div className="rounded-2xl mb-3 relative bg-blue-950/90 backdrop-blur-sm border border-blue-800/50">
+            <div className="grid grid-cols-3">
+              <div className="flex flex-col items-center px-2 py-2.5 relative">
+                <span className="text-blue-400/60 text-[8.5px] font-semibold uppercase tracking-widest mb-1">Water</span>
+                <span className="text-[2.4rem] font-bold leading-none text-white">50°F</span>
+                <div className="flex items-center gap-1.5 mt-1.5"><span className="text-[10px] font-bold text-white">°F</span><span className="text-blue-600/60 text-[10px]">/</span><span className="text-[10px] font-bold text-blue-400/60">°C</span></div>
+                <div className="absolute right-0 top-3 bottom-3 w-px bg-blue-800/50" />
+              </div>
+              <div className="flex flex-col items-center px-2 py-2.5 relative">
+                <span className="text-blue-400/60 text-[8.5px] font-semibold uppercase tracking-widest mb-1">Timer</span>
+                <span className="text-[2.4rem] leading-none font-mono font-bold tracking-tight text-slate-200">0:00</span>
+                <div className="flex gap-1.5 mt-2.5 w-full"><button className="flex-1 min-w-0 py-1.5 rounded-xl bg-blue-500/90 text-white text-[10px] font-bold shadow-lg shadow-blue-500/30">Start</button><button className="flex-1 min-w-0 py-1.5 rounded-xl border border-slate-600/60 text-slate-300 text-[10px] font-bold">Stop</button></div>
+                <div className="absolute right-0 top-3 bottom-3 w-px bg-blue-800/50" />
+              </div>
+              <div className="relative flex flex-col items-center px-2 py-2.5">
+                <span className="text-blue-400/60 text-[8.5px] font-semibold uppercase tracking-widest mb-1">Score</span>
+                <span className="text-[2.4rem] font-bold leading-none text-cyan-300" style={{ textShadow: "0 0 20px rgba(103,232,249,0.35)" }}>—</span>
+                <span className="text-[8px] mt-1.5 text-blue-300/60">today</span><span className="text-blue-300/60 text-[8px] uppercase tracking-widest mt-auto pt-2">Tap to cycle</span>
+                <span className="absolute top-2 right-2 z-20 w-5 h-5 flex items-center justify-center rounded-full bg-blue-800/70 border border-blue-600/50 text-blue-400 text-[10px] font-bold">ℹ</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 border-t border-blue-800/30">
+              <div className="flex items-center justify-center px-2 pt-2 pb-2.5 relative" style={{ minHeight: "2rem" }}><span className="text-[9px] font-bold uppercase tracking-widest text-blue-700/40">Live</span><div className="absolute right-0 top-2 bottom-2 w-px bg-blue-800/50" /></div>
+              <div className="flex items-center justify-center px-2 pt-2 pb-2.5 relative"><span className="text-blue-300/60 text-[8px] uppercase tracking-widest">Stopwatch ↕</span><div className="absolute right-0 top-2 bottom-2 w-px bg-blue-800/50" /></div>
+              <div className="flex flex-col justify-center px-3 pt-2 pb-2.5"><div className="flex justify-between mb-1"><span className="text-blue-300/60 text-[8px]">0d</span><span className="text-blue-300/60 text-[8px]">⚡ 1d</span></div><div className="h-0.5 rounded-full bg-blue-900"><div className="h-full w-0 rounded-full" /></div></div>
+            </div>
           </div>
-        ))}
-      </div>
+
+          <div className="mt-2 mb-0 rounded-2xl border border-blue-800/60 bg-blue-950/90 px-[14px] pb-[9px] pt-[8px] backdrop-blur-md" style={{ boxShadow: "0 8px 20px rgba(3, 12, 35, 0.16)" }}>
+            <div className="mt-0 grid grid-cols-4 gap-3">
+              {[["Energy", "#22d3ee"], ["Mood", "#fbbf24"], ["Metabolism", "#f97316"], ["Recovery", "#34d399"]].map(([label, color]) => <div key={label} className="relative min-w-0"><div className="box-border flex h-[17px] items-center justify-center text-center text-[10px] leading-none whitespace-nowrap" style={{ color }}><strong className="overflow-hidden text-ellipsis font-semibold">{label}</strong></div><div className="relative mt-[10px] h-[3px] rounded-full bg-[rgba(157,203,207,0.14)]"><span className="absolute top-1/2 h-[6px] w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full border" style={{ left: "0%", borderColor: "#08131b", backgroundColor: color, boxShadow: `0 0 0 1px ${color}, 0 0 8px ${color}88` }} /></div></div>)}
+            </div>
+            <p className="mt-[7px] text-center text-[9px] leading-tight text-slate-500"><span className="block">Estimates vary with session conditions and profile settings</span><span className="mt-0.5 block">Not medical guidance</span></p>
+          </div>
+        </div>
+      </main>
+
+      <nav className="absolute bottom-0 left-0 right-0 h-20 bg-blue-950/90 backdrop-blur-md border-t border-blue-800/60">
+        <div className="flex items-center h-full max-w-xl mx-auto px-2">
+          {[[History, "History"], [Compass, "Explore"], [ShoppingCart, "Gear"], [User, "Profile"], [Users, "Friends"], [Settings, "Settings"]].map(([Icon, label]) => {
+            const NavIcon = Icon as typeof History;
+            return <button key={label as string} className="flex-1 flex flex-col items-center gap-1 text-blue-500"><NavIcon className="w-5 h-5" /><span className="text-[10px] font-semibold">{label as string}</span></button>;
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
