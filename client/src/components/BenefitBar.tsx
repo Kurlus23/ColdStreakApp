@@ -269,10 +269,12 @@ export function BenefitBar({
           </div>
         </div>
       )}
-      <p className="mt-[7px] text-center text-[9px] leading-tight text-slate-500">
-        <span className="block">Estimates vary with session conditions and profile settings</span>
-        <span className="mt-0.5 block">Not medical guidance</span>
-      </p>
+      {!isActive && (
+        <p className="mt-[7px] text-center text-[9px] leading-tight text-slate-500">
+          <span className="block">Estimates vary with session conditions and profile settings</span>
+          <span className="mt-0.5 block">Not medical guidance</span>
+        </p>
+      )}
     </div>
   );
 }
