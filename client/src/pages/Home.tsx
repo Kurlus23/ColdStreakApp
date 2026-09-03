@@ -4530,6 +4530,7 @@ export default function Home() {
           )}
 
         </div>
+        </div>
       )}
 
       {/* ─── STREAK FREEZE MODAL ─── */}
@@ -4619,7 +4620,6 @@ export default function Home() {
             </p>
           </div>
           </div>
-        </div>
       )}
 
       {/* ─── HISTORY SCREEN ─── */}
