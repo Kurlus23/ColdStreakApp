@@ -4133,28 +4133,7 @@ export default function Home() {
         >
           <div className="rounded-2xl border border-blue-700/50 bg-blue-950/95 p-2 shadow-2xl shadow-black/30 backdrop-blur-md">
             {auth.user && (
-              <div className="mb-2 flex items-center gap-2 rounded-xl border border-blue-800/50 bg-blue-900/45 px-2 py-1.5">
-                <button
-                  data-testid="button-utility-brain-freeze"
-                  onClick={() => setShowBrainFreezeModal(true)}
-                  className={`relative h-7 w-7 shrink-0 overflow-hidden rounded-lg transition-all active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${brainFreezeEnabled ? "" : "opacity-60 grayscale-[0.25]"}`}
-                  style={{ boxShadow: "0 0 10px rgba(96,165,250,0.35), 0 0 4px rgba(147,197,253,0.2)" }}
-                  aria-label="Start Brain Freeze trivia"
-                  title="Start Brain Freeze trivia"
-                >
-                  <img src="/brain-freeze-icon.png" alt="Brain Freeze" className="h-full w-full object-cover" />
-                </button>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-bold text-white">Brain Freeze</p>
-                  <p className="truncate text-[10px] text-blue-300">
-                    Tap to start trivia
-                  </p>
-                </div>
-              </div>
-            )}
-            <MusicWidget className="!border-0 !bg-transparent !shadow-none !backdrop-blur-none" />
-            {auth.user && (
-              <div className="mt-2">
+              <div className="mb-2">
                 <CoachFAB
                   embedded
                   authToken={localStorage.getItem("coldstreak-auth-token")}
@@ -4175,13 +4154,37 @@ export default function Home() {
                 />
               </div>
             )}
+            {auth.user && (
+              <div className="mb-2 flex items-center gap-2 rounded-xl border border-blue-800/50 bg-blue-900/45 px-2 py-1.5">
+                <button
+                  data-testid="button-utility-brain-freeze"
+                  onClick={() => setShowBrainFreezeModal(true)}
+                  className={`relative h-7 w-7 shrink-0 overflow-hidden rounded-lg transition-all active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${brainFreezeEnabled ? "" : "opacity-60 grayscale-[0.25]"}`}
+                  style={{ boxShadow: "0 0 10px rgba(96,165,250,0.35), 0 0 4px rgba(147,197,253,0.2)" }}
+                  aria-label="Start Brain Freeze trivia"
+                  title="Start Brain Freeze trivia"
+                >
+                  <img src="/brain-freeze-icon.png" alt="Brain Freeze" className="h-full w-full object-cover" />
+                </button>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold text-white">Brain Freeze</p>
+                  <p className="truncate text-[10px] text-blue-300">
+                    Tap to start trivia
+                  </p>
+                </div>
+              </div>
+            )}
+            <MusicWidget className="!border-0 !bg-transparent !shadow-none !backdrop-blur-none" />
           </div>
         </div>
       )}
 
       {/* ─── TIMER SCREEN ─── */}
       {screen === "timer" && (
-        <div className="absolute bottom-20 left-0 right-0 px-3 pb-2">
+        <div className={`absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overscroll-contain px-3 ${
+          toolsWindowExpanded ? "pt-56" : ""
+        }`}>
+          <div className="flex min-h-full flex-col justify-center pb-2">
           {auth.user && <FlowDeviceCard compact useCelsius={useCelsius} />}
 
           {/* ── Goal nudge (live countdown / keep-going) ── */}
@@ -4614,6 +4617,7 @@ export default function Home() {
             <p className="text-[10px] text-slate-500 leading-relaxed">
               Freezes can be applied to any of the past 6 days. Days you already plunged don't need protection.
             </p>
+          </div>
           </div>
         </div>
       )}
