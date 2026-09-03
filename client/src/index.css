@@ -18,9 +18,9 @@ html, body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Keep browser routes document-flow based, but clamp the native WebView to
-   the safe area. This prevents iOS from adding a second scrollable viewport
-   when Capacitor uses contentInset: "never". */
+/* Keep browser routes document-flow based, but clamp the native WebView from
+   the status-bar edge to the physical bottom. This prevents iOS from adding a
+   second scrollable viewport when Capacitor uses contentInset: "never". */
 #root {
   height: 100dvh;
 }
@@ -28,12 +28,19 @@ html, body {
 .capacitor-native #root {
   position: fixed;
   top: env(safe-area-inset-top, 0px);
-  bottom: env(safe-area-inset-bottom, 0px);
+  bottom: 0;
   left: env(safe-area-inset-left, 0px);
   right: env(safe-area-inset-right, 0px);
   height: auto;
   min-height: 0;
   overflow: hidden;
+}
+
+/* The nav background reaches the physical bottom, while its controls stay
+   above the iOS home indicator. */
+.capacitor-native .native-bottom-nav {
+  height: calc(5rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @layer base {
