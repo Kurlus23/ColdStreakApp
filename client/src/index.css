@@ -36,17 +36,17 @@ html, body {
   overflow: hidden;
 }
 
-/* The nav background reaches the physical bottom, while its controls stay
-   above the iOS home indicator. */
+/* Keep one 5rem navigation pane anchored to the physical bottom. Its
+   safe-area padding lives inside that pane instead of making the pane itself
+   taller; otherwise the home screen gets a second-looking bottom band. */
 .capacitor-native .native-bottom-nav {
-  height: calc(5rem + env(safe-area-inset-bottom, 0px));
+  height: 5rem;
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Keep scrollable panels above the full native nav, including its home
-   indicator area. */
+/* The content stack ends at the same y-coordinate as the nav's top edge. */
 .capacitor-native .bottom-20 {
-  bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  bottom: 5rem;
 }
 
 @layer base {

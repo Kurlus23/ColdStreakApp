@@ -31,9 +31,9 @@ html, body { overscroll-behavior: none; }
 :root { --nav-bottom: 5rem; }
 ```
 
-**`client/src/pages/Home.tsx`**: Nav bar is plain `absolute bottom-0 h-20` with no padding or env(). Content panels use `bottom-20` (plain Tailwind). Nothing else needs changing.
+**Home layout rule**: The nav pane remains exactly `5rem` tall and is anchored with `bottom: 0`. On native, `env(safe-area-inset-bottom)` belongs inside that fixed-height pane as padding; the content panels use the matching `bottom: 5rem`. Do not add the safe-area height to the nav itself.
 
-**Why**: `contentInset: "never"` makes CSS `bottom: 0` = physical screen bottom. The root begins below the status bar and fills to the physical bottom; the native nav adds the bottom safe-area inset inside its own pane so its controls remain above the home indicator while the pane reaches the edge.
+**Why**: `contentInset: "never"` makes CSS `bottom: 0` = physical screen bottom. The root begins below the status bar and fills to the physical bottom. Adding the safe-area inset to the nav height moves the nav top upward and creates a visibly oversized second bottom band; keeping it inside the fixed pane preserves the edge alignment while protecting the controls.
 
 **After changing capacitor.config.ts**: run `npx cap sync ios` then rebuild in Xcode. Also re-run the objectVersion sed fix (see ios-cocoapods-objectversion.md) after cap sync.
 

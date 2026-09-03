@@ -163,7 +163,7 @@ export function BenefitBar({
 
   return (
     <div
-      className="mt-0.5 mb-0 rounded-2xl border border-blue-800/60 bg-blue-950/90 px-[14px] pb-[9px] pt-[8px] backdrop-blur-md"
+      className="mt-0 mb-0 rounded-2xl border border-blue-800/60 bg-blue-950/90 px-[14px] pb-[9px] pt-[8px] backdrop-blur-md"
       style={{
         boxShadow: "0 8px 20px rgba(3, 12, 35, 0.16)",
       }}

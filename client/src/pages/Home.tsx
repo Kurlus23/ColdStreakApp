@@ -4183,7 +4183,7 @@ export default function Home() {
           <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${
             toolsWindowExpanded ? "pt-56" : ""
           }`}>
-          <div className="flex min-h-full flex-col justify-end pb-2">
+          <div className="flex min-h-full flex-col justify-end">
           {auth.user && <FlowDeviceCard compact useCelsius={useCelsius} />}
 
           {/* ── Goal nudge (live countdown / keep-going) ── */}
@@ -4212,7 +4212,7 @@ export default function Home() {
           )}
 
           {/* ── Unified stat panel ── */}
-          <div className="rounded-2xl mb-3 relative bg-blue-950/90 backdrop-blur-sm border border-blue-800/50" data-testid="card-stat-panel">
+          <div className="rounded-2xl mb-0 relative bg-blue-950/90 backdrop-blur-sm border border-blue-800/50" data-testid="card-stat-panel">
 
             {/* Top row — Water / Timer / Score */}
             <div className="grid grid-cols-3">
@@ -4506,7 +4506,7 @@ export default function Home() {
 
           {/* ── Docked Benefit Bar (home screen) ── */}
           {/* Uses today's total for progress; each earned benefit fades independently after its own window. */}
-          <div data-testid="benefit-bar" className="shrink-0 pt-2">
+          <div data-testid="benefit-bar" className="shrink-0 pt-0">
             <BenefitBar
               todayPlungesData={todayPlunges}
               elapsedSeconds={elapsedSeconds}
