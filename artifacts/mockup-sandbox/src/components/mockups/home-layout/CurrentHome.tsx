@@ -17,6 +17,9 @@ export function CurrentHome() {
       <div className="absolute inset-0 bg-gradient-to-b from-blue-950/60 via-blue-900/20 to-blue-950/80" />
 
       <header className="absolute z-10 inset-x-0 top-0 flex items-center justify-end px-3 pt-5 pb-2">
+        <button className="absolute right-[calc(50%+100px)] min-[420px]:right-[calc(50%+122px)] rounded-xl bg-cyan-500/90 px-3 py-2 text-xs font-bold text-blue-950 shadow-lg shadow-black/20">
+          Sign In
+        </button>
         <h1 className="absolute left-1/2 -translate-x-1/2 text-xl min-[420px]:text-2xl font-black tracking-widest pointer-events-none select-none" style={{ background: "linear-gradient(to bottom, #ffffff 0%, #67e8f9 60%, #0891b2 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", filter: "drop-shadow(0 1px 6px rgba(0,0,0,0.7))", letterSpacing: "0.12em" }}>COLDSTREAK</h1>
         <button className="absolute left-[calc(50%+100px)] min-[420px]:left-[calc(50%+122px)] inline-flex items-center gap-1 rounded-xl border border-blue-700/50 bg-blue-950/75 px-2.5 py-2 text-blue-100 shadow-lg shadow-black/20 backdrop-blur-md">
           <span className="text-[11px] font-bold tracking-wide">Tools</span><ChevronDown className="h-3.5 w-3.5" />
