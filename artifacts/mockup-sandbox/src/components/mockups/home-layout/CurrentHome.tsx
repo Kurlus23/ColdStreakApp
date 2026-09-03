@@ -24,7 +24,7 @@ export function CurrentHome() {
         <div className="w-24" aria-hidden="true" />
       </header>
 
-      <main className="absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overscroll-contain px-3">
+      <main className="absolute top-20 bottom-[10.25rem] left-0 right-0 overflow-y-auto overscroll-contain px-3">
         <div className="flex min-h-full flex-col justify-center pb-2">
           <div className="rounded-2xl mb-3 relative bg-blue-950/90 backdrop-blur-sm border border-blue-800/50">
             <div className="grid grid-cols-3">
@@ -54,14 +54,17 @@ export function CurrentHome() {
             </div>
           </div>
 
-          <div className="mt-2 mb-0 rounded-2xl border border-blue-800/60 bg-blue-950/90 px-[14px] pb-[9px] pt-[8px] backdrop-blur-md" style={{ boxShadow: "0 8px 20px rgba(3, 12, 35, 0.16)" }}>
-            <div className="mt-0 grid grid-cols-4 gap-3">
-              {[["Energy", "#22d3ee"], ["Mood", "#fbbf24"], ["Metabolism", "#f97316"], ["Recovery", "#34d399"]].map(([label, color]) => <div key={label} className="relative min-w-0"><div className="box-border flex h-[17px] items-center justify-center text-center text-[10px] leading-none whitespace-nowrap" style={{ color }}><strong className="overflow-hidden text-ellipsis font-semibold">{label}</strong></div><div className="relative mt-[10px] h-[3px] rounded-full bg-[rgba(157,203,207,0.14)]"><span className="absolute top-1/2 h-[6px] w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full border" style={{ left: "0%", borderColor: "#08131b", backgroundColor: color, boxShadow: `0 0 0 1px ${color}, 0 0 8px ${color}88` }} /></div></div>)}
-            </div>
-            <p className="mt-[7px] text-center text-[9px] leading-tight text-slate-500"><span className="block">Estimates vary with session conditions and profile settings</span><span className="mt-0.5 block">Not medical guidance</span></p>
-          </div>
         </div>
       </main>
+
+      <div className="absolute inset-x-0 bottom-20 z-10 px-3">
+        <div className="rounded-2xl border border-blue-800/60 bg-blue-950/90 px-[14px] pb-[9px] pt-[8px] backdrop-blur-md" style={{ boxShadow: "0 8px 20px rgba(3, 12, 35, 0.16)" }}>
+          <div className="grid grid-cols-4 gap-3">
+            {[["Energy", "#22d3ee"], ["Mood", "#fbbf24"], ["Metabolism", "#f97316"], ["Recovery", "#34d399"]].map(([label, color]) => <div key={label} className="relative min-w-0"><div className="box-border flex h-[17px] items-center justify-center text-center text-[10px] leading-none whitespace-nowrap" style={{ color }}><strong className="overflow-hidden text-ellipsis font-semibold">{label}</strong></div><div className="relative mt-[10px] h-[3px] rounded-full bg-[rgba(157,203,207,0.14)]"><span className="absolute top-1/2 h-[6px] w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full border" style={{ left: "0%", borderColor: "#08131b", backgroundColor: color, boxShadow: `0 0 0 1px ${color}, 0 0 8px ${color}88` }} /></div></div>)}
+          </div>
+          <p className="mt-[7px] text-center text-[9px] leading-tight text-slate-500"><span className="block">Estimates vary with session conditions and profile settings</span><span className="mt-0.5 block">Not medical guidance</span></p>
+        </div>
+      </div>
 
       <nav className="absolute bottom-0 left-0 right-0 h-20 bg-blue-950/90 backdrop-blur-md border-t border-blue-800/60">
         <div className="flex items-center h-full max-w-xl mx-auto px-2">
