@@ -4049,8 +4049,8 @@ export default function Home() {
           className="absolute left-[calc(50%+100px)] min-[420px]:left-[calc(50%+122px)] inline-flex items-center gap-1 rounded-xl border border-blue-700/50 bg-blue-950/75 px-2.5 py-2 text-blue-100 shadow-lg shadow-black/20 backdrop-blur-md transition-all hover:bg-blue-900/80 hover:text-white active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
           aria-expanded={toolsWindowExpanded}
           aria-controls="coldstreak-utility-window"
-          aria-label={toolsWindowExpanded ? "Collapse Music and Brain Freeze tools" : "Expand Music and Brain Freeze tools"}
-          title={toolsWindowExpanded ? "Hide Music and Brain Freeze" : "Show Music and Brain Freeze"}
+          aria-label={toolsWindowExpanded ? "Collapse music, Brain Freeze, and Coach tools" : "Expand music, Brain Freeze, and Coach tools"}
+          title={toolsWindowExpanded ? "Hide Tools" : "Show Tools"}
         >
           <span className="text-[11px] font-bold tracking-wide">Tools</span>
           {toolsWindowExpanded
@@ -4123,13 +4123,13 @@ export default function Home() {
 
       {/* Music + Brain Freeze utility window — minimized by default so new users
           can focus on the plunge timer, with both optional tools in one place. */}
-      {screen === "timer" && toolsWindowExpanded && (
+      {toolsWindowExpanded && (
         <div
           id="coldstreak-utility-window"
           data-testid="window-coldstreak-utilities"
           className={`absolute z-20 left-3 right-3 transition-all ${
             auth.user && !auth.user.emailVerified && !verifyBannerDismissed ? "top-32" : "top-16"
-          }`}
+          } bottom-20 overflow-y-auto overscroll-contain`}
         >
           <div className="rounded-2xl border border-blue-700/50 bg-blue-950/95 p-2 shadow-2xl shadow-black/30 backdrop-blur-md">
             {auth.user && (
@@ -4153,6 +4153,28 @@ export default function Home() {
               </div>
             )}
             <MusicWidget className="!border-0 !bg-transparent !shadow-none !backdrop-blur-none" />
+            {auth.user && (
+              <div className="mt-2">
+                <CoachFAB
+                  embedded
+                  authToken={localStorage.getItem("coldstreak-auth-token")}
+                  screen={screen}
+                  isPlunging={(isActive && screen === "timer") || photoPromptId !== null}
+                  onNavigate={(s) => {
+                    const [baseScreen, subTab] = s.split(":");
+                    navTo(baseScreen as Parameters<typeof navTo>[0]);
+                    if (baseScreen === "settings") setTimeout(() => setSettingsTab("settings"), 50);
+                    if (baseScreen === "achievements") {
+                      const tab = subTab === "stats" ? "stats" : subTab === "account" ? "account" : null;
+                      if (tab) setTimeout(() => {
+                        setProfileTab(tab as 'account' | 'stats');
+                        localStorage.setItem('coldstreak-profile-tab', tab);
+                      }, 50);
+                    }
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -10271,25 +10293,9 @@ export default function Home() {
         </div>
       )}
 
-      {/* ── AI Coach ── */}
+      {/* ── AI Coach walkthroughs ── */}
       {auth.user && (
         <>
-          <CoachFAB authToken={localStorage.getItem("coldstreak-auth-token")} screen={screen} isPlunging={(isActive && screen === "timer") || photoPromptId !== null} onNavigate={(s) => {
-              // Sub-tab routing: "achievements:account" / "achievements:stats"
-              const [baseScreen, subTab] = s.split(":");
-              navTo(baseScreen as Parameters<typeof navTo>[0]);
-              // When the coach sends the user to Settings, open the body-metrics
-              // sub-tab (not the default Support tab) so they land on the right page.
-              if (baseScreen === "settings") setTimeout(() => setSettingsTab("settings"), 50);
-              // When the coach sends the user to Profile, open the correct tab.
-              if (baseScreen === "achievements") {
-                const tab = subTab === "stats" ? "stats" : subTab === "account" ? "account" : null;
-                if (tab) setTimeout(() => {
-                  setProfileTab(tab as 'account' | 'stats');
-                  localStorage.setItem('coldstreak-profile-tab', tab);
-                }, 50);
-              }
-            }} />
           {showFirstOpenWalkthrough && (
             <CoachWalkthrough
               tourType="first-open"

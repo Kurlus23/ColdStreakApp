@@ -1,5 +1,5 @@
 /**
- * CoachFAB — floating AI coach button + slide-up chat panel.
+ * CoachFAB — AI coach button + chat panel.
  *
  * • Fixed in the bottom-right corner, above the navigation bar.
  * • Badge indicator when there are unseen feature announcements.
@@ -39,6 +39,8 @@ interface Props {
   isPlunging?: boolean;
   /** Called when the coach wants to navigate to a screen. */
   onNavigate?: (screen: string) => void;
+  /** Render inside the Tools window instead of as a floating control. */
+  embedded?: boolean;
 }
 
 // ── Temporary chat history ─────────────────────────────────────────────────────
@@ -200,7 +202,7 @@ function defaultPos(): { x: number; y: number } {
   return { x: 16, y: safeTop };
 }
 
-export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
+export function CoachFAB({ authToken, screen, isPlunging, onNavigate, embedded = false }: Props) {
   const [open, setOpen]         = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory(authToken));
   const [loadedForToken, setLoadedForToken] = useState<string | null>(authToken);
@@ -208,6 +210,7 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
   const [loading, setLoading]   = useState(false);
   const [hasUnread, setHasUnread] = useState(() => getUnseenAnnouncements().length > 0);
   const [panelVisible, setPanelVisible] = useState(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef       = useRef<HTMLTextAreaElement>(null);
 
@@ -356,7 +359,10 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
 
   // Scroll to latest message
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    }
   }, [messages, loading]);
 
   const clearChat = useCallback(() => {
@@ -472,75 +478,110 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
 
   return (
     <>
-      {/* ── Floating Action Button ── */}
-      <button
-        ref={fabRef}
-        onClick={() => { if (!wasDrag.current) openPanel(); }}
-        onContextMenu={(e) => e.preventDefault()}
-        aria-label="Open coach"
-        data-testid="coach-fab"
-        className="fixed z-40 rounded-full flex items-center justify-center touch-none select-none"
-        style={{
-          left: pos.x,
-          top: pos.y,
-          width: FAB_SIZE,
-          height: FAB_SIZE,
-          cursor: "grab",
-          WebkitTouchCallout: "none",
-          WebkitUserSelect: "none",
-        }}
-      >
-        {/* Pulsing glow ring */}
-        <span
-          className="absolute inset-0 rounded-full pointer-events-none"
-          style={{
-            boxShadow: "0 0 0 3px rgba(34,211,238,0.55), 0 0 18px rgba(14,165,233,0.6)",
-            animation: "coach-ring-pulse 2.4s ease-in-out infinite",
-          }}
-        />
-        <img
-          src="/icons/icon-192.png"
-          alt="ColdStreak Coach"
-          className="w-full h-full rounded-full object-cover pointer-events-none"
-          draggable={false}
-          style={{ WebkitTouchCallout: "none", userSelect: "none" }}
-        />
-        {hasUnread && (
-          <span className="absolute top-0.5 right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-[#0a1628]" />
-        )}
-        {/* Small downward arrow hinting the panel opens below */}
-        {!open && (
-          <span
-            className="absolute -bottom-4 left-1/2 flex flex-col items-center pointer-events-none"
-            style={{ transform: "translateX(-50%)" }}
-          >
-            <span className="text-cyan-400/80 leading-none" style={{ fontSize: 9, lineHeight: 1, animation: "coach-arrow-bounce 1.6s ease-in-out infinite" }}>▾</span>
-            <span className="text-cyan-300/70 leading-none" style={{ fontSize: 8, lineHeight: 1, letterSpacing: "0.06em", fontWeight: 700 }}>AI</span>
+      {/* ── Coach entry point ── */}
+      {embedded ? (
+        <button
+          onClick={open ? closePanel : openPanel}
+          aria-expanded={open}
+          aria-label={open ? "Close ColdStreak Coach" : "Open ColdStreak Coach"}
+          data-testid="coach-tools-button"
+          className="w-full flex items-center gap-2 rounded-xl border border-cyan-800/50 bg-cyan-950/30 px-2 py-1.5 text-left transition-colors hover:bg-cyan-950/55 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+        >
+          <img
+            src="/icons/icon-192.png"
+            alt=""
+            className="h-7 w-7 shrink-0 rounded-lg object-cover"
+            draggable={false}
+          />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[11px] font-bold text-white">ColdStreak Coach</span>
+            <span className="block truncate text-[10px] text-blue-300">
+              Ask about your stats or cold plunge science
+            </span>
           </span>
-        )}
-      </button>
+          {hasUnread && !open && (
+            <span className="h-2 w-2 shrink-0 rounded-full bg-red-400" aria-label="New coach announcement" />
+          )}
+          <span className="shrink-0 rounded-lg bg-cyan-600/20 px-2 py-1 text-[10px] font-bold text-cyan-300">
+            {open ? "Close" : "Ask"}
+          </span>
+        </button>
+      ) : (
+        <button
+          ref={fabRef}
+          onClick={() => { if (!wasDrag.current) openPanel(); }}
+          onContextMenu={(e) => e.preventDefault()}
+          aria-label="Open coach"
+          data-testid="coach-fab"
+          className="fixed z-40 rounded-full flex items-center justify-center touch-none select-none"
+          style={{
+            left: pos.x,
+            top: pos.y,
+            width: FAB_SIZE,
+            height: FAB_SIZE,
+            cursor: "grab",
+            WebkitTouchCallout: "none",
+            WebkitUserSelect: "none",
+          }}
+        >
+          {/* Pulsing glow ring */}
+          <span
+            className="absolute inset-0 rounded-full pointer-events-none"
+            style={{
+              boxShadow: "0 0 0 3px rgba(34,211,238,0.55), 0 0 18px rgba(14,165,233,0.6)",
+              animation: "coach-ring-pulse 2.4s ease-in-out infinite",
+            }}
+          />
+          <img
+            src="/icons/icon-192.png"
+            alt="ColdStreak Coach"
+            className="w-full h-full rounded-full object-cover pointer-events-none"
+            draggable={false}
+            style={{ WebkitTouchCallout: "none", userSelect: "none" }}
+          />
+          {hasUnread && (
+            <span className="absolute top-0.5 right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-[#0a1628]" />
+          )}
+          {!open && (
+            <span
+              className="absolute -bottom-4 left-1/2 flex flex-col items-center pointer-events-none"
+              style={{ transform: "translateX(-50%)" }}
+            >
+              <span className="text-cyan-400/80 leading-none" style={{ fontSize: 9, lineHeight: 1, animation: "coach-arrow-bounce 1.6s ease-in-out infinite" }}>▾</span>
+              <span className="text-cyan-300/70 leading-none" style={{ fontSize: 8, lineHeight: 1, letterSpacing: "0.06em", fontWeight: 700 }}>AI</span>
+            </span>
+          )}
+        </button>
+      )}
 
       {/* ── Chat panel ── */}
       {open && (
         <>
           {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40 bg-black/40"
-            style={{
-              opacity: panelVisible ? 1 : 0,
-              transition: "opacity 0.25s ease",
-            }}
-            onClick={closePanel}
-          />
+          {!embedded && (
+            <div
+              className="fixed inset-0 z-40 bg-black/40"
+              style={{
+                opacity: panelVisible ? 1 : 0,
+                transition: "opacity 0.25s ease",
+              }}
+              onClick={closePanel}
+            />
+          )}
 
           {/* Panel */}
           <div
-            className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl border-t border-blue-800/60 bg-[#0a1628]"
-            style={{
-              height: "72dvh",
-              transform: panelVisible ? "translateY(0)" : "translateY(100%)",
-              transition: "transform 0.3s cubic-bezier(.32,0,.67,0)",
-            }}
+            data-testid="coach-panel"
+            className={embedded
+              ? "mt-2 flex h-[min(44dvh,24rem)] min-h-0 flex-col overflow-hidden rounded-xl border border-blue-800/60 bg-[#0a1628]"
+              : "fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl border-t border-blue-800/60 bg-[#0a1628]"}
+            style={embedded
+              ? undefined
+              : {
+                  height: "72dvh",
+                  transform: panelVisible ? "translateY(0)" : "translateY(100%)",
+                  transition: "transform 0.3s cubic-bezier(.32,0,.67,0)",
+                }}
           >
             {/* Drag handle */}
             <div className="flex justify-center pt-2 pb-1 shrink-0">
@@ -581,7 +622,7 @@ export function CoachFAB({ authToken, screen, isPlunging, onNavigate }: Props) {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+            <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3">
               {isEmpty && (
                 <div className="space-y-3">
                   {/* Welcome */}

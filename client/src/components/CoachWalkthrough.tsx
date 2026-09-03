@@ -132,8 +132,9 @@ const FIRST_OPEN_STEPS: Step[] = [
   {
     icon: "💬",
     title: "Ask me anything",
-    body: "Tap the ColdStreak icon (top-left, it moves — drag it wherever you like) any time to ask about your stats, cold plunge science, or how any feature works.",
-    highlight: '[data-testid="coach-fab"]',
+    body: "Tap Tools at the top of the screen, then open ColdStreak Coach to ask about your stats, cold plunge science, or how any feature works.",
+    highlight: '[data-testid="coach-tools-button"]',
+    hint: "↑ inside Tools",
   },
 ];
 
