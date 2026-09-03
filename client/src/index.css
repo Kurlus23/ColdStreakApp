@@ -42,6 +42,7 @@ html, body {
 .capacitor-native .native-bottom-nav {
   height: 5rem;
   padding-bottom: 0;
+  bottom: var(--native-bottom-lift);
 }
 
 .capacitor-native .native-bottom-nav > div {
@@ -51,11 +52,12 @@ html, body {
 
 /* The content stack ends at the same y-coordinate as the nav's top edge. */
 .capacitor-native .bottom-20 {
-  bottom: 5rem;
+  bottom: calc(5rem + var(--native-bottom-lift));
 }
 
 @layer base {
   :root {
+    --native-bottom-lift: 3px;
     --font-sans: 'DM Sans', sans-serif;
     --font-display: 'Outfit', sans-serif;
 
