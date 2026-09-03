@@ -19,7 +19,9 @@ if (isNativePlatform()) {
   initIAP(cachedEmail).catch((err) => console.error("[iap] boot init failed", err));
 }
 
-if ((window as any).Capacitor?.isNativePlatform?.()) {
+const isNativeApp = !!(window as any).Capacitor?.isNativePlatform?.();
+if (isNativeApp) {
+  document.documentElement.classList.add("capacitor-native");
   const _fetch = window.fetch.bind(window);
   window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
     if (typeof input === "string" && input.startsWith("/")) {
