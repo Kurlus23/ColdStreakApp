@@ -57,7 +57,7 @@ html, body {
 
 @layer base {
   :root {
-    --native-bottom-lift: 3px;
+    --native-bottom-lift: 6px;
     --font-sans: 'DM Sans', sans-serif;
     --font-display: 'Outfit', sans-serif;
 
