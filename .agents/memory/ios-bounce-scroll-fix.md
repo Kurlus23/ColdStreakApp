@@ -12,17 +12,19 @@ Separately, without any scroll prevention, the WKWebView body bounces/elastic-sc
 
 **`capacitor.config.ts`**: Change `contentInset: "never"` so the WebView fills the full physical screen.
 
-**`client/src/index.css`**: Clamp `#root` to the safe area using env() in its position values, then all absolute children land in the right place automatically — no env() needed anywhere else:
+**`client/src/index.css`**: Clamp the native `#root` to the safe area using env() in its position values, then all absolute children land in the right place automatically — no env() needed anywhere else. Because the base root uses `height: 100dvh`, the native override must set `height: auto` (and `min-height: 0`) so fixed `top`/`bottom` constraints determine the height:
 
 ```css
 html, body { overscroll-behavior: none; }
 
-#root {
+ #root {
   position: fixed;
   top: env(safe-area-inset-top, 0px);
   bottom: env(safe-area-inset-bottom, 0px);
   left: env(safe-area-inset-left, 0px);
   right: env(safe-area-inset-right, 0px);
+  height: auto;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -41,3 +43,4 @@ html, body { overscroll-behavior: none; }
 - `position: fixed; inset: 0` on #root with contentInset:automatic → #root extends to physical edges but CSS bottom:0 for absolute children is still 34px above screen edge; adding `paddingBottom: env()` to nav created a visible filled "bar"
 - Lifting nav by `bottom: env(safe-area-inset-bottom)` → nav floats above screen edge with background gap visible below it
 - All env() approaches with contentInset:automatic → env() returns 0 or wrong values because the coordinate system is already shifted by the native layer
+- Keeping a base `height: 100dvh` alongside native fixed `top`/`bottom` constraints → the root extends below the visible viewport and clips the bottom navigation
