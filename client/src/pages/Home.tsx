@@ -4184,7 +4184,7 @@ export default function Home() {
         <div className={`absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overscroll-contain px-3 ${
           toolsWindowExpanded ? "pt-56" : ""
         }`}>
-          <div className="flex min-h-full flex-col justify-end pb-2">
+          <div className="flex min-h-full flex-col justify-center pb-2">
           {auth.user && <FlowDeviceCard compact useCelsius={useCelsius} />}
 
           {/* ── Goal nudge (live countdown / keep-going) ── */}
