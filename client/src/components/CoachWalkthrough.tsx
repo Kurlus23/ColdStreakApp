@@ -76,7 +76,7 @@ const FIRST_OPEN_STEPS: Step[] = [
     icon: "🎵",
     imageSrc: "/brain-freeze-icon.png",
     title: "Music + Brain Freeze",
-    body: "Tap Music › at the top-left to open the optional tools window. Choose a playlist for your plunge, or tap the Brain Freeze icon to try optional trivia while the timer runs. You can hide the window again whenever you want.",
+    body: "Tap Tools at the top of the screen to open the optional tools window. Choose a playlist, tap ColdStreak Coach for help, or tap the Brain Freeze icon to try optional trivia. You can hide the window again whenever you want.",
     highlight: '[data-testid="button-toggle-utility-window"]',
     hint: "↑ top-left",
   },

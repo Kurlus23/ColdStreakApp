@@ -1,7 +1,7 @@
 /**
  * CoachFAB — AI coach button + chat panel.
  *
- * • Fixed in the bottom-right corner, above the navigation bar.
+ * • Renders as an inline Tools control in the main app.
  * • Badge indicator when there are unseen feature announcements.
  * • On open, injects unseen announcements as coach messages then marks them seen.
  * • Chat history is persisted to localStorage (last 20 messages), keyed per user.
