@@ -43,6 +43,12 @@ html, body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Keep scrollable panels above the full native nav, including its home
+   indicator area. */
+.capacitor-native .bottom-20 {
+  bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+
 @layer base {
   :root {
     --font-sans: 'DM Sans', sans-serif;
