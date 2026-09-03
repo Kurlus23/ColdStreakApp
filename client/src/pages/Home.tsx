@@ -4028,6 +4028,15 @@ export default function Home() {
 
       {/* Header */}
       <header className="absolute z-10 inset-x-0 top-0 flex items-center justify-end px-3 pt-5 pb-2">
+        {!auth.user && (
+          <button
+            data-testid="button-header-signin"
+            onClick={() => { setShowLoginModal(true); setForgotMode(false); setForgotSent(false); auth.clearError(); }}
+            className="absolute right-[calc(50%+100px)] min-[420px]:right-[calc(50%+122px)] rounded-xl bg-cyan-500/90 px-3 py-2 text-xs font-bold text-blue-950 shadow-lg shadow-black/20 transition-colors hover:bg-cyan-400 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+          >
+            Sign In
+          </button>
+        )}
         <h1
           className="absolute left-1/2 -translate-x-1/2 text-xl min-[420px]:text-2xl font-black tracking-widest pointer-events-none select-none"
           style={{
@@ -4057,17 +4066,6 @@ export default function Home() {
             ? <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
             : <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />}
         </button>
-        <div className="w-24 flex justify-end items-center gap-2">
-          {!auth.user && (
-            <button
-              data-testid="button-header-signin"
-              onClick={() => { setShowLoginModal(true); setForgotMode(false); setForgotSent(false); auth.clearError(); }}
-              className="px-3 py-1.5 rounded-xl bg-cyan-500/90 hover:bg-cyan-400 text-blue-950 text-xs font-bold transition-colors active:scale-95"
-            >
-              Sign In
-            </button>
-          )}
-        </div>
       </header>
 
       {/* Email verification banner — shows persistently until user verifies (dismissible per session) */}
@@ -4181,10 +4179,11 @@ export default function Home() {
 
       {/* ─── TIMER SCREEN ─── */}
       {screen === "timer" && (
-        <div className={`absolute top-20 bottom-20 left-0 right-0 overflow-y-auto overscroll-contain px-3 ${
-          toolsWindowExpanded ? "pt-56" : ""
-        }`}>
-          <div className="flex min-h-full flex-col justify-center pb-2">
+        <div className="absolute top-20 bottom-20 left-0 right-0 flex min-h-0 flex-col px-3">
+          <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${
+            toolsWindowExpanded ? "pt-56" : ""
+          }`}>
+          <div className="flex min-h-full flex-col justify-end pb-2">
           {auth.user && <FlowDeviceCard compact useCelsius={useCelsius} />}
 
           {/* ── Goal nudge (live countdown / keep-going) ── */}
@@ -4470,33 +4469,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* ── Benefit bar (home screen) ── */}
-          {/* Uses today's total for progress; each earned benefit fades independently after its own window. */}
-          <div data-testid="benefit-bar" className="mt-2">
-            <BenefitBar
-              todayPlungesData={todayPlunges}
-              elapsedSeconds={elapsedSeconds}
-              tempF={temperature}
-              isActive={isActive}
-              todayLoggedSeconds={todayTotalSec}
-              bodyWeightLbs={bodyWeightLbs}
-              bodyHeightCm={bodyHeightCm}
-              bodyFatPct={bodyFatPct}
-              lastPlungeEndedAt={lastPlungeEndedAt}
-              onMilestoneReached={handleBenefitMilestone}
-              primaryBenefit={primaryBenefit}
-              onGoalTap={(segmentId) => {
-                Analytics.benefitViewed(segmentId, {
-                  required_duration_seconds: benefitThresholds[SEGMENTS.findIndex((segment) => segment.id === segmentId)],
-                  water_temp_f: temperature,
-                });
-                Analytics.goalViewed();
-                setShowBenefitPicker(true);
-              }}
-            />
-          </div>
-
-
           {/* ── Height nudge banner ── */}
           {auth.user && !heightNudgeDismissed && !localStorage.getItem("coldstreak-body-height") && (
             <div
@@ -4530,6 +4502,33 @@ export default function Home() {
           )}
 
         </div>
+        </div>
+
+          {/* ── Docked Benefit Bar (home screen) ── */}
+          {/* Uses today's total for progress; each earned benefit fades independently after its own window. */}
+          <div data-testid="benefit-bar" className="shrink-0 pt-2">
+            <BenefitBar
+              todayPlungesData={todayPlunges}
+              elapsedSeconds={elapsedSeconds}
+              tempF={temperature}
+              isActive={isActive}
+              todayLoggedSeconds={todayTotalSec}
+              bodyWeightLbs={bodyWeightLbs}
+              bodyHeightCm={bodyHeightCm}
+              bodyFatPct={bodyFatPct}
+              lastPlungeEndedAt={lastPlungeEndedAt}
+              onMilestoneReached={handleBenefitMilestone}
+              primaryBenefit={primaryBenefit}
+              onGoalTap={(segmentId) => {
+                Analytics.benefitViewed(segmentId, {
+                  required_duration_seconds: benefitThresholds[SEGMENTS.findIndex((segment) => segment.id === segmentId)],
+                  water_temp_f: temperature,
+                });
+                Analytics.goalViewed();
+                setShowBenefitPicker(true);
+              }}
+            />
+          </div>
         </div>
       )}
 
