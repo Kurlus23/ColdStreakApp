@@ -25,3 +25,4 @@
 - [Coach request timeouts](coach-timeouts.md) — bound provider and client requests so AI chat cannot spin indefinitely.
 - [Coach response normalization](coach-response-normalization.md) — AI output can be fenced, truncated, or nested; unwrap it before display and persistence.
 - [Benefit timing source of truth](benefit-timing-source-of-truth.md) — exact personalized durations come from the Benefit Bar; coach advice must not override them.
+- [Published artifact verification](published-artifact-verification.md) — a publish marker can exist while production still serves an older hashed bundle; verify the live asset, not just deployment status.
