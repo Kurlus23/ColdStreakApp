@@ -25,8 +25,8 @@ export function CurrentHome() {
       </header>
 
       <main className="absolute top-20 bottom-[10.25rem] left-0 right-0 overflow-y-auto overscroll-contain px-3">
-        <div className="flex min-h-full flex-col justify-center pb-2">
-          <div className="rounded-2xl mb-3 relative bg-blue-950/90 backdrop-blur-sm border border-blue-800/50">
+        <div className="flex min-h-full flex-col justify-end">
+          <div className="relative rounded-2xl border border-blue-800/50 bg-blue-950/90 backdrop-blur-sm">
             <div className="grid grid-cols-3">
               <div className="flex flex-col items-center px-2 py-2.5 relative">
                 <span className="text-blue-400/60 text-[8.5px] font-semibold uppercase tracking-widest mb-1">Water</span>
