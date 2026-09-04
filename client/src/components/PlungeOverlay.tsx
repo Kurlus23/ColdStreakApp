@@ -344,7 +344,7 @@ export function PlungeOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex flex-col items-center justify-between overflow-hidden animate-in fade-in"
+      className="plunge-overlay fixed inset-0 z-[60] flex flex-col items-center justify-between overflow-y-auto overscroll-contain animate-in fade-in"
       style={{ background: "linear-gradient(to bottom, #0c2a42 0%, #071a2e 60%, #040f1e 100%)" }}
     >
       {/* Ambient glows */}
@@ -374,7 +374,7 @@ export function PlungeOverlay({
       </div>
 
       {/* Ring + timer hero */}
-      <div className="relative flex-1 flex items-center justify-center w-full z-10 shrink-0" style={{ minHeight: "300px" }}>
+      <div className="plunge-hero relative flex-1 flex items-center justify-center w-full z-10 shrink-0" style={{ minHeight: "clamp(220px, 34vh, 300px)" }}>
         {/* Goal-progress ring — always visible; challenge score boxes overlay it */}
         <ChallengeRing
           progress={goalRingProgress}
@@ -384,6 +384,7 @@ export function PlungeOverlay({
         />
 
         <div className="relative z-10 flex flex-col items-center gap-0.5">
+          <div className="plunge-timer-content relative z-10 flex flex-col items-center gap-0.5">
           <div
             className="font-mono font-bold text-white leading-none tracking-tighter"
             data-testid="display-timer-overlay"
@@ -419,7 +420,7 @@ export function PlungeOverlay({
               ✕ dismiss
             </button>
           )}
-        </div>
+          </div>
 
         {/* ── Challenge score boxes — You vs all challengers ── */}
         {inChallenge && (
@@ -486,7 +487,7 @@ export function PlungeOverlay({
       </div>
 
       {/* Cold Take */}
-      <div className="w-full px-5 pb-3 z-10 shrink-0">
+      <div className="plunge-cold-take w-full px-5 pb-3 z-10 shrink-0">
         <ColdTakeOverlay
           isActive={isActive}
           elapsedSeconds={localDisplaySecs}
@@ -499,7 +500,7 @@ export function PlungeOverlay({
       </div>
 
       {/* Bottom HUD — no unified panel; each row floats independently */}
-      <div className="w-full z-10 shrink-0 px-6 pb-10 flex flex-col gap-4">
+      <div className="plunge-bottom-hud w-full z-10 shrink-0 px-6 pb-10 flex flex-col gap-4">
 
         {/* Stats row — pill-shaped glass card */}
         <div
