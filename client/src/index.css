@@ -55,6 +55,41 @@ html, body {
   bottom: calc(5rem + var(--native-bottom-lift));
 }
 
+/* The active plunge has several intentional controls below the timer. On
+   shorter phones, shrink the empty hero space and move the timer up so a
+   revealed Cold Take does not push the stop control below the viewport. The
+   overlay itself remains scrollable as a final safety net. */
+@media (max-height: 740px) {
+  .plunge-overlay .plunge-hero {
+    min-height: 220px !important;
+  }
+
+  .plunge-overlay .plunge-timer-content {
+    transform: translateY(-18px);
+  }
+
+  .plunge-overlay .plunge-bottom-hud {
+    gap: 0.625rem;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .plunge-overlay .plunge-bottom-hud > button:last-child > div.relative {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    font-size: 1.125rem;
+  }
+}
+
+@media (max-height: 620px) {
+  .plunge-overlay .plunge-hero {
+    min-height: 190px !important;
+  }
+
+  .plunge-overlay .plunge-timer-content {
+    transform: translateY(-24px);
+  }
+}
+
 @layer base {
   :root {
     --native-bottom-lift: 9px;

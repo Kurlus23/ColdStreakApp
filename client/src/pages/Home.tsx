@@ -8601,10 +8601,11 @@ export default function Home() {
 
       {/* ─── PHOTO / LOCATION PROMPT (Plunge Complete — "Level Up Your Mind") ─── */}
       {photoPromptId !== null && (
-        <div className="fixed inset-0 z-40 bg-[#060c18] overflow-y-auto">
+        <div className="fixed inset-0 z-40 bg-[#060c18] overflow-y-auto overscroll-contain">
           <div
             data-testid="sheet-photo-prompt"
             className="relative min-h-full w-full max-w-lg mx-auto bg-[#0a1122] border-x border-t border-cyan-500/30 px-5 pt-6 pb-8 space-y-4 shadow-[0_-10px_40px_rgba(6,182,212,0.15)]"
+            style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom, 0px))" }}
           >
             {/* Glow edge indicator */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-cyan-400 rounded-full blur-[2px] opacity-70"></div>
@@ -9176,7 +9177,13 @@ export default function Home() {
             </div>
 
             {/* Discard */}
-            <div className="text-center pt-1">
+            <div
+              className="sticky bottom-0 z-20 -mx-5 px-5 pt-3 text-center"
+              style={{
+                paddingBottom: "max(0.25rem, env(safe-area-inset-bottom, 0px))",
+                background: "linear-gradient(to top, #0a1122 62%, rgba(10,17,34,0) 100%)",
+              }}
+            >
               <button
                 data-testid="button-discard-plunge"
                 onClick={() => {
@@ -9188,7 +9195,7 @@ export default function Home() {
                   });
                   setPhotoPromptId(null);
                 }}
-                className="text-red-400/80 hover:text-red-300 text-xs font-bold uppercase tracking-wider transition-colors"
+                className="inline-flex min-h-11 items-center justify-center px-4 text-red-400/80 hover:text-red-300 text-xs font-bold uppercase tracking-wider transition-colors"
               >
                 Discard
               </button>

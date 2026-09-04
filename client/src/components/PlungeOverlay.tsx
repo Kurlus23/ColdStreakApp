@@ -63,7 +63,8 @@ function ChallengeRing({ progress, targetLabel, accentColor, challengerMarks = [
   return (
     <svg
       viewBox="0 0 280 280"
-      className="w-[280px] h-[280px] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+      style={{ width: "min(280px, 72vw)", height: "min(280px, 72vw)" }}
     >
       {/* Track */}
       <circle
@@ -383,8 +384,7 @@ export function PlungeOverlay({
           challengerMarks={challengerMarks}
         />
 
-        <div className="relative z-10 flex flex-col items-center gap-0.5">
-          <div className="plunge-timer-content relative z-10 flex flex-col items-center gap-0.5">
+        <div className="plunge-timer-content relative z-10 flex flex-col items-center gap-0.5">
           <div
             className="font-mono font-bold text-white leading-none tracking-tighter"
             data-testid="display-timer-overlay"
@@ -420,8 +420,7 @@ export function PlungeOverlay({
               ✕ dismiss
             </button>
           )}
-          </div>
-
+        </div>
         {/* ── Challenge score boxes — You vs all challengers ── */}
         {inChallenge && (
           <div className="absolute bottom-4 left-0 right-0 flex items-end justify-center px-3 pointer-events-none gap-2">
