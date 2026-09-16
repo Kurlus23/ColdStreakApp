@@ -244,9 +244,17 @@ export function PlungeOverlay({
     const tick = () => setLocalDisplaySecs(Math.floor((Date.now() - plungeStartTime) / 1000));
     tick(); // sync immediately on mount / start-time change
     const id = setInterval(tick, 500); // 500 ms for sub-second snappiness
-    return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, countdownMode, plungeStartTime]);
+    const syncOnResume = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    document.addEventListener("visibilitychange", syncOnResume);
+    window.addEventListener("pageshow", syncOnResume);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", syncOnResume);
+      window.removeEventListener("pageshow", syncOnResume);
+    };
+  }, [displaySeconds, isActive, countdownMode, plungeStartTime]);
 
   // Keep countdown (and no-start-time) mode in sync with parent
   useEffect(() => {

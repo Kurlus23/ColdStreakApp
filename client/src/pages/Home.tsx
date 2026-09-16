@@ -3492,25 +3492,27 @@ export default function Home() {
           ? s.entryTemp
           : _fallbackTemp;
         if (s.mode === "stopwatch") {
-          if (!isRunningRef.current) {
-            startTimeRef.current = s.startTime;
-            setSeconds(elapsed);
+          const wasRunning = isRunningRef.current;
+          startTimeRef.current = s.startTime;
+          setSeconds(elapsed);
+          if (!wasRunning) {
             tempSamplesRef.current = [restoredTemp];
-            // Set the ref immediately so BLE notification handlers that fire
-            // before the React render cycle completes still see isRunning=true
-            // and push their readings into tempSamplesRef (instead of dropping them).
-            isRunningRef.current = true;
-            setIsRunning(true);
           }
+          // Set the ref immediately so BLE notification handlers that fire
+          // before the React render cycle completes still see isRunning=true
+          // and push their readings into tempSamplesRef (instead of dropping them).
+          isRunningRef.current = true;
+          setIsRunning(true);
         } else if (s.mode === "countdown") {
-          if (!countdownRunningRef.current && typeof s.countdownTotal === "number" && s.countdownTotal > 0) {
+          if (typeof s.countdownTotal === "number" && s.countdownTotal > 0) {
+            const wasRunning = countdownRunningRef.current;
             const remaining = Math.max(0, s.countdownTotal - elapsed);
             setCountdownMode(true);
             if (typeof s.minutesInput === "number") setMinutesInput(s.minutesInput);
             if (typeof s.secondsInput === "number") setSecondsInput(s.secondsInput);
             countdownTotalRef.current = s.countdownTotal;
             countdownStartRef.current = s.startTime;
-            tempSamplesRef.current = [restoredTemp];
+            if (!wasRunning) tempSamplesRef.current = [restoredTemp];
             // Set the ref immediately so BLE notification handlers that fire
             // before the React render cycle completes still see running=true
             // and push their readings into tempSamplesRef (instead of dropping them).
