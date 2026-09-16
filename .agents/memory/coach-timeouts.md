@@ -7,4 +7,4 @@ AI coach requests must have bounded time at the provider, server route, and clie
 
 **Why:** An unbounded provider fetch left the chat typing indicator active for several minutes, making the coach appear offline without giving the user a retry path.
 
-**How to apply:** Keep the client timeout slightly longer than the server timeout, map timeout responses to a clear retry message, and ensure retry requests do not duplicate the current message in conversation history.
+**How to apply:** Keep the client timeout slightly longer than the server timeout, map timeout responses to a clear retry message, and ensure retry requests do not duplicate the current message in conversation history. The client deadline must reject independently of `AbortController`; some WKWebView fetches can leave a response-body promise pending after abort.
