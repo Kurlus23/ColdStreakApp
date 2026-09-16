@@ -136,32 +136,46 @@ async function sendMessage(
   screen?: string,
 ): Promise<{ reply: string; navigate?: string | null }> {
   const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), COACH_CLIENT_TIMEOUT_MS);
-  try {
-    const res = await fetch("/api/coach/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        message,
-        history,
-        ...(screen ? { context: { screen } } : {}),
-      }),
-      signal: controller.signal,
-    });
+  let timeoutId: number | undefined;
+  const request = fetch("/api/coach/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      message,
+      history,
+      ...(screen ? { context: { screen } } : {}),
+    }),
+    signal: controller.signal,
+  }).then(async (res) => {
     if (res.status === 504) throw new Error("COACH_TIMEOUT");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const response: unknown = await res.json();
     return normalizeCoachReply(response);
+  });
+
+  // AbortController is not sufficient on every WKWebView: a stalled response
+  // body can ignore the abort signal and leave the promise pending forever.
+  // Race fetch against an independent rejection so the UI always clears its
+  // loading state and gives the user a retry path.
+  const deadline = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => {
+      controller.abort();
+      reject(new Error("COACH_TIMEOUT"));
+    }, COACH_CLIENT_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([request, deadline]);
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error("COACH_TIMEOUT");
     }
     throw error;
   } finally {
-    window.clearTimeout(timeoutId);
+    if (timeoutId !== undefined) window.clearTimeout(timeoutId);
   }
 }
 
