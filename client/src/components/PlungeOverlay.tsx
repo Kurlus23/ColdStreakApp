@@ -232,6 +232,15 @@ export function PlungeOverlay({
   plungeStartTime,
 }: PlungeOverlayProps) {
   const [nextQuestionIn, setNextQuestionIn] = useState<number | null>(null);
+  // Stop is a state transition in the parent, so there can be one render where
+  // isActive is still true after the button event. Suppress Brain Freeze
+  // immediately during that transition instead of allowing a scheduled fetch
+  // or an in-flight response to surface a question as the plunge ends.
+  const [stopRequested, setStopRequested] = useState(false);
+  const requestStop = () => {
+    setStopRequested(true);
+    onStop();
+  };
   // ── Wall-clock display timer ──────────────────────────────────────────────────
   // Drives its own setInterval from the raw start timestamp so the clock stays
   // accurate even if the parent's 1-second interval is throttled or dropped on iOS.
@@ -593,7 +602,7 @@ export function PlungeOverlay({
         {/* Stop button — floats with just its glow halo */}
         <button
           data-testid="button-stop-overlay"
-          onClick={onStop}
+          onClick={requestStop}
           className="w-full relative group"
         >
           <div className="absolute inset-0 bg-red-600 rounded-2xl blur-lg opacity-50 group-hover:opacity-80 transition-opacity duration-300" />
@@ -607,11 +616,11 @@ export function PlungeOverlay({
       <BrainFreezeGame
         elapsedSeconds={elapsedSeconds}
         temperature={temperature}
-        isActive={isActive}
-        enabled={brainFreezeEnabled}
+        isActive={isActive && !stopRequested}
+        enabled={brainFreezeEnabled && !stopRequested}
         onScoreUpdate={onBrainFreezeScore}
         onStopGame={() => onBrainFreezeToggle?.(false)}
-        onStopPlunge={onStop}
+        onStopPlunge={requestStop}
         onCountdownUpdate={(secs) => { setNextQuestionIn(secs); onBrainFreezeCountdown?.(secs); }}
         onBrainFreezeStats={onBrainFreezeStats}
         onColdBonusUpdate={onColdBonusUpdate}

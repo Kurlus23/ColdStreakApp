@@ -626,7 +626,9 @@ export default function Home() {
 
   // Countdown
   const [countdownMode, setCountdownMode] = useState(() => localStorage.getItem("coldstreak-countdown-mode") === "true");
-  const [brainFreezeEnabled, setBrainFreezeEnabled] = useState(() => localStorage.getItem("coldstreak-brain-freeze") !== "false");
+  // Brain Freeze is an explicit opt-in. A missing local value must not briefly
+  // enable trivia while the account preference is still being restored.
+  const [brainFreezeEnabled, setBrainFreezeEnabled] = useState(() => localStorage.getItem("coldstreak-brain-freeze") === "true");
   const [brainFreezePromptPending, setBrainFreezePromptPending] = useState(false);
   const [showBrainFreezeOptIn, setShowBrainFreezeOptIn] = useState(false);
   const [brainFreezeLabData, setBrainFreezeLabData] = useState<null | {
