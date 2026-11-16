@@ -69,7 +69,6 @@ import { sendFriendChallenge as sendFriendChallengeImpl } from "@/lib/sendFriend
 import { handleSwMessage } from "@/lib/swMessageHandler";
 import { buildBrainFreezeField, shouldShowBrainFreezeRow, brainFreezeRowLabel, shouldShowColdBonusRow, coldBonusRowLabel } from "@/lib/completionCard";
 import { getMissedStreakDate } from "@/lib/streakFreeze";
-import { FlowDeviceCard } from "@/components/FlowDeviceCard";
 
 // Pick a fresh cold take the user hasn't unlocked yet and persist it to the
 // unlocked collection. Falls back to a repeat only if the pool is exhausted.
@@ -1554,9 +1553,14 @@ export default function Home() {
   const [legalCheckbox, setLegalCheckbox] = useState(false);
   const [tosOpen, setTosOpen] = useState(false);
   const [communityDisclaimerOpen, setCommunityDisclaimerOpen] = useState(false);
-  const [notifPermission, setNotifPermission] = useState<string>(() =>
-    typeof Notification !== "undefined" ? Notification.permission : "unsupported"
-  );
+  const [notifPermission, setNotifPermission] = useState<string>(() => {
+    if (
+      typeof Notification === "undefined" ||
+      !("serviceWorker" in navigator) ||
+      !("PushManager" in window)
+    ) return "unsupported";
+    return Notification.permission;
+  });
   const [notifDismissed, setNotifDismissed] = useState(() =>
     !!localStorage.getItem("coldstreak-notif-dismissed")
   );
@@ -4196,8 +4200,6 @@ export default function Home() {
             toolsWindowExpanded ? "pt-56" : ""
           }`}>
           <div className="flex min-h-full flex-col justify-end">
-          {auth.user && <FlowDeviceCard compact useCelsius={useCelsius} />}
-
           {/* ── Goal nudge (live countdown / keep-going) ── */}
           <GoalNudge
             primaryBenefit={primaryBenefit}
@@ -5105,8 +5107,6 @@ export default function Home() {
 
             {settingsTab === 'settings' && (<>
 
-            {auth.user && <FlowDeviceCard useCelsius={useCelsius} />}
-
             {/* Replay app tour */}
             <div className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40">
               <div className="flex items-center gap-2">
@@ -5150,15 +5150,19 @@ export default function Home() {
               </div>
             )}
 
-            {/* Streak Reminders */}
-            {notifPermission !== "unsupported" && (
-              <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
+            {/* Push Notifications */}
+            <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
                   <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
                     <Bell className="w-3 h-3 text-cyan-400" /> Push Notifications
                 </label>
                 <div className="flex items-center justify-between gap-3 bg-blue-800/50 border border-blue-700/50 rounded-xl px-3 py-3">
                   <div className="min-w-0">
-                    {notifPermission === "granted" ? (
+                    {notifPermission === "unsupported" ? (
+                      <>
+                        <p className="text-amber-300 text-xs font-semibold">Not available in this app or browser</p>
+                        <p className="text-blue-500 text-[10px] mt-0.5">Use ColdStreak in a browser or installed web app that supports push notifications.</p>
+                      </>
+                    ) : notifPermission === "granted" ? (
                       <>
                         <p className="text-emerald-300 text-xs font-semibold">Push notifications enabled ✓</p>
                         <p className="text-blue-500 text-[10px] mt-0.5">Check-in reminder about 1 hour after an unanswered plunge, plus a streak alert if you miss a plunge day.</p>
@@ -5185,8 +5189,7 @@ export default function Home() {
                     </button>
                   )}
                 </div>
-              </div>
-            )}
+            </div>
 
             {/* Brain Freeze toggle */}
             <div className="w-full flex items-center justify-between bg-blue-900/60 rounded-2xl px-4 py-3 border border-blue-700/40">
