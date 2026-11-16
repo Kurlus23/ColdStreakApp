@@ -2109,14 +2109,18 @@ export default function Home() {
         }
         const json = sub.toJSON() as { endpoint: string; keys?: { p256dh: string; auth: string } };
         pushEndpointRef.current = json.endpoint;
+        const token = localStorage.getItem("coldstreak-auth-token");
         fetch("/api/notifications/subscribe", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({ endpoint: json.endpoint, p256dh: json.keys?.p256dh, auth: json.keys?.auth, clientId: getClientId() }),
         }).catch(() => {});
       } catch {}
     });
-  }, [notifPermission]);
+  }, [notifPermission, auth.user?.id]);
 
   const handleAuthSubmit = async () => {
     const email = authEmail;
@@ -3783,9 +3787,13 @@ export default function Home() {
       });
       const json = sub.toJSON() as { endpoint: string; keys?: { p256dh: string; auth: string } };
       pushEndpointRef.current = json.endpoint;
+      const token = localStorage.getItem("coldstreak-auth-token");
       await fetch("/api/notifications/subscribe", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ endpoint: json.endpoint, p256dh: json.keys?.p256dh, auth: json.keys?.auth, clientId: getClientId() }),
       });
     } catch {}
@@ -5145,15 +5153,15 @@ export default function Home() {
             {/* Streak Reminders */}
             {notifPermission !== "unsupported" && (
               <div className="bg-blue-900/60 rounded-2xl p-4 border border-blue-700/40">
-                <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
-                  <Bell className="w-3 h-3 text-cyan-400" /> Streak Reminders
+                  <label className="text-blue-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
+                    <Bell className="w-3 h-3 text-cyan-400" /> Push Notifications
                 </label>
                 <div className="flex items-center justify-between gap-3 bg-blue-800/50 border border-blue-700/50 rounded-xl px-3 py-3">
                   <div className="min-w-0">
                     {notifPermission === "granted" ? (
                       <>
                         <p className="text-emerald-300 text-xs font-semibold">Push notifications enabled ✓</p>
-                        <p className="text-blue-500 text-[10px] mt-0.5">Your device will alert you if you miss a plunge day.</p>
+                        <p className="text-blue-500 text-[10px] mt-0.5">Check-in reminder about 1 hour after an unanswered plunge, plus a streak alert if you miss a plunge day.</p>
                       </>
                     ) : notifPermission === "denied" ? (
                       <>
@@ -5162,8 +5170,8 @@ export default function Home() {
                       </>
                     ) : (
                       <>
-                        <p className="text-blue-200 text-xs font-semibold">Get daily push reminders</p>
-                        <p className="text-blue-500 text-[10px] mt-0.5">Sent to your device when your streak is at risk.</p>
+                        <p className="text-blue-200 text-xs font-semibold">Get check-in and streak reminders</p>
+                        <p className="text-blue-500 text-[10px] mt-0.5">A check-in reminder arrives about 1 hour after an unanswered plunge.</p>
                       </>
                     )}
                   </div>

@@ -4065,17 +4065,20 @@ setTimeout(function(){window.location.replace('/?spotify=${ok ? 'connected' : 'e
       const due = await storage.getPlungesNeedingMoodPrompt();
       for (const plunge of due) {
         try {
-          // Atomic mark first: skips plunges answered since the sweep query,
-          // and a failing push can never spam the user on retries.
-          const marked = await storage.markMoodPrompted(plunge.id);
-          if (!marked) continue;
-
           const subs = plunge.userId
             ? await storage.getPushSubscriptionsByUser(plunge.userId)
             : plunge.clientId
               ? await storage.getPushSubscriptionsByClient(plunge.clientId)
               : [];
+          // Leave the plunge eligible until the device has a subscription.
+          // This lets someone who enables notifications later still receive
+          // the reminder during the 1–3 hour prompt window.
           if (subs.length === 0) continue;
+
+          // Atomic mark before sending: skips plunges answered since the sweep
+          // query and prevents duplicate notifications across overlapping sweeps.
+          const marked = await storage.markMoodPrompted(plunge.id);
+          if (!marked) continue;
 
           const payload = JSON.stringify({
             title: "How are you feeling? ❄️",
