@@ -156,6 +156,16 @@ describe("in-app report vs emailed report — numeric parity", () => {
     expect(serverStats.count).toBe(SEED_ROWS.length);
   });
 
+  it("includes session-only averages even when check-ins are missing", () => {
+    const noMood = SEED_ROWS.map((row) => ({ ...row, mood: null, moodEnergy: null, moodFocus: null }));
+    const stats = computeStats(noMood);
+
+    expect(stats.avgDurationSeconds).toBe(Math.round(SEED_ROWS.reduce((sum, row) => sum + row.duration, 0) / SEED_ROWS.length));
+    expect(stats.avgTemperature).toBe(Math.round(SEED_ROWS.reduce((sum, row) => sum + row.temperature, 0) / SEED_ROWS.length));
+    expect(stats.longestDurationSeconds).toBe(480);
+    expect(stats.moodResponded).toBe(0);
+  });
+
   it("sweet-spot tempLabel is identical", () => {
     expect(clientInsights.tempLabel).toEqual(serverStats.insights.tempLabel);
     expect(serverStats.insights.tempLabel).not.toBeNull();
@@ -196,6 +206,14 @@ describe("in-app report vs emailed report — edge cases", () => {
     const { stats: cli } = clientPath(noMood);
     expect(srv.avgMood).toBeNull();
     expect(cli.avgMood).toBeNull();
+  });
+
+  it("returns safe empty session stats for an empty period", () => {
+    const stats = computeStats([]);
+    expect(stats.avgDurationSeconds).toBe(0);
+    expect(stats.avgTemperature).toBe(0);
+    expect(stats.longestDurationSeconds).toBe(0);
+    expect(stats.count).toBe(0);
   });
 
   it("both agree on avgMood with a single-plunge dataset", () => {

@@ -93,6 +93,13 @@ function insightCard(emoji: string, title: string, body: string): string {
     </div>`;
 }
 
+function formatDuration(seconds: number): string {
+  const rounded = Math.round(seconds);
+  const minutes = Math.floor(rounded / 60);
+  const remainingSeconds = rounded % 60;
+  return minutes > 0 ? `${minutes}m ${remainingSeconds.toString().padStart(2, "0")}s` : `${remainingSeconds}s`;
+}
+
 interface BfEmailStats {
   inColdAccuracy: number; outColdAccuracy: number;
   inColdAvgMs: number; outColdAvgMs: number;
@@ -103,12 +110,10 @@ interface BfEmailStats {
 function buildReportHtml(opts: {
   name:       string;
   periodLabel: string;
-  isMonthly:  boolean;
   stats:      PeriodStats;
-  windowDays: number;
   bfStats?:   BfEmailStats | null;
 }): string {
-  const { name, periodLabel, stats, windowDays, bfStats } = opts;
+  const { name, periodLabel, stats, bfStats } = opts;
   const greeting = name ? `Hey ${name},` : "Hey there,";
   const { insights } = stats;
 
@@ -217,7 +222,7 @@ function buildReportHtml(opts: {
   <!-- No check-ins -->
   <div style="background:${BRAND_CARD};border-radius:12px;padding:18px;margin-bottom:20px;">
     <h3 style="color:#fff;margin:0 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:.08em;">How You Felt After Plunging</h3>
-    <p style="color:${BRAND_DIM};font-size:13px;margin:0;">No check-ins recorded this period. Tap the in-app prompt after your next plunge to start building your personal dataset.</p>
+    <p style="color:${BRAND_DIM};font-size:13px;margin:0;">No mood check-ins were submitted this period. Your plunge details are still included above; mood, energy, and focus patterns will appear here when you add ratings.</p>
   </div>`;
 
   const discoverySection = discoveryCards.length > 0 ? `
@@ -232,15 +237,6 @@ function buildReportHtml(opts: {
     </p>
   </div>` : "";
 
-  const motivators = [
-    "Keep getting cold — your body is adapting.",
-    "Consistency is the only metric that matters.",
-    "Every plunge is a vote for the person you're becoming.",
-    "The discomfort you choose builds the resilience you need.",
-    "Cold water doesn't care how you feel. Neither should you.",
-  ];
-  const motivator = motivators[stats.count % motivators.length];
-
   return `
 <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:${BRAND_BG};color:${BRAND_TEXT};border-radius:16px;padding:32px;">
 
@@ -253,10 +249,32 @@ function buildReportHtml(opts: {
     <tr>
       ${statCard(String(stats.count), "Plunges")}
       ${statCard(String(stats.totalMinutes), "Minutes")}
-      ${statCard(`${stats.uniqueDays}/${windowDays}`, "Days", "#6ee7b7")}
+      ${statCard(String(stats.uniqueDays), "Plunge Days", "#6ee7b7")}
       ${statCard(stats.bestScore > 0 ? String(stats.bestScore) : "—", "Best Score", "#fbbf24")}
     </tr>
   </table>
+
+  <!-- Session data, available even when check-ins are skipped -->
+  <div style="background:${BRAND_CARD};border-radius:12px;padding:18px;margin-bottom:20px;">
+    <h3 style="color:#fff;margin:0 0 12px;font-size:14px;text-transform:uppercase;letter-spacing:.08em;">
+      Your Plunge Sessions
+    </h3>
+    <table style="width:100%;border-collapse:collapse;">
+      <tr>
+        <td style="padding:6px 0;color:${BRAND_MUTED};font-size:13px;">Average plunge</td>
+        <td style="padding:6px 0;text-align:right;color:${BRAND_TEXT};font-size:13px;font-weight:600;">${formatDuration(stats.avgDurationSeconds)}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;color:${BRAND_MUTED};font-size:13px;">Average water temperature</td>
+        <td style="padding:6px 0;text-align:right;color:${BRAND_TEXT};font-size:13px;font-weight:600;">${stats.avgTemperature}°F</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;color:${BRAND_MUTED};font-size:13px;">Longest plunge</td>
+        <td style="padding:6px 0;text-align:right;color:${BRAND_TEXT};font-size:13px;font-weight:600;">${formatDuration(stats.longestDurationSeconds)}</td>
+      </tr>
+    </table>
+    <p style="color:${BRAND_DIM};font-size:11px;margin:10px 0 0;">Based on your ${stats.count} logged plunge${stats.count === 1 ? "" : "s"} across ${stats.uniqueDays} day${stats.uniqueDays === 1 ? "" : "s"} this period.</p>
+  </div>
 
   <!-- Benefits earned -->
   <div style="background:${BRAND_CARD};border-radius:12px;padding:18px;margin-bottom:20px;">
@@ -307,11 +325,6 @@ function buildReportHtml(opts: {
     </div>` : ""}
   </div>` : ""}
 
-  <!-- Motivator -->
-  <div style="border-left:3px solid ${BRAND_CYAN};padding-left:14px;margin-bottom:28px;">
-    <p style="color:${BRAND_MUTED};font-size:13px;font-style:italic;margin:0;">${motivator}</p>
-  </div>
-
   <hr style="border:none;border-top:1px solid ${BRAND_CARD};margin:0 0 20px;" />
   <p style="color:${BRAND_DIM};font-size:12px;margin:0;line-height:1.6;">
     You received this because you have a ColdStreak account.<br>
@@ -324,7 +337,7 @@ function buildReportHtml(opts: {
 
 // ─── Public report runners ────────────────────────────────────────────────────
 
-async function runReport(start: Date, end: Date, periodLabel: string, windowDays: number, isMonthly: boolean) {
+async function runReport(start: Date, end: Date, periodLabel: string, isMonthly: boolean) {
   const rows = await db
     .select({
       userId:      plunges.userId,
@@ -375,7 +388,7 @@ async function runReport(start: Date, end: Date, periodLabel: string, windowDays
     try {
       const stats   = computeStats(userPlunges);
       const bfStats = await getEmailLabStats(userId, start, end).catch(() => null);
-      const html    = buildReportHtml({ name, periodLabel, isMonthly, stats, windowDays, bfStats });
+      const html    = buildReportHtml({ name, periodLabel, stats, bfStats });
       const subj    = isMonthly
         ? `🧊 Your ColdStreak ${periodLabel} Cold Response Report`
         : `🧊 Your ColdStreak Week in Review`;
@@ -392,10 +405,10 @@ async function runReport(start: Date, end: Date, periodLabel: string, windowDays
 export async function runWeeklyReports(): Promise<void> {
   const { start, end } = prevWeekRange();
   const label = `Week of ${start.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`;
-  await runReport(start, end, label, 7, false);
+  await runReport(start, end, label, false);
 }
 
 export async function runMonthlyReports(): Promise<void> {
   const { start, end, label } = prevMonthRange();
-  await runReport(start, end, label, new Date(end.getTime() - 1).getUTCDate(), true);
+  await runReport(start, end, label, true);
 }

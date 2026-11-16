@@ -61,6 +61,9 @@ export interface PeriodStats {
   totalMinutes:   number;
   uniqueDays:     number;
   bestScore:      number;
+  avgDurationSeconds: number;
+  avgTemperature: number;
+  longestDurationSeconds: number;
   benefitCounts:  Record<string, number>;
   moodCounts:     Record<number, number>;
   energyCounts:   Record<number, number>;
@@ -204,13 +207,16 @@ export function computeStats(rows: ReportRow[]): PeriodStats {
   const moodCounts:    Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   const energyCounts:  Record<number, number> = { 1: 0, 2: 0, 3: 0 };
   const focusCounts:   Record<number, number> = { 1: 0, 2: 0, 3: 0 };
-  let totalSec = 0, moodTotal = 0, moodResponded = 0, bestScore = 0;
+  let totalSec = 0, totalTemp = 0, longestDurationSeconds = 0;
+  let moodTotal = 0, moodResponded = 0, bestScore = 0;
   let energyTotal = 0, energyResponded = 0;
   let focusTotal  = 0, focusResponded  = 0;
   const days = new Set<string>();
 
   for (const p of rows) {
     totalSec += p.duration;
+    totalTemp += p.temperature;
+    longestDurationSeconds = Math.max(longestDurationSeconds, p.duration);
     const s = parseFloat(p.score ?? "0");
     if (s > bestScore) bestScore = s;
     days.add(p.createdAt.toISOString().slice(0, 10));
@@ -234,6 +240,9 @@ export function computeStats(rows: ReportRow[]): PeriodStats {
     totalMinutes: Math.round(totalSec / 60),
     uniqueDays: days.size,
     bestScore: Math.round(bestScore * 10) / 10,
+    avgDurationSeconds: rows.length > 0 ? Math.round(totalSec / rows.length) : 0,
+    avgTemperature: rows.length > 0 ? Math.round(totalTemp / rows.length) : 0,
+    longestDurationSeconds,
     benefitCounts, moodCounts, energyCounts, focusCounts,
     moodTotal, moodResponded,
     avgMood:   moodResponded   > 0 ? Math.round((moodTotal   / moodResponded)   * 10) / 10 : null,
